@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - StudyBuddy</title>
+    <link rel="stylesheet" href="registerpage.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="full-page-container">
+        <main class="login-section">
+            <div class="form-wrapper">
+                <h1>Create Account</h1>
+                <p class="subtitle">Join <strong>StudyBuddy</strong> today and start organizing your workflow for free.</p>
+
+                <div id="signUpMessage" class="messageDiv" style="display: none;"></div>
+
+                <form id="register-form">
+                    <input type="text" id="fName" placeholder="First Name" class="input-field" required>
+
+                    <input type="text" id="lName" placeholder="Last Name" class="input-field" required>
+
+                    <input type="email" id="reg-email" placeholder="Email Address" class="input-field" required>
+                    
+                    <div class="password-wrapper" style="position: relative;">
+                        <input type="password" id="reg-password" placeholder="Password" class="input-field" required>
+                    </div>
+
+                    <div class="password-wrapper" style="position: relative;">
+                        <input type="password" id="confirm-password" placeholder="Confirm Password" class="input-field" required>
+                    </div>
+
+                    <button type="submit" class="login-btn" id="submitSignUp">Sign Up</button>
+                </form>
+
+                <div class="divider">or sign up with</div>
+
+                <div class="social-icons">
+                    <div class="icon-circle" id="google-signup">G</div>
+                    <div class="icon-circle">A</div>
+                    <div class="icon-circle">F</div>
+                </div>
+
+                <p class="footer-text">Already a member? <a href="loginpage.html">Login here</a></p>
+            </div>
+        </main>
+
+        <section class="promo-section">
+            <div class="promo-inner">
+                <div class="img-container">
+                    <img src="your-illustration.png" alt="Task Management Illustration" class="hero-img">
+                </div>
+                <h2>The smartest way to manage your studies.</h2>
+                <div class="dots">
+                    <span class="dot active"></span>
+                    <span class="dot"></span>
+                </div>
+            </div>
+        </section>
+    </div>
+    <script type="module" src="firebaseauth.js"></script>
+    <script type="module" src="registerpage.js"></script>
+</body>
+</html>

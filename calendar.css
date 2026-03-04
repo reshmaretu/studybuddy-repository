@@ -1,0 +1,356 @@
+/* ===== CALENDAR SPECIFIC STYLES ===== */
+.calendar-main {
+    padding: 14px 24px;
+    overflow-y: auto;
+}
+
+.calendar-container {
+    max-width: 100%;
+    margin: 0 auto;
+    background: var(--bg-card);
+    backdrop-filter: blur(10px);
+    border-radius: 28px;
+    border: 1px solid var(--border-color);
+    padding: 18px 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 6px 16px;
+    background: var(--bg-secondary);
+    border-radius: 30px;
+    border: 1px solid var(--border-color);
+}
+
+.calendar-header h1 {
+    font-size: 1.2rem;
+    color: var(--accent-yellow);
+}
+
+.month-nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.month-nav button {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: var(--accent-yellow);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.month-nav button:hover {
+    background: var(--border-color);
+}
+
+.month-nav span {
+    font-size: 1.2rem;
+    color: var(--accent-yellow);
+    min-width: 180px;
+    text-align: center;
+}
+
+.today-btn {
+    background: var(--border-color);
+    color: var(--text-main);
+    border: 1px solid var(--accent-teal);
+    padding: 12px 30px;
+    border-radius: 40px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.today-btn:hover {
+    background: var(--accent-teal);
+    color: #000;
+}
+
+.weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 6px;
+    padding: 0 4px;
+    text-align: center;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.calendar-day {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    min-height: 85px;
+    padding: 7px 8px;
+    position: relative;
+    transition: border-color 0.2s;
+    min-width: 0;
+}
+
+.calendar-day:hover {
+    border-color: var(--accent-teal);
+}
+
+.calendar-day.today {
+    border: 2px solid var(--accent-yellow);
+    background: var(--bg-card);
+}
+
+.calendar-day.other-month {
+    opacity: 0.35;
+}
+
+.calendar-day.drag-over-day {
+    border-color: var(--accent-teal);
+    background: rgba(20, 184, 166, 0.08);
+}
+
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 3px;
+    margin-bottom: 5px;
+}
+
+.day-number {
+    color: var(--accent-yellow);
+    font-weight: 700;
+    font-size: 0.78rem;
+}
+
+.task-count {
+    background: var(--bg-card);
+    padding: 2px 8px;
+    border-radius: 20px;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    border: 1px solid var(--border-color);
+}
+
+.day-tasks {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.calendar-task {
+    background: var(--bg-card);
+    border-radius: 5px;
+    padding: 2px 5px;
+    font-size: 0.67rem;
+    cursor: grab;
+    border-left: 2px solid var(--accent-teal);
+    color: var(--text-main);
+    user-select: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: opacity 0.2s;
+}
+
+.calendar-task.load-heavy {
+    border-left-color: #f87171;
+}
+
+.calendar-task.load-medium {
+    border-left-color: #fbbf24;
+}
+
+.calendar-task.load-light {
+    border-left-color: #4ade80;
+}
+
+.calendar-task:hover {
+    opacity: 0.8;
+}
+
+/* +N more badge */
+.cal-overflow-btn {
+    background: rgba(6, 182, 212, 0.15);
+    border: 1px dashed var(--accent-cyan);
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.2s;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cal-overflow-btn:hover {
+    background: rgba(6, 182, 212, 0.3);
+}
+
+/* Day detail popover */
+.day-popover {
+    position: fixed;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 14px;
+    min-width: 200px;
+    max-width: 260px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.day-popover.dragging-active {
+    opacity: 0.5 !important;
+}
+
+.day-popover-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 2px;
+}
+
+.day-popover .calendar-task {
+    white-space: normal;
+    flex-shrink: 0;
+}
+
+/* Unscheduled Pool */
+.task-pool-section {
+    background: var(--bg-secondary);
+    border: 2px dashed var(--border-color);
+    border-radius: 24px;
+    padding: 22px;
+    margin-top: 20px;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.task-pool-section.drag-over-pool {
+    border-color: var(--accent-teal);
+    background: rgba(20, 184, 166, 0.05);
+}
+
+.pool-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.pool-header h2 {
+    color: var(--accent-yellow);
+    font-size: 1.1rem;
+}
+
+.add-task-btn {
+    background: var(--border-color);
+    color: var(--text-main);
+    border: 1px solid var(--accent-teal);
+    padding: 10px 24px;
+    border-radius: 40px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.add-task-btn:hover {
+    background: var(--accent-teal);
+    color: #000;
+}
+
+.task-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 16px;
+    background: var(--bg-card);
+    border-radius: 18px;
+    min-height: 60px;
+}
+
+.pool-task {
+    background: var(--bg-secondary);
+    border-radius: 30px;
+    padding: 10px 20px;
+    cursor: grab;
+    border-left: 4px solid var(--accent-teal);
+    color: var(--text-main);
+    user-select: none;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    transition: opacity 0.2s;
+}
+
+.pool-task.load-heavy {
+    border-left-color: #f87171;
+}
+
+.pool-task.load-medium {
+    border-left-color: #fbbf24;
+}
+
+.pool-task.load-light {
+    border-left-color: #4ade80;
+}
+
+.pool-task:hover {
+    opacity: 0.85;
+}
+
+.pool-task-delete {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0 2px;
+    line-height: 1;
+    transition: color 0.2s;
+    flex-shrink: 0;
+}
+
+.pool-task-delete:hover {
+    color: #f87171;
+}
+
+.notification {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--bg-card);
+    color: var(--text-main);
+    padding: 15px 25px;
+    border-radius: 40px;
+    border: 2px solid var(--accent-yellow);
+    z-index: 1001;
+}

@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowState · Deep Focus Mode</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="home.css" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg-dark);
+            min-height: 100vh;
+            color: var(--text-main);
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ✨ THEME-DRIVEN BACKGROUND */
+        .flowstate-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            background: radial-gradient(circle at 50% 50%, var(--bg-card) 0%, var(--bg-dark) 100%);
+            position: relative;
+        }
+
+        .fullscreen-gate {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            transition: opacity 0.5s ease;
+        }
+
+        .distraction-blocker {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            z-index: 9998;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 30px;
+            color: var(--accent-yellow);
+            font-size: 2rem;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .distraction-blocker.active {
+            display: flex;
+        }
+
+        .flowstate-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .task-section {
+            text-align: center;
+            margin-bottom: 60px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .task-label {
+            color: var(--text-muted);
+            font-size: 1rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        /* ✨ THEME-DRIVEN GLOWS */
+        .current-task {
+            font-size: 4rem;
+            font-weight: 600;
+            color: var(--text-main);
+            line-height: 1.3;
+            text-shadow: 0 0 30px var(--timer-glow);
+            margin-bottom: 20px;
+        }
+
+        .task-metadata {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        .task-type,
+        .task-deadline {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px 20px;
+            border-radius: 40px;
+            border: 1px solid var(--border-color);
+        }
+
+        .timer-section {
+            margin-bottom: 60px;
+            text-align: center;
+        }
+
+        .timer-mode {
+            color: var(--accent-teal);
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .timer-display {
+            font-size: 12rem;
+            font-weight: 300;
+            font-family: monospace;
+            color: var(--accent-teal);
+            text-shadow: 0 0 50px var(--timer-glow);
+            line-height: 1;
+            margin-bottom: 20px;
+            letter-spacing: 10px;
+            transition: color 0.5s, text-shadow 0.5s;
+        }
+
+        .timer-progress {
+            width: 500px;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 20px auto;
+            border: 1px solid var(--border-color);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--accent-teal);
+            width: 100%;
+            transition: width 0.3s ease, background 0.5s;
+            box-shadow: 0 0 15px var(--timer-glow);
+        }
+
+        .music-player-minimal {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 60px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 100;
+            transition: 0.3s;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .music-player-minimal:hover {
+            border-color: var(--accent-teal);
+        }
+
+        .music-icon {
+            font-size: 1.5rem;
+            color: var(--accent-yellow);
+        }
+
+        .music-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .music-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: 0.2s;
+            padding: 5px;
+        }
+
+        .music-btn:hover {
+            color: var(--accent-teal);
+            transform: scale(1.1);
+        }
+
+        .current-track {
+            color: var(--text-main);
+            font-size: 0.9rem;
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 500;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .flow-btn {
+            padding: 20px 50px;
+            border-radius: 60px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .btn-complete {
+            background: var(--accent-teal);
+            color: #000;
+            border: 2px solid var(--accent-teal);
+            box-shadow: 0 0 30px var(--timer-glow);
+        }
+
+        .btn-complete:hover {
+            filter: brightness(1.2);
+            transform: scale(1.05);
+            box-shadow: 0 0 50px var(--timer-glow);
+        }
+
+        .status-item {
+            background: var(--bg-card);
+            padding: 10px 20px;
+            border-radius: 40px;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-item span {
+            color: var(--text-main);
+            font-weight: 700;
+            margin-left: 5px;
+            text-shadow: 0 0 10px var(--timer-glow);
+        }
+
+        .no-task-state {
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .return-home-btn {
+            background: var(--accent-teal);
+            color: #000;
+            font-weight: bold;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 40px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            transition: 0.2s;
+        }
+
+        .return-home-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px var(--timer-glow);
+        }
+
+        .confirm-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirm-modal.active {
+            display: flex;
+        }
+
+        .confirm-content {
+            background: var(--bg-card);
+            border-radius: 30px;
+            padding: 40px;
+            max-width: 450px;
+            width: 90%;
+            border: 2px solid var(--accent-yellow);
+            text-align: center;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .confirm-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .confirm-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 40px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-yes {
+            background: var(--accent-teal);
+            color: #000;
+        }
+
+        .btn-no {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-no:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="fullscreen-gate" id="fullscreenGate">
+        <div style="font-size: 4rem; margin-bottom: 10px;">🛡️</div>
+        <h2 style="color: var(--accent-teal); font-size: 2.5rem; margin-bottom: 15px;">Enter The Zone</h2>
+        <p id="gateWarningText"
+            style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 40px; max-width: 500px; line-height: 1.5;">
+            FlowState will maximize your screen to lock out distractions.
+        </p>
+        <button id="enterFullscreenBtn" class="flow-btn btn-complete">Begin Focus Session</button>
+        <a href="index.html" style="color: var(--text-muted); margin-top: 20px; text-decoration: none;">Wait, go
+            back</a>
+    </div>
+
+    <div class="distraction-blocker" id="distractionBlocker">
+        <div style="font-size: 4rem;">⚠️</div>
+        <h2 style="color: var(--text-main);">Stay Focused</h2>
+        <p id="blockerWarningText" style="color: var(--text-muted); font-size: 1.2rem; max-width: 600px;">
+            You're in FlowState. Return to your task to continue.
+        </p>
+    </div>
+
+    <div class="confirm-modal" id="confirmModal">
+        <div class="confirm-content">
+            <h3 id="confirmTitle" style="color: var(--accent-yellow); font-size: 2rem; margin-bottom: 15px;">Leave
+                FlowState?</h3>
+            <p id="confirmMessage" style="color: var(--text-main); font-size: 1.1rem;">Are you sure you want to leave?
+            </p>
+            <div class="confirm-buttons">
+                <button class="confirm-btn btn-yes" id="confirmYes">Yes</button>
+                <button class="confirm-btn btn-no" id="confirmNo">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="flowstate-container" id="flowstateContainer">
+
+        <div style="position: fixed; top: 20px; left: 30px; z-index: 1000;">
+            <button id="flowMenuToggleBtn"
+                style="background: var(--bg-card); backdrop-filter: blur(10px); border: 1px solid var(--accent-teal); border-radius: 40px; padding: 12px 25px; color: var(--accent-teal); font-weight: 600; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 15px var(--timer-glow); transition: 0.2s;">⚙️
+                Menu</button>
+
+            <div id="flowMenuPanel"
+                style="display: none; position: absolute; top: 60px; left: 0; background: var(--bg-card); backdrop-filter: blur(15px); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; width: 300px; box-shadow: 0 15px 40px rgba(0,0,0,0.7); flex-direction: column; gap: 15px;">
+                <div class="status-item"
+                    style="width: 100%; justify-content: space-between; display: flex; box-shadow: none;">Focus Score
+                    <span id="focusScoreDisplay">50</span>
+                </div>
+                <div class="status-item"
+                    style="width: 100%; justify-content: space-between; display: flex; box-shadow: none;">Session Time
+                    <span id="sessionTimer">00:00</span>
+                </div>
+                <div class="music-player-minimal" id="musicPlayer"
+                    style="position: static; width: 100%; justify-content: space-between; box-shadow: none;">
+                    <span class="music-icon">🎵</span>
+                    <div class="music-controls">
+                        <button class="music-btn" id="prevTrack">⏮️</button>
+                        <button class="music-btn" id="playPauseTrack">⏸️</button>
+                        <button class="music-btn" id="nextTrack">⏭️</button>
+                    </div>
+                </div>
+                <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; font-weight: bold;"
+                    id="currentTrack">Rain Palace</div>
+                <button id="triggerLeaveChumBtn"
+                    style="background: rgba(248, 113, 113, 0.1); border: 1px solid #f87171; color: #f87171; padding: 12px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; margin-top: 10px;">⬅
+                    Leave FlowState</button>
+            </div>
+        </div>
+
+        <div id="flowChumWidget" class="chum-widget" style="position: fixed; bottom: 30px; right: 30px; z-index: 1000;">
+            <div class="chum-chat-container" id="flowChumChatContainer" style="transform-origin: bottom right;">
+                <div class="chum-header">
+                    <img src="logo.png" alt="Chum" style="width: 40px; border-radius: 50%;">
+                    <div style="flex: 1;">
+                        <h3 style="color: #fff; font-size: 1rem; margin: 0;">Chum</h3><span
+                            style="color: var(--accent-teal); font-size: 0.75rem;">Watching your back</span>
+                    </div>
+                    <button id="zenModeBtn"
+                        style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size: 1.2rem; transition: 0.2s;"
+                        title="Zen Mode">👁️</button>
+                </div>
+                <div class="chum-messages" id="flowChumMessages">
+                    <div class="chum-msg chum">Deep focus activated! I'll stay perfectly quiet here unless you need me.
+                    </div>
+                </div>
+            </div>
+            <div class="chum-avatar-btn" id="flowChumAvatarBtn"
+                style="border-color: var(--accent-yellow); box-shadow: 0 0 20px rgba(250, 204, 21, 0.2);">
+                <img src="logo.png" alt="Chum">
+            </div>
+        </div>
+
+        <div class="flowstate-content" id="flowstateContent">
+            <div class="no-task-state" id="noTaskState" style="display: none;">
+                <h2 style="color: var(--accent-yellow); font-size: 2.5rem; margin-bottom: 20px;">✨ No Active Quest</h2>
+                <p style="margin-bottom: 30px;">You need an active task to enter FlowState.</p>
+                <a href="index.html" class="return-home-btn">Return to Palace</a>
+            </div>
+
+            <div id="activeTaskState" style="display: none; width: 100%;">
+                <div class="task-section" style="margin: 0 auto;">
+                    <div class="task-label">CURRENT QUEST</div>
+                    <div class="current-task" id="currentTask">Write ancient manuscript</div>
+                    <div class="task-metadata">
+                        <span class="task-type" id="taskType">Creative</span>
+                        <span class="task-deadline" id="taskDeadline">Due Mar 15</span>
+                    </div>
+                </div>
+
+                <div class="timer-section">
+                    <div class="timer-mode" id="timerMode">FOCUS TIME</div>
+                    <div class="timer-display" id="timerDisplay">25:00</div>
+                    <div class="timer-progress">
+                        <div class="progress-bar" id="progressBar" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <div class="action-buttons" style="justify-content: center;">
+                    <button class="flow-btn btn-complete" id="completeTaskBtn">✨ COMPLETE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✨ Mind-Clear Scratchpad -->
+    <button id="scratchpadToggleBtn" title="Mind-Clear Pad"
+        style="position:fixed; bottom:100px; right:30px; z-index:1001; width:52px; height:52px; border-radius:50%; background:var(--bg-card); border:1px solid var(--border-color); color:var(--text-main); font-size:1.4rem; cursor:pointer; box-shadow:0 4px 15px rgba(0,0,0,0.3); transition:0.2s; display:flex; align-items:center; justify-content:center;">📝</button>
+    <div id="mindClearPad"
+        style="display:none; position:fixed; bottom:165px; right:30px; z-index:1001; width:280px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:16px; box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+        <div
+            style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:1px;">
+            📝 Mind-Clear Pad</div>
+        <textarea id="scratchpadText" placeholder="Dump distracting thoughts here, then get back to flow..."
+            style="width:100%; min-height:120px; background:var(--bg-dark); border:1px solid var(--border-color); border-radius:8px; color:var(--text-main); padding:10px; font-family:inherit; font-size:0.85rem; resize:vertical;"></textarea>
+        <button id="saveScratchpadBtn"
+            style="margin-top:8px; width:100%; padding:8px; background:var(--accent-teal); color:#000; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:0.87rem;">Save
+            & Close</button>
+    </div>
+
+    <script src="home.js"></script>
+    <script>
+        let fsSessionData = null;
+        let fsTimer = null;
+        let fsSessionTimer = null;
+        let fsTimeLeft = 1500;
+        let fsSessionTime = 0;
+        let fsCurrentTrackIndex = 0;
+        let fsIsMusicPlaying = true;
+        let currentFsMode = 'focus';
+        let completedFsCycles = 0;
+
+        const tracks = [
+            { name: 'Rain Palace', file: 'rain.mp3' },
+            { name: 'Ocean Whispers', file: 'ocean.mp3' },
+            { name: 'Forest Night', file: 'forest.mp3' }
+        ];
+
+        // Safe Exit Helper
+        function exitFlowState() {
+            if (document.exitFullscreen && document.fullscreenElement) {
+                document.exitFullscreen().catch(e => console.log(e));
+            }
+            window.location.href = 'index.html';
+        }
+
+        function playNotification() { try { new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3').play(); } catch (e) { } }
+
+        function updateFsTimerDisplay() {
+            const mins = Math.floor(fsTimeLeft / 60);
+            const secs = fsTimeLeft % 60;
+            const display = document.getElementById('timerDisplay');
+            if (display) display.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updateTrackDisplay() {
+            const trackEl = document.getElementById('currentTrack');
+            const playEl = document.getElementById('playPauseTrack');
+            if (trackEl) trackEl.textContent = tracks[fsCurrentTrackIndex].name;
+            if (playEl) playEl.textContent = fsIsMusicPlaying ? '⏸️' : '▶️';
+        }
+
+        // Theme Helper Function
+        function getThemeColor(varName) {
+            return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || '#fff';
+        }
+
+        // 1. App Initialization & Dynamic Free/Premium Warnings
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // ✨ DYNAMIC WARNINGS BASED ON SUBSCRIPTION TIER
+            const isPremium = localStorage.getItem('isPremium') === 'true';
+            const gateText = document.getElementById('gateWarningText');
+            const blockerText = document.getElementById('blockerWarningText');
+
+            if (isPremium) {
+                if (gateText) gateText.innerHTML = "FlowState will maximize your screen to lock out distractions. Switching tabs or leaving fullscreen will damage your <strong style='color: var(--accent-yellow);'>Flow Integrity Score</strong>.";
+                if (blockerText) blockerText.textContent = "You're in FlowState. Return to your task to continue. Every distraction damages your Flow Integrity Score.";
+            } else {
+                if (gateText) gateText.innerHTML = "FlowState will maximize your screen to lock out distractions. Stay focused to maintain your <strong style='color: var(--accent-teal);'>daily streak</strong>.";
+                if (blockerText) blockerText.textContent = "You're in FlowState. Return to your task to protect your focus streak.";
+            }
+
+            // Load stats
+            let currentFocusScore = parseInt(localStorage.getItem('focusScore'));
+            if (isNaN(currentFocusScore)) currentFocusScore = 50;
+            const scoreDisplay = document.getElementById('focusScoreDisplay');
+            if (scoreDisplay) scoreDisplay.textContent = currentFocusScore;
+
+            try {
+                const savedSession = sessionStorage.getItem('flowStateSession');
+                if (savedSession) fsSessionData = JSON.parse(savedSession);
+            } catch (e) { }
+
+            // Populate the UI behind the gate
+            setTimeout(() => {
+                if (fsSessionData && fsSessionData.taskName) {
+                    const taskEl = document.getElementById('currentTask');
+                    const typeEl = document.getElementById('taskType');
+                    const deadEl = document.getElementById('taskDeadline');
+                    const activeState = document.getElementById('activeTaskState');
+
+                    if (taskEl) taskEl.textContent = fsSessionData.taskName;
+                    if (typeEl) typeEl.textContent = fsSessionData.taskLoad || 'Creative';
+                    if (fsSessionData.deadline && deadEl) deadEl.textContent = `Due ${fsSessionData.deadline}`;
+                    if (activeState) activeState.style.display = 'block';
+
+                    fsTimeLeft = (fsSessionData.sessionType === 'pomodoro' ? fsSessionData.focusMin || 25 : fsSessionData.durationMin || 25) * 60;
+                    updateFsTimerDisplay();
+                } else {
+                    const gate = document.getElementById('fullscreenGate');
+                    const noTask = document.getElementById('noTaskState');
+                    if (gate) gate.style.display = 'none';
+                    if (noTask) noTask.style.display = 'block';
+                }
+            }, 500);
+
+            updateTrackDisplay();
+            setupDistractionBlocker();
+        });
+
+        // 2. The Gate Action (User triggers Fullscreen)
+        document.getElementById('enterFullscreenBtn')?.addEventListener('click', () => {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => console.log("Fullscreen denied", err));
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            }
+
+            // Smooth fade out of the gate
+            const gate = document.getElementById('fullscreenGate');
+            if (gate) gate.style.opacity = '0';
+
+            setTimeout(() => {
+                if (gate) gate.style.display = 'none';
+                const activeState = document.getElementById('activeTaskState');
+                if (activeState) activeState.style.display = 'block';
+                startTimers(); // Start the countdown!
+            }, 500);
+        });
+
+        // 3. Engine loop (THEMED COLORS)
+        function startTimers() {
+            const modeEl = document.getElementById('timerMode');
+            if (modeEl) modeEl.textContent = fsSessionData.sessionType === 'single' ? '📜 CONTRACT MODE' : '🔥 FOCUS TIME';
+
+            // ✨ Ghost Mode activation
+            if (sessionStorage.getItem('ghostMode') === 'true') {
+                const container = document.getElementById('flowstateContainer');
+                const content = document.getElementById('flowstateContent');
+                if (container) container.classList.add('ghost-mode');
+                if (content) content.classList.add('ghost-mode');
+            }
+
+            const accentTeal = getThemeColor('--accent-teal');
+            const accentYellow = getThemeColor('--accent-yellow');
+
+            fsTimer = setInterval(() => {
+                if (fsTimeLeft > 0) {
+                    fsTimeLeft--;
+                    updateFsTimerDisplay();
+
+                    let totalTime = 1500;
+                    if (fsSessionData.sessionType === 'single') totalTime = fsSessionData.durationMin * 60;
+                    else {
+                        if (currentFsMode === 'focus') totalTime = fsSessionData.focusMin * 60;
+                        else if (currentFsMode === 'shortBreak') totalTime = fsSessionData.shortBreak * 60;
+                        else if (currentFsMode === 'longBreak') totalTime = fsSessionData.longBreak * 60;
+                    }
+
+                    const progBar = document.getElementById('progressBar');
+                    if (progBar) progBar.style.width = ((fsTimeLeft / totalTime) * 100) + '%';
+                } else {
+                    playNotification();
+                    if (fsSessionData.sessionType === 'single') {
+                        clearInterval(fsTimer);
+                        if (modeEl) modeEl.textContent = '✨ CONTRACT FULFILLED';
+                        showConfirmModal("🎯 Contract Complete", "You held your unbroken focus. Ready to return to the palace?", () => exitFlowState());
+                    } else {
+                        const progBar = document.getElementById('progressBar');
+                        const displayEl = document.getElementById('timerDisplay');
+
+                        if (currentFsMode === 'focus') {
+                            completedFsCycles++;
+                            if (completedFsCycles % fsSessionData.cycles === 0) {
+                                currentFsMode = 'longBreak';
+                                fsTimeLeft = fsSessionData.longBreak * 60;
+                                if (modeEl) { modeEl.textContent = '🛋️ LONG BREAK'; modeEl.style.color = accentYellow; }
+                            } else {
+                                currentFsMode = 'shortBreak';
+                                fsTimeLeft = fsSessionData.shortBreak * 60;
+                                if (modeEl) { modeEl.textContent = '☕ SHORT BREAK'; modeEl.style.color = accentYellow; }
+                            }
+                            if (progBar) progBar.style.background = accentYellow;
+                            if (displayEl) displayEl.style.color = accentYellow;
+                        } else {
+                            currentFsMode = 'focus';
+                            fsTimeLeft = fsSessionData.focusMin * 60;
+                            if (modeEl) { modeEl.textContent = '🔥 FOCUS TIME'; modeEl.style.color = accentTeal; }
+                            if (progBar) progBar.style.background = accentTeal;
+                            if (displayEl) displayEl.style.color = accentTeal;
+                        }
+                    }
+                }
+            }, 1000);
+
+            fsSessionTimer = setInterval(() => {
+                fsSessionTime++;
+                const mins = Math.floor(fsSessionTime / 60);
+                const secs = fsSessionTime % 60;
+                const sessTimerEl = document.getElementById('sessionTimer');
+                if (sessTimerEl) sessTimerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+                let globalSeconds = parseInt(localStorage.getItem('totalSecondsTracked')) || 0;
+                localStorage.setItem('totalSecondsTracked', globalSeconds + 1);
+
+                const currentHour = new Date().getHours();
+                let hourlyScores = JSON.parse(localStorage.getItem('hourlyFocusScores')) || {};
+                hourlyScores[currentHour] = (hourlyScores[currentHour] || 0) + 1;
+                localStorage.setItem('hourlyFocusScores', JSON.stringify(hourlyScores));
+            }, 1000);
+        }
+
+        // 4. Trackers (Tabs and Clicks)
+        function setupDistractionBlocker() {
+            const blockerUI = document.getElementById('distractionBlocker');
+
+            // Tab switch tracker
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) {
+                    if (blockerUI) blockerUI.classList.add('active');
+                    let tabs = parseInt(localStorage.getItem('tabSwitches')) || 0;
+                    localStorage.setItem('tabSwitches', tabs + 1);
+                    if (fsTimer) { clearInterval(fsTimer); fsTimer = null; }
+                } else {
+                    if (blockerUI) blockerUI.classList.remove('active');
+                    if (!fsTimer && fsTimeLeft > 0) {
+                        fsTimer = setInterval(() => {
+                            if (fsTimeLeft > 0) { fsTimeLeft--; updateFsTimerDisplay(); }
+                        }, 1000);
+                    }
+                }
+            });
+
+            // Focus break tracker (second monitor clicks)
+            window.addEventListener('blur', function () {
+                // Ignore if clicking inside Chum widget or Quick Archive
+                if (document.activeElement && (document.activeElement.closest('#flowChumWidget') || document.activeElement.closest('#chumWidget'))) return;
+                let breaks = parseInt(localStorage.getItem('focusBreaks')) || 0;
+                localStorage.setItem('focusBreaks', breaks + 1);
+            });
+
+            // Anti-cheat hotkeys
+            document.addEventListener('keydown', function (e) {
+                if (e.altKey || e.ctrlKey || e.metaKey || (e.key.startsWith('F') && !isNaN(e.key.slice(1)))) {
+                    e.preventDefault(); return false;
+                }
+            });
+            document.addEventListener('contextmenu', e => e.preventDefault());
+        }
+
+        // 5. Interactive Controls
+        document.getElementById('prevTrack')?.addEventListener('click', () => { fsCurrentTrackIndex = (fsCurrentTrackIndex - 1 + tracks.length) % tracks.length; updateTrackDisplay(); });
+        document.getElementById('nextTrack')?.addEventListener('click', () => { fsCurrentTrackIndex = (fsCurrentTrackIndex + 1) % tracks.length; updateTrackDisplay(); });
+        document.getElementById('playPauseTrack')?.addEventListener('click', () => { fsIsMusicPlaying = !fsIsMusicPlaying; updateTrackDisplay(); });
+
+        // ✨ Mind-Clear Scratchpad logic
+        (function () {
+            const toggleBtn = document.getElementById('scratchpadToggleBtn');
+            const pad = document.getElementById('mindClearPad');
+            const textArea = document.getElementById('scratchpadText');
+            const saveBtn = document.getElementById('saveScratchpadBtn');
+            if (!toggleBtn || !pad) return;
+            // Restore previous notes from sessionStorage
+            if (textArea) textArea.value = sessionStorage.getItem('mindClearNotes') || '';
+            toggleBtn.addEventListener('click', () => {
+                pad.style.display = pad.style.display === 'none' ? 'block' : 'none';
+                if (pad.style.display === 'block' && textArea) textArea.focus();
+            });
+            saveBtn?.addEventListener('click', () => {
+                if (textArea) sessionStorage.setItem('mindClearNotes', textArea.value);
+                pad.style.display = 'none';
+            });
+        })();
+
+        document.getElementById('flowMenuToggleBtn')?.addEventListener('click', () => {
+            const panel = document.getElementById('flowMenuPanel');
+            if (panel) panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+        });
+
+        const flowChumBtn = document.getElementById('flowChumAvatarBtn');
+        const flowChumContainer = document.getElementById('flowChumChatContainer');
+        flowChumBtn?.addEventListener('click', () => { if (flowChumContainer) flowChumContainer.classList.toggle('active'); });
+
+        let isZenMode = false;
+        document.getElementById('zenModeBtn')?.addEventListener('click', () => {
+            isZenMode = !isZenMode;
+            const menuBtn = document.getElementById('flowMenuToggleBtn');
+            const menuPanel = document.getElementById('flowMenuPanel');
+            if (isZenMode) {
+                if (menuBtn) { menuBtn.style.opacity = '0'; menuBtn.style.pointerEvents = 'none'; }
+                if (menuPanel) menuPanel.style.display = 'none';
+                if (flowChumBtn) flowChumBtn.style.opacity = '0';
+                if (flowChumContainer) flowChumContainer.classList.remove('active');
+            } else {
+                if (menuBtn) { menuBtn.style.opacity = '1'; menuBtn.style.pointerEvents = 'auto'; }
+                if (flowChumBtn) flowChumBtn.style.opacity = '1';
+            }
+        });
+
+        // 6. Form Completion & Safe Leaving
+        document.getElementById('completeTaskBtn')?.addEventListener('click', function () {
+            showConfirmModal('✨ Complete Quest?', 'Are you sure you want to mark this quest as complete?', function () {
+                let currentScore = parseInt(localStorage.getItem('focusScore'));
+                if (isNaN(currentScore)) currentScore = 50;
+                localStorage.setItem('focusScore', Math.min(100, currentScore + 15));
+
+                let sessions = parseInt(localStorage.getItem('totalSessions')) || 0;
+                localStorage.setItem('totalSessions', sessions + 1);
+
+                try {
+                    let activeTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+                    let completedTasks = JSON.parse(localStorage.getItem('completedTasks') || '[]');
+                    const taskIndex = activeTasks.findIndex(t => t.name === fsSessionData.taskName);
+                    if (taskIndex !== -1) {
+                        const completed = {
+                            ...activeTasks[taskIndex],
+                            completed: true,
+                            completedDate: new Date().toISOString().split('T')[0],
+                            // ✨ NEW: Log the ACTUAL cycles tracked by FlowState (minimum 1)
+                            actualPomos: Math.max(1, completedFsCycles)
+                        };
+                        completedTasks.unshift(completed);
+                        activeTasks.splice(taskIndex, 1);
+                        localStorage.setItem('tasks', JSON.stringify(activeTasks));
+                        localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+                    }
+                } catch (e) { }
+
+                exitFlowState();
+            });
+        });
+
+        document.getElementById('triggerLeaveChumBtn')?.addEventListener('click', () => {
+            const panel = document.getElementById('flowMenuPanel');
+            if (panel) panel.style.display = 'none';
+
+            if (flowChumContainer) flowChumContainer.classList.add('active');
+
+            const messagesDiv = document.getElementById('flowChumMessages');
+            if (messagesDiv) {
+                messagesDiv.insertAdjacentHTML('beforeend', `
+                    <div class="chum-msg chum" style="border: 1px solid #f87171; background: var(--bg-card); color: var(--text-main);">
+                        <strong style="color: #f87171;">Hoot! Leaving so soon?</strong><br>Are you sure you want to break focus? (Focus penalty applies).
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button id="chumConfirmLeave" style="flex: 1; padding: 8px; background: #f87171; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Yes, Leave</button>
+                            <button id="chumCancelLeave" style="flex: 1; padding: 8px; background: transparent; border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px; font-weight: bold; cursor: pointer;">Stay</button>
+                        </div>
+                    </div>`);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+                document.getElementById('chumConfirmLeave')?.addEventListener('click', () => {
+                    let currentScore = parseInt(localStorage.getItem('focusScore')) || 50;
+                    localStorage.setItem('focusScore', Math.max(0, currentScore - 10));
+                    exitFlowState();
+                });
+
+                document.getElementById('chumCancelLeave')?.addEventListener('click', () => {
+                    messagesDiv.insertAdjacentHTML('beforeend', `<div class="chum-msg user">I'll stay.</div><div class="chum-msg chum">That's the spirit! Back to work.</div>`);
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+                    const btnLeave = document.getElementById('chumConfirmLeave');
+                    const btnStay = document.getElementById('chumCancelLeave');
+                    if (btnLeave) btnLeave.disabled = true;
+                    if (btnStay) btnStay.disabled = true;
+                });
+            }
+        });
+
+        function showConfirmModal(title, message, onConfirm) {
+            const modal = document.getElementById('confirmModal');
+            if (!modal) return;
+
+            const titleEl = document.getElementById('confirmTitle');
+            const msgEl = document.getElementById('confirmMessage');
+            if (titleEl) titleEl.textContent = title;
+            if (msgEl) msgEl.textContent = message;
+
+            modal.classList.add('active');
+
+            const confirmYes = document.getElementById('confirmYes');
+            const confirmNo = document.getElementById('confirmNo');
+            if (confirmYes && confirmNo) {
+                const newConfirmYes = confirmYes.cloneNode(true);
+                const newConfirmNo = confirmNo.cloneNode(true);
+                confirmYes.parentNode.replaceChild(newConfirmYes, confirmYes);
+                confirmNo.parentNode.replaceChild(newConfirmNo, confirmNo);
+
+                newConfirmYes.addEventListener('click', function () {
+                    modal.classList.remove('active');
+                    onConfirm();
+                });
+
+                newConfirmNo.addEventListener('click', function () {
+                    modal.classList.remove('active');
+                });
+            }
+        }
+
+        window.addEventListener('beforeunload', function () {
+            if (fsTimer) clearInterval(fsTimer);
+            if (fsSessionTimer) clearInterval(fsSessionTimer);
+        });
+    </script>
+</body>
+
+</html>

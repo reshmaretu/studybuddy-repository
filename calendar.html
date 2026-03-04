@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyBuddy · Calendar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="home.css" rel="stylesheet">
+    <link href="calendar.css" rel="stylesheet">
+</head>
+
+<body class="calendar-page" data-theme="default">
+    <nav class="sidebar">
+        <div class="sidebar-top">
+            <div class="sidebar-brand" onclick="window.location.href='index.html'">
+                <div class="brand-icon">
+                    <img src="logo.png" alt="StudyBuddy Logo">
+                </div>
+                <span class="brand-text">StudyBuddy</span>
+            </div>
+
+            <a href="index.html" class="nav-item" id="navDashboard">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                        <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                        <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                        <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                    </svg></div>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            <a href="crystal-garden.html" class="nav-item" id="navGarden">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="10" r="8"></circle>
+                        <path d="M8 22h8"></path>
+                        <path d="M10 18v4"></path>
+                        <path d="M14 18v4"></path>
+                        <path d="M14 6h.01"></path>
+                        <path d="M16 8h.01"></path>
+                    </svg></div>
+                <span class="nav-text">Crystal Garden</span>
+            </a>
+            <a href="#" class="nav-item" id="sidebarFlowStateBtn">
+                <div class="nav-icon">
+                    <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2">
+                        <path d="M2 6c.6.5 1.2 1 2.5 1 1.5 0 2-.5 3.5-1s2 .5 3.5 1 2-.5 3.5-1 2 .5 3.5 1 2-.5 3.5-1">
+                        </path>
+                        <path d="M2 12c.6.5 1.2 1 2.5 1 1.5 0 2-.5 3.5-1s2 .5 3.5 1 2-.5 3.5-1 2 .5 3.5 1 2-.5 3.5-1">
+                        </path>
+                        <path d="M2 18c.6.5 1.2 1 2.5 1 1.5 0 2-.5 3.5-1s2 .5 3.5 1 2-.5 3.5-1 2 .5 3.5 1 2-.5 3.5-1">
+                        </path>
+                    </svg>
+                </div>
+                <span class="nav-text">FlowState</span>
+            </a>
+            <a href="calendar.html" class="nav-item active" id="navCalendar">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg></div>
+                <span class="nav-text">Calendar</span>
+            </a>
+            <a href="archive.html" class="nav-item" id="navArchive">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg></div>
+                <span class="nav-text">Archive</span>
+            </a>
+            <a href="insights.html" class="nav-item" id="navInsights">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <path d="M3 17l5-5 4 4 5.5-5.5"></path>
+                        <circle cx="19" cy="5" r="2.5"></circle>
+                        <path d="M21 7l2 2"></path>
+                    </svg></div>
+                <span class="nav-text">Insights</span>
+            </a>
+
+            <div style="margin-top: 30px;"></div>
+
+            <a href="account.html" class="nav-item" id="navAccount">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg></div>
+                <span class="nav-text">Account</span>
+            </a>
+            <a href="logout.html" class="nav-item" id="navLogout">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg></div>
+                <span class="nav-text">Logout</span>
+            </a>
+        </div>
+
+        <div class="sidebar-bottom">
+            <div class="avatar-container">
+                <div class="avatar"></div>
+            </div>
+        </div>
+    </nav>
+    <!-- MAIN CONTENT -->
+    <div class="main-content calendar-main">
+        <div class="calendar-container">
+            <!-- Header -->
+            <div class="calendar-header">
+                <h1>📅 Calendar</h1>
+                <div class="month-nav">
+                    <button onclick="changeMonth(-1)">←</button>
+                    <span id="currentMonthYear">March 2026</span>
+                    <button onclick="changeMonth(1)">→</button>
+                </div>
+                <button class="today-btn" onclick="goToToday()">📍 Today</button>
+            </div>
+
+            <!-- Weekdays -->
+            <div class="weekdays">
+                <div class="weekday">Sun</div>
+                <div class="weekday">Mon</div>
+                <div class="weekday">Tue</div>
+                <div class="weekday">Wed</div>
+                <div class="weekday">Thu</div>
+                <div class="weekday">Fri</div>
+                <div class="weekday">Sat</div>
+            </div>
+
+            <!-- Calendar Grid -->
+            <div class="calendar-grid" id="calendarGrid"></div>
+
+            <div class="task-pool-section"
+                ondragover="event.preventDefault(); _edgeScroll(event.clientY); this.classList.add('drag-over-pool')"
+                ondragleave="this.classList.remove('drag-over-pool')"
+                ondrop="this.classList.remove('drag-over-pool'); calDrop(event)">
+                <div class="pool-header">
+                    <h2>
+                        <span>📋</span> Unscheduled Quests
+                    </h2>
+                    <button class="add-task-btn" onclick="openModal()">+ New Quest</button>
+                </div>
+                <div class="task-pool" id="taskPool"></div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <h2>✨ Summon New Quest</h2>
+            <div class="modal-form">
+                <input type="text" id="taskInput" placeholder="Enter quest name..." maxlength="30">
+
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>Quest Load</label>
+                    <div class="type-selector" id="calendarTypeSelector">
+                        <button class="type-option" data-type="heavy">🏋️ HEAVY</button>
+                        <button class="type-option active" data-type="medium">📖 MEDIUM</button>
+                        <button class="type-option" data-type="light">☁️ LIGHT</button>
+                    </div>
+                </div>
+
+                <div class="modal-buttons" style="margin-top: 20px;">
+                    <button class="modal-btn save-btn" onclick="addTask()">Summon</button>
+                    <button class="modal-btn cancel-btn" onclick="closeModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="chumWidget" class="chum-widget">
+        <div class="chum-chat-container" id="chumChatContainer">
+            <div class="chum-header">
+                <img src="logo.png" alt="Chum">
+                <div>
+                    <h3 style="color: #fff; font-size: 1rem; margin: 0;">Chum</h3>
+                    <span style="color: var(--accent-cyan); font-size: 0.75rem;">Online (Local AI)</span>
+                </div>
+                <button id="closeChumBtn"
+                    style="background:none; border:none; color:#fff; cursor:pointer; margin-left:auto; font-size: 1.2rem;">✖</button>
+            </div>
+            <div class="chum-messages" id="chumMessages">
+                <div class="chum-msg chum">I'm Chum. Ready to crush some quests?</div>
+            </div>
+
+            <div style="padding: 0 12px;">
+                <button id="chumAddTaskBtn"
+                    style="background: var(--accent-teal); color: #000; border: none; border-radius: 12px; padding: 6px 12px; font-size: 0.85rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin-bottom: 8px; width: 100%; box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);">✨
+                    Summon New Quest</button>
+            </div>
+
+            <div class="chum-input-area">
+                <input type="text" id="chumInput" placeholder="Ask Chum for advice..." autocomplete="off">
+                <button id="sendChumBtn">➤</button>
+            </div>
+        </div>
+
+        <div class="chum-avatar-btn" id="chumAvatarBtn">
+            <img src="logo.png" alt="Chum">
+            <div class="chum-badge" id="chumBadge" style="display:none;">!</div>
+        </div>
+    </div>
+
+
+    <div class="modal" id="flowStatePrepModal">
+        <div style="display: flex; gap: 30px; max-width: 950px; width: 95%; max-height: 85vh; justify-content: center; align-items: stretch;"
+            id="fsModalWrapper">
+
+            <div class="modal-content"
+                style="flex: 1; max-width: 420px; margin: 0; display: flex; flex-direction: column; border-color: var(--accent-cyan);">
+                <h2
+                    style="color: var(--accent-cyan); display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+                    👻 Enter FlowState</h2>
+
+                <div class="modal-form" style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
+                    <div class="form-group" style="margin: 0;">
+                        <label>Target Quest</label>
+                        <div id="fsDropZone" class="fs-dropzone">
+                            ✨ Free Focus (No Quest)
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: 5px;">
+                            Click to clear and return to Free Focus</div>
+                    </div>
+
+                    <div id="contractRow"
+                        style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); transition: 0.3s;">
+                        <div>
+                            <div style="color: #fff; font-weight: 600; font-size: 0.95rem;">📜 Contract Mode</div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem;">Lock unbroken session.</div>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="contractModeToggle"><span
+                                class="slider"></span></label>
+                    </div>
+
+                    <div id="pomodoroSettingsGrid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group" style="margin:0;"><label>Focus (Min)</label><input type="number"
+                                id="fsTimerInput" value="25" min="15" max="45"></div>
+                        <div class="form-group" style="margin:0;"><label>Short Break</label><input type="number"
+                                id="fsShortBreak" value="5" min="3" max="15"></div>
+                        <div class="form-group" style="margin:0;"><label>Long Break</label><input type="number"
+                                id="fsLongBreak" value="15" min="15" max="30"></div>
+                        <div class="form-group" style="margin:0;"><label>Cycles</label><input type="number"
+                                id="fsCycles" value="4" min="2" max="6"></div>
+                    </div>
+
+                    <div id="contractLockedMessage"
+                        style="display: none; text-align: center; padding: 15px; border: 1px dashed var(--accent-cyan); border-radius: 8px; color: var(--accent-cyan);">
+                        <div style="font-size: 1.5rem;">🔒</div>
+                        <div id="contractTimeDisplay" style="font-weight: bold;">60 Minutes</div>
+                    </div>
+
+                    <div style="display: flex; gap: 15px; margin-top: auto; padding-top: 10px;">
+                        <button class="modal-btn cancel-btn" id="cancelFlowStateBtn" style="flex: 1;">Cancel</button>
+                        <button class="modal-btn save-btn" id="confirmEnterFlowState"
+                            style="flex: 2; background: var(--accent-cyan); color: #000;">Initiate Focus</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="fsRightPanel" class="fs-quest-sidebar">
+            </div>
+
+        </div>
+    </div>
+
+    <div class="modal" id="pomodoroAlertModal">
+        <div class="modal-content" style="text-align: center; max-width: 350px;">
+            <h2 id="pomodoroAlertTitle">✨ Time's Up!</h2>
+            <p id="pomodoroAlertMessage" style="color: var(--text-muted); margin: 15px 0 25px;">Ready?</p>
+            <button class="modal-btn save-btn" id="pomodoroAlertBtn" style="width: 100%;">Yes, Start</button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== UNIVERSAL GLOBAL DATA ====================
+        let currentDate = new Date();
+        let currentYear = currentDate.getFullYear();
+        let currentMonth = currentDate.getMonth();
+
+        // ⚠️ DELETED 'tasks', 'completedTasks', 'draggedTask', and 'saveToLocalStorage' 
+        // because home.js already creates them for us!
+
+        // ==================== CALENDAR FUNCTIONS ====================
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+            document.getElementById('currentMonthYear').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const prevMonthLastDate = new Date(currentYear, currentMonth, 0).getDate();
+            const today = new Date();
+
+            grid.innerHTML = '';
+
+            // Previous month days
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const day = prevMonthLastDate - i;
+                const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                renderDay(day, dateStr, true);
+            }
+
+            // Current month days
+            for (let d = 1; d <= lastDate; d++) {
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const isToday = today.getDate() === d && today.getMonth() === currentMonth && today.getFullYear() === currentYear;
+                renderDay(d, dateStr, false, isToday);
+            }
+
+            // Next month days
+            const totalCells = firstDay + lastDate;
+            const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+            for (let i = 1; i <= remainingCells; i++) {
+                const dateStr = `${currentYear}-${String(currentMonth + 2).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                renderDay(i, dateStr, true);
+            }
+
+            renderTaskPool();
+        }
+
+        function renderDay(dayNumber, dateStr, isOtherMonth, isToday = false) {
+            const grid = document.getElementById('calendarGrid');
+            const dayTasks = tasks.filter(t => t.deadline === dateStr && !t.completed);
+
+            const dayDiv = document.createElement('div');
+            dayDiv.className = `calendar-day ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}`;
+            dayDiv.setAttribute('data-date', dateStr);
+
+            dayDiv.addEventListener('dragover', (e) => { e.preventDefault(); _edgeScroll(e.clientY); dayDiv.classList.add('drag-over-day'); });
+            dayDiv.addEventListener('dragleave', () => dayDiv.classList.remove('drag-over-day'));
+            dayDiv.addEventListener('drop', (e) => { dayDiv.classList.remove('drag-over-day'); calDrop(e); });
+
+            // Show 2 quests + "+X more" in the 3rd slot when there are 4+ quests.
+            // Show all quests when there are 3 or fewer.
+            const hasOverflow = dayTasks.length > 3;
+            const MAX_VISIBLE = hasOverflow ? 2 : dayTasks.length;
+            const visibleTasks = dayTasks.slice(0, MAX_VISIBLE);
+            const overflowCount = dayTasks.length - MAX_VISIBLE; // all remaining, including the 3rd
+
+            const loadColor = (type) => type === 'heavy' ? '#f87171' : type === 'medium' ? '#fbbf24' : '#4ade80';
+            const loadClass = (type) => type === 'heavy' ? 'load-heavy' : type === 'medium' ? 'load-medium' : 'load-light';
+
+            let tasksHtml = visibleTasks.map(task => `
+                <div class="calendar-task ${loadClass(task.type)}"
+                     draggable="true"
+                     data-id="${task.id}"
+                     data-name="${task.name}"
+                     ondragstart="calDragStart(event)"
+                     ondragend="calDragEnd(event)">
+                    ${task.name}
+                </div>`).join('');
+
+            if (hasOverflow) {
+                tasksHtml += `<button class="cal-overflow-btn" onclick="openDayPopover(event, '${dateStr}')">+${overflowCount} more</button>`;
+            }
+
+            dayDiv.innerHTML = `
+                <div class="day-header">
+                    <span class="day-number">${dayNumber}</span>
+                    <span class="task-count">${dayTasks.length}</span>
+                </div>
+                <div class="day-tasks">${tasksHtml}</div>
+            `;
+            grid.appendChild(dayDiv);
+        }
+
+        // ==================== OVERFLOW POPOVER ====================
+        let activePopover = null;
+        let isDraggingFromPopover = false;
+
+        function openDayPopover(e, dateStr) {
+            e.stopPropagation();
+            closeDayPopover();
+
+            const dayTasks = tasks.filter(t => t.deadline === dateStr && !t.completed);
+            const loadClass = (type) => type === 'heavy' ? 'load-heavy' : type === 'medium' ? 'load-medium' : 'load-light';
+
+            const popover = document.createElement('div');
+            popover.className = 'day-popover';
+            popover.id = 'calDayPopover';
+            popover.innerHTML = `
+                <div class="day-popover-title">📅 ${dateStr}</div>
+                ${dayTasks.map(task => `
+                    <div class="calendar-task ${loadClass(task.type)}"
+                         draggable="true"
+                         data-id="${task.id}"
+                         data-name="${task.name}"
+                         ondragstart="isDraggingFromPopover = true; calDragStart(event);"
+                         ondragend="calDragEnd(event)">
+                        ${task.name}
+                    </div>`).join('')}
+            `;
+
+            // Append directly to the day cell so it scrolls with the page
+            const dayCell = e.target.closest('.calendar-day');
+            const dayRect = dayCell.getBoundingClientRect();
+
+            let leftPos = '0';
+            let rightPos = 'auto';
+
+            // Prevent overflowing the right edge of the screen
+            if (dayRect.left + 240 > window.innerWidth - 20) {
+                leftPos = 'auto';
+                rightPos = '0';
+            }
+
+            popover.style.cssText = `position:absolute; top: 90%; left:${leftPos}; right:${rightPos}; width:240px; max-height: 250px; overflow-y: auto; z-index:9999;`;
+            dayCell.appendChild(popover);
+            activePopover = popover;
+
+            // Ensure the day cell (and new popover) is visible in the window
+            const popoverRect = popover.getBoundingClientRect();
+            if (popoverRect.bottom > window.innerHeight) {
+                document.documentElement.scrollTop += popoverRect.bottom - window.innerHeight + 20;
+            }
+        }
+
+        function closeDayPopover() {
+            if (activePopover) { activePopover.remove(); activePopover = null; }
+        }
+
+        // ✨ When dragging FROM popover: make it transparent so you can see and drop behind it
+        document.addEventListener('dragstart', () => {
+            if (isDraggingFromPopover && activePopover) {
+                activePopover.classList.add('dragging-active');
+            }
+        });
+
+        document.addEventListener('dragend', () => {
+            if (isDraggingFromPopover) {
+                isDraggingFromPopover = false;
+                closeDayPopover();
+            } else if (activePopover) {
+                // Ensure class is removed if a drag happens but popover doesn't close
+                activePopover.classList.remove('dragging-active');
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (activePopover && !activePopover.contains(e.target) && !isDraggingFromPopover) closeDayPopover();
+        });
+
+        // ==================== SMART FLOATING POOL DROP ZONE ====================
+        const floatingPool = document.createElement('div');
+        floatingPool.id = 'calFloatingPool';
+        // Reuse Dashboard's exact bottom-dropzone styling but modified for Unschedule
+        floatingPool.className = 'bottom-dropzone hidden-bottom';
+        floatingPool.style.cssText = `
+            border-color: var(--accent-teal);
+            color: var(--accent-teal);
+            background: rgba(20, 184, 166, 0.12);
+            pointer-events: auto;
+            white-space: nowrap;
+            z-index: 9997;
+        `;
+        floatingPool.innerHTML = `
+            <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2.5" fill="none">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <span>Drop here to unschedule quest</span>
+        `;
+        document.body.appendChild(floatingPool);
+
+        floatingPool.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            _edgeScroll(e.clientY);
+            floatingPool.style.background = 'rgba(20, 184, 166, 0.28)';
+            floatingPool.style.transform = 'translateX(-50%) scale(1.03)';
+        });
+        floatingPool.addEventListener('dragleave', () => {
+            floatingPool.style.background = 'rgba(20, 184, 166, 0.12)';
+            floatingPool.style.transform = 'translateX(-50%) scale(1)';
+        });
+        floatingPool.addEventListener('drop', (e) => {
+            e.preventDefault();
+            floatingPool.style.background = 'rgba(20, 184, 166, 0.12)';
+            floatingPool.style.transform = 'translateX(-50%) scale(1)';
+            if (!calDraggedTask) return;
+            const idx = tasks.findIndex(t => t.id === calDraggedTask.id);
+            if (idx !== -1) {
+                tasks[idx].deadline = null;
+                saveToLocalStorage();
+                setTimeout(renderCalendar, 0);
+                showToast(`📋 <strong>"${calDraggedTask.name}"</strong> moved to pool.`);
+            }
+            calDraggedTask = null;
+        });
+
+        // Track pool visibility with IntersectionObserver
+        let _poolVisible = true;
+        const _poolObserver = new IntersectionObserver((entries) => {
+            _poolVisible = entries[0].isIntersecting;
+        }, { threshold: 0.1 });
+        _poolObserver.observe(document.querySelector('.task-pool-section'));
+
+        function _updateFloatingZones(isDragging, hasDeadline) {
+            const pool = document.getElementById('calFloatingPool');
+
+            if (!isDragging) {
+                if (pool) pool.className = 'bottom-dropzone hidden-bottom'; // Use CSS animation to hide
+                return;
+            }
+
+            if (pool && hasDeadline) {
+                pool.className = !_poolVisible ? 'bottom-dropzone active-bottom' : 'bottom-dropzone hidden-bottom';
+            }
+        }
+
+        function renderTaskPool() {
+            const pool = document.getElementById('taskPool');
+            const unscheduledTasks = tasks.filter(t => !t.deadline && !t.completed);
+
+            if (unscheduledTasks.length === 0) {
+                pool.innerHTML = '<div style="color: var(--text-muted); width: 100%; text-align: center; padding: 20px;">✨ No unscheduled quests. Summon some!</div>';
+                return;
+            }
+
+            const loadClass = (type) => type === 'heavy' ? 'load-heavy' : type === 'medium' ? 'load-medium' : 'load-light';
+
+            pool.innerHTML = unscheduledTasks.map(task => `
+                <div class="pool-task ${loadClass(task.type)}" 
+                     draggable="true" 
+                     data-id="${task.id}"
+                     data-name="${task.name}"
+                     ondragstart="calDragStart(event)"
+                     ondragend="calDragEnd(event)">
+                    ${task.name}
+                    <button class="pool-task-delete" onclick="event.stopPropagation(); deleteTask('${task.id}')" title="Delete">&#x2715;</button>
+                </div>
+            `).join('');
+        }
+
+        // ==================== UNIQUE CALENDAR DRAG & DROP ====================
+        let calDraggedTask = null;
+
+        function calDragStart(e) {
+            const el = e.target.closest('[data-id]') || e.target;
+            calDraggedTask = { id: el.dataset.id, name: el.dataset.name };
+            el.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', JSON.stringify(calDraggedTask));
+            const taskIndex = tasks.findIndex(t => t.id === calDraggedTask.id);
+            const hasDeadline = taskIndex !== -1 && !!tasks[taskIndex].deadline;
+            // Small delay so the drag image renders before zones appear
+            setTimeout(() => _updateFloatingZones(true, hasDeadline), 50);
+        }
+
+        function calDragEnd(e) {
+            const el = e.target.closest('[data-id]') || e.target;
+            el.classList.remove('dragging');
+            _updateFloatingZones(false, false);
+        }
+
+        let scrollInterval;
+        // Helper: edge-scroll the document when dragging near top/bottom of screen
+        function _edgeScroll(clientY) {
+            const buffer = 100;
+            const speed = 14;
+            const h = window.innerHeight;
+            clearInterval(scrollInterval);
+            if (clientY < buffer) {
+                scrollInterval = setInterval(() => document.documentElement.scrollTop -= speed, 20);
+            } else if (clientY > h - buffer) {
+                scrollInterval = setInterval(() => document.documentElement.scrollTop += speed, 20);
+            }
+        }
+
+        // Stop auto-scrolling when drag ends
+        document.addEventListener('dragend', () => clearInterval(scrollInterval));
+
+        function calDrop(e) {
+            e.preventDefault();
+            clearInterval(scrollInterval);
+            if (!calDraggedTask) return;
+
+            // Walk up the DOM — handles drops landing on child elements (.calendar-task, .day-header etc.)
+            let targetEl = e.target;
+
+            // If dropping on a popover, find the element underneath since we want the actual day cell
+            if (targetEl.closest('.day-popover')) {
+                // Temporarily hide popover to find what's underneath
+                const popover = targetEl.closest('.day-popover');
+                popover.style.visibility = 'hidden';
+                targetEl = document.elementFromPoint(e.clientX, e.clientY);
+                popover.style.visibility = '';
+            }
+
+            const dayCell = targetEl ? targetEl.closest('.calendar-day') : null;
+            const poolArea = targetEl ? targetEl.closest('.task-pool-section') : null;
+            const taskIndex = tasks.findIndex(t => t.id === calDraggedTask.id);
+
+            if (taskIndex !== -1) {
+                if (dayCell) {
+                    const date = dayCell.dataset.date;
+                    // Always update (even same day) to close popover cleanly
+                    tasks[taskIndex].deadline = date;
+                    saveToLocalStorage();
+                    setTimeout(renderCalendar, 0);
+                    showToast(`Got it! <strong>"${calDraggedTask.name}"</strong> locked in for ${date}.`);
+                    if (typeof interactWithChum === 'function') {
+                        interactWithChum(`User scheduled '${calDraggedTask.name}' for ${date}. Great planning step!`, true);
+                    }
+                } else if (poolArea) {
+                    tasks[taskIndex].deadline = null;
+                    saveToLocalStorage();
+                    setTimeout(renderCalendar, 0);
+                    showToast(`Moved <strong>"${calDraggedTask.name}"</strong> back to unscheduled pool.`);
+                }
+            }
+            calDraggedTask = null;
+        }
+
+        // ==================== TASK MANAGEMENT ====================
+        function openModal() { document.getElementById('taskModal').classList.add('active'); }
+        function closeModal() { document.getElementById('taskModal').classList.remove('active'); document.getElementById('taskInput').value = ''; }
+
+        // Modal Type Selector
+        document.querySelectorAll('#calendarTypeSelector .type-option').forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelectorAll('#calendarTypeSelector .type-option').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        function addTask() {
+            const name = document.getElementById('taskInput').value.trim();
+            if (!name) {
+                showToast("What should we call this quest? Don't leave the name blank!");
+                return;
+            }
+
+            const activeType = document.querySelector('#calendarTypeSelector .type-option.active');
+            const load = activeType ? activeType.dataset.type : 'medium';
+
+            const newTask = {
+                id: 'task_' + Date.now(),
+                name: name,
+                type: load,
+                deadline: null, // Forces to Unscheduled Pool
+                completed: false
+            };
+
+            tasks.push(newTask);
+            saveToLocalStorage();
+            renderCalendar();
+            closeModal();
+            showToast(`✨ Quest "${name}" added to pool`);
+
+            if (typeof interactWithChum === 'function') {
+                interactWithChum(`The user just summoned a new ${load} quest called '${name}' directly into their calendar's unscheduled pool. Tell them it's ready to be placed on a date!`, true);
+            }
+        }
+
+        // ==================== NAVIGATION ====================
+        function changeMonth(delta) {
+            currentMonth += delta;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            } else if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar();
+        }
+
+        function goToToday() {
+            currentDate = new Date();
+            currentYear = currentDate.getFullYear();
+            currentMonth = currentDate.getMonth();
+            renderCalendar();
+        }
+
+        // ==================== INIT ====================
+        document.addEventListener('DOMContentLoaded', renderCalendar);
+
+        // ==================== LIVE TAB SYNC ====================
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'tasks' || e.key === 'completedTasks') {
+                // Fetch fresh data
+                tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+                completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || [];
+
+                // Instantly update the calendar and task pool
+                setTimeout(renderCalendar, 0);
+            }
+        });
+
+    </script>
+    <script src="home.js"></script>
+</body>
+
+</html>

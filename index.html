@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyBuddy - Home</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="home.css" rel="stylesheet">
+</head>
+
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-top">
+            <div class="sidebar-brand" onclick="window.location.href='index.html'">
+                <div class="brand-icon">
+                    <img src="resources/image/logo1.jpg" alt="StudyBuddy">
+                </div>
+                <span class="brand-text">StudyBuddy</span>
+            </div>
+
+            <a href="index.html" class="nav-item active" id="navDashboard">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                        <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                        <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                        <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                    </svg></div>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            <a href="crystal-garden.html" class="nav-item" id="navGarden">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="10" r="8"></circle>
+                        <path d="M8 22h8"></path>
+                        <path d="M10 18v4"></path>
+                        <path d="M14 18v4"></path>
+                        <path d="M14 6h.01"></path>
+                        <path d="M16 8h.01"></path>
+                    </svg></div>
+                <span class="nav-text">Crystal Garden</span>
+            </a>
+            <a href="#" class="nav-item" id="sidebarFlowStateBtn">
+                <div class="nav-icon">
+                    <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2">
+                        <path d="M2 6c.6.5 1.2 1 2.5 1 1.5 0 2-.5 3.5-1s2 .5 3.5 1 2-.5 3.5-1 2 .5 3.5 1 2-.5 3.5-1">
+                        </path>
+                        <path d="M2 12c.6.5 1.2 1 2.5 1 1.5 0 2-.5 3.5-1s2 .5 3.5 1 2-.5 3.5-1 2 .5 3.5 1 2-.5 3.5-1">
+                        </path>
+                        <path d="M2 18c.6.5 1.2 1 2.5 1 1.5 0 2-.5 3.5-1s2 .5 3.5 1 2-.5 3.5-1 2 .5 3.5 1 2-.5 3.5-1">
+                        </path>
+                    </svg>
+                </div>
+                <span class="nav-text">FlowState</span>
+            </a>
+            <a href="calendar.html" class="nav-item" id="navCalendar">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg></div>
+                <span class="nav-text">Calendar</span>
+            </a>
+            <a href="archive.html" class="nav-item" id="navArchive">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg></div>
+                <span class="nav-text">Archive</span>
+            </a>
+            <a href="insights.html" class="nav-item" id="navInsights">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <path d="M3 17l5-5 4 4 5.5-5.5"></path>
+                        <circle cx="19" cy="5" r="2.5"></circle>
+                        <path d="M21 7l2 2"></path>
+                    </svg></div>
+                <span class="nav-text">Insights</span>
+            </a>
+
+            <div style="margin-top: 30px;"></div>
+
+            <a href="account.html" class="nav-item" id="navAccount">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg></div>
+                <span class="nav-text">Account</span>
+            </a>
+            <a href="logout.html" class="nav-item" id="navLogout">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg></div>
+                <span class="nav-text">Logout</span>
+            </a>
+        </div>
+
+        <div class="sidebar-bottom">
+            <div class="avatar-container">
+                <div class="avatar"></div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="header">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <h1 id="greetingMessage" style="margin: 0;">Good Morning, aihpoS!</h1>
+
+                <div id="liveClock" style="display: flex; align-items: baseline; gap: 10px;">
+                    <span id="clockTime"
+                        style="font-size: 1.5rem; font-weight: 700; color: var(--text-main);">--:--</span>
+                    <span id="clockDate"
+                        style="font-size: 0.8rem; font-weight: 700; color: var(--accent-teal); text-transform: uppercase; letter-spacing: 1px;">-</span>
+                </div>
+            </div>
+
+            <div style="position: relative;">
+                <div class="bell-icon" id="notificationBell" style="position: relative; cursor: pointer; padding: 5px;">
+                    <svg viewBox="0 0 24 24" width="26" height="26" stroke="currentColor" stroke-width="2" fill="none">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <span id="notifBadge"
+                        style="display:none; position:absolute; top:-2px; right:-2px; background:#fca5a5; color:#000; font-size:11px; width:18px; height:18px; border-radius:50%; text-align:center; line-height:18px; font-weight:bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">0</span>
+                </div>
+
+                <div id="notifDropdown"
+                    style="display:none; position:absolute; top:45px; right:0; width:340px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.6); z-index:1000; padding:20px;">
+                    <h3
+                        style="margin-bottom:15px; font-size:1rem; color: #fff; border-bottom:1px solid var(--border-color); padding-bottom:10px;">
+                        Chum's Radar</h3>
+                    <div id="notifList"
+                        style="display:flex; flex-direction:column; gap:12px; max-height:350px; overflow-y:auto;">
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="sparks-feed stitch-card"
+            style="margin-bottom: 25px; padding: 15px 30px; min-height: 80px; display: flex; flex-direction: column; justify-content: center;">
+            <p id="sparksQuote"
+                style="font-size: 0.95rem; font-style: italic; color: var(--text-main); text-align: center; margin: 0;">
+                "Sometimes it's okay to let your mind wander, but for now, keep creating a peaceful space that fosters
+                focus and calm thoughts."
+            </p>
+            <p id="sparksAuthor"
+                style="text-align: center; font-size: 0.75rem; color: var(--accent-teal); margin-top: 8px; font-weight: 600;">
+                — Chum</p>
+        </div>
+
+        <section class="widgets-row">
+            <div class="timer-card"
+                style="flex-direction: row; justify-content: space-between; padding: 20px 25px; gap: 20px;">
+
+                <div
+                    style="position: relative; width: 145px; height: 95px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;">
+                    <svg viewBox="0 0 100 55"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible;">
+                        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="rgba(255,255,255,0.05)"
+                            stroke-width="12" stroke-linecap="round" />
+                        <path id="focusGaugePath" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#ffd966"
+                            stroke-width="12" stroke-linecap="round" stroke-dasharray="125.6" stroke-dashoffset="62.8"
+                            style="transition: stroke-dashoffset 1s ease-out, stroke 0.5s;" />
+                    </svg>
+                    <div
+                        style="position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; transform: translateY(8px);">
+                        <span
+                            style="font-size: 2.8rem; font-weight: 700; color: #ffd966; font-family: monospace; line-height: 1;"
+                            id="dashboardFocusScore">50</span>
+                        <span
+                            style="color: #8fc1b5; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;">Focus
+                            Score</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; justify-content: center; gap: 12px; flex: 1;">
+
+                    <div
+                        style="display: flex; align-items: center; justify-content: center; gap: 8px; padding-bottom: 2px;">
+                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="#ffffff" stroke-width="2" fill="none"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z">
+                            </path>
+                        </svg>
+                        <span style="color: #e0f7f0; font-weight: 600; font-size: 1.1rem;"><span
+                                id="dashboardStreak">0</span> Streak</span>
+                    </div>
+
+                    <button id="quickFlowStateBtn" class="btn-card"
+                        style="width: 100%; padding: 10px; min-height: 42px; background: #244b44; border: 1px solid #3d6b63; color: #e0f7f0; font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
+                            fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M2 6c.6.5 1.2 1 2.5 1 1.5 0 2-.5 3.5-1s2 .5 3.5 1 2-.5 3.5-1 2 .5 3.5 1 2-.5 3.5-1">
+                            </path>
+                            <path
+                                d="M2 12c.6.5 1.2 1 2.5 1 1.5 0 2-.5 3.5-1s2 .5 3.5 1 2-.5 3.5-1 2 .5 3.5 1 2-.5 3.5-1">
+                            </path>
+                            <path
+                                d="M2 18c.6.5 1.2 1 2.5 1 1.5 0 2-.5 3.5-1s2 .5 3.5 1 2-.5 3.5-1 2 .5 3.5 1 2-.5 3.5-1">
+                            </path>
+                        </svg>
+                        FlowState
+                    </button>
+                </div>
+
+            </div>
+
+            <div class="timer-card" id="brainResetQuick"
+                style="flex-direction: column; justify-content: center; position: relative; cursor: pointer; transition: all 0.4s ease;">
+
+                <div id="brainResetGlow"
+                    style="position: absolute; inset: 0; border-radius: 16px; background: radial-gradient(circle at center, rgba(255, 217, 102, 0.15) 0%, transparent 70%); opacity: 0; transition: opacity 0.5s; pointer-events: none;">
+                </div>
+
+                <div id="brainResetBadge"
+                    style="position: absolute; top: -10px; right: -10px; background: #f87171; color: #fff; width: 24px; height: 24px; border-radius: 50%; font-size: 0.85rem; font-weight: 900; display: flex; align-items: center; justify-content: center; opacity: 0; box-shadow: 0 0 15px rgba(248, 113, 113, 0.6); pointer-events: none; z-index: 10;">
+                    !
+                </div>
+
+                <svg id="brainSvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                    style="width: 65px; height: 65px; stroke: var(--accent-teal); margin-bottom: 15px; transition: 0.3s; z-index: 2; position: relative;">
+                    <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z">
+                    </path>
+                    <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z">
+                    </path>
+                    <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path>
+                    <path d="M17.599 6.5a3 3 0 0 0 .399-1.375"></path>
+                    <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"></path>
+                    <path d="M3.477 10.896a4 4 0 0 1 .585-.396"></path>
+                    <path d="M19.938 10.5a4 4 0 0 1 .585.396"></path>
+                    <path d="M6 18a4 4 0 0 1-1.967-.516"></path>
+                    <path d="M19.967 17.484A4 4 0 0 1 18 18"></path>
+                </svg>
+                <div id="brainTitleText"
+                    style="color: var(--text-main); font-weight: 600; font-size: 1.2rem; z-index: 2; position: relative; transition: 0.3s;">
+                    Brain Reset</div>
+                <div id="brainSubText"
+                    style="color: var(--text-muted); font-size: 0.85rem; margin-top: 5px; z-index: 2; position: relative; transition: 0.3s;">
+                    2-min meditation</div>
+            </div>
+
+            <div class="timer-card">
+                <div class="timer-wrapper">
+                    <svg class="timer-circle" viewBox="0 0 120 120">
+                        <circle class="timer-circle-bg" cx="60" cy="60" r="54"></circle>
+                        <circle class="timer-circle-progress" id="timerProgress" cx="60" cy="60" r="54"></circle>
+                    </svg>
+                    <div class="timer-text" id="timerDisplay">25:00</div>
+                </div>
+
+                <div class="timer-controls">
+                    <button class="timer-btn" id="timerSettingsBtn" title="Settings">
+                        <svg viewBox="0 0 24 24" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                            </path>
+                        </svg>
+                    </button>
+                    <button class="timer-btn" id="playPauseBtn" title="Play/Pause">
+                        <svg viewBox="0 0 24 24" id="playIcon" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                        </svg>
+                        <svg viewBox="0 0 24 24" id="pauseIcon" style="display:none;" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="10" y1="15" x2="10" y2="9"></line>
+                            <line x1="14" y1="15" x2="14" y2="9"></line>
+                        </svg>
+                    </button>
+                    <div
+                        style="display: flex; flex-direction: column; gap: 8px; margin-top: 15px; border-top: 1px dashed #3d6b63; padding-top: 15px;">
+                        <button id="devSkipTime"
+                            style="background: rgba(255, 0, 0, 0.2); border: 1px solid red; color: white; padding: 5px; border-radius: 5px; font-size: 0.75rem; cursor: pointer;">Skip
+                            to 3s</button>
+                        <button id="devAddSession"
+                            style="background: rgba(255, 217, 102, 0.2); border: 1px solid #ffd966; color: white; padding: 5px; border-radius: 5px; font-size: 0.75rem; cursor: pointer;">+1
+                            Session</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Focus Pet Card -->
+            <div class="timer-card" id="focusPetCard">
+                <div id="petEmoji">🌱</div>
+                <div id="petStatus">Growing</div>
+                <div id="petDesc">Complete a session to grow together.</div>
+            </div>
+
+        </section>
+
+        <div class="modal" id="timerSettingsModal">
+            <div class="modal-content">
+                <h2>⚙️ Timer Settings</h2>
+                <div class="modal-form">
+                    <div class="form-group"><label>Focus Duration</label><input type="number" id="focusDuration"
+                            value="25" min="15" max="45"></div>
+                    <div class="form-group"><label>Short Break</label><input type="number" id="shortBreakDuration"
+                            value="5" min="3" max="15"></div>
+                    <div class="form-group"><label>Long Break</label><input type="number" id="longBreakDuration"
+                            value="15" min="15" max="30"></div>
+                    <div class="form-group"><label>Cycles before long break</label><input type="number"
+                            id="cyclesBeforeLong" value="4" min="2" max="6"></div>
+                    <div class="modal-buttons">
+                        <button class="modal-btn save-btn" id="saveTimerSettings">Save</button>
+                        <button class="modal-btn cancel-btn" id="cancelTimerSettings">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-header">
+            <h2>Active Quests</h2>
+            <div class="date-badge" id="currentDateDisplay">🗓️</div>
+        </div>
+
+        <div class="quests-grid" id="activeQuestsGrid"></div>
+
+        <div class="progress-box">
+            <h2>Quest Progress</h2>
+            <div class="stats-row">
+                <div>
+                    <div class="stat-val" id="activeCount">0</div>
+                    <div class="stat-label">Active</div>
+                </div>
+                <div>
+                    <div class="stat-val" id="completedCount">0</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div>
+                    <div class="stat-val" id="totalHours">0</div>
+                    <div class="stat-label">Hours</div>
+                </div>
+            </div>
+            <div class="completed-list" id="completedQuestsList"></div>
+        </div>
+
+        <div class="modal" id="addTaskModal">
+            <div class="modal-content">
+                <h2>✨ Summon New Quest</h2>
+                <div class="modal-form">
+                    <input type="text" id="taskNameInput" placeholder="Quest name...">
+                    <div class="form-group">
+                        <label>Quest Type</label>
+                        <div class="type-selector" id="modalTypeSelector">
+                            <button class="type-option" data-type="heavy">🏋️ HEAVY</button>
+                            <button class="type-option active" data-type="medium">📖 MEDIUM</button>
+                            <button class="type-option" data-type="light">☁️ LIGHT</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Estimated Pomodoros (25m each)</label>
+                        <input type="number" id="taskEstPomosInput" value="2" min="1" max="20" style="width: 100%;">
+                    </div>
+
+                    <div class="form-group"><label>Due Date</label><input type="date" id="taskDateInput"></div>
+                    <div class="modal-buttons">
+                        <button class="modal-btn save-btn" id="saveTaskBtn">Add Quest</button>
+                        <button class="modal-btn cancel-btn" id="cancelTaskBtn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+        <div class="modal" id="brainResetModal">
+            <div class="modal-content" style="max-width: 450px; text-align: center; border-color: #ffd966;">
+                <div style="font-size: 3rem; margin-bottom: 10px;">🧠</div>
+                <h2 style="color: #ffd966; margin-bottom: 10px;">Brain Reset</h2>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">
+                    Chum suggests a 2-minute breathing break to clear mental fog.
+                </p>
+
+                <div id="meditationCircle" class="timer-circle"
+                    style="width: 150px; height: 150px; margin: 0 auto 25px; border: 4px solid #ffd966; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; transition: transform 4s ease-in-out;">
+                    <div id="meditationCountdown" style="font-size: 2rem; font-weight: bold; color: var(--text-main);">
+                        02:00</div>
+                </div>
+
+                <div style="display: flex; gap: 15px;">
+                    <button class="modal-btn cancel-btn" onclick="closeMeditation()" style="flex: 1;">Maybe
+                        Later</button>
+                    <button class="modal-btn save-btn" id="startMeditationBtn"
+                        style="flex: 2; background: #ffd966; color: #1a3330; font-weight: bold;">Begin Reset</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast" id="toast">Task completed! 🎯</div>
+
+    <div class="drag-overlay" id="dragOverlay"></div>
+    <div class="bottom-dropzone hidden-bottom" id="bottomDropZone" ondragover="handleDragOver(event)"
+        ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+        <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2.5" fill="none">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <span>Drop here to complete quest</span>
+    </div>
+
+    <div class="modal" id="flowStatePrepModal">
+        <div style="display: flex; gap: 30px; max-width: 950px; width: 95%; max-height: 85vh; justify-content: center; align-items: stretch;"
+            id="fsModalWrapper">
+
+            <div class="modal-content"
+                style="flex: 1; max-width: 420px; margin: 0; display: flex; flex-direction: column; border-color: var(--accent-cyan);">
+                <h2
+                    style="color: var(--accent-cyan); display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+                    👻 Enter FlowState</h2>
+
+                <div class="modal-form" style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
+                    <div class="form-group" style="margin: 0;">
+                        <label>Target Quest</label>
+                        <div id="fsDropZone" class="fs-dropzone">
+                            ✨ Free Focus (No Quest)
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: 5px;">
+                            Click to clear and return to Free Focus</div>
+                    </div>
+
+                    <div id="contractRow"
+                        style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); transition: 0.3s;">
+                        <div>
+                            <div style="color: #fff; font-weight: 600; font-size: 0.95rem;">📜 Contract Mode</div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem;">Lock unbroken session.</div>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="contractModeToggle"><span
+                                class="slider"></span></label>
+                    </div>
+
+                    <div id="pomodoroSettingsGrid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group" style="margin:0;"><label>Focus (Min)</label><input type="number"
+                                id="fsTimerInput" value="25" min="15" max="45"></div>
+                        <div class="form-group" style="margin:0;"><label>Short Break</label><input type="number"
+                                id="fsShortBreak" value="5" min="3" max="15"></div>
+                        <div class="form-group" style="margin:0;"><label>Long Break</label><input type="number"
+                                id="fsLongBreak" value="15" min="15" max="30"></div>
+                        <div class="form-group" style="margin:0;"><label>Cycles</label><input type="number"
+                                id="fsCycles" value="4" min="2" max="6"></div>
+                    </div>
+
+                    <div id="contractLockedMessage"
+                        style="display: none; text-align: center; padding: 15px; border: 1px dashed var(--accent-cyan); border-radius: 8px; color: var(--accent-cyan);">
+                        <div style="font-size: 1.5rem;">🔒</div>
+                        <div id="contractTimeDisplay" style="font-weight: bold;">60 Minutes</div>
+                    </div>
+
+                    <div style="display: flex; gap: 15px; margin-top: auto; padding-top: 10px;">
+                        <button class="modal-btn cancel-btn" id="cancelFlowStateBtn" style="flex: 1;">Cancel</button>
+                        <button class="modal-btn save-btn" id="confirmEnterFlowState"
+                            style="flex: 2; background: var(--accent-cyan); color: #000;">Initiate Focus</button>
+                    </div>
+                </div>
+            </div>
+            <div id="fsRightPanel" class="fs-quest-sidebar">
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="pomodoroAlertModal">
+        <div class="modal-content" style="text-align: center; max-width: 350px;">
+            <h2 id="pomodoroAlertTitle">✨ Time's Up!</h2>
+            <p id="pomodoroAlertMessage" style="color: var(--text-muted); margin: 15px 0 25px;">Ready for the next
+                session?</p>
+            <button class="modal-btn save-btn" id="pomodoroAlertBtn" style="width: 100%;">Yes, Start</button>
+        </div>
+    </div>
+
+    <div id="chumWidget" class="chum-widget">
+        <div class="chum-chat-container" id="chumChatContainer">
+            <div class="chum-header">
+                <img src="resources/image/logo2.png" alt="Chum">
+                <div>
+                    <h3 style="color: #fff; font-size: 1rem; margin: 0;">Chum</h3>
+                    <span style="color: var(--accent-cyan); font-size: 0.75rem;">Online</span>
+                </div>
+                <button id="closeChumBtn"
+                    style="background:none; border:none; color:#fff; cursor:pointer; margin-left:auto; font-size: 1.2rem;">✖</button>
+            </div>
+            <div class="chum-messages" id="chumMessages">
+                <div class="chum-msg chum">I'm Chum. Ready to crush some quests?</div>
+            </div>
+
+            <div style="padding: 0 12px;">
+                <button id="chumAddTaskBtn"
+                    style="background: var(--accent-teal); color: #000; border: none; border-radius: 12px; padding: 6px 12px; font-size: 0.85rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin-bottom: 8px; width: 100%; box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);">✨
+                    Summon New Quest</button>
+            </div>
+
+            <div class="chum-input-area">
+                <input type="text" id="chumInput" placeholder="Ask Chum for advice..." autocomplete="off">
+                <button id="sendChumBtn">➤</button>
+            </div>
+        </div>
+
+        <div class="chum-avatar-btn" id="chumAvatarBtn">
+            <img src="resources/image/logo2.png" alt="Chum">
+            <div class="chum-badge" id="chumBadge" style="display:none;">!</div>
+        </div>
+    </div>
+
+    <div class="modal" id="stressLogModal">
+        <div class="modal-content" style="max-width: 450px; text-align: center;">
+            <h2 style="color: #fff; margin-bottom: 10px;">Quest Completed! 🎉</h2>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">How mentally draining was this task?</p>
+
+            <div class="stress-btn-group">
+                <button class="stress-btn low" onclick="finalizeQuestCompletion('Low')"><span>☁️</span> Low</button>
+                <button class="stress-btn med" onclick="finalizeQuestCompletion('Medium')"><span>📖</span> Med</button>
+                <button class="stress-btn high" onclick="finalizeQuestCompletion('High')"><span>🔥</span> High</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="home.js"></script>
+
+</body>
+
+</html>

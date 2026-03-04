@@ -1,0 +1,220 @@
+/* ===== STUDYBUDDY DESIGN SYSTEM ===== */
+:root {
+    --bg-dark: #101918;
+    --bg-sidebar: #0b1211;
+    --bg-card: #152926;
+    --border-color: #243f3a;
+    --text-main: #e0f0e8;
+    --text-muted: #89a8a1;
+    --accent-teal: #14b8a6;
+    --accent-cyan: #06b6d4;
+    --accent-yellow: #facc15;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body, html {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+}
+
+.full-page-container {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* --- Left Section (The Form) --- */
+.login-section {
+    flex: 1;
+    background-color: var(--bg-sidebar);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 60px;
+    border-right: 1px solid var(--border-color);
+}
+
+.form-wrapper {
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+h1 {
+    font-size: 2.8rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-main);
+}
+
+.subtitle {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.subtitle strong {
+    color: var(--accent-teal);
+}
+
+/* --- Styled Inputs --- */
+.input-field {
+    width: 100%;
+    padding: 16px 22px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px; /* Matching the Quest Cards */
+    margin-bottom: 15px;
+    font-size: 1rem;
+    color: var(--text-main);
+    outline: none;
+    transition: 0.3s;
+}
+
+.input-field:focus {
+    border-color: var(--accent-teal);
+    box-shadow: 0 0 10px rgba(20, 184, 166, 0.2);
+}
+
+.input-field::placeholder {
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+/* --- Action Button --- */
+.login-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent-teal);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-top: 10px;
+}
+
+.login-btn:hover {
+    background: var(--accent-cyan);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+}
+
+/* --- Social Icons --- */
+.divider {
+    margin: 30px 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.social-icons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.icon-circle {
+    width: 50px;
+    height: 50px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.icon-circle:hover {
+    border-color: var(--accent-teal);
+    color: var(--accent-teal);
+}
+
+.footer-text {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.footer-text a {
+    color: var(--accent-cyan);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+/* --- Right Section (The Promo) --- */
+.promo-section {
+    flex: 1.2;
+    background-color: var(--bg-dark);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Background Blur Accent (Matching the dashboard style) */
+.promo-section::before {
+    content: '';
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: var(--accent-teal);
+    filter: blur(150px);
+    opacity: 0.15;
+    top: 20%;
+    right: 10%;
+}
+
+.promo-inner {
+    text-align: center;
+    max-width: 500px;
+    z-index: 1;
+}
+
+.promo-inner h2 {
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-top: 40px;
+    line-height: 1.3;
+}
+
+.dot.active {
+    width: 24px;
+    background: var(--accent-teal);
+    border-radius: 10px;
+}
+
+/* Error/Success Messages */
+.messageDiv {
+    background-color: rgba(248, 113, 113, 0.2);
+    border: 1px solid #f87171;
+    color: #f87171;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+}
+
+/* Mobile Responsiveness remains largely the same but with theme colors */
+@media (max-width: 900px) {
+    body, html { overflow: auto; }
+    .full-page-container { flex-direction: column; height: auto; }
+    .login-section { background-color: var(--bg-dark); }
+}
