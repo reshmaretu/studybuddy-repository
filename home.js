@@ -81,7 +81,7 @@ async function routeAICall(systemPrompt, userMessages, stream = false) {
             try {
                 // ✨ Abort after 6s — prevents "Vibing" deadlock when Gemini is slow
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 6000);
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
 
                 // Fetch securely from our Vercel middleman
                 const response = await fetch('/api/ask-ai', {
@@ -124,7 +124,7 @@ async function routeAICall(systemPrompt, userMessages, stream = false) {
     if (AI_CONFIG.ENABLE_CLOUD_TIER) {
         try {
             const groqController = new AbortController();
-            const groqTimeout = setTimeout(() => groqController.abort(), 8000);
+            const groqTimeout = setTimeout(() => groqController.abort(), 15000);
 
             const response = await fetch('/api/ask-ai', {
                 method: 'POST',
@@ -156,7 +156,7 @@ async function routeAICall(systemPrompt, userMessages, stream = false) {
     if (AI_CONFIG.ENABLE_CLOUD_TIER) {
         try {
             const orController = new AbortController();
-            const orTimeout = setTimeout(() => orController.abort(), 8000);
+            const orTimeout = setTimeout(() => orController.abort(), 15000);
 
             const response = await fetch('/api/ask-ai', {
                 method: 'POST',
