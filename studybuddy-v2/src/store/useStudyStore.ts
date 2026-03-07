@@ -53,6 +53,7 @@ interface StudyState {
 
     // Actions
     addTask: (task: Omit<Task, 'id' | 'isCompleted'>) => void;
+    deleteTask: (id: string) => void; // 👈 ADD THIS LINE
     updateTask: (id: string, updates: Partial<Task>) => void;
     completeTask: (id: string) => void;
     toggleTimer: () => void;
@@ -107,6 +108,13 @@ export const useStudyStore = create<StudyState>()(
             addTask: (task) => set((state) => ({
                 tasks: [...state.tasks, { ...task, id: Date.now().toString(), isCompleted: false }]
             })),
+
+            // 👈 ADD THIS BLOCK
+            deleteTask: (id) => set((state) => ({
+                tasks: state.tasks.filter((t) => t.id !== id)
+            })),
+            // ------------------
+
             updateTask: (id, updates) => set((state) => ({
                 tasks: state.tasks.map(t => t.id === id ? { ...t, ...updates } : t)
             })),
