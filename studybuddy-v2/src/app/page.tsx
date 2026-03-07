@@ -6,6 +6,7 @@ import { useStudyStore, Task } from "@/store/useStudyStore";
 import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay } from "@dnd-kit/core";
 import { AnimatePresence, motion } from "framer-motion";
 import TaskCard from "@/components/TaskCard";
+import { redirect } from "next/navigation";
 
 // The Magical Drop Zone Component
 function CompletionDropZone() {
@@ -31,6 +32,7 @@ function CompletionDropZone() {
 }
 
 export default function Dashboard() {
+  redirect("/dashboard");
   const [time, setTime] = useState(new Date());
 
   // THE FIX: We exclusively use activeDragTask now!
@@ -280,7 +282,7 @@ export default function Dashboard() {
 
         {/* The Floating Drag Visualizer */}
         <DragOverlay dropAnimation={null}>
-          {activeDragTask ? <TaskCard task={activeDragTask} isOverlay /> : null}
+          {activeDragTask ? <TaskCard task={activeDragTask as Task} isOverlay /> : null}
         </DragOverlay>
 
       </div>
