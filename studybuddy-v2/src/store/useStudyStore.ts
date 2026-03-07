@@ -1,11 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// 1. ADD THIS LINE: Explicitly export the TaskLoad type
+export type TaskLoad = 'light' | 'medium' | 'heavy';
+
 export interface Task {
     id: string;
     title: string;
     description?: string;
-    load: 'light' | 'medium' | 'heavy';
+    // 2. USE IT HERE
+    load: TaskLoad;
     deadline?: string;
     isCompleted: boolean;
     isPinned?: boolean;
