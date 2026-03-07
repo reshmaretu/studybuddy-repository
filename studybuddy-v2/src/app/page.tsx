@@ -32,7 +32,6 @@ function CompletionDropZone() {
 }
 
 export default function Dashboard() {
-  redirect("/dashboard");
   const [time, setTime] = useState(new Date());
 
   // THE FIX: We exclusively use activeDragTask now!
