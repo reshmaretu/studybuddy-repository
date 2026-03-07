@@ -1,0 +1,236 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { FileText, Hammer, BrainCircuit, Sparkles, CheckCircle2, UploadCloud, X, Trash2, File as FileIcon } from "lucide-react";
+import { useStudyStore, Shard } from "@/store/useStudyStore";
+
+function ShardCard({ shard, onRead }: { shard: Shard, onRead: (shard: Shard) => void }) {
+    const { startTutorMode, deleteShard } = useStudyStore();
+    const formattedDate = new Date(shard.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    return (
+        <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="group relative flex flex-col justify-between p-5 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-color)] shadow-sm hover:border-[var(--accent-teal)]/30 transition-all duration-300">
+
+            {shard.isMastered && (
+                <>
+                    <div className="absolute inset-0 bg-[var(--accent-teal)]/5 rounded-3xl pointer-events-none" />
+                    <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-[var(--accent-teal)] flex items-center justify-center text-[#0b1211] shadow-[0_0_15px_rgba(20,184,166,0.5)] z-10">
+                        <CheckCircle2 size={16} strokeWidth={3} />
+                    </div>
+                </>
+            )}
+
+            {/* Delete Button (Visible on Hover) */}
+            <button
+                onClick={() => { if (window.confirm("Shatter this shard forever?")) deleteShard(shard.id); }}
+                className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+            >
+                <Trash2 size={16} />
+            </button>
+
+            <div>
+                <div className="flex justify-between items-start mb-3 pr-6">
+                    <span className="text-[10px] font-mono text-[var(--text-muted)] flex items-center gap-1"><FileText size={10} /> {formattedDate}</span>
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold tracking-widest uppercase border ${shard.isMastered ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] border-[var(--accent-teal)]/30' : 'bg-[var(--bg-dark)] text-[var(--text-muted)] border-[var(--border-color)]'}`}>
+                        {shard.isMastered ? "Mastered" : "Forged"}
+                    </span>
+                </div>
+                <h3 className="text-[var(--text-main)] font-bold text-lg leading-tight mb-2 line-clamp-1">{shard.title}</h3>
+                <p className="text-[var(--text-muted)] text-xs line-clamp-2 leading-relaxed italic border-l-2 border-[var(--border-color)] pl-2">
+                    {shard.files?.length ? `[Contains ${shard.files.length} attached file(s)]` : `"${shard.content}"`}
+                </p>
+            </div>
+
+            <div className="mt-5 space-y-4">
+                <div>
+                    <div className="flex justify-between text-[10px] font-bold tracking-widest uppercase mb-1">
+                        <span className="text-[var(--text-muted)]">Mastery</span>
+                        <span className={shard.isMastered ? "text-[var(--accent-teal)]" : "text-[var(--accent-yellow)]"}>{shard.mastery}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-[var(--bg-dark)] rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-1000 ${shard.isMastered ? 'bg-[var(--accent-teal)]' : 'bg-[var(--accent-yellow)]'}`} style={{ width: `${shard.mastery}%` }} />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => onRead(shard)} className="py-2 rounded-xl border border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] text-xs font-bold transition-colors">
+                        Read
+                    </button>
+                    <button
+                        disabled={shard.isMastered}
+                        onClick={() => startTutorMode(shard.id)}
+                        className="relative overflow-hidden group py-2 rounded-xl bg-[var(--accent-yellow)]/10 border border-[var(--accent-yellow)]/30 text-[var(--accent-yellow)] text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--accent-yellow)] hover:text-[#0b1211]"
+                    >
+                        <span className="relative z-10 flex items-center justify-center gap-1.5"><BrainCircuit size={14} /> Train <span className="text-[8px] bg-[var(--accent-yellow)] text-black px-1 rounded uppercase">Pro</span></span>
+                    </button>
+                </div>
+            </div>
+        </motion.div>
+    );
+}
+
+export default function TheForge() {
+    const { shards, forgeShard } = useStudyStore();
+    const [isMounted, setIsMounted] = useState(false);
+
+    // Modal States
+    const [isForgeModalOpen, setIsForgeModalOpen] = useState(false);
+    const [readShard, setReadShard] = useState<Shard | null>(null);
+
+    // Form State
+    const [title, setTitle] = useState("");
+    const [content, setContent] = useState("");
+    const [files, setFiles] = useState<{ name: string, type: string }[]>([]);
+
+    useEffect(() => setIsMounted(true), []);
+    if (!isMounted) return null;
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const newFiles = Array.from(e.target.files).map(f => ({ name: f.name, type: f.type }));
+            setFiles([...files, ...newFiles]);
+        }
+    };
+
+    const handleForge = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!title.trim() && !content.trim() && files.length === 0) return;
+
+        forgeShard({
+            title: title || "Untitled Shard",
+            content,
+            files
+        });
+
+        setTitle("");
+        setContent("");
+        setFiles([]);
+        setIsForgeModalOpen(false);
+    };
+
+    return (
+        <div className="min-h-[calc(100vh-4rem)] flex flex-col space-y-8 pb-12 relative">
+
+            {/* HEADER */}
+            <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-[var(--text-main)] flex items-center gap-3">
+                        <Hammer className="text-[var(--accent-yellow)]" size={32} />
+                        The Forge
+                    </h1>
+                    <p className="text-[var(--text-muted)] mt-1">
+                        Input your raw notes to forge Shards. Train them to complete mastery.
+                    </p>
+                </div>
+                {/* STRIKE ANVIL BUTTON */}
+                <button
+                    onClick={() => setIsForgeModalOpen(true)}
+                    className="bg-[var(--accent-yellow)]/10 text-[var(--accent-yellow)] border border-[var(--accent-yellow)]/30 px-6 py-3 rounded-2xl font-bold hover:bg-[var(--accent-yellow)] hover:text-[#0b1211] transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(250,204,21,0.15)]"
+                >
+                    <Sparkles size={18} /> Strike Anvil
+                </button>
+            </header>
+
+            {/* THE ARMORY (Shard Grid) */}
+            <div>
+                {shards.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-color)] rounded-3xl p-12 text-center opacity-60 bg-[var(--bg-card)]/50">
+                        <Hammer size={48} className="text-[var(--text-muted)] mb-4" />
+                        <h3 className="text-xl font-bold text-[var(--text-main)] mb-2">The fire is cold.</h3>
+                        <p className="text-[var(--text-muted)] max-w-sm">
+                            You haven't forged any shards yet. Strike the anvil to begin.
+                        </p>
+                    </div>
+                ) : (
+                    <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <AnimatePresence>
+                            {shards.map(shard => (
+                                <ShardCard key={shard.id} shard={shard} onRead={setReadShard} />
+                            ))}
+                        </AnimatePresence>
+                    </motion.div>
+                )}
+            </div>
+
+            {/* FORGE MODAL */}
+            <AnimatePresence>
+                {isForgeModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsForgeModalOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-3xl w-full max-w-2xl overflow-hidden relative z-10 shadow-2xl p-6">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-2"><Hammer size={24} className="text-[var(--accent-yellow)]" /> Forge a Shard</h2>
+                                <button onClick={() => setIsForgeModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)]"><X size={20} /></button>
+                            </div>
+
+                            <form onSubmit={handleForge} className="flex flex-col gap-4">
+                                <input type="text" placeholder="Shard Title (e.g., Biology Chapter 4)" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] text-[var(--text-main)] text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent-yellow)] transition-colors placeholder:text-[var(--text-muted)]/50 font-bold" />
+
+                                <textarea placeholder="Paste plain text, or notes here..." value={content} onChange={(e) => setContent(e.target.value)} rows={6} className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] text-[var(--text-main)] text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent-yellow)] transition-colors placeholder:text-[var(--text-muted)]/50 custom-scrollbar" />
+
+                                {/* Simulated File Upload */}
+                                <div className="p-4 border-2 border-dashed border-[var(--border-color)] rounded-xl bg-[var(--bg-dark)]/50">
+                                    <label className="flex flex-col items-center justify-center cursor-pointer text-[var(--text-muted)] hover:text-[var(--accent-teal)] transition-colors">
+                                        <UploadCloud size={24} className="mb-2" />
+                                        <span className="text-sm font-bold">Attach PDF / DOCX / TXT</span>
+                                        <span className="text-xs opacity-60">Files are mocked until Cloud sync is enabled.</span>
+                                        <input type="file" multiple className="hidden" onChange={handleFileUpload} />
+                                    </label>
+
+                                    {files.length > 0 && (
+                                        <div className="mt-4 flex flex-wrap gap-2">
+                                            {files.map((f, i) => (
+                                                <div key={i} className="flex items-center gap-1.5 bg-[var(--bg-card)] border border-[var(--border-color)] px-2 py-1 rounded text-xs text-[var(--text-main)]">
+                                                    <FileIcon size={12} className="text-[var(--accent-teal)]" /> {f.name}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <button type="submit" disabled={!title.trim() && !content.trim() && files.length === 0} className="mt-4 bg-[var(--accent-yellow)] text-black px-6 py-3 rounded-xl font-bold hover:bg-yellow-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                                    Finalize Shard
+                                </button>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+
+                {/* READ MODAL */}
+                {readShard && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setReadShard(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-3xl w-full max-w-2xl max-h-[80vh] overflow-hidden relative z-10 shadow-2xl flex flex-col">
+                            <div className="p-6 border-b border-[var(--border-color)] flex justify-between items-center">
+                                <div>
+                                    <h2 className="text-xl font-bold text-[var(--text-main)]">{readShard.title}</h2>
+                                    <span className="text-xs text-[var(--text-muted)] font-mono">{new Date(readShard.createdAt).toLocaleString()}</span>
+                                </div>
+                                <button onClick={() => setReadShard(null)} className="p-2 rounded-full hover:bg-[var(--bg-dark)] text-[var(--text-muted)] hover:text-[var(--text-main)]"><X size={20} /></button>
+                            </div>
+                            <div className="p-6 overflow-y-auto custom-scrollbar flex-1 text-sm text-[var(--text-main)] leading-relaxed whitespace-pre-wrap">
+                                {readShard.content || "No text content available."}
+
+                                {readShard.files && readShard.files.length > 0 && (
+                                    <div className="mt-6 pt-4 border-t border-[var(--border-color)]">
+                                        <h4 className="text-xs font-bold uppercase text-[var(--text-muted)] mb-2">Attached Files</h4>
+                                        <div className="flex flex-col gap-2">
+                                            {readShard.files.map((f, i) => (
+                                                <div key={i} className="flex items-center gap-2 p-3 bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl cursor-pointer hover:border-[var(--accent-teal)] transition-colors">
+                                                    <FileIcon size={16} className="text-[var(--accent-teal)]" /> {f.name}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+        </div>
+    );
+}
