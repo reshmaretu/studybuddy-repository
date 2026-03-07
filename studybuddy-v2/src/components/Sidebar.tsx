@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
     LayoutGrid, Sprout, Palette, Coffee, Waves, Calendar,
-    BookOpen, BarChart3, Shirt, Settings, LogOut
+    BookOpen, BarChart3, Shirt, Settings, LogOut, Radio
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -13,9 +13,8 @@ export default function Sidebar() {
     const navItems = [
         { name: "Dashboard", href: "/", icon: LayoutGrid },
         { name: "Crystal Garden", href: "/garden", icon: Sprout },
+        { name: "Lantern Network", href: "/lantern", icon: Radio },
         { name: "Zen Canvas", href: "/canvas", icon: Palette },
-        { name: "Study Cafe", href: "/tavern", icon: Coffee },
-        { name: "FlowState", href: "/flow", icon: Waves },
         { name: "Calendar", href: "/calendar", icon: Calendar },
         { name: "Archive", href: "/archive", icon: BookOpen },
         { name: "Insights", href: "/insights", icon: BarChart3 },

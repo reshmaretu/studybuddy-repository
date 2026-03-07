@@ -1,7 +1,6 @@
 "use client";
 
-import { Brain, Play, Pause, Settings, Bell, Flame, Coffee, Zap, RotateCcw, Calendar, CheckCircle2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Brain, Play, Pause, Settings, Bell, Flame, Coffee, Zap, RotateCcw, Calendar, CheckCircle2, Pin } from "lucide-react"; import { useEffect, useState } from "react";
 import { useStudyStore, Task } from "@/store/useStudyStore";
 import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay } from "@dnd-kit/core";
 import { AnimatePresence, motion } from "framer-motion";
@@ -47,6 +46,8 @@ export default function Dashboard() {
   const activeTasks = validTasks.filter(t => !t.isCompleted);
   const completedTasks = validTasks.filter(t => t.isCompleted);
 
+  const [sparkQuote, setSparkQuote] = useState("Sparking up the feed...");
+
   // Timer Engine
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -59,6 +60,37 @@ export default function Dashboard() {
   useEffect(() => {
     const clockTimer = setInterval(() => setTime(new Date()), 60000);
     return () => clearInterval(clockTimer);
+  }, []);
+
+  // Dynamic Sparks Feed Fetcher
+  useEffect(() => {
+    const fetchSpark = async () => {
+      const prompt = "You are Chum, a cozy, lo-fi loving study buddy. Give me exactly one short, inspiring sentence about focus, time management, or well-being to start the day. Do not use quotation marks.";
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: [{ role: "user", content: prompt }] })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error("Cloud failed");
+        setSparkQuote(data.response);
+      } catch (e) {
+        // Local Fallback
+        try {
+          const res = await fetch(`${useStudyStore.getState().ollamaUrl}/api/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model: "llama3.2:1b", messages: [{ role: "user", content: prompt }], stream: false })
+          });
+          const data = await res.json();
+          setSparkQuote(data.message.content);
+        } catch (err) {
+          setSparkQuote("Take a deep breath in, and let the sound of your lo-fi beats wash over you as you refocus your mind.");
+        }
+      }
+    };
+    fetchSpark();
   }, []);
 
   const formatTime = (seconds: number) => {
@@ -114,7 +146,7 @@ export default function Dashboard() {
             <Zap size={14} className="text-[var(--accent-yellow)]" /> Sparks Feed
           </legend>
           <div className="text-center mt-1">
-            <p className="text-[var(--text-main)] italic text-sm">"Take a deep breath in, and let the sound of your lo-fi beats wash over you as you refocus your mind."</p>
+            <p className="text-[var(--text-main)] italic text-sm">"{sparkQuote}"</p>
             <p className="text-[var(--accent-teal)] text-xs font-bold mt-2">— Chum</p>
           </div>
         </fieldset>
@@ -138,9 +170,9 @@ export default function Dashboard() {
               </div>
               <button
                 onClick={() => useStudyStore.getState().openFocusModal()}
-                className="w-full py-2.5 rounded-lg bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] font-bold hover:bg-[var(--accent-teal)] hover:text-[#0b1211] transition-all text-sm border border-[var(--accent-teal)]/30"
+                className="w-full py-2.5 rounded-lg bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] font-bold hover:bg-[var(--accent-teal)] hover:text-[#0b1211] transition-all text-sm border border-[var(--accent-teal)]/30 flex items-center justify-center gap-2 shadow-sm"
               >
-                FlowState
+                <Pin size={16} /> Focus
               </button>
             </div>
           </div>

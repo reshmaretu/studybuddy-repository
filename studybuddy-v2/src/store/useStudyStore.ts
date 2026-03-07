@@ -15,11 +15,25 @@ export interface Task {
     isPinned?: boolean;
 }
 
+export interface ChatMessage {
+    role: 'user' | 'chum';
+    text: string;
+}
+
+export interface TutorSession {
+    id: string;
+    shardId: string;
+    shardTitle: string;
+    date: string;
+    history: ChatMessage[];
+    masteryGained: number;
+}
+
 export interface Shard {
     id: string;
     title: string;
     content: string;
-    files?: { name: string; type: string }[]; // Added file mock
+    files?: { name: string; type: string; content?: string }[];
     mastery: number;
     isMastered: boolean;
     createdAt: string;
@@ -46,6 +60,16 @@ interface StudyState {
     isTutorModeActive: boolean;
     activeShardId: string | null;
 
+    // NEW CHAT & SESSION STATE
+    normalChatHistory: ChatMessage[];
+    tutorChatHistory: ChatMessage[];
+    pastTutorSessions: TutorSession[];
+    tutorSessionState: {
+        questionIndex: number;
+        isSessionComplete: boolean;
+        preferredType: 'multiple choice' | 'identification' | 'true or false' | 'mixed';
+    };
+
     // AI TIER & KEYS
     aiTier: 'cloud' | 'local' | 'offline';
     aiKeys: { groq: string; gemini: string; openrouter: string };
@@ -53,7 +77,7 @@ interface StudyState {
 
     // Actions
     addTask: (task: Omit<Task, 'id' | 'isCompleted'>) => void;
-    deleteTask: (id: string) => void; // 👈 ADD THIS LINE
+    deleteTask: (id: string) => void;
     updateTask: (id: string, updates: Partial<Task>) => void;
     completeTask: (id: string) => void;
     toggleTimer: () => void;
@@ -67,10 +91,16 @@ interface StudyState {
 
     // Forge Actions
     forgeShard: (shard: Omit<Shard, "id" | "mastery" | "isMastered" | "createdAt">) => void;
-    deleteShard: (id: string) => void; // Added Delete
-    startTutorMode: (shardId: string) => void;
+    deleteShard: (id: string) => void;
+    startTutorMode: (shardId: string, type?: StudyState['tutorSessionState']['preferredType']) => void;
     exitTutorMode: () => void;
+    completeTutorSession: (masteryGained: number) => void; // Finalize session
     updateShardMastery: (id: string, amount: number) => void;
+
+    // Chat Actions
+    setNormalChatHistory: (history: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => void;
+    setTutorChatHistory: (history: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => void;
+    updateTutorSessionState: (state: Partial<StudyState['tutorSessionState']>) => void;
 
     // AI Actions
     setAITier: (tier: 'cloud' | 'local' | 'offline') => void;
@@ -100,6 +130,15 @@ export const useStudyStore = create<StudyState>()(
             shards: [],
             isTutorModeActive: false,
             activeShardId: null,
+
+            normalChatHistory: [{ role: 'chum', text: "Ready to study." }],
+            tutorChatHistory: [],
+            pastTutorSessions: [],
+            tutorSessionState: {
+                questionIndex: 0,
+                isSessionComplete: false,
+                preferredType: 'mixed',
+            },
 
             aiTier: 'cloud',
             aiKeys: { groq: '', gemini: '', openrouter: '' },
@@ -157,8 +196,36 @@ export const useStudyStore = create<StudyState>()(
                 activeShardId: state.activeShardId === id ? null : state.activeShardId
             })),
 
-            startTutorMode: (shardId) => set({ isTutorModeActive: true, activeShardId: shardId }),
-            exitTutorMode: () => set({ isTutorModeActive: false, activeShardId: null }),
+            startTutorMode: (shardId, type) => set((state) => ({
+                isTutorModeActive: true,
+                activeShardId: shardId,
+                tutorChatHistory: [], // Reset current session history
+                tutorSessionState: {
+                    questionIndex: 0,
+                    isSessionComplete: false,
+                    preferredType: type || state.tutorSessionState.preferredType || 'mixed'
+                }
+            })),
+            exitTutorMode: () => set({ isTutorModeActive: false, activeShardId: null, tutorChatHistory: [] }),
+
+            completeTutorSession: (masteryGained) => set((state) => {
+                const activeShard = state.shards.find(s => s.id === state.activeShardId);
+                if (!activeShard) return state;
+
+                const newSession: TutorSession = {
+                    id: Date.now().toString(),
+                    shardId: activeShard.id,
+                    shardTitle: activeShard.title,
+                    date: new Date().toISOString(),
+                    history: state.tutorChatHistory,
+                    masteryGained
+                };
+
+                return {
+                    pastTutorSessions: [newSession, ...state.pastTutorSessions],
+                    tutorSessionState: { ...state.tutorSessionState, isSessionComplete: true }
+                };
+            }),
 
             updateShardMastery: (id, amount) => set((state) => {
                 let masteredShard: Shard | null = null;
@@ -185,6 +252,16 @@ export const useStudyStore = create<StudyState>()(
 
                 return { shards: newShards };
             }),
+
+            setNormalChatHistory: (history) => set((state) => ({
+                normalChatHistory: typeof history === 'function' ? history(state.normalChatHistory) : history
+            })),
+            setTutorChatHistory: (history) => set((state) => ({
+                tutorChatHistory: typeof history === 'function' ? history(state.tutorChatHistory) : history
+            })),
+            updateTutorSessionState: (update) => set((state) => ({
+                tutorSessionState: { ...state.tutorSessionState, ...update }
+            })),
 
             setAITier: (tier) => set({ aiTier: tier }),
             updateAIKeys: (keys) => set((state) => ({ aiKeys: { ...state.aiKeys, ...keys } })),
