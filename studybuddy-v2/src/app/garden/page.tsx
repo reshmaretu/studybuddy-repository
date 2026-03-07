@@ -51,7 +51,7 @@ export default function CrystalGarden() {
     const validTasks = tasks.filter(t => t && t.id);
     const filteredTasks = validTasks.filter(t =>
         t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.description.toLowerCase().includes(searchQuery.toLowerCase())
+        t.description?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const activeQuests = filteredTasks.filter(t => !t.isCompleted);
@@ -160,7 +160,9 @@ export default function CrystalGarden() {
                                     <CheckCircle2 size={24} className="text-[var(--accent-teal)] flex-shrink-0" />
                                     <div>
                                         <h4 className="text-[var(--text-main)] font-bold line-through">{task.title}</h4>
-                                        <p className="text-xs text-[var(--text-muted)] mt-0.5">{new Date(task.deadline).toLocaleDateString()}</p>
+                                        <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                                            {task.deadline ? new Date(task.deadline).toLocaleDateString() : "No deadline set"}
+                                        </p>
                                     </div>
                                 </div>
                                 <button onClick={() => deleteTask(task.id)} className="text-[var(--text-muted)] hover:text-red-400 p-2"><Trash2 size={16} /></button>
