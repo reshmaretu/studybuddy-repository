@@ -44,5 +44,11 @@
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@react-three/fiber": "^9.5.0",
+    "framer-motion-3d": {
+      "@react-three/fiber": "^9.5.0"
+    }
   }
 }
