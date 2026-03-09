@@ -6,6 +6,7 @@ import ChumWidget from "@/components/ChumWidget"; // <-- 1. Import him here!
 import FocusModal from "@/components/FocusModal"; // <-- Import FocusModal
 import FlowStateOverlay from "@/components/FlowStateOverlay";
 import StudyCafeOverlay from "@/components/StudyCafeOverlay";
+import MindDumpPad from "@/components/MindDumpPad";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -45,6 +46,7 @@ export default function RootLayout({
         <FocusModal />
         <FlowStateOverlay />
         <StudyCafeOverlay />
+        <MindDumpPad />
 
       </body>
     </html>

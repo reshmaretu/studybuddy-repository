@@ -2,15 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { Lock, CheckCircle2 } from "lucide-react";
+// 👇 1. Import your store
+import { useStudyStore } from "@/store/useStudyStore";
 
 export default function AccountPage() {
     const [activeTheme, setActiveTheme] = useState("deep-teal");
-    const isPremiumUser = false; // We will connect this to Supabase later!
+
+    // 👇 2. DELETE 'const isPremiumUser = false;' and use the store instead!
+    const { isPremiumUser, checkPremiumStatus } = useStudyStore();
 
     // Load the saved theme when the page opens
     useEffect(() => {
         const savedTheme = localStorage.getItem("appTheme") || "deep-teal";
         setActiveTheme(savedTheme);
+
+        // 👇 3. Check Supabase for Premium status right when the page loads!
+        checkPremiumStatus();
     }, []);
 
     // Function to switch the theme instantly
@@ -56,8 +63,8 @@ export default function AccountPage() {
                             key={theme.id}
                             onClick={() => handleThemeChange(theme.id, false)}
                             className={`relative flex items-center p-4 rounded-xl border-2 transition-all duration-200 hover:scale-105 ${activeTheme === theme.id
-                                    ? "border-[var(--accent-teal)] bg-[var(--bg-card)]"
-                                    : "border-[var(--border-color)] bg-[var(--bg-sidebar)] opacity-80"
+                                ? "border-[var(--accent-teal)] bg-[var(--bg-card)]"
+                                : "border-[var(--border-color)] bg-[var(--bg-sidebar)] opacity-80"
                                 }`}
                         >
                             <div
@@ -88,8 +95,8 @@ export default function AccountPage() {
                             key={theme.id}
                             onClick={() => handleThemeChange(theme.id, true)}
                             className={`relative flex items-center p-4 rounded-xl border-2 transition-all duration-200 hover:scale-105 ${activeTheme === theme.id
-                                    ? "border-[var(--accent-yellow)] bg-[var(--bg-card)]"
-                                    : "border-[var(--border-color)] bg-[var(--bg-sidebar)] opacity-60 hover:opacity-100"
+                                ? "border-[var(--accent-yellow)] bg-[var(--bg-card)]"
+                                : "border-[var(--border-color)] bg-[var(--bg-sidebar)] opacity-60 hover:opacity-100"
                                 }`}
                         >
                             <div

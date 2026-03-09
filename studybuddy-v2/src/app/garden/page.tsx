@@ -40,13 +40,9 @@ export default function CrystalGarden() {
     const [isAdding, setIsAdding] = useState(false);
     const [activeDragTask, setActiveDragTask] = useState<Task | null>(null);
 
-    // New Form with Real Date
-    const [newTask, setNewTask] = useState({
-        title: "",
-        description: "",
-        load: "medium" as TaskLoad,
-        deadline: "",
-    });
+    // Form States
+    const [newTask, setNewTask] = useState({ title: "", description: "", load: "medium" as TaskLoad, deadline: "" });
+    const [isScheduled, setIsScheduled] = useState(false); // 👈 New Toggle State
 
     const validTasks = tasks.filter(t => t && t.id);
     const filteredTasks = validTasks.filter(t =>
@@ -57,16 +53,27 @@ export default function CrystalGarden() {
     const activeQuests = filteredTasks.filter(t => !t.isCompleted);
     const archivedQuests = filteredTasks.filter(t => t.isCompleted);
 
+    // 👈 The Timezone Magic Function
+    const handleToggleSchedule = (checked: boolean) => {
+        setIsScheduled(checked);
+        if (checked && !newTask.deadline) {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            setNewTask({ ...newTask, deadline: now.toISOString().slice(0, 16) });
+        } else if (!checked) {
+            setNewTask({ ...newTask, deadline: "" });
+        }
+    };
+
     const handlePlantQuest = (e: React.FormEvent) => {
         e.preventDefault();
         if (!newTask.title.trim()) return;
 
-        // Fallback if they leave date empty
-        const finalDate = newTask.deadline || new Date().toISOString().slice(0, 16);
-
-        addTask({ ...newTask, deadline: finalDate });
+        // If it's scheduled, pass the date. If not, pass undefined.
+        addTask({ ...newTask, deadline: isScheduled ? newTask.deadline : undefined });
         setIsAdding(false);
         setNewTask({ title: "", description: "", load: "medium", deadline: "" });
+        setIsScheduled(false); // Reset toggle
     };
 
     const handleDragStart = (event: DragStartEvent) => {
@@ -86,7 +93,6 @@ export default function CrystalGarden() {
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="max-w-[1200px] mx-auto pb-12 space-y-8">
 
-                {/* HEADER */}
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                     <div>
                         <h1 className="text-3xl font-bold text-[var(--text-main)] flex items-center gap-3">
@@ -109,7 +115,6 @@ export default function CrystalGarden() {
                     </div>
                 </header>
 
-                {/* ADD QUEST FORM (Updated for Datetime-Local) */}
                 <AnimatePresence>
                     {isAdding && (
                         <motion.form
@@ -119,7 +124,7 @@ export default function CrystalGarden() {
                             <h3 className="text-lg font-bold text-[var(--text-main)] mb-4">Seed a New Quest</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <div className="space-y-4">
-                                    <input type="text" required placeholder="Quest Title" value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
+                                    <input autoFocus type="text" required placeholder="Quest Title" value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
                                     <textarea placeholder="Description..." rows={3} value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] resize-none" />
                                 </div>
                                 <div className="space-y-4">
@@ -127,26 +132,48 @@ export default function CrystalGarden() {
                                         <label className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2 block">Cognitive Load</label>
                                         <div className="flex gap-2">
                                             {['light', 'medium', 'heavy'].map((weight) => (
-                                                <button key={weight} type="button" onClick={() => setNewTask({ ...newTask, load: weight as TaskLoad })} className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase border ${newTask.load === weight ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-[var(--border-color)] text-[var(--text-muted)]'}`}>{weight}</button>
+                                                <button key={weight} type="button" onClick={() => setNewTask({ ...newTask, load: weight as TaskLoad })} className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase border transition-colors ${newTask.load === weight ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>{weight}</button>
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl p-3">
-                                        <label className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2 block">Best Before (Deadline)</label>
-                                        {/* The new native date/time picker! */}
-                                        <input type="datetime-local" required value={newTask.deadline} onChange={e => setNewTask({ ...newTask, deadline: e.target.value })} className="w-full bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
+
+                                    {/* 👇 UPDATED DEADLINE UI 👇 */}
+                                    <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl p-3 flex flex-col gap-2 transition-all">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-xs font-bold text-[var(--text-muted)] uppercase block">Best Before (Deadline)</label>
+
+                                            <div onClick={() => handleToggleSchedule(!isScheduled)} className="flex items-center gap-2 cursor-pointer group">
+                                                <span className={`text-xs font-bold transition-colors ${isScheduled ? 'text-[var(--accent-teal)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>
+                                                    {isScheduled ? 'Scheduled' : 'Unscheduled'}
+                                                </span>
+                                                <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors duration-300 ${isScheduled ? 'bg-[var(--accent-teal)]' : 'bg-[var(--bg-sidebar)] border border-[var(--border-color)]'}`}>
+                                                    <div className={`w-3 h-3 rounded-full shadow-sm transition-transform duration-300 ${isScheduled ? 'translate-x-4 bg-[#0b1211]' : 'translate-x-0 bg-[var(--text-muted)]'}`} />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <AnimatePresence>
+                                            {isScheduled && (
+                                                <motion.input
+                                                    initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                                                    type="datetime-local" required value={newTask.deadline} onChange={e => setNewTask({ ...newTask, deadline: e.target.value })}
+                                                    className="w-full bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] mt-1"
+                                                />
+                                            )}
+                                        </AnimatePresence>
                                     </div>
+                                    {/* 👆 END DEADLINE UI 👆 */}
+
                                 </div>
                             </div>
-                            <div className="flex justify-end gap-3 pt-2 border-t border-[var(--border-color)]">
-                                <button type="button" onClick={() => setIsAdding(false)} className="px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-muted)]">Cancel</button>
-                                <button type="submit" className="bg-[var(--accent-teal)] text-[#0b1211] px-6 py-2 rounded-xl text-sm font-bold">Plant Seed</button>
+                            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-color)]">
+                                <button type="button" onClick={() => setIsAdding(false)} className="px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">Cancel</button>
+                                <button type="submit" className="bg-[var(--accent-teal)] text-[#0b1211] px-6 py-2 rounded-xl text-sm font-bold hover:bg-teal-400 transition-colors disabled:opacity-50" disabled={!newTask.title.trim()}>Plant Seed</button>
                             </div>
                         </motion.form>
                     )}
                 </AnimatePresence>
 
-                {/* 2-COLUMN LAYOUT (Redesigned) */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                     <DropZoneContainer id="current-focus" title="Current Focus" subtitle="Drag to complete" isEmpty={activeQuests.length === 0} emptyText="No active quests yet">
@@ -161,18 +188,17 @@ export default function CrystalGarden() {
                                     <div>
                                         <h4 className="text-[var(--text-main)] font-bold line-through">{task.title}</h4>
                                         <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                                            {task.deadline ? new Date(task.deadline).toLocaleDateString() : "No deadline set"}
+                                            {task.deadline ? new Date(task.deadline).toLocaleString() : "Unscheduled"}
                                         </p>
                                     </div>
                                 </div>
-                                <button onClick={() => deleteTask(task.id)} className="text-[var(--text-muted)] hover:text-red-400 p-2"><Trash2 size={16} /></button>
+                                <button onClick={() => deleteTask(task.id)} className="text-[var(--text-muted)] hover:text-red-400 p-2 transition-colors"><Trash2 size={16} /></button>
                             </div>
                         ))}
                     </DropZoneContainer>
 
                 </div>
 
-                {/* Floating Overlay Visualizer */}
                 <DragOverlay dropAnimation={null}>
                     {activeDragTask ? <TaskCard task={activeDragTask} isOverlay /> : null}
                 </DragOverlay>

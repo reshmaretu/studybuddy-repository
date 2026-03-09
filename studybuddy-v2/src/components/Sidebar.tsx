@@ -11,7 +11,7 @@ export default function Sidebar() {
     const pathname = usePathname();
 
     const navItems = [
-        { name: "Dashboard", href: "/", icon: LayoutGrid },
+        { name: "Dashboard", href: "/dashboard", icon: LayoutGrid },
         { name: "Crystal Garden", href: "/garden", icon: Sprout },
         { name: "Lantern Network", href: "/lantern", icon: Radio },
         { name: "Zen Canvas", href: "/canvas", icon: Palette },
@@ -71,10 +71,10 @@ export default function Sidebar() {
                         <div className="w-[64px] flex-shrink-0 flex items-center justify-center"><Settings size={20} /></div>
                         <span className="font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">Account</span>
                     </Link>
-                    <button className="flex items-center h-12 mx-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-colors overflow-hidden whitespace-nowrap">
+                    <Link href="/login" className="flex items-center h-12 mx-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-colors overflow-hidden whitespace-nowrap">
                         <div className="w-[64px] flex-shrink-0 flex items-center justify-center"><LogOut size={20} /></div>
-                        <span className="font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">Logout</span>
-                    </button>
+                        <span className="font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">Account</span>
+                    </Link>
                 </div>
 
             </div>

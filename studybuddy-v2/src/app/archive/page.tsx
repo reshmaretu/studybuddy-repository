@@ -3,9 +3,18 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileText, Hammer, BrainCircuit, Sparkles, CheckCircle2, UploadCloud, X, Trash2, File as FileIcon } from "lucide-react";
-import { useStudyStore, Shard } from "@/store/useStudyStore";
+import { useStudyStore, Shard, TutorSession } from "@/store/useStudyStore";
 
 function ShardCard({ shard, onRead }: { shard: Shard, onRead: (shard: Shard) => void }) {
+    // 1. Pull the state and the checker from the store
+    const isPremiumUser = useStudyStore((state) => state.isPremiumUser);
+    const checkPremiumStatus = useStudyStore((state) => state.checkPremiumStatus);
+
+    // 2. Force a refresh when the component mounts
+    useEffect(() => {
+        checkPremiumStatus();
+    }, []);
+
     const { startTutorMode, deleteShard, isTutorModeActive } = useStudyStore();
     const formattedDate = new Date(shard.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -82,10 +91,21 @@ function ShardCard({ shard, onRead }: { shard: Shard, onRead: (shard: Shard) => 
                         </button>
                         <button
                             disabled={shard.isMastered || isTutorModeActive}
-                            onClick={() => startTutorMode(shard.id, useStudyStore.getState().tutorSessionState.preferredType)}
-                            className="relative overflow-hidden group py-2 rounded-xl bg-(--accent-yellow)/10 border border-(--accent-yellow)/30 text-(--accent-yellow) text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-(--accent-yellow) hover:text-[#0b1211]"
+                            onClick={() => {
+                                // 👇 THE BOUNCER LOGIC
+                                if (!isPremiumUser) {
+                                    alert("Unlock StudyBuddy Pro to train with the AI Tutor!");
+                                    return;
+                                }
+                                startTutorMode(shard.id, useStudyStore.getState().tutorSessionState.preferredType);
+                            }}
+                            className="relative overflow-hidden group py-2 rounded-xl bg-[var(--accent-yellow)]/10 border border-[var(--accent-yellow)]/30 text-[var(--accent-yellow)] text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--accent-yellow)] hover:text-[#0b1211]"
                         >
-                            <span className="relative z-10 flex items-center justify-center gap-1.5"><BrainCircuit size={14} /> Train <span className="text-[8px] bg-(--accent-yellow) text-black px-1 rounded uppercase">Pro</span></span>
+                            <span className="relative z-10 flex items-center justify-center gap-1.5">
+                                <BrainCircuit size={14} /> Train
+                                {/* 👇 Only show the PRO badge if they AREN'T premium yet */}
+                                {!isPremiumUser && <span className="text-[8px] bg-[var(--accent-yellow)] text-black px-1 rounded uppercase">Pro</span>}
+                            </span>
                         </button>
                     </div>
                 </div>
@@ -95,6 +115,20 @@ function ShardCard({ shard, onRead }: { shard: Shard, onRead: (shard: Shard) => 
 }
 
 export default function TheForge() {
+
+    useEffect(() => {
+        const initStore = async () => {
+            const store = useStudyStore.getState();
+            // Only fetch if we haven't already pulled the data this session
+            if (!store.isInitialized) {
+                await store.initializeData();
+            }
+        };
+        initStore();
+    }, []);
+
+    const [viewingLog, setViewingLog] = useState<TutorSession | null>(null);
+    const [isForging, setIsForging] = useState(false);
     const { shards, forgeShard } = useStudyStore();
     const [isMounted, setIsMounted] = useState(false);
 
@@ -105,40 +139,79 @@ export default function TheForge() {
     // Form State
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
-    const [files, setFiles] = useState<{ name: string, type: string }[]>([]);
+    // We upgraded the files state to hold the actual Base64 content!
+    const [files, setFiles] = useState<{ name: string, type: string, content: string }[]>([]);
 
     useEffect(() => setIsMounted(true), []);
     if (!isMounted) return null;
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const filesArray = Array.from(e.target.files);
-            const newFiles = await Promise.all(filesArray.map(async (file) => {
-                const content = await new Promise<string>((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = (event) => resolve(event.target?.result as string || "");
-                    reader.readAsText(file);
-                });
-                return { name: file.name, type: file.type, content };
-            }));
-            setFiles([...files, ...newFiles]);
-        }
+    // Security constraints
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
+    const ALLOWED_EXTENSIONS = ['.pdf', '.txt', '.csv', '.md', '.html', '.xml', '.rtf'];
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFiles = Array.from(e.target.files || []);
+        if (!selectedFiles.length) return;
+
+        selectedFiles.forEach(file => {
+            // 1. Validate File Type
+            const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            if (!ALLOWED_EXTENSIONS.includes(fileExtension)) {
+                alert(`Unsupported file type: ${file.name}. Please use PDF, TXT, CSV, MD, or RTF.`);
+                return;
+            }
+
+            // 2. Validate File Size
+            if (file.size > MAX_FILE_SIZE) {
+                alert(`File too large: ${file.name}. Please keep files under 5MB.`);
+                return;
+            }
+
+            // 3. Read the file into the React "waiting room" (Does NOT save to database yet)
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFiles(prev => [...prev, {
+                    name: file.name,
+                    type: file.type,
+                    content: reader.result as string
+                }]);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Reset the input so you can upload the same file again if you delete it
+        e.target.value = '';
     };
 
-    const handleForge = (e: React.FormEvent) => {
+    const removeFile = (indexToRemove: number) => {
+        setFiles(prev => prev.filter((_, index) => index !== indexToRemove));
+    };
+
+    // 1. Make sure 'async' is here!
+    const handleForge = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title.trim() && !content.trim() && files.length === 0) return;
 
-        forgeShard({
-            title: title || "Untitled Shard",
-            content,
-            files
-        });
+        setIsForging(true); // Lock the button
 
-        setTitle("");
-        setContent("");
-        setFiles([]);
-        setIsForgeModalOpen(false);
+        try {
+            // 2. Make sure 'await' is here! This makes it wait for the cloud.
+            await forgeShard({
+                title: title || (files.length > 0 ? files[0].name : "Untitled Shard"),
+                content,
+                files
+            });
+
+            // Only clear the form IF it succeeds
+            setTitle("");
+            setContent("");
+            setFiles([]);
+            setIsForgeModalOpen(false);
+        } catch (error) {
+            alert("Failed to forge shard. Check the error!");
+        } finally {
+            setIsForging(false); // Unlock the button
+        }
     };
 
     return (
@@ -202,28 +275,47 @@ export default function TheForge() {
 
                                 <textarea placeholder="Paste plain text, or notes here..." value={content} onChange={(e) => setContent(e.target.value)} rows={6} className="w-full bg-(--bg-dark) border border-(--border-color) text-(--text-main) text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-(--accent-yellow) transition-colors placeholder:text-(--text-muted)/50 custom-scrollbar" />
 
-                                {/* Simulated File Upload */}
-                                <div className="p-4 border-2 border-dashed border-[var(--border-color)] rounded-xl bg-[var(--bg-dark)]/50">
-                                    <label className="flex flex-col items-center justify-center cursor-pointer text-[var(--text-muted)] hover:text-[var(--accent-teal)] transition-colors">
-                                        <UploadCloud size={24} className="mb-2" />
-                                        <span className="text-sm font-bold">Attach PDF / DOCX / TXT</span>
-                                        <span className="text-xs opacity-60">Files are mocked until Cloud sync is enabled.</span>
-                                        <input type="file" multiple className="hidden" onChange={handleFileUpload} />
+                                {/* Secure File Upload Area */}
+                                <div className="p-4 border-2 border-dashed border-(--border-color) rounded-xl bg-(--bg-dark)/50 transition-colors hover:bg-(--bg-dark)">
+                                    <label className="flex flex-col items-center justify-center cursor-pointer p-4 w-full h-full group">
+                                        <UploadCloud size={28} className="mb-2 text-(--text-muted) group-hover:text-(--accent-teal) transition-colors" />
+                                        <span className="text-sm font-bold text-(--text-main) group-hover:text-(--accent-teal) transition-colors">Attach PDF, TXT, CSV, MD, RTF</span>
+                                        <span className="text-xs mt-1 text-(--text-muted) opacity-80">Max file size: 5MB per document</span>
+                                        <input
+                                            type="file"
+                                            multiple
+                                            className="hidden"
+                                            accept=".pdf,.txt,.csv,.md,.html,.xml,.rtf"
+                                            onChange={handleFileUpload}
+                                        />
                                     </label>
 
+                                    {/* Attached Files Pill Container */}
                                     {files.length > 0 && (
-                                        <div className="mt-4 flex flex-wrap gap-2">
+                                        <div className="mt-4 pt-4 border-t border-(--border-color) flex flex-wrap gap-2">
                                             {files.map((f, i) => (
-                                                <div key={i} className="flex items-center gap-1.5 bg-(--bg-card) border border-(--border-color) px-2 py-1 rounded text-xs text-(--text-main)">
-                                                    <FileIcon size={12} className="text-(--accent-teal)" /> {f.name}
+                                                <div key={i} className="flex items-center gap-2 bg-(--bg-card) border border-(--border-color) pl-3 pr-2 py-1.5 rounded-lg text-xs text-(--text-main) shadow-sm">
+                                                    <FileIcon size={14} className="text-(--accent-teal)" />
+                                                    <span className="truncate max-w-[180px] font-medium">{f.name}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeFile(i)}
+                                                        className="ml-1 text-(--text-muted) hover:text-red-400 p-1 rounded hover:bg-(--bg-dark) transition-colors"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
                                 </div>
 
-                                <button type="submit" disabled={!title.trim() && !content.trim() && files.length === 0} className="mt-4 bg-(--accent-yellow) text-black px-6 py-3 rounded-xl font-bold hover:bg-yellow-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                                    Finalize Shard
+                                <button
+                                    type="submit"
+                                    disabled={isForging || (!title.trim() && !content.trim() && files.length === 0)}
+                                    className="mt-4 bg-(--accent-yellow) text-black px-6 py-3 rounded-xl font-bold hover:bg-yellow-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isForging ? "Forging Shard..." : "Finalize Shard"}
                                 </button>
                             </form>
                         </motion.div>

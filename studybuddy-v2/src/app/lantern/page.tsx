@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Search, Trophy, Radio, Plus, X, Waves, Coffee, Sparkles, Clock, Timer, Lock } from "lucide-react";
+import ThreeLanternNet from "@/components/LanternNetwork";
+import { useStudyStore } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Trophy, Radio, Users, Plus, X, Lock, Sparkles, Coffee, Waves, Settings, Shield } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
-// --- MOCK DATA GENERATOR ---
-type Status = 'flowstate' | 'cafe' | 'idle';
-interface LanternUser {
+export interface LanternUser {
     id: string;
     name: string;
     chumLabel: string;
-    status: Status;
+    status: 'flowstate' | 'cafe' | 'idle';
     hours: number;
     isHosting: boolean;
     roomCode?: string;
@@ -22,346 +24,326 @@ interface LanternUser {
 }
 
 const generateMockNetwork = (): LanternUser[] => {
-    const names = ["Alex", "Jordan", "Taylor", "Casey", "Riley", "Sam", "Morgan", "Quinn", "Avery", "Blake"];
-    const chums = ["👻 Ghost", "🦉 Owl", "🦊 Fox", "🐼 Panda", "🐸 Frog", "🤖 Bot"];
+    // ... (Keep your existing generateMockNetwork function exactly as is)
+    const names = ["Alex", "Jordan", "Taylor", "Casey", "Riley", "Sam"];
+    const chums = ["👻 Ghost", "🦉 Owl", "🦊 Fox", "🐼 Panda"];
     const users: LanternUser[] = [];
-
-    // Create a 12x12 invisible grid to ensure dots NEVER touch
-    const gridCols = 12;
-    const gridRows = 12;
-    const occupied = new Set<string>();
+    const occupied = new Set();
 
     for (let i = 0; i < 45; i++) {
         let cx, cy;
         do {
-            cx = Math.floor(Math.random() * gridCols);
-            cy = Math.floor(Math.random() * gridRows);
+            cx = Math.floor(Math.random() * 12);
+            cy = Math.floor(Math.random() * 12);
         } while (occupied.has(`${cx},${cy}`));
         occupied.add(`${cx},${cy}`);
 
-        const isHosting = Math.random() > 0.8;
         const statusVal = Math.random();
-
         users.push({
             id: `user-${i}`,
             name: names[Math.floor(Math.random() * names.length)] + (Math.floor(Math.random() * 99)),
             chumLabel: chums[Math.floor(Math.random() * chums.length)],
-            status: statusVal > 0.6 ? 'flowstate' : (statusVal > 0.3 ? 'cafe' : 'idle'),
+            status: (statusVal > 0.6 ? 'flowstate' : (statusVal > 0.3 ? 'cafe' : 'idle')) as any,
             hours: Math.floor(Math.random() * 500) + 10,
-            isHosting,
-            roomCode: isHosting ? Math.random().toString(36).substring(2, 6).toUpperCase() : undefined,
+            isHosting: Math.random() > 0.8,
+            roomCode: Math.random().toString(36).substring(2, 6).toUpperCase(),
             isPremium: Math.random() > 0.7,
             gridX: cx,
             gridY: cy,
-            // Jitter constraints keep them firmly inside their grid cell
             jitterX: (Math.random() - 0.5) * 60,
             jitterY: (Math.random() - 0.5) * 60,
         });
     }
-    return users.sort((a, b) => b.hours - a.hours);
+    return users;
 };
 
-export default function LanternNetwork() {
+export default function LanternNetPage() {
     const [isMounted, setIsMounted] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const [hoveredUser, setHoveredUser] = useState<LanternUser | null>(null);
-    const [isHostModalOpen, setIsHostModalOpen] = useState(false);
     const [network] = useState<LanternUser[]>(generateMockNetwork);
+    const { totalSessions, isPremiumUser } = useStudyStore();
+    const router = useRouter();
 
-    // Host Settings State
-    const [roomName, setRoomName] = useState("Deep Work Session");
-    const [roomMode, setRoomMode] = useState<'flowstate' | 'cafe'>('flowstate');
-    const [roomCapacity, setRoomCapacity] = useState(5);
-    const [isPasswordProtected, setIsPasswordProtected] = useState(false);
-    const [roomVibe, setRoomVibe] = useState<'default' | 'void' | 'synthwave'>('default');
+    // 👇 NEW: State to hold the real rooms from Supabase
+    const [liveRooms, setLiveRooms] = useState<LanternUser[]>([]);
+
+    const [isHostModalOpen, setIsHostModalOpen] = useState(false);
+    const [roomSettings, setRoomSettings] = useState({
+        title: "Deep Work Session",
+        mode: 'flowstate' as 'flowstate' | 'cafe',
+        capacity: 5,
+        isLocked: false,
+        vibe: 'default',
+        workDuration: 25,
+        breakDuration: 5
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // 👇 NEW: Fetch REAL active rooms from Supabase on mount
+    useEffect(() => {
+        const fetchLiveRooms = async () => {
+            const { data } = await supabase.from('rooms').select('*');
+            if (data) {
+                const realUsers: LanternUser[] = data.map((room) => ({
+                    id: room.host_id,
+                    name: room.name || "Live Host",
+                    chumLabel: "👻 Chum", // You can update this to fetch from profiles later
+                    status: room.mode === 'cafe' ? 'cafe' : 'flowstate',
+                    hours: 100, // Placeholder legacy hours
+                    isHosting: true,
+                    roomCode: room.room_code,
+                    isPremium: false,
+                    // Give them random coordinates in the 3D map
+                    gridX: Math.floor(Math.random() * 12),
+                    gridY: Math.floor(Math.random() * 12),
+                    jitterX: (Math.random() - 0.5) * 60,
+                    jitterY: (Math.random() - 0.5) * 60,
+                }));
+                setLiveRooms(realUsers);
+            }
+        };
+        fetchLiveRooms();
+    }, []);
+
+    const handleBroadcast = async () => {
+        if (isSubmitting) return; // 🛑 Block extra clicks
+        setIsSubmitting(true);
+        // 1. Generate a unique 6-character room code
+        const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+        // 2. Get the current authenticated user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+        if (!user || userError) {
+            alert("You need to be logged in to host a Sanctuary!");
+            setIsSubmitting(false);
+            return;
+        }
+
+        // 3. Insert using ONLY your existing columns
+        const { error: insertError } = await supabase.from('rooms').insert({
+            room_code: roomCode,
+            host_id: user.id,
+            name: roomSettings.title,
+            mode: roomSettings.mode,
+            capacity: roomSettings.capacity,
+            is_private: roomSettings.isLocked,
+            vibe: roomSettings.vibe,
+            password: null
+        });
+
+        if (insertError) {
+            console.error("Error creating room:", insertError);
+            alert("Failed to open the sanctuary.");
+            setIsSubmitting(false);
+            return;
+        }
+
+        // 4. Update the user's profile to light up the map
+        await supabase.from('profiles').update({
+            is_hosting: true,
+            current_room: roomCode
+        }).eq('id', user.id);
+
+        // 5. Close the modal
+        setIsHostModalOpen(false);
+
+        // 6. Teleport to the room (Settings are now handled INSIDE the room!)
+        router.push(`/room/${roomCode}`);
+    };
+
+    // 👇 UPDATE: Merge the real live rooms into the full network
+    const fullNetwork = useMemo(() => {
+        const me: LanternUser = {
+            id: "me",
+            name: "You",
+            chumLabel: "👻 Ghost",
+            status: 'flowstate',
+            hours: totalSessions || 0,
+            isHosting: true,
+            isPremium: true,
+            gridX: 6,
+            gridY: 6,
+            jitterX: 0,
+            jitterY: 0
+        };
+        return [me, ...liveRooms, ...network];
+    }, [network, liveRooms, totalSessions]);
+
+    const filteredNetwork = fullNetwork.filter(u =>
+        u.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     useEffect(() => setIsMounted(true), []);
     if (!isMounted) return null;
 
-    // Search Logic
-    const filteredNetwork = network.filter(u =>
-        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (u.roomCode && u.roomCode.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-
-    const getStatusColor = (status: Status) => {
-        if (status === 'flowstate') return 'var(--accent-teal)';
-        if (status === 'cafe') return 'var(--accent-yellow)';
-        return 'var(--text-muted)';
-    };
-
     return (
-        <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-4rem)] gap-6 pb-8">
+        <div className="flex flex-col lg:flex-row h-screen max-h-screen p-4 pb-8 lg:p-6 lg:pb-10 gap-6 bg-[var(--bg-dark)] overflow-hidden">
 
-            {/* LEFT PANEL: Controls & Leaderboard */}
-            <div className="w-full lg:w-80 flex flex-col gap-6 h-[600px] lg:h-full z-10 flex-shrink-0">
-                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 rounded-3xl shadow-sm">
-                    <h1 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-2 mb-1">
-                        <Radio size={24} className="text-[var(--accent-cyan)]" /> Lantern Net
+            {/* LEFT PANEL */}
+            <div className="w-full lg:w-[340px] flex flex-col gap-6 h-full z-10 flex-shrink-0 min-h-0">
+                {/* Control Hub */}
+                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-[32px] shadow-sm flex flex-col gap-5">
+                    <h1 className="text-2xl font-black text-[var(--text-main)] flex items-center gap-2">
+                        <Radio size={24} className="text-[var(--accent-teal)]" /> Lantern Net
                     </h1>
-                    <p className="text-[var(--text-muted)] text-xs mb-5">You are not studying alone.</p>
 
-                    <div className="relative mb-4">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                    <div className="relative">
+                        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                         <input
                             type="text"
-                            placeholder="Search user or code..."
+                            placeholder="Search the void..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl pl-9 pr-3 py-2.5 text-sm text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-cyan)] transition-colors"
+                            className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] transition-colors"
                         />
                     </div>
 
+                    {/* 👇 TRIGGER MODAL HERE */}
                     <button
                         onClick={() => setIsHostModalOpen(true)}
-                        className="w-full py-2.5 bg-[var(--bg-sidebar)] border border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-cyan)] hover:text-[var(--accent-cyan)] rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all group shadow-sm"
+                        className="w-full py-3.5 bg-[var(--accent-teal)] text-black rounded-2xl font-black text-sm shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
-                        <Plus size={16} className="group-hover:rotate-90 transition-transform" /> Host a Room
+                        <Plus size={18} /> Host Room
                     </button>
                 </div>
 
-                {/* Leaderboard */}
-                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 flex-1 flex flex-col min-h-0 shadow-sm">
-                    <h3 className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2 mb-4 pb-4 border-b border-[var(--border-color)]">
-                        <Trophy size={16} className="text-[var(--accent-yellow)]" /> Hall of Focus
+                {/* HALL OF FOCUS */}
+                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[32px] p-6 flex-1 flex flex-col min-h-0 shadow-sm">
+                    <h3 className="text-sm font-black text-[var(--text-main)] flex items-center gap-2 mb-4 pb-4 border-b border-[var(--border-color)] uppercase tracking-wide">
+                        <Trophy size={18} className="text-[var(--accent-yellow)]" /> Hall of Focus
                     </h3>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
-                        {filteredNetwork.slice(0, 20).map((user, index) => (
-                            <div key={user.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-[var(--bg-dark)] transition-colors group cursor-default">
-                                <div className="flex items-center gap-3">
-                                    <span className={`text-xs font-bold w-4 text-center ${index < 3 ? 'text-[var(--accent-yellow)]' : 'text-[var(--text-muted)]'}`}>
-                                        {index + 1}
+                    <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                        {filteredNetwork.sort((a, b) => b.hours - a.hours).map((user, index) => (
+                            <div
+                                key={user.id}
+                                className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${user.id === 'me' ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/20' : 'bg-transparent border-transparent hover:border-[var(--border-color)] hover:bg-[var(--bg-dark)]'}`}
+                            >
+                                <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-[var(--accent-yellow)]' : 'text-[var(--text-muted)]'}`}>
+                                    {index + 1}
+                                </span>
+                                <div className="flex-1 flex flex-col">
+                                    <span className="text-sm font-black text-[var(--text-main)]">{user.name}</span>
+                                    <span className={`text-[9px] font-bold uppercase tracking-wider ${user.status === 'flowstate' ? 'text-[var(--accent-teal)]' : 'text-[var(--accent-yellow)]'}`}>
+                                        {user.status}
                                     </span>
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-[var(--text-main)] flex items-center gap-1">
-                                            {user.name} {user.isPremium && <Sparkles size={10} className="text-[var(--accent-yellow)]" />}
-                                        </span>
-                                        <span className="text-[9px] text-[var(--text-muted)] flex items-center gap-1 uppercase tracking-wider">
-                                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: getStatusColor(user.status) }} />
-                                            {user.status}
-                                        </span>
-                                    </div>
                                 </div>
-                                <span className="text-xs font-mono text-[var(--text-muted)] font-bold">{user.hours}h</span>
+                                <span className="text-xs font-black text-[var(--text-muted)] bg-[var(--bg-dark)] px-2 py-1 rounded-lg">
+                                    {user.hours}h
+                                </span>
                             </div>
                         ))}
                     </div>
                 </div>
             </div>
 
-            {/* RIGHT PANEL: The Void Map */}
-            <div className="flex-1 bg-[#05080c] rounded-3xl border border-[var(--border-color)] shadow-2xl relative overflow-hidden group min-h-[500px]">
-                {/* Background Grid & Vignette */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#05080c_100%)] z-0 pointer-events-none" />
-                <div className="absolute inset-0 opacity-[0.03] z-0 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-
-                {/* The Lantern Dots */}
-                <div className="absolute inset-8 z-10 relative h-[calc(100%-4rem)] w-[calc(100%-4rem)]">
-                    {filteredNetwork.map((user) => {
-                        const color = getStatusColor(user.status);
-                        const isHovered = hoveredUser?.id === user.id;
-
-                        // 12x12 Grid Math
-                        const cellWidth = 100 / 12;
-                        const cellHeight = 100 / 12;
-                        const leftPos = `calc(${(user.gridX * cellWidth) + (cellWidth / 2)}% + ${user.jitterX}px)`;
-                        const topPos = `calc(${(user.gridY * cellHeight) + (cellHeight / 2)}% + ${user.jitterY}px)`;
-
-                        return (
-                            <div
-                                key={user.id}
-                                onMouseEnter={() => setHoveredUser(user)}
-                                onMouseLeave={() => setHoveredUser(null)}
-                                className="absolute cursor-pointer transition-transform duration-300 z-10"
-                                style={{
-                                    left: leftPos, top: topPos,
-                                    transform: `translate(-50%, -50%) scale(${isHovered ? 1.5 : 1})`,
-                                }}
-                            >
-                                {/* The Dot */}
-                                <motion.div
-                                    animate={{ opacity: [0.6, 1, 0.6] }}
-                                    transition={{ duration: 2 + Math.random() * 2, repeat: Infinity }}
-                                    className="w-3 h-3 rounded-full"
-                                    style={{
-                                        backgroundColor: color,
-                                        boxShadow: `0 0 ${isHovered ? '20px' : '10px'} ${color}`,
-                                        border: user.isHosting ? `2px solid #fff` : 'none'
-                                    }}
-                                />
-                                {user.isHosting && (
-                                    <div className="absolute -inset-1.5 border border-white/30 rounded-full animate-ping opacity-50" />
-                                )}
-                            </div>
-                        );
-                    })}
-
-                    {/* Hover Card (Tooltip) */}
-                    <AnimatePresence>
-                        {hoveredUser && (
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                                className="absolute z-50 pointer-events-none"
-                                style={{
-                                    left: `calc(${(hoveredUser.gridX * (100 / 12)) + (100 / 24)}% + ${hoveredUser.jitterX}px)`,
-                                    top: `calc(${(hoveredUser.gridY * (100 / 12)) + (100 / 24)}% + ${hoveredUser.jitterY - 20}px)`,
-                                    transform: 'translate(-50%, -100%)'
-                                }}
-                            >
-                                <div className="bg-[var(--bg-card)]/90 backdrop-blur-md border border-[var(--border-color)] p-4 rounded-2xl shadow-2xl w-56 flex flex-col gap-3 pointer-events-auto">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <h3 className="text-white font-bold text-sm flex items-center gap-1">
-                                                {hoveredUser.name} {hoveredUser.isPremium && <Sparkles size={12} className="text-[var(--accent-yellow)]" />}
-                                            </h3>
-                                            <p className="text-[10px] text-[var(--text-muted)] font-mono">{hoveredUser.chumLabel}</p>
-                                        </div>
-                                        <div className="w-8 h-8 rounded-full flex items-center justify-center border border-[var(--border-color)] bg-[var(--bg-dark)] shadow-inner">
-                                            <span className="text-sm">{hoveredUser.chumLabel.split(' ')[0]}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex justify-between items-center bg-[var(--bg-dark)] rounded-lg p-2 border border-[var(--border-color)]">
-                                        <div className="flex flex-col">
-                                            <span className="text-[8px] uppercase tracking-widest text-[var(--text-muted)] font-bold">Status</span>
-                                            <span className="text-xs font-bold capitalize" style={{ color: getStatusColor(hoveredUser.status) }}>{hoveredUser.status}</span>
-                                        </div>
-                                        <div className="flex flex-col text-right">
-                                            <span className="text-[8px] uppercase tracking-widest text-[var(--text-muted)] font-bold">Total Focus</span>
-                                            <span className="text-xs font-mono font-bold text-white">{hoveredUser.hours}h</span>
-                                        </div>
-                                    </div>
-
-                                    {hoveredUser.isHosting && (
-                                        <button className="w-full py-2 bg-[var(--accent-cyan)]/10 hover:bg-[var(--accent-cyan)]/20 border border-[var(--accent-cyan)]/30 text-[var(--accent-cyan)] rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors">
-                                            <Users size={12} /> Join Room [{hoveredUser.roomCode}]
-                                        </button>
-                                    )}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
+            {/* RIGHT PANEL: THREE.JS MAP */}
+            <div className="flex-1 h-full rounded-[40px] overflow-hidden border border-[var(--border-color)] shadow-xl relative min-h-0">
+                <ThreeLanternNet users={filteredNetwork} />
             </div>
 
-            {/* HOST ROOM MODAL */}
+            {/* THE STUDY ARCHITECT MODAL (Simplified Entrance) */}
             <AnimatePresence>
                 {isHostModalOpen && (
-                    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsHostModalOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setIsHostModalOpen(false)}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        />
 
-                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-3xl w-full max-w-xl overflow-hidden relative z-10 shadow-2xl p-0 flex flex-col md:flex-row h-auto max-h-[90vh]">
-
-                            {/* Standard Settings */}
-                            <div className="w-full md:w-1/2 p-6 flex flex-col">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-xl font-bold text-[var(--text-main)] flex items-center gap-2">
-                                        <Radio className="text-[var(--accent-cyan)]" /> Host Room
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="bg-[#1a1a1a] border border-white/5 rounded-[40px] w-full max-w-4xl overflow-hidden relative z-10 shadow-2xl flex flex-col md:flex-row min-h-[400px]"
+                        >
+                            {/* LEFT: Standard Settings */}
+                            <div className="flex-[1.5] p-8 lg:p-10 flex flex-col justify-between">
+                                <div>
+                                    <h2 className="text-[28px] font-black text-white flex items-center gap-3 mb-10 tracking-tight">
+                                        <Radio className="text-[#84ccb9]" size={28} /> Host Room
                                     </h2>
-                                    <button onClick={() => setIsHostModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)] md:hidden"><X size={20} /></button>
-                                </div>
 
-                                <div className="space-y-4 flex-1">
-                                    <div>
-                                        <label className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block">Room Title</label>
-                                        <input
-                                            type="text"
-                                            value={roomName}
-                                            onChange={(e) => setRoomName(e.target.value)}
-                                            className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] text-[var(--text-main)] text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent-cyan)] transition-colors font-bold"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block">Focus Mode</label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <button
-                                                onClick={() => setRoomMode('flowstate')}
-                                                className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition-all ${roomMode === 'flowstate' ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'bg-[var(--bg-dark)] border-[var(--border-color)] text-[var(--text-muted)]'}`}
-                                            >
-                                                <Waves size={16} /> FlowState
-                                            </button>
-                                            <button
-                                                onClick={() => setRoomMode('cafe')}
-                                                className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition-all ${roomMode === 'cafe' ? 'bg-[var(--accent-yellow)]/10 border-[var(--accent-yellow)] text-[var(--accent-yellow)]' : 'bg-[var(--bg-dark)] border-[var(--border-color)] text-[var(--text-muted)]'}`}
-                                            >
-                                                <Coffee size={16} /> Cafe
-                                            </button>
+                                    <div className="space-y-8">
+                                        <div>
+                                            <label className="text-[11px] font-black uppercase tracking-widest text-white/50 mb-3 block">Room Title</label>
+                                            <input
+                                                type="text"
+                                                value={roomSettings.title}
+                                                onChange={(e) => setRoomSettings({ ...roomSettings, title: e.target.value })}
+                                                className="w-full bg-[#111111] border border-white/5 rounded-2xl px-5 py-4 text-white font-bold outline-none focus:border-[#84ccb9]/50 transition-all text-lg"
+                                                placeholder="e.g. Deep Work Session"
+                                            />
                                         </div>
                                     </div>
                                 </div>
 
-                                <button className="mt-6 w-full py-3 bg-[var(--accent-cyan)] text-black rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-cyan-400 transition-colors">
-                                    <Radio size={18} /> Broadcast Room
+                                <button
+                                    onClick={handleBroadcast}
+                                    className="mt-12 w-full py-4 bg-white text-black rounded-2xl font-black text-base hover:bg-gray-100 active:scale-95 transition-all flex items-center justify-center gap-3"
+                                >
+                                    <Radio size={18} /> Initialize Blueprint
                                 </button>
                             </div>
 
-                            {/* Premium Settings Panel */}
-                            <div className="w-full md:w-1/2 bg-[var(--bg-dark)] border-t md:border-t-0 md:border-l border-[var(--border-color)] p-6 flex flex-col relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent-yellow)]/5 rounded-full blur-[50px] pointer-events-none" />
+                            {/* RIGHT: Premium Architect Panel */}
+                            <div className="flex-1 bg-[#151515] border-t md:border-t-0 md:border-l border-white/5 p-8 lg:p-10 flex flex-col relative">
+                                <button
+                                    onClick={() => setIsHostModalOpen(false)}
+                                    className="absolute top-6 right-6 z-20 text-white/50 hover:text-white transition-colors p-2 bg-[#1a1a1a] rounded-full border border-white/5"
+                                >
+                                    <X size={16} />
+                                </button>
 
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-sm font-bold text-[var(--accent-yellow)] flex items-center gap-2">
-                                        <Sparkles size={16} /> Premium Features
-                                    </h3>
-                                    <button onClick={() => setIsHostModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)] hidden md:block"><X size={20} /></button>
-                                </div>
+                                <h3 className="text-sm font-black text-[#e8c366] flex items-center gap-2 mb-10 uppercase tracking-widest">
+                                    <Sparkles size={16} /> Architect Pro
+                                </h3>
 
-                                <div className="space-y-4 flex-1">
-                                    <div className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-xl p-3 flex justify-between items-center">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-[var(--text-main)] flex items-center gap-1.5"><Users size={14} className="text-[var(--text-muted)]" /> Capacity</span>
-                                            <span className="text-[10px] text-[var(--text-muted)]">Up to 50 users (Default: 5)</span>
-                                        </div>
+                                <div className="space-y-8 flex-1">
+                                    {/* Capacity (Premium Locked) */}
+                                    <div className={`flex flex-col gap-3 ${!isPremiumUser ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
+                                        <span className="text-[11px] font-black text-white/50 uppercase tracking-widest flex justify-between">
+                                            Capacity {!isPremiumUser && <Lock size={12} />}
+                                        </span>
                                         <select
-                                            value={roomCapacity}
-                                            onChange={(e) => setRoomCapacity(Number(e.target.value))}
-                                            className="bg-[var(--bg-dark)] border border-[var(--border-color)] text-[var(--text-main)] text-sm rounded-lg px-2 py-1 outline-none"
+                                            value={roomSettings.capacity}
+                                            onChange={(e) => setRoomSettings({ ...roomSettings, capacity: Number(e.target.value) })}
+                                            className="bg-[#1a1a1a] border border-white/5 p-4 rounded-xl text-base font-bold text-white outline-none appearance-none cursor-pointer"
                                         >
-                                            <option value={5}>5 Users</option>
+                                            <option value={5}>5 Users (Free)</option>
                                             <option value={15}>15 Users</option>
-                                            <option value={50}>50 Users 👑</option>
+                                            <option value={50}>50 Users</option>
                                         </select>
                                     </div>
 
-                                    <div className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-xl p-3 flex justify-between items-center">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-[var(--text-main)] flex items-center gap-1.5"><Shield size={14} className="text-[var(--text-muted)]" /> Lock Room</span>
-                                            <span className="text-[10px] text-[var(--text-muted)]">Require a password to enter</span>
-                                        </div>
-                                        <div className={`w-10 h-5 rounded-full relative transition-colors cursor-pointer ${isPasswordProtected ? "bg-[var(--accent-yellow)]" : "bg-[var(--border-color)]"}`} onClick={() => setIsPasswordProtected(!isPasswordProtected)}>
-                                            <div className={`absolute top-1 left-1 w-3 h-3 rounded-full bg-white transition-transform ${isPasswordProtected ? "translate-x-5" : ""}`} />
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-xl p-3 flex flex-col gap-2">
-                                        <div className="flex flex-col mb-1">
-                                            <span className="text-sm font-bold text-[var(--text-main)] flex items-center gap-1.5"><Sparkles size={14} className="text-[var(--text-muted)]" /> Custom Vibe</span>
-                                            <span className="text-[10px] text-[var(--text-muted)]">Force an aesthetic for all visitors</span>
-                                        </div>
-                                        <select
-                                            value={roomVibe}
-                                            onChange={(e) => setRoomVibe(e.target.value as any)}
-                                            className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] text-[var(--text-main)] text-sm rounded-lg px-2 py-2 outline-none"
+                                    {/* Privacy (Premium Locked) */}
+                                    <div className={`flex items-center justify-between pt-4 ${!isPremiumUser ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
+                                        <span className="text-[11px] font-black text-white/50 uppercase tracking-widest flex items-center gap-2">
+                                            Private Room {!isPremiumUser && <Lock size={12} />}
+                                        </span>
+                                        <button
+                                            onClick={() => setRoomSettings({ ...roomSettings, isLocked: !roomSettings.isLocked })}
+                                            className={`w-12 h-6 rounded-full relative transition-colors ${roomSettings.isLocked ? 'bg-[#84ccb9]' : 'bg-[#1a1a1a] border border-white/10'}`}
                                         >
-                                            <option value="default">Default (User's Choice)</option>
-                                            <option value="void">Monastic Void</option>
-                                            <option value="synthwave">Retro Synthwave</option>
-                                        </select>
+                                            <motion.div layout className={`w-4 h-4 rounded-full bg-white absolute top-1 ${roomSettings.isLocked ? 'right-1' : 'left-1 bg-white/50'}`} />
+                                        </button>
                                     </div>
-                                </div>
 
-                                <div className="mt-4 p-3 rounded-xl bg-[var(--accent-yellow)]/10 border border-[var(--accent-yellow)]/20 flex gap-3 items-center">
-                                    <Lock size={20} className="text-[var(--accent-yellow)] flex-shrink-0" />
-                                    <div>
-                                        <p className="text-xs font-bold text-[var(--accent-yellow)]">Unlock Pro Features</p>
-                                        <p className="text-[10px] text-[var(--accent-yellow)]/70">Upgrade your account to access these host settings.</p>
-                                    </div>
+                                    {/* Password Input (Only shows if Private is toggled on) */}
+                                    <AnimatePresence>
+                                        {roomSettings.isLocked && isPremiumUser && (
+                                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                                                <input
+                                                    type="text" placeholder="Enter Room Password"
+                                                    onChange={(e) => setRoomSettings({ ...roomSettings, vibe: e.target.value })} // Map to your DB schema if needed
+                                                    className="w-full bg-[#111111] border border-white/5 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none mt-2"
+                                                />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                             </div>
-
                         </motion.div>
                     </div>
                 )}
