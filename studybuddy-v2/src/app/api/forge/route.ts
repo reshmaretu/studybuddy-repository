@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-export const maxDuration = 60; // Essential for long document processing
+export const maxDuration = 60; // Essential for LlamaParse wait times
 
 export async function POST(req: Request) {
     try {
         const { title, content, files, user_id } = await req.json();
         const authHeader = req.headers.get('Authorization');
+        const llamaKey = process.env.LLAMA_CLOUD_API_KEY;
         const geminiKey = process.env.GEMINI_AI_API_KEY;
 
         const supabase = createClient(
@@ -19,44 +20,53 @@ export async function POST(req: Request) {
         let finalTitle = title || "Untitled Shard";
 
         // ==========================================
-        // 1. GEMINI PARSE: Replaces LlamaParse
+        // 1. LLAMAPARSE: Document Extraction
         // ==========================================
         if (files && files.length > 0 && files[0].content) {
             const base64Data = files[0].content.split(',')[1];
-            const mimeType = files[0].type || "application/pdf";
+            const blob = new Blob([Buffer.from(base64Data, 'base64')], { type: files[0].type });
 
-            const parseRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+            const formData = new FormData();
+            formData.append('file', blob, files[0].name);
+
+            // Upload
+            const uploadRes = await fetch("https://api.cloud.llamaindex.ai/api/parsing/upload", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [
-                            { inline_data: { mime_type: mimeType, data: base64Data } },
-                            { text: "Extract all text and data from this document. Format it cleanly in Markdown. Do not add any conversational filler." }
-                        ]
-                    }]
-                })
+                headers: { "Authorization": `Bearer ${llamaKey}` },
+                body: formData
             });
 
-            if (!parseRes.ok) {
-                const errorData = await parseRes.json();
-                throw new Error(`Gemini Parse Failed: ${errorData.error?.message}`);
+            if (!uploadRes.ok) {
+                const err = await uploadRes.text();
+                throw new Error(`LlamaParse Upload Failed: ${err}`);
             }
 
-            const parseData = await parseRes.json();
-            const extractedText = parseData.candidates[0].content.parts[0].text;
+            const { id: jobId } = await uploadRes.json();
 
-            if (extractedText) {
+            // Poll for result (Max 30 seconds)
+            let markdownText = "";
+            for (let i = 0; i < 15; i++) {
+                await new Promise(r => setTimeout(r, 2000));
+                const res = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}/result/markdown`, {
+                    headers: { "Authorization": `Bearer ${llamaKey}` }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    markdownText = data.markdown;
+                    break;
+                }
+            }
+
+            if (markdownText) {
                 const separator = finalContent ? "\n\n--- DOCUMENT CONTENT ---\n\n" : "";
-                finalContent = finalContent + separator + extractedText;
+                finalContent = finalContent + separator + markdownText;
                 if (!title) finalTitle = files[0].name;
             }
         }
 
-        if (finalContent.trim() === "") finalContent = "Empty note";
-
         // ==========================================
-        // 2. GEMINI EMBEDDINGS (768-dim): Replaces Xenova
+        // 2. GEMINI EMBEDDINGS (Still use Gemini for Vector)
         // ==========================================
         const embedRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${geminiKey}`, {
             method: "POST",
@@ -68,26 +78,21 @@ export async function POST(req: Request) {
         });
 
         const embedData = await embedRes.json();
-        if (!embedRes.ok) throw new Error(`Embedding Failed: ${embedData.error?.message}`);
+        if (!embedRes.ok) throw new Error(`Gemini Embedding Failed: ${embedData.error?.message}`);
 
         const embedding = embedData.embedding.values;
 
         // ==========================================
-        // 3. SUPABASE: Save Shard & Vector
+        // 3. SUPABASE: Save
         // ==========================================
         const { data: shard, error: shardError } = await supabase
             .from('shards')
             .insert([{ user_id, title: finalTitle, content: finalContent }])
-            .select()
-            .single();
+            .select().single();
 
         if (shardError) throw shardError;
 
-        const { error: vectorError } = await supabase
-            .from('shard_embeddings')
-            .insert([{ shard_id: shard.id, embedding }]);
-
-        if (vectorError) throw vectorError;
+        await supabase.from('shard_embeddings').insert([{ shard_id: shard.id, embedding }]);
 
         return NextResponse.json({ success: true, shard });
 
@@ -95,22 +100,4 @@ export async function POST(req: Request) {
         console.error("Forge Error:", error.message);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
-}
-
-export async function OPTIONS(req: Request) {
-    return new NextResponse(null, {
-        status: 200,
-        headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-    });
-}
-
-export async function GET() {
-    return NextResponse.json({
-        status: "success",
-        message: "The Forge API is alive and serverless-friendly!"
-    });
 }
