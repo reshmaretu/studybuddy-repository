@@ -70,7 +70,7 @@ export async function POST(req: Request) {
         // ==========================================
         const { GoogleGenerativeAI } = await import("@google/generative-ai");
         const genAI = new GoogleGenerativeAI(geminiKey!);
-        const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+        const model = genAI.getGenerativeModel({ model: "embedding-001" });
 
         const result = await model.embedContent(finalContent);
         const embedding = result.embedding.values; // This is 768 dimensions
