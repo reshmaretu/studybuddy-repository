@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, PerspectiveCamera, QuadraticBezierLine, Float, Points, PointMaterial } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
-import { BoxSelect, Layers } from "lucide-react";
+import { BoxSelect, Layers, Zap } from "lucide-react";
 import { LanternUser } from "@/app/lantern/page";
 import { useRouter } from "next/navigation";
 import * as random from 'maath/random/dist/maath-random.esm';
@@ -39,15 +39,30 @@ const createGlowTexture = () => {
 // --- COMPONENTS ---
 
 export default function ThreeLanternNet({ users }: { users: LanternUser[] }) {
+    const [globalIntensity, setGlobalIntensity] = useState(1.5);
     const [is3D, setIs3D] = useState(false);
     const [warpTarget, setWarpTarget] = useState<THREE.Vector3 | null>(null);
     const controlsRef = useRef<any>(null);
 
     return (
         <div className="w-full h-full bg-[#05080c] relative group">
-            <div className="absolute top-6 right-6 z-[100] flex bg-[var(--bg-dark)]/80 backdrop-blur-md p-1.5 rounded-2xl border border-[var(--border-color)] shadow-2xl">
-                <button onClick={() => setIs3D(false)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${!is3D ? 'bg-[var(--accent-teal)] text-black' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><BoxSelect size={14} /> 2D Map</button>
-                <button onClick={() => setIs3D(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${is3D ? 'bg-[var(--accent-teal)] text-black' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><Layers size={14} /> 3D Void</button>
+            {/* --- TOOLBAR --- */}
+            <div className="absolute top-6 right-6 z-[100] flex flex-col gap-3 items-end">
+                <div className="flex bg-[var(--bg-dark)]/80 backdrop-blur-md p-1.5 rounded-2xl border border-[var(--border-color)] shadow-2xl">
+                    <button onClick={() => setIs3D(false)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${!is3D ? 'bg-[var(--accent-teal)] text-black' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><BoxSelect size={14} /> 2D Map</button>
+                    <button onClick={() => setIs3D(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${is3D ? 'bg-[var(--accent-teal)] text-black' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><Layers size={14} /> 3D Void</button>
+                </div>
+
+                {/* --- BRIGHTNESS SLIDER --- */}
+                <div className="flex items-center gap-3 bg-[var(--bg-dark)]/80 backdrop-blur-md px-4 py-2 rounded-xl border border-[var(--border-color)] shadow-xl">
+                    <Zap size={14} className="text-[var(--accent-yellow)]" />
+                    <input
+                        type="range" min="0.5" max="4.0" step="0.1"
+                        value={globalIntensity}
+                        onChange={(e) => setGlobalIntensity(parseFloat(e.target.value))}
+                        className="w-24 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[var(--accent-teal)]"
+                    />
+                </div>
             </div>
 
             <Canvas>
@@ -57,7 +72,7 @@ export default function ThreeLanternNet({ users }: { users: LanternUser[] }) {
                 <ambientLight intensity={0.2} />
                 <pointLight position={[10, 10, 10]} intensity={1.5} color="#2dd4bf" />
                 <LanternConstellation users={users} is3D={is3D} onWarp={setWarpTarget} />
-                <CameraRig is3D={is3D} controlsRef={controlsRef} warpTarget={warpTarget} onWarpComplete={() => setWarpTarget(null)} />
+                <CameraRig is3D={is3D} controlsRef={controlsRef} warpTarget={warpTarget} intensity={globalIntensity} onWarpComplete={() => setWarpTarget(null)} />
                 <OrbitControls
                     ref={controlsRef}
                     enableRotate={is3D}
@@ -126,7 +141,7 @@ function LanternConstellation({ users, is3D, onWarp }: { users: LanternUser[], i
     );
 }
 
-function SingleLantern({ user, is3D, isHovered, isSelected, setHovered, clearHover, onClick, isSelf }: any) {
+function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, intensity, setHovered, clearHover }: any) {
     const meshRef = useRef<THREE.Mesh>(null);
     const materialRef = useRef<THREE.MeshStandardMaterial>(null);
     const spriteRef = useRef<THREE.Sprite>(null);
@@ -145,16 +160,24 @@ function SingleLantern({ user, is3D, isHovered, isSelected, setHovered, clearHov
         const config = STATUS_CONFIG[statusKey] || STATUS_CONFIG.idle;
 
         groupRef.current.position.set(xPos, yPos, THREE.MathUtils.lerp(groupRef.current.position.z, targetZ, delta * 5));
+        const baseIntensity = (isHovered || isSelected ? config.emissive + 5 : config.emissive) * intensity; 4
 
+        const pulse = Math.sin(state.clock.elapsedTime * config.pulse) * 0.2 + 1;
         const targetColor = new THREE.Color(isSelf ? "#ff007f" : config.color);
+
         materialRef.current.color.lerp(targetColor, delta * 4);
         materialRef.current.emissive.lerp(targetColor, delta * 4);
 
-        const pulse = Math.sin(state.clock.elapsedTime * config.pulse) * 0.2 + 1;
         materialRef.current.emissiveIntensity = THREE.MathUtils.lerp(
             materialRef.current.emissiveIntensity,
-            (isHovered || isSelected ? config.emissive + 5 : config.emissive) * pulse,
+            baseIntensity * pulse,
             delta * 4
+        );
+
+        spriteRef.current.material.opacity = THREE.MathUtils.lerp(
+            spriteRef.current.material.opacity,
+            (baseIntensity > 10 ? 0.6 : 0.2),
+            delta * 2
         );
 
         const s = isHovered || isSelected ? config.scale + 0.2 : config.scale;
