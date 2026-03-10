@@ -66,26 +66,23 @@ export async function POST(req: Request) {
         }
 
         // ==========================================
-        // 2. GEMINI EMBEDDINGS (Explicit Config)
+        // 2. GEMINI EMBEDDINGS (The Magic Combo)
         // ==========================================
-        const { GoogleGenerativeAI, TaskType } = await import("@google/generative-ai");
 
-        // We force the version to 'v1' to avoid the v1beta 404s
+        const { GoogleGenerativeAI } = await import("@google/generative-ai");
         const genAI = new GoogleGenerativeAI(geminiKey!);
-        const model = genAI.getGenerativeModel({
-            model: "text-embedding-004",
-        }, { apiVersion: 'v1' }); // 👈 FORCE V1 HERE
 
-        // For Chat (Querying the database)
-        const result = await model.embedContent({
-            taskType: TaskType.TASK_TYPE_UNSPECIFIED,
-            content: {
-                role: 'user',
-                parts: [{ text: finalContent }] // 👈 Store the whole note
-            }
-        });
+        // 👇 The exact combination: 'embedding-001' + 'v1'
+        const embeddingModel = genAI.getGenerativeModel({
+            model: "embedding-001",
+        }, { apiVersion: 'v1' });
+
+        // 👇 Simplify the request to a pure string to bypass strict typing
+        const result = await embeddingModel.embedContent(finalContent);
+        // ⚠️ NOTE: In api/chat/route.ts, use 'latestUserMessage' instead of 'finalContent'
 
         const embedding = result.embedding.values;
+
         // ==========================================
         // 3. SUPABASE: Save
         // ==========================================

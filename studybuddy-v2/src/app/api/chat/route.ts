@@ -41,24 +41,17 @@ export async function POST(req: Request) {
             try {
                 const latestUserMessage = messages[messages.length - 1].content;
 
-                // 1. Dynamic Import SDK and Enum (Order matters!)
-                const { GoogleGenerativeAI, TaskType } = await import("@google/generative-ai");
+                // 1. Dynamic Import SDK (Notice TaskType is gone!)
+                const { GoogleGenerativeAI } = await import("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(geminiKey!);
 
-                // 2. Initialize the specific model with stable v1 API
+                // 2. THE MAGIC COMBO: 'embedding-001' on 'v1'
                 const embeddingModel = genAI.getGenerativeModel({
-                    model: "text-embedding-004"
+                    model: "embedding-001" // 👈 Changed to the universally stable model
                 }, { apiVersion: 'v1' });
 
-                // 3. Generate Embedding (using the initialized model)
-                const result = await embeddingModel.embedContent({
-                    taskType: TaskType.TASK_TYPE_UNSPECIFIED,
-                    content: {
-                        role: 'user',
-                        parts: [{ text: latestUserMessage }]
-                    }
-                });
-
+                // 3. Generate Embedding (Simple string bypasses TypeScript errors)
+                const result = await embeddingModel.embedContent(latestUserMessage); // 👈 Much simpler!
                 const query_embedding = result.embedding.values;
 
                 // 4. Search Supabase with the vector
