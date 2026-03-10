@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import * as THREE from "three";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, PerspectiveCamera, QuadraticBezierLine, Float, Points, PointMaterial } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
 import { BoxSelect, Layers } from "lucide-react";
@@ -9,15 +9,17 @@ import { LanternUser } from "@/app/lantern/page";
 import { useRouter } from "next/navigation";
 import * as random from 'maath/random/dist/maath-random.esm';
 
-const STATUS_CONFIG: Record<string, { color: string, emissive: number, scale: number, pulse: number }> = {
-    offline: { color: '#4a4a22', emissive: 0.2, scale: 0.4, pulse: 0 },
-    idle: { color: '#fbbf24', emissive: 1.5, scale: 0.6, pulse: 1 },
-    drafting: { color: '#fbbf24', emissive: 2.0, scale: 0.6, pulse: 2 },
-    hosting: { color: '#fde047', emissive: 6.0, scale: 0.9, pulse: 4 },
-    joined: { color: '#fde047', emissive: 4.0, scale: 0.8, pulse: 3 },
-    flowstate: { color: '#2dd4bf', emissive: 8.0, scale: 0.8, pulse: 6 },
-    cafe: { color: '#f97316', emissive: 4.0, scale: 0.7, pulse: 1.5 },
-    mastering: { color: '#c084fc', emissive: 7.0, scale: 0.7, pulse: 5 }
+// --- CONFIG & UTILS ---
+
+const STATUS_CONFIG: Record<LanternUser['status'], { color: string; emissive: number; scale: number; pulse: number }> = {
+    offline: { color: '#4a4a22', emissive: 0.5, scale: 0.4, pulse: 0 },
+    idle: { color: '#fbbf24', emissive: 4.0, scale: 0.6, pulse: 1 },
+    drafting: { color: '#fbbf24', emissive: 5.0, scale: 0.6, pulse: 2 },
+    hosting: { color: '#fde047', emissive: 12.0, scale: 0.9, pulse: 4 },
+    joined: { color: '#fde047', emissive: 8.0, scale: 0.8, pulse: 3 },
+    flowstate: { color: '#2dd4bf', emissive: 15.0, scale: 0.8, pulse: 6 },
+    cafe: { color: '#f97316', emissive: 6.0, scale: 0.7, pulse: 1.5 },
+    mastering: { color: '#c084fc', emissive: 12.0, scale: 0.7, pulse: 5 }
 };
 
 const createGlowTexture = () => {
@@ -34,6 +36,8 @@ const createGlowTexture = () => {
     return new THREE.CanvasTexture(canvas);
 };
 
+// --- COMPONENTS ---
+
 export default function ThreeLanternNet({ users }: { users: LanternUser[] }) {
     const [is3D, setIs3D] = useState(false);
     const [warpTarget, setWarpTarget] = useState<THREE.Vector3 | null>(null);
@@ -49,51 +53,39 @@ export default function ThreeLanternNet({ users }: { users: LanternUser[] }) {
             <Canvas>
                 <PerspectiveCamera makeDefault position={[0, 0, 120]} fov={30} />
                 <FloatingParticles />
+                <GlobalPulse />
                 <ambientLight intensity={0.2} />
                 <pointLight position={[10, 10, 10]} intensity={1.5} color="#2dd4bf" />
                 <LanternConstellation users={users} is3D={is3D} onWarp={setWarpTarget} />
                 <CameraRig is3D={is3D} controlsRef={controlsRef} warpTarget={warpTarget} onWarpComplete={() => setWarpTarget(null)} />
-                <OrbitControls ref={controlsRef} enableRotate={is3D} enablePan={true} enableZoom={true} makeDefault />
+                <OrbitControls
+                    ref={controlsRef}
+                    enableRotate={is3D}
+                    enablePan={true}
+                    enableZoom={true}
+                    enableDamping={true}
+                    dampingFactor={0.2}
+                    makeDefault
+                    mouseButtons={{
+                        LEFT: is3D ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN,
+                        MIDDLE: THREE.MOUSE.DOLLY,
+                        RIGHT: THREE.MOUSE.PAN
+                    }}
+                />
             </Canvas>
         </div>
     );
 }
 
-function FloatingParticles() {
-    const ref = useRef<any>(null); // 👈 Fixed
-    const [sphere] = useState(() => random.inSphere(new Float32Array(6000), { radius: 100 }));
-
-    useFrame((state, delta) => {
-        // 👇 ALWAYS add this check to ensure the ref isn't null during the first frame
-        if (!ref.current) return;
-
-        ref.current.rotation.x -= delta / 15;
-        ref.current.rotation.y -= delta / 20;
-    });
-
-    return (
-        <group rotation={[0, 0, Math.PI / 4]}>
-            <Points ref={ref} positions={sphere} stride={3} frustumCulled={false}>
-                <PointMaterial
-                    transparent
-                    color="#2dd4bf"
-                    size={0.15}
-                    sizeAttenuation={true}
-                    depthWrite={false}
-                    opacity={0.2}
-                    blending={THREE.AdditiveBlending}
-                />
-            </Points>
-        </group>
-    );
-}
-
 function LanternConstellation({ users, is3D, onWarp }: { users: LanternUser[], is3D: boolean, onWarp: (v: THREE.Vector3) => void }) {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+
     const getPos = (user: LanternUser): [number, number, number] => {
         const zPos = is3D ? (user.hours / 10) - 20 : 0;
         return [(user.gridX - 6) * 12 + (user.jitterX / 8), (user.gridY - 6) * 12 + (user.jitterY / 8), zPos];
     };
+
     const me = users.find(u => u.id === 'me');
     const myPos: [number, number, number] = me ? getPos(me) : [0, 0, 0];
 
@@ -105,7 +97,20 @@ function LanternConstellation({ users, is3D, onWarp }: { users: LanternUser[], i
                 const isConnected = !isSelf && (user.status === 'hosting' || user.status === 'joined');
                 return (
                     <React.Fragment key={user.id}>
-                        <SingleLantern user={user} is3D={is3D} isSelf={isSelf} isHovered={hoveredId === user.id} setHovered={() => setHoveredId(user.id)} clearHover={() => setHoveredId(null)} onWarp={onWarp} />
+                        <SingleLantern
+                            user={user}
+                            is3D={is3D}
+                            isSelf={isSelf}
+                            isHovered={hoveredId === user.id}
+                            isSelected={selectedId === user.id}
+                            setHovered={() => setHoveredId(user.id)}
+                            clearHover={() => setHoveredId(null)}
+                            onClick={() => {
+                                setSelectedId(user.id);
+                                const pos = getPos(user);
+                                onWarp(new THREE.Vector3(pos[0], pos[1], pos[2]));
+                            }}
+                        />
                         {isConnected && (
                             <QuadraticBezierLine
                                 start={myPos} end={userPos} mid={[(myPos[0] + userPos[0]) / 2, (myPos[1] + userPos[1]) / 2 + (is3D ? 15 : 0), (myPos[2] + userPos[2]) / 2 + (is3D ? 10 : 0)] as [number, number, number]}
@@ -121,7 +126,7 @@ function LanternConstellation({ users, is3D, onWarp }: { users: LanternUser[], i
     );
 }
 
-function SingleLantern({ user, is3D, isHovered, setHovered, clearHover, isSelf, onWarp }: any) {
+function SingleLantern({ user, is3D, isHovered, isSelected, setHovered, clearHover, onClick, isSelf }: any) {
     const meshRef = useRef<THREE.Mesh>(null);
     const materialRef = useRef<THREE.MeshStandardMaterial>(null);
     const spriteRef = useRef<THREE.Sprite>(null);
@@ -135,7 +140,10 @@ function SingleLantern({ user, is3D, isHovered, setHovered, clearHover, isSelf, 
 
     useFrame((state, delta) => {
         if (!meshRef.current || !materialRef.current || !spriteRef.current || !groupRef.current) return;
-        const config = STATUS_CONFIG[user.status] || STATUS_CONFIG.idle;
+
+        const statusKey = user.status as keyof typeof STATUS_CONFIG;
+        const config = STATUS_CONFIG[statusKey] || STATUS_CONFIG.idle;
+
         groupRef.current.position.set(xPos, yPos, THREE.MathUtils.lerp(groupRef.current.position.z, targetZ, delta * 5));
 
         const targetColor = new THREE.Color(isSelf ? "#ff007f" : config.color);
@@ -143,9 +151,13 @@ function SingleLantern({ user, is3D, isHovered, setHovered, clearHover, isSelf, 
         materialRef.current.emissive.lerp(targetColor, delta * 4);
 
         const pulse = Math.sin(state.clock.elapsedTime * config.pulse) * 0.2 + 1;
-        materialRef.current.emissiveIntensity = THREE.MathUtils.lerp(materialRef.current.emissiveIntensity, (isHovered ? config.emissive + 2 : config.emissive) * pulse, delta * 4);
+        materialRef.current.emissiveIntensity = THREE.MathUtils.lerp(
+            materialRef.current.emissiveIntensity,
+            (isHovered || isSelected ? config.emissive + 5 : config.emissive) * pulse,
+            delta * 4
+        );
 
-        const s = isHovered ? config.scale + 0.2 : config.scale;
+        const s = isHovered || isSelected ? config.scale + 0.2 : config.scale;
         meshRef.current.scale.lerp(new THREE.Vector3(s, s, s), delta * 4);
 
         const isHighEnergy = ['hosting', 'flowstate', 'mastering'].includes(user.status);
@@ -156,32 +168,40 @@ function SingleLantern({ user, is3D, isHovered, setHovered, clearHover, isSelf, 
 
     return (
         <group ref={groupRef}>
-            <Float speed={isSelf ? 3 : 1.5} rotationIntensity={0.5} floatIntensity={isHovered ? 2 : 1}>
-                <sprite ref={spriteRef}><spriteMaterial map={glowTexture} transparent depthWrite={false} blending={THREE.AdditiveBlending} opacity={0} /></sprite>
+            <Float speed={isSelf ? 3 : 1.5}>
+                <sprite ref={spriteRef}>
+                    <spriteMaterial map={glowTexture} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+                </sprite>
+
                 <mesh ref={meshRef}
                     onPointerOver={(e) => { e.stopPropagation(); setHovered(); }}
                     onPointerOut={clearHover}
-                    onClick={() => onWarp(new THREE.Vector3(xPos, yPos, targetZ))}
+                    onClick={(e) => { e.stopPropagation(); onClick(); }}
                 >
                     <sphereGeometry args={[1, 32, 32]} />
                     <meshStandardMaterial ref={materialRef} toneMapped={false} />
                 </mesh>
-                {isSelf && !isHovered && <Html position={[0, 3, 0]} center><span className="text-[9px] font-black text-[#84ccb9] uppercase bg-black/80 px-2 py-1 rounded-full border border-[#84ccb9]/30">North Star</span></Html>}
             </Float>
+
             <AnimatePresence>
-                {isHovered && (
+                {(isHovered || isSelected) && (
                     <Html distanceFactor={is3D ? 30 : 45} position={[0, 5, 0]} center className="pointer-events-none">
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="bg-[#111111]/95 backdrop-blur-xl border border-white/5 p-5 rounded-3xl shadow-2xl w-64 pointer-events-auto text-white">
+                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+                            className="bg-[#111111]/95 backdrop-blur-xl border border-white/5 p-5 rounded-3xl shadow-2xl w-64 pointer-events-auto text-white">
                             <div className="flex justify-between items-start mb-4">
-                                <div><h3 className="font-black text-sm">{isSelf ? "You" : user.name}</h3><p className="text-[10px] text-teal-400 font-bold uppercase">{user.chumLabel}</p></div>
+                                <div><h3 className="font-black text-sm">{user.name}</h3><p className="text-[10px] text-teal-400 font-bold uppercase">{user.chumLabel}</p></div>
                                 <div className="text-2xl">{user.chumLabel.split(' ')[0]}</div>
                             </div>
                             <div className="grid grid-cols-2 gap-3 bg-black/40 p-3 rounded-2xl border border-white/5">
-                                <div className="flex flex-col"><span className="text-[8px] uppercase font-black opacity-40">Legacy</span><span className="text-xs font-mono font-bold text-teal-400">{user.hours}h</span></div>
-                                <div className="flex flex-col text-right"><span className="text-[8px] uppercase font-black opacity-40">State</span><span className="text-xs font-bold uppercase" style={{ color: (STATUS_CONFIG[user.status] || STATUS_CONFIG.idle).color }}>{user.status}</span></div>
+                                <div className="flex flex-col"><span className="text-[8px] uppercase font-black opacity-40">Total Hours</span><span className="text-xs font-mono font-bold text-teal-400">{user.hours}h</span></div>
+                                <div className="flex flex-col text-right"><span className="text-[8px] uppercase font-black opacity-40">Focus Score</span><span className="text-xs font-bold text-[#e8c366]">{user.focusScore || 0}</span></div>
                             </div>
-                            {!isSelf && (user.status === 'hosting' || user.status === 'joined') && (
-                                <button onClick={() => router.push(`/room/${user.roomCode}`)} className="w-full mt-4 py-3 bg-teal-400 text-black text-xs font-black rounded-xl shadow-lg hover:scale-105 transition-all">Join Room [{user.roomCode}]</button>
+                            {isSelected && !isSelf && (user.status === 'hosting' || user.status === 'joined') && (
+                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-4 pt-4 border-t border-white/5">
+                                    <p className="text-[10px] font-black uppercase text-white/40 mb-2">Current Sanctuary</p>
+                                    <p className="text-xs font-bold text-white mb-4 italic">"{user.roomTitle || 'Quiet Study'}"</p>
+                                    <button onClick={() => router.push(`/room/${user.roomCode}`)} className="w-full py-3 bg-teal-400 text-black text-xs font-black rounded-xl shadow-lg hover:scale-105 transition-all">Join Room [{user.roomCode}]</button>
+                                </motion.div>
                             )}
                         </motion.div>
                     </Html>
@@ -217,4 +237,75 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete }: any) {
         }
     });
     return null;
+}
+
+function PulseWave() {
+    const meshRef = useRef<THREE.Mesh>(null);
+
+    useFrame(({ clock }) => {
+        if (!meshRef.current) return;
+        // Expand and fade a ring every 4 seconds
+        const s = (clock.elapsedTime % 4) * 40;
+        meshRef.current.scale.setScalar(s);
+        const mat = meshRef.current.material as THREE.MeshBasicMaterial;
+        mat.opacity = Math.max(0, 1 - (s / 100));
+    });
+
+    return (
+        <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[1, 1.1, 64]} />
+            <meshBasicMaterial color="#2dd4bf" transparent opacity={0} blending={THREE.AdditiveBlending} />
+        </mesh>
+    );
+}
+
+function GlobalPulse() {
+    const meshRef = useRef<THREE.Mesh>(null);
+
+    useFrame(({ clock }) => {
+        if (!meshRef.current) return;
+        // Ripple every 5 seconds
+        const cycle = (clock.elapsedTime % 5) / 5;
+        const s = cycle * 150; // Expansion size
+        meshRef.current.scale.setScalar(s);
+
+        const mat = meshRef.current.material as THREE.MeshBasicMaterial;
+        mat.opacity = Math.pow(1 - cycle, 2) * 0.3; // Fade out quadratically
+    });
+
+    return (
+        <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[1, 1.05, 64]} />
+            <meshBasicMaterial color="#2dd4bf" transparent opacity={0} blending={THREE.AdditiveBlending} />
+        </mesh>
+    );
+}
+
+function FloatingParticles() {
+    const ref = useRef<any>(null); // 👈 Fixed
+    const [sphere] = useState(() => random.inSphere(new Float32Array(6000), { radius: 100 }));
+
+    useFrame((state, delta) => {
+        // 👇 ALWAYS add this check to ensure the ref isn't null during the first frame
+        if (!ref.current) return;
+
+        ref.current.rotation.x -= delta / 15;
+        ref.current.rotation.y -= delta / 20;
+    });
+
+    return (
+        <group rotation={[0, 0, Math.PI / 4]}>
+            <Points ref={ref} positions={sphere} stride={3} frustumCulled={false}>
+                <PointMaterial
+                    transparent
+                    color="#2dd4bf"
+                    size={0.15}
+                    sizeAttenuation={true}
+                    depthWrite={false}
+                    opacity={0.2}
+                    blending={THREE.AdditiveBlending}
+                />
+            </Points>
+        </group>
+    );
 }
