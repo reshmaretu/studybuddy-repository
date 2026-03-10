@@ -10,6 +10,7 @@ import MindDumpPad from "@/components/MindDumpPad";
 import { supabase } from "@/lib/supabase";
 import PresenceSync from "@/components/PresenceSync";
 import { useGlobalSync } from "@/hooks/useGlobalSync";
+import SyncProvider from "@/components/SyncProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,11 +24,31 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Logic hook (Ensure this is called inside a Client Component if it uses hooks!)
   useGlobalSync();
+
   return (
     <html lang="en" data-theme="deep-teal" suppressHydrationWarning>
       <body className={`${inter.className} flex min-h-screen bg-[var(--bg-dark)] text-[var(--text-main)] transition-colors duration-300 overflow-x-hidden`}>
-        <PresenceSync />
+
+        {/* Wrap everything in the Provider */}
+        <SyncProvider>
+          <PresenceSync />
+          <Sidebar />
+
+          <main className="flex-1 ml-[80px] p-8 transition-all duration-300 relative z-[1]">
+            {/* Render children ONLY ONCE here */}
+            {children}
+          </main>
+
+          {/* Global Components */}
+          <ChumWidget />
+          <FocusModal />
+          <FlowStateOverlay />
+          <StudyCafeOverlay />
+          <MindDumpPad />
+        </SyncProvider>
+
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -38,20 +59,6 @@ export default function RootLayout({
             `,
           }}
         />
-
-        <Sidebar />
-
-        <main className="flex-1 ml-[80px] p-8 transition-all duration-300 relative z-[1]">
-          {children}
-        </main>
-
-        {/* Global Components */}
-        <ChumWidget />
-        <FocusModal />
-        <FlowStateOverlay />
-        <StudyCafeOverlay />
-        <MindDumpPad />
-
       </body>
     </html>
   );
