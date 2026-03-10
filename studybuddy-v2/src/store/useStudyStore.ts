@@ -287,7 +287,8 @@ export const useStudyStore = create<StudyState>()(
                     const { data: { session } } = await supabase.auth.getSession();
                     if (!session) return;
 
-                    const res = await fetch("/api/forge", {
+                    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+                    const res = await fetch(`${baseUrl}/api/forge`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
