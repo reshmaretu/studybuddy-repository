@@ -41,25 +41,20 @@ export async function POST(req: Request) {
             try {
                 const latestUserMessage = messages[messages.length - 1].content;
 
-                // 🔄 Generate 768-dim embedding using Gemini
-                const embedRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${geminiKey}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        model: "models/text-embedding-004",
-                        content: { parts: [{ text: latestUserMessage }] }
-                    })
-                });
+                // 👇 1. DYNAMIC IMPORT OF SDK
+                const { GoogleGenerativeAI } = await import("@google/generative-ai");
+                const genAI = new GoogleGenerativeAI(geminiKey!);
 
-                const embedData = await embedRes.json();
-                if (!embedRes.ok) throw new Error("Embedding search failed");
+                // 👇 2. GENERATE EMBEDDING
+                // Using 'text-embedding-004' ensures 768 dimensions
+                const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+                const result = await model.embedContent(latestUserMessage);
+                const query_embedding = result.embedding.values;
 
-                const query_embedding = embedData.embedding.values;
-
-                // Search Supabase with the new vector size
+                // 3. Search Supabase with the vector
                 const { data: matchedShards, error } = await supabase.rpc('match_shards', {
                     query_embedding,
-                    match_threshold: 0.4, // Slightly lower for better discovery
+                    match_threshold: 0.4,
                     match_count: 3,
                     p_user_id: user_id
                 });
@@ -69,18 +64,10 @@ export async function POST(req: Request) {
                     contextSnippet += matchedShards.map((s: any) => `Title: ${s.title}\nContent: ${s.content}`).join('\n\n');
                     contextSnippet += "\n-------------------------------------------\n";
                 }
-            } catch (e) {
-                console.warn("RAG failed, proceeding without context.", e);
+            } catch (e: any) {
+                console.warn("RAG failed, proceeding without context.", e.message);
             }
         }
-
-        // 2. Inject Context
-        const formattedMessages = messages.map((m: any) => {
-            if (m.role === 'system' && contextSnippet) {
-                return { ...m, content: m.content + contextSnippet };
-            }
-            return m;
-        });
 
         // ==========================================
         // STEP 2: The LLM Waterfall

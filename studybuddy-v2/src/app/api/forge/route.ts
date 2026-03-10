@@ -66,21 +66,14 @@ export async function POST(req: Request) {
         }
 
         // ==========================================
-        // 2. GEMINI EMBEDDINGS (Still use Gemini for Vector)
+        // 2. GEMINI EMBEDDINGS (SDK Version)
         // ==========================================
-        const embedRes = await fetch(`https://generativelanguage.googleapis.com/v1/models/embedding-001:embedContent?key=${geminiKey}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "models/embedding-001",
-                content: { parts: [{ text: finalContent }] }
-            })
-        });
+        const { GoogleGenerativeAI } = await import("@google/generative-ai");
+        const genAI = new GoogleGenerativeAI(geminiKey!);
+        const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
 
-        const embedData = await embedRes.json();
-        if (!embedRes.ok) throw new Error(`Gemini Embedding Failed: ${embedData.error?.message}`);
-
-        const embedding = embedData.embedding.values;
+        const result = await model.embedContent(finalContent);
+        const embedding = result.embedding.values; // This is 768 dimensions
 
         // ==========================================
         // 3. SUPABASE: Save
