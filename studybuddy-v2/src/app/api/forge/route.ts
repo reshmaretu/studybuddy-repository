@@ -73,7 +73,7 @@ export async function POST(req: Request) {
         // We force the version to 'v1' to avoid the v1beta 404s
         const genAI = new GoogleGenerativeAI(geminiKey!);
         const model = genAI.getGenerativeModel({
-            model: "text-embedding-004",
+            model: "embedding-001",
         }, { apiVersion: 'v1' }); // 👈 FORCE V1 HERE
 
         // For Chat (Querying the database)

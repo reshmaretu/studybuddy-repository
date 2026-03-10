@@ -47,7 +47,7 @@ export async function POST(req: Request) {
 
                 // 2. Initialize the specific model with stable v1 API
                 const embeddingModel = genAI.getGenerativeModel({
-                    model: "text-embedding-004"
+                    model: "embedding-001"
                 }, { apiVersion: 'v1' });
 
                 // 3. Generate Embedding (using the initialized model)
