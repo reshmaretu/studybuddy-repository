@@ -66,18 +66,18 @@ export async function POST(req: Request) {
         }
 
         // ==========================================
-        // 2. GEMINI EMBEDDINGS (The Magic Combo)
+        // 2. GEMINI EMBEDDINGS (2026 Standard)
         // ==========================================
 
         const { GoogleGenerativeAI } = await import("@google/generative-ai");
         const genAI = new GoogleGenerativeAI(geminiKey!);
 
-        // 👇 The exact combination: 'embedding-001' + 'v1'
+        // 👇 The new, live 2026 model
         const embeddingModel = genAI.getGenerativeModel({
-            model: "embedding-001",
-        }, { apiVersion: 'v1' });
+            model: "gemini-embedding-001"
+        });
 
-        // 👇 Simplify the request to a pure string to bypass strict typing
+        // 👇 Simple string bypasses strict TypeScript errors
         const result = await embeddingModel.embedContent(finalContent);
         // ⚠️ NOTE: In api/chat/route.ts, use 'latestUserMessage' instead of 'finalContent'
 

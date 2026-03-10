@@ -47,8 +47,8 @@ export async function POST(req: Request) {
 
                 // 2. THE MAGIC COMBO: 'embedding-001' on 'v1'
                 const embeddingModel = genAI.getGenerativeModel({
-                    model: "embedding-001" // 👈 Changed to the universally stable model
-                }, { apiVersion: 'v1' });
+                    model: "gemini-embedding-001"
+                });
 
                 // 3. Generate Embedding (Simple string bypasses TypeScript errors)
                 const result = await embeddingModel.embedContent(latestUserMessage); // 👈 Much simpler!
