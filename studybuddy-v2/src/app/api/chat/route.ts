@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: Request) {
-    const { pipeline } = await import('@huggingface/transformers');
     try {
+        const { pipeline } = await import('@huggingface/transformers');
+        env.cacheDir = '/tmp';
         const { messages, user_id } = await req.json();
         const geminiKey = process.env.GEMINI_AI_API_KEY;
 
@@ -178,7 +179,8 @@ export async function POST(req: Request) {
         throw new Error("Critical: All AI nodes are currently unreachable.");
 
     } catch (error: any) {
-        console.error("Chat Error:", error.message);
+        // 👇 This will now send the EXACT error to your browser console!
+        console.error("Chat API Error:", error.message);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

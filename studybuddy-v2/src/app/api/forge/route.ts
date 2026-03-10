@@ -74,9 +74,12 @@ export async function POST(req: Request) {
         // ==========================================
         // This runs a tiny model on your server/Vercel instance
         // ✅ Optimized for 2026 CPU performance
-        const { pipeline } = await import('@huggingface/transformers');
+        const { pipeline, env } = await import('@huggingface/transformers');
+
+        // 👇 THIS IS THE VERCEL FIX: Force downloads into the writable temp folder
+        env.cacheDir = '/tmp';
+
         const embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
-            // ⚡ Forced quantization (q8) makes it 4x faster and clears the 'dtype' warning
             dtype: 'q8',
             device: 'cpu'
         });
