@@ -16,6 +16,7 @@ export interface LanternUser {
     status: 'offline' | 'idle' | 'drafting' | 'hosting' | 'joined' | 'flowstate' | 'cafe' | 'mastering';
     hours: number;
     roomCode?: string;
+    roomTitle?: string;
     isPremium: boolean;
     isHosting: boolean; // 👈 Add this back
     gridX: number;
@@ -23,6 +24,43 @@ export interface LanternUser {
     jitterX: number;
     jitterY: number;
 }
+
+const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: number): LanternUser => {
+    const hostedRoom = rooms.find(r => r.host_id === p.id);
+    const isMe = p.id === currentUserId;
+
+    // ⚡ STATUS PRIORITY LOGIC
+    let currentStatus: LanternUser['status'] = 'idle';
+
+    if (p.active_session_type === 'AI_TUTOR') {
+        currentStatus = 'mastering';
+    } else if (p.is_in_flowstate) {
+        currentStatus = 'flowstate';
+    } else if (hostedRoom) {
+        currentStatus = hostedRoom.mode === 'cafe' ? 'cafe' : 'hosting';
+    } else {
+        currentStatus = (p.status as any) || 'offline';
+    }
+
+    return {
+        id: isMe ? 'me' : p.id,
+        name: p.display_name || p.full_name || "Anonymous",
+        hours: p.total_hours || 0,
+        focusScore: p.focus_score || 0,
+        status: currentStatus,
+        isHosting: !!hostedRoom,
+        roomCode: hostedRoom?.room_code,
+        roomTitle: hostedRoom?.name,
+        isPremium: p.is_premium || false,
+        chumLabel: p.chum_avatar || "👻 Ghost",
+        // Grid logic based on index or position
+        gridX: isMe ? 6 : Math.floor(index / 5),
+        gridY: isMe ? 6 : index % 5,
+        jitterX: isMe ? 0 : (Math.random() - 0.5) * 40,
+        jitterY: isMe ? 0 : (Math.random() - 0.5) * 40,
+    };
+};
+
 export default function LanternNetPage() {
     const [isMounted, setIsMounted] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
@@ -44,58 +82,33 @@ export default function LanternNetPage() {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // ⚡ SINGLE SOURCE OF TRUTH: FETCH & REAL-TIME SYNC
     useEffect(() => {
         let isSubscribed = true;
+        let currentUserId: string | null = null; // 👈 Scoped for the entire effect
 
         const fetchNetwork = async () => {
             const { data: { user: authUser } } = await supabase.auth.getUser();
-            const currentUserId = authUser?.id;
+            if (!authUser) return;
+            currentUserId = authUser.id; // 👈 Assign once
 
             const [profilesRes, roomsRes] = await Promise.all([
                 supabase.from('profiles').select(`
-            id, display_name, full_name, total_hours, 
-            chum_avatar, status, focus_score, is_premium,
-            is_in_flowstate, active_session_type
-        `),
+                id, display_name, full_name, total_hours, 
+                chum_avatar, status, focus_score, is_premium,
+                is_in_flowstate, active_session_type
+            `),
                 supabase.from('rooms').select('*')
             ]);
 
+            // Inside fetchNetwork
             if (profilesRes.data && isSubscribed) {
                 const rooms = roomsRes.data || [];
                 const users: LanternUser[] = profilesRes.data.map((p, index) => {
-                    const hostedRoom = rooms.find(r => r.host_id === p.id);
-                    const isMe = p.id === currentUserId;
+                    // ❌ DON'T DO: const isMe = p.id === currentUserId; 
+                    // ❌ DON'T DO: return formatUser(p, rooms, isMe, index);
 
-                    // ⚡ STATUS PRIORITY: AI Mastering > Flowstate > Cafe > Hosting > Idle
-                    let currentStatus: LanternUser['status'] = 'idle';
-
-                    if (p.active_session_type === 'AI_TUTOR') {
-                        currentStatus = 'mastering';
-                    } else if (p.is_in_flowstate) {
-                        currentStatus = 'flowstate';
-                    } else if (hostedRoom) {
-                        currentStatus = hostedRoom.mode === 'cafe' ? 'cafe' : 'hosting';
-                    } else {
-                        currentStatus = (p.status as any) || 'offline';
-                    }
-
-                    return {
-                        id: isMe ? 'me' : p.id,
-                        name: p.display_name || p.full_name || "Anonymous",
-                        hours: p.total_hours || 0,
-                        focusScore: p.focus_score || 0, // 👈 Derived from your schema
-                        status: currentStatus,
-                        isHosting: !!hostedRoom,
-                        roomCode: hostedRoom?.room_code,
-                        roomTitle: hostedRoom?.name,
-                        isPremium: p.is_premium || false,
-                        chumLabel: p.chum_avatar || "👻 Ghost",
-                        gridX: isMe ? 6 : Math.floor(index / 5),
-                        gridY: isMe ? 6 : index % 5,
-                        jitterX: isMe ? 0 : (Math.random() - 0.5) * 40,
-                        jitterY: isMe ? 0 : (Math.random() - 0.5) * 40,
-                    };
+                    // ✅ DO: Pass the currentUserId string directly
+                    return formatUser(p, rooms, currentUserId, index);
                 });
                 setFullNetwork(users);
             }
@@ -103,27 +116,30 @@ export default function LanternNetPage() {
 
         fetchNetwork();
 
-        // 🟢 COMBINED REAL-TIME CHANNEL
-        // Listens for room changes AND tracks user presence in one go
         const channel = supabase.channel('lantern_sync')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => fetchNetwork())
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => fetchNetwork())
-            .subscribe(async (status) => {
-                if (status === 'SUBSCRIBED') {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (user) {
-                        // Mark user as idle/online when they enter the map
-                        await supabase.from('profiles').update({ status: 'idle' }).eq('id', user.id);
-                        fetchNetwork();
-                    }
-                }
-            });
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
+                const p = payload.new;
+
+                setFullNetwork(prev => prev.map(u => {
+                    // We calculate isMe ONLY to find the right object in the array
+                    const isMe = p.id === currentUserId;
+                    const isTargetUser = u.id === p.id || (u.id === 'me' && isMe);
+
+                    if (!isTargetUser) return u;
+
+                    // ✅ PASS currentUserId (string), NOT isMe (boolean)
+                    return formatUser(p, [], currentUserId, 0);
+                }));
+            })
+
+            .subscribe();
 
         return () => {
             isSubscribed = false;
             supabase.removeChannel(channel);
         };
-    }, [totalSessions]); // totalSessions triggers a refresh if global stats change
+    }, [totalSessions]);
 
     const handleBroadcast = async () => {
         if (isSubmitting) return;
