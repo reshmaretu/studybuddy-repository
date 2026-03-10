@@ -66,15 +66,26 @@ export async function POST(req: Request) {
         }
 
         // ==========================================
-        // 2. GEMINI EMBEDDINGS (SDK Version)
+        // 2. GEMINI EMBEDDINGS (Explicit Config)
         // ==========================================
-        const { GoogleGenerativeAI } = await import("@google/generative-ai");
+        const { GoogleGenerativeAI, TaskType } = await import("@google/generative-ai");
+
+        // We force the version to 'v1' to avoid the v1beta 404s
         const genAI = new GoogleGenerativeAI(geminiKey!);
-        const model = genAI.getGenerativeModel({ model: "embedding-001" });
+        const model = genAI.getGenerativeModel({
+            model: "text-embedding-004",
+        }, { apiVersion: 'v1' }); // 👈 FORCE V1 HERE
 
-        const result = await model.embedContent(finalContent);
-        const embedding = result.embedding.values; // This is 768 dimensions
+        // For Chat (Querying the database)
+        const result = await model.embedContent({
+            taskType: TaskType.TASK_TYPE_UNSPECIFIED,
+            content: {
+                role: 'user',
+                parts: [{ text: finalContent }] // 👈 Store the whole note
+            }
+        });
 
+        const embedding = result.embedding.values;
         // ==========================================
         // 3. SUPABASE: Save
         // ==========================================

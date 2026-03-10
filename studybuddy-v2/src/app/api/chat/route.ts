@@ -41,17 +41,27 @@ export async function POST(req: Request) {
             try {
                 const latestUserMessage = messages[messages.length - 1].content;
 
-                // 👇 1. DYNAMIC IMPORT OF SDK
-                const { GoogleGenerativeAI } = await import("@google/generative-ai");
+                // 1. Dynamic Import SDK and Enum (Order matters!)
+                const { GoogleGenerativeAI, TaskType } = await import("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(geminiKey!);
 
-                // 👇 2. GENERATE EMBEDDING
-                // Using 'text-embedding-004' ensures 768 dimensions
-                const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
-                const result = await model.embedContent(latestUserMessage);
+                // 2. Initialize the specific model with stable v1 API
+                const embeddingModel = genAI.getGenerativeModel({
+                    model: "text-embedding-004"
+                }, { apiVersion: 'v1' });
+
+                // 3. Generate Embedding (using the initialized model)
+                const result = await embeddingModel.embedContent({
+                    taskType: TaskType.TASK_TYPE_UNSPECIFIED,
+                    content: {
+                        role: 'user',
+                        parts: [{ text: latestUserMessage }]
+                    }
+                });
+
                 const query_embedding = result.embedding.values;
 
-                // 3. Search Supabase with the vector
+                // 4. Search Supabase with the vector
                 const { data: matchedShards, error } = await supabase.rpc('match_shards', {
                     query_embedding,
                     match_threshold: 0.4,
