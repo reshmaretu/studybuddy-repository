@@ -182,8 +182,10 @@ export default function LanternNetPage() {
         return [me, ...liveRooms, ...network];
     }, [network, liveRooms, totalSessions, myProfile]);
 
-    const filteredNetwork = fullNetwork.filter(u =>
-        u.name.toLowerCase().includes(searchQuery.toLowerCase())
+    // 👇 FIXED: Use 'fullNetwork' instead of 'users', and name it 'filteredNetwork'
+    const filteredNetwork = fullNetwork.filter(user =>
+        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (user.roomCode && user.roomCode.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     useEffect(() => setIsMounted(true), []);
@@ -204,14 +206,13 @@ export default function LanternNetPage() {
                         <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                         <input
                             type="text"
-                            placeholder="Search the void..."
+                            placeholder="Search the void or room code..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] transition-colors"
                         />
                     </div>
 
-                    {/* 👇 TRIGGER MODAL HERE */}
                     <button
                         onClick={() => setIsHostModalOpen(true)}
                         className="w-full py-3.5 bg-[var(--accent-teal)] text-black rounded-2xl font-black text-sm shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
@@ -236,9 +237,7 @@ export default function LanternNetPage() {
                                 </span>
                                 <div className="flex-1 flex flex-col">
                                     <span className="text-sm font-black text-[var(--text-main)]">{user.name}</span>
-                                    <span className={`text-[9px] font-bold uppercase tracking-wider ${user.status === 'flowstate' ? 'text-[var(--accent-teal)]' : 'text-[var(--accent-yellow)]'}`}>
-                                        {user.status}
-                                    </span>
+                                    {/* 👇 FIXED: Removed the redundant Flowstate status here to keep UI clean */}
                                 </div>
                                 <span className="text-xs font-black text-[var(--text-muted)] bg-[var(--bg-dark)] px-2 py-1 rounded-lg">
                                     {user.hours}h

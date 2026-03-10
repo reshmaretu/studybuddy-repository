@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, use, useRef } from "react";
+import React, { useEffect, useState, use } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { LogOut, Users, Play, Pause, RotateCcw, Sparkles, Shield, Lock, Activity, ChevronDown, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -68,6 +68,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     // --- STATES ---
     const [status, setStatus] = useState<'DRAFT' | 'LAUNCHING' | 'ACTIVE'>('DRAFT');
     const [isHost, setIsHost] = useState(false);
+    const [hostId, setHostId] = useState<string | null>(null); // 👈 TRACKS THE HOST
     const [participants, setParticipants] = useState<any[]>([]);
     const [countdown, setCountdown] = useState(5);
     const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
@@ -94,7 +95,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
             if (status === 'DRAFT' || status === 'ACTIVE') {
                 e.preventDefault();
-                e.returnValue = ''; // Triggers browser native confirmation dialog
+                e.returnValue = '';
             }
         };
         window.addEventListener('beforeunload', handleBeforeUnload);
@@ -107,19 +108,17 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return router.push('/lantern');
 
-            // 👇 NEW: Fetch the user's profile to get their Display Name or Full Name
             const { data: profile } = await supabase.from('profiles')
                 .select('display_name, full_name')
                 .eq('id', user.id)
                 .single();
 
-            // The Fallback Chain: Display Name -> Full Name -> Email Prefix -> "Chum"
             const userName = profile?.display_name || profile?.full_name || user.email?.split('@')[0] || "Chum";
 
             const { data: room } = await supabase.from('rooms').select('*').eq('room_code', roomCode).single();
             if (room?.host_id === user.id) setIsHost(true);
+            setHostId(room?.host_id); // 👈 SAVES HOST ID
 
-            // KEY IMPROVEMENT: Presence Tracking
             const channel = supabase.channel(`room:${roomCode}`, { config: { presence: { key: user.id } } });
 
             channel
@@ -127,7 +126,6 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 .on('broadcast', { event: 'sync_settings' }, ({ payload }) => setSettings(payload))
                 .on('broadcast', { event: 'launch' }, () => setStatus('LAUNCHING'))
                 .subscribe(async (s) => {
-                    // 👇 UPDATE: Track the custom userName we just fetched!
                     if (s === 'SUBSCRIBED') await channel.track({ id: user.id, name: userName });
                 });
         };
@@ -135,7 +133,6 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     }, [roomCode, router]);
 
     // 3. BROADCAST UPDATES
-    // KEY IMPROVEMENT: Supabase Realtime Broadcast
     const updateSettings = (updates: Partial<typeof settings>) => {
         if (!isHost) return;
         const newSettings = { ...settings, ...updates };
@@ -147,7 +144,6 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     };
 
     // 4. LAUNCH SEQUENCE & ENGINE
-    // KEY IMPROVEMENT: LAUNCHING State (5s buffer)
     useEffect(() => {
         if (status === 'LAUNCHING') {
             if (countdown > 0) {
@@ -185,8 +181,6 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     }, [isActive, status, isBreak, settings]);
 
     return (
-        // FIXED: w-full h-full stops the global sidebar from causing right-side cutoffs!
-        // KEY IMPROVEMENT: Break Mode Visuals (teal-dark shift)
         <div className={`h-full w-full flex flex-row overflow-hidden transition-colors duration-1000 ${isBreak ? 'bg-[#0f2924]' : 'bg-[#05080c]'}`}>
 
             {/* ARCHITECT SIDEBAR */}
@@ -269,7 +263,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                 />
                             </section>
 
-                            {/* KEY IMPROVEMENT: Ghost Mode & Pro Toggles */}
+                            {/* Ghost Mode & Pro Toggles */}
                             <section className="pt-4 border-t border-white/5 space-y-4">
                                 <div className={`flex items-center justify-between ${!isPremiumUser && 'opacity-30'}`}>
                                     <span className="text-[10px] font-bold text-white/50 uppercase flex items-center gap-2">Visualizer {!isPremiumUser && <Lock size={10} />}</span>
@@ -316,11 +310,38 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 )}
 
                 <div className="flex-1 flex flex-col items-center justify-center z-10">
+
+                    {/* 👇 FIXED: JOINERS NOW SEE THE HOST'S LIVE CONSTRUCTION! */}
                     {status === 'DRAFT' && !isHost && (
-                        <div className="text-center space-y-4">
-                            <div className="w-12 h-12 border-4 border-[#84ccb9]/20 border-t-[#84ccb9] rounded-full animate-spin mx-auto" />
-                            <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Architect is constructing...</p>
-                        </div>
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-black/40 backdrop-blur-md border border-white/10 p-8 rounded-[32px] text-center max-w-md w-full shadow-2xl"
+                        >
+                            <div className="w-12 h-12 border-4 border-[#84ccb9]/20 border-t-[#84ccb9] rounded-full animate-spin mx-auto mb-6" />
+                            <h3 className="text-[#84ccb9] font-black uppercase tracking-[0.2em] text-xs mb-2">Architect is Constructing</h3>
+
+                            <div className="space-y-4 mt-6 text-left bg-white/5 p-5 rounded-2xl border border-white/5">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-black text-white/40 uppercase">Protocol</span>
+                                    <span className="text-xs font-bold text-white uppercase">{settings.mode}</span>
+                                </div>
+                                {(settings.mode === 'pomodoro' || settings.mode === 'fixed') && (
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[10px] font-black text-white/40 uppercase">Duration</span>
+                                        <span className="text-xs font-bold text-white">{settings.workDuration}m</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-black text-white/40 uppercase">Atmosphere</span>
+                                    <span className="text-xs font-bold text-white truncate max-w-[120px]">{settings.vibeAsset}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-black text-white/40 uppercase">Audio</span>
+                                    <span className="text-xs font-bold text-white truncate max-w-[120px]">{settings.audioTrack}</span>
+                                </div>
+                            </div>
+                        </motion.div>
                     )}
 
                     {status === 'ACTIVE' && (!settings.isGhostMode || isHost) && (
@@ -354,21 +375,34 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 </AnimatePresence>
             </main>
 
-            {/* RIGHT PRESENCE SIDEBAR */}
+            {/* 👇 FIXED: RIGHT PRESENCE SIDEBAR (WITH HOST CROWN!) */}
             <aside className="w-72 flex-shrink-0 border-l border-white/5 z-20 hidden lg:flex flex-col bg-black/20 p-8">
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-6 flex items-center gap-2">
                     <Users size={14} /> Presence ({participants.length})
                 </h3>
                 <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar">
-                    {participants.map(p => (
-                        <div key={p.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5">
-                            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-lg">👻</div>
-                            <div>
-                                <span className="text-sm font-bold text-white">{p.name}</span>
-                                <p className="text-[9px] font-black uppercase tracking-widest text-[#84ccb9] mt-0.5">Focusing</p>
+                    {participants.map(p => {
+                        const isThisUserTheHost = p.id === hostId;
+
+                        return (
+                            <div key={p.id} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${isThisUserTheHost ? 'bg-[#84ccb9]/10 border-[#84ccb9]/30' : 'bg-white/5 border-white/5'}`}>
+                                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-lg shadow-inner">
+                                    {isThisUserTheHost ? '👑' : '👻'}
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-white truncate max-w-[100px]">{p.name}</span>
+                                        {isThisUserTheHost && (
+                                            <span className="text-[8px] bg-[#84ccb9] text-black px-1.5 py-0.5 rounded uppercase font-black tracking-wider flex-shrink-0">
+                                                Host
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-[#84ccb9] mt-0.5">Focusing</p>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </aside>
 
