@@ -1,23 +1,21 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { pipeline, env } from '@xenova/transformers';
 
-// 👇 Force Vercel to download the AI weights to the writable temp folder
-env.cacheDir = '/tmp';
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
     try {
         const { messages, user_id } = await req.json();
-
-        // 1. Catch the VIP Pass sent from the frontend
+        const geminiKey = process.env.GEMINI_AI_API_KEY;
         const authHeader = req.headers.get('Authorization');
 
-        // 2. Create a secure client that acts exactly like you
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             { global: { headers: { Authorization: authHeader || '' } } }
         );
 
+        // 1. Premium & Profile Check
         const { data: profile } = await supabase
             .from('profiles')
             .select('is_premium')
@@ -25,12 +23,9 @@ export async function POST(req: Request) {
             .single();
 
         const isPremium = profile?.is_premium === true;
-
-        // 2. Check if they are trying to access a Pro feature (like Tutor Mode)
         const isTutorRequest = messages.some((m: any) => m.content.includes("You are Chum, a cozy lo-fi tutor AI"));
 
         if (isTutorRequest && !isPremium) {
-            // Drop the hammer! Block the request completely.
             return NextResponse.json(
                 { error: "Premium subscription required to access the Pro Tutor." },
                 { status: 403 }
@@ -38,7 +33,7 @@ export async function POST(req: Request) {
         }
 
         // ==========================================
-        // STEP 1: RAG (Retrieval-Augmented Generation)
+        // STEP 1: CLOUD RAG SEARCH (768-dim)
         // ==========================================
         let contextSnippet = "";
 
@@ -46,20 +41,25 @@ export async function POST(req: Request) {
             try {
                 const latestUserMessage = messages[messages.length - 1].content;
 
-                // ==========================================
-                // 🔄 STEP 1: SWITCH TO LOCAL EMBEDDINGS (384)
-                // ==========================================
-                const embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
-                    quantized: true
+                // 🔄 Generate 768-dim embedding using Gemini
+                const embedRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${geminiKey}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        model: "models/text-embedding-004",
+                        content: { parts: [{ text: latestUserMessage }] }
+                    })
                 });
 
-                const output = await embedder(latestUserMessage, { pooling: 'mean', normalize: true });
-                const query_embedding = Array.from(output.data); // 👈 Now 384 dimensions!
+                const embedData = await embedRes.json();
+                if (!embedRes.ok) throw new Error("Embedding search failed");
 
-                // Search the DB using the correctly shaped vector
+                const query_embedding = embedData.embedding.values;
+
+                // Search Supabase with the new vector size
                 const { data: matchedShards, error } = await supabase.rpc('match_shards', {
                     query_embedding,
-                    match_threshold: 0.5,
+                    match_threshold: 0.4, // Slightly lower for better discovery
                     match_count: 3,
                     p_user_id: user_id
                 });
@@ -74,9 +74,7 @@ export async function POST(req: Request) {
             }
         }
 
-        // ==========================================
-        // STEP 2: Inject Context into the System Prompt
-        // ==========================================
+        // 2. Inject Context
         const formattedMessages = messages.map((m: any) => {
             if (m.role === 'system' && contextSnippet) {
                 return { ...m, content: m.content + contextSnippet };
@@ -85,11 +83,10 @@ export async function POST(req: Request) {
         });
 
         // ==========================================
-        // STEP 3: The 2026 Cloud Waterfall
+        // STEP 2: The LLM Waterfall
         // ==========================================
 
-        // 1. PRIMARY: OpenRouter (Gemma 2 9B)
-        // Gemma 2 is excellent at roleplay and strict instruction following.
+        // 1. PRIMARY: OpenRouter
         try {
             const orKey = process.env.OPENROUTER_AI_API_KEY;
             if (orKey) {
@@ -116,8 +113,7 @@ export async function POST(req: Request) {
             }
         } catch (e: any) { console.warn("OpenRouter failed:", e.message); }
 
-        // 2. SECONDARY: Groq (Llama 3.3 70B)
-        // Llama 3.3 is the 2026 standard for high-speed, high-intelligence chat.
+        // 2. SECONDARY: Groq
         try {
             const groqKey = process.env.GROQ_AI_API_KEY;
             if (groqKey) {
@@ -139,13 +135,10 @@ export async function POST(req: Request) {
             }
         } catch (e: any) { console.warn("Groq failed:", e.message); }
 
-        // 3. TERTIARY: Gemini (2.0 Flash) - THE 2026 STABLE BUILD
-        // We use 2.0-flash here to avoid the 404/429 errors from the retired 2.5 build.
+        // 3. TERTIARY: Gemini 2.0 Flash
         try {
-            const geminiKey = process.env.GEMINI_AI_API_KEY;
             if (geminiKey) {
                 const systemMessage = formattedMessages.find((m: any) => m.role === 'system')?.content || "";
-
                 const geminiMessages = formattedMessages
                     .filter((m: any) => m.role !== 'system')
                     .map((m: any) => ({
@@ -168,9 +161,6 @@ export async function POST(req: Request) {
                         response: data.candidates[0].content.parts[0].text,
                         node: "Gemini 2.0"
                     });
-                } else {
-                    const errorData = await res.json();
-                    console.error("Gemini API Error:", errorData);
                 }
             }
         } catch (e: any) { console.warn("Gemini failed:", e.message); }
@@ -178,26 +168,22 @@ export async function POST(req: Request) {
         throw new Error("Critical: All AI nodes are currently unreachable.");
 
     } catch (error: any) {
-        // 👇 This will now send the EXACT error to your browser console!
         console.error("Chat API Error:", error.message);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
 
-export async function OPTIONS(req: Request) {
+export async function OPTIONS() {
     return new NextResponse(null, {
         status: 200,
         headers: {
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
     });
 }
 
 export async function GET() {
-    return NextResponse.json({
-        status: "success",
-        message: "The Chat API is alive on Vercel!"
-    });
+    return NextResponse.json({ status: "success", message: "The Chat API is 768-dim ready!" });
 }

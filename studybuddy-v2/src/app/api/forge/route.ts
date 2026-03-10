@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { pipeline, env } from '@xenova/transformers';
 
-// 👇 Force Vercel to download the AI weights to the writable temp folder
-env.cacheDir = '/tmp';
-export const maxDuration = 60;
+export const maxDuration = 60; // Essential for long document processing
+
 export async function POST(req: Request) {
     try {
         const { title, content, files, user_id } = await req.json();
         const authHeader = req.headers.get('Authorization');
+        const geminiKey = process.env.GEMINI_AI_API_KEY;
 
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,53 +19,36 @@ export async function POST(req: Request) {
         let finalTitle = title || "Untitled Shard";
 
         // ==========================================
-        // 1. LLAMAPARSE: High-Accuracy PDF Extraction
+        // 1. GEMINI PARSE: Replaces LlamaParse
         // ==========================================
         if (files && files.length > 0 && files[0].content) {
-            // Convert Base64 to a Blob for LlamaParse
             const base64Data = files[0].content.split(',')[1];
-            const blob = new Blob([Buffer.from(base64Data, 'base64')], { type: files[0].type });
+            const mimeType = files[0].type || "application/pdf";
 
-            const formData = new FormData();
-            formData.append('file', blob, files[0].name);
-
-            // Upload to LlamaParse
-            const uploadRes = await fetch("https://api.cloud.llamaindex.ai/api/parsing/upload", {
+            const parseRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
                 method: "POST",
-                headers: { "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}` },
-                body: formData
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { inline_data: { mime_type: mimeType, data: base64Data } },
+                            { text: "Extract all text and data from this document. Format it cleanly in Markdown. Do not add any conversational filler." }
+                        ]
+                    }]
+                })
             });
 
-            if (!uploadRes.ok) {
-                // 👇 Extract the actual error message from LlamaParse so we can see it!
-                const errorText = await uploadRes.text();
-                console.error("LlamaParse Error Details:", errorText);
-                throw new Error(`LlamaParse rejected the file: ${errorText}`);
-            }
-            const { id: jobId } = await uploadRes.json();
-
-            // Simple Poll for Results (In production, use a more robust retry loop)
-            let markdownText = "";
-            for (let i = 0; i < 5; i++) {
-                await new Promise(r => setTimeout(r, 2000)); // Wait 2s per poll
-                const resultRes = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}/result/markdown`, {
-                    headers: { "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}` }
-                });
-                if (resultRes.ok) {
-                    const jsonResponse = await resultRes.json(); // 👈 Parse as JSON first
-                    markdownText = jsonResponse.markdown;        // 👈 Extract ONLY the markdown string
-
-                    // Clean up those extra \n\n characters
-                    markdownText = markdownText.replace(/\\n/g, '\n').trim();
-                    break;
-                }
+            if (!parseRes.ok) {
+                const errorData = await parseRes.json();
+                throw new Error(`Gemini Parse Failed: ${errorData.error?.message}`);
             }
 
-            if (markdownText) {
-                // Only add a separator if there was already existing manual content
+            const parseData = await parseRes.json();
+            const extractedText = parseData.candidates[0].content.parts[0].text;
+
+            if (extractedText) {
                 const separator = finalContent ? "\n\n--- DOCUMENT CONTENT ---\n\n" : "";
-                finalContent = finalContent + separator + markdownText;
-
+                finalContent = finalContent + separator + extractedText;
                 if (!title) finalTitle = files[0].name;
             }
         }
@@ -74,22 +56,22 @@ export async function POST(req: Request) {
         if (finalContent.trim() === "") finalContent = "Empty note";
 
         // ==========================================
-        // 2. LOCAL EMBEDDINGS: Free & Private
+        // 2. GEMINI EMBEDDINGS (768-dim): Replaces Xenova
         // ==========================================
-        // This runs a tiny model on your server/Vercel instance
-        // ✅ Optimized for 2026 CPU performance
-
-        const embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
-            quantized: true
+        const embedRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${geminiKey}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model: "models/text-embedding-004",
+                content: { parts: [{ text: finalContent }] }
+            })
         });
 
-        const output = await embedder(finalContent, {
-            pooling: 'mean',
-            normalize: true
-        });
+        const embedData = await embedRes.json();
+        if (!embedRes.ok) throw new Error(`Embedding Failed: ${embedData.error?.message}`);
 
-        // Extract the raw array from the Tensor
-        const embedding = Array.from(output.data);
+        const embedding = embedData.embedding.values;
+
         // ==========================================
         // 3. SUPABASE: Save Shard & Vector
         // ==========================================
@@ -129,6 +111,6 @@ export async function OPTIONS(req: Request) {
 export async function GET() {
     return NextResponse.json({
         status: "success",
-        message: "The Forge API is alive on Vercel!"
+        message: "The Forge API is alive and serverless-friendly!"
     });
 }
