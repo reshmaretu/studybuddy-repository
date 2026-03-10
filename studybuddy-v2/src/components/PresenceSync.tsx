@@ -13,43 +13,53 @@ export default function PresenceSync() {
         const startSync = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-
             userIdRef.current = user.id;
 
-            // Initialize Channel
+            // Determine the status string to send to DB and Lanterns
+            const currentStatus = isTutorModeActive ? 'mastering' : (activeMode === 'none' ? 'idle' : activeMode);
+
+            // Immediate Database Update for reliability
+            await supabase.from('profiles').update({ status: currentStatus }).eq('id', user.id);
+
+            // Initialize Presence Channel
             channel = supabase.channel('online-presence', {
                 config: { presence: { key: user.id } }
             });
 
-            channel
-                .on('presence', { event: 'sync' }, () => {
-                    // Logic to handle global presence updates if needed
-                })
-                .subscribe(async (status: string) => {
-                    if (status === 'SUBSCRIBED') {
-                        // Track specific user metadata in Realtime
-                        await channel.track({
-                            user_id: user.id,
-                            status: isTutorModeActive ? 'mastering' : activeMode,
-                            online_at: new Date().toISOString(),
-                        });
-                    }
-                });
+            channel.subscribe(async (status: string) => {
+                if (status === 'SUBSCRIBED') {
+                    await channel.track({
+                        user_id: user.id,
+                        status: currentStatus,
+                        online_at: new Date().toISOString(),
+                    });
+                }
+            });
         };
 
         startSync();
 
-        // 🛑 CLEANUP: Ensure offline status sticks
+        // Secondary "Emergency" cleanup for tab closing
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden' && userIdRef.current) {
+                // Fire and forget update as the tab hides/closes
+                supabase.from('profiles').update({ status: 'offline' }).eq('id', userIdRef.current);
+            }
+        };
+
+        window.addEventListener("visibilitychange", handleVisibilityChange);
+
         return () => {
+            window.removeEventListener("visibilitychange", handleVisibilityChange);
             if (userIdRef.current && channel) {
-                // Fire and forget the offline update
+                // Fire and forget the offline update on component unmount
                 supabase.from('profiles')
                     .update({ status: 'offline' })
                     .eq('id', userIdRef.current)
                     .then(() => channel.unsubscribe());
             }
         };
-    }, [activeMode, isTutorModeActive]); // Re-sync when mode changes
+    }, [activeMode, isTutorModeActive]); // Re-sync immediately when app state changes
 
     return null;
 }
