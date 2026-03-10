@@ -12,6 +12,7 @@ export interface LanternUser {
     id: string;
     name: string;
     chumLabel: string;
+    focusScore: number;
     status: 'offline' | 'idle' | 'drafting' | 'hosting' | 'joined' | 'flowstate' | 'cafe' | 'mastering';
     hours: number;
     roomCode?: string;

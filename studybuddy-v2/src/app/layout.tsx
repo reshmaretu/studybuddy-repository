@@ -9,6 +9,7 @@ import StudyCafeOverlay from "@/components/StudyCafeOverlay";
 import MindDumpPad from "@/components/MindDumpPad";
 import { supabase } from "@/lib/supabase";
 import PresenceSync from "@/components/PresenceSync";
+import { useGlobalSync } from "@/hooks/useGlobalSync";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,6 +23,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  useGlobalSync();
   return (
     <html lang="en" data-theme="deep-teal" suppressHydrationWarning>
       <body className={`${inter.className} flex min-h-screen bg-[var(--bg-dark)] text-[var(--text-main)] transition-colors duration-300 overflow-x-hidden`}>
