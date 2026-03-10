@@ -87,7 +87,8 @@ export default function LanternNetPage() {
             const currentUserId = user?.id;
 
             const [profilesRes, roomsRes] = await Promise.all([
-                supabase.from('profiles').select('id, display_name, full_name, focus_hours'),
+                // 👇 FIXED: Changed 'focus_hours' to 'total_hours'
+                supabase.from('profiles').select('id, display_name, full_name, total_hours'),
                 supabase.from('rooms').select('*')
             ]);
 
@@ -101,13 +102,13 @@ export default function LanternNetPage() {
                     return {
                         id: isMe ? 'me' : p.id,
                         name: p.display_name || p.full_name || "Anonymous Architect",
-                        hours: p.focus_hours || (isMe ? totalSessions : 0) || 0,
+                        // 👇 FIXED: Changed p.focus_hours to p.total_hours
+                        hours: p.total_hours || (isMe ? totalSessions : 0) || 0,
                         status: hostedRoom ? 'flowstate' : 'idle',
                         isHosting: !!hostedRoom,
                         roomCode: hostedRoom?.room_code,
-                        isPremium: false, // You can fetch this from profiles if needed
+                        isPremium: false,
                         chumLabel: "Architect",
-                        // Force 'me' to the center, scatter everyone else
                         gridX: isMe ? 6 : Math.floor(index / 5),
                         gridY: isMe ? 6 : index % 5,
                         jitterX: isMe ? 0 : Math.random() * 8 - 4,
