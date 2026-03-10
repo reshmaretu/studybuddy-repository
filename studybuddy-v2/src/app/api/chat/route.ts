@@ -3,10 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: Request) {
     try {
-        const { pipeline } = await import('@huggingface/transformers');
+        const { pipeline, env } = await import('@huggingface/transformers');
         env.cacheDir = '/tmp';
         const { messages, user_id } = await req.json();
-        const geminiKey = process.env.GEMINI_AI_API_KEY;
 
         // 1. Catch the VIP Pass sent from the frontend
         const authHeader = req.headers.get('Authorization');
