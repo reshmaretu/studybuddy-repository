@@ -8,6 +8,7 @@ import { BoxSelect, Layers, Zap } from "lucide-react";
 import { LanternUser } from "@/app/lantern/page";
 import { useRouter } from "next/navigation";
 import * as random from 'maath/random/dist/maath-random.esm';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 
 // --- CONFIG & UTILS ---
 
@@ -96,6 +97,16 @@ export default function ThreeLanternNet({ users }: { users: LanternUser[] }) {
                 <directionalLight position={[0, 50, 20]} intensity={1.5} color="#ffffff" />
 
                 <LanternConstellation users={users} is3D={is3D} onWarp={setWarpTarget} />
+
+                <EffectComposer enableNormalPass={false}>
+                    <Bloom
+                        luminanceThreshold={1}
+                        mipmapBlur
+                        intensity={1.5}
+                        radius={0.4}
+                    />
+                </EffectComposer>
+
                 <CameraRig is3D={is3D} controlsRef={controlsRef} warpTarget={warpTarget} intensity={globalIntensity} onWarpComplete={() => setWarpTarget(null)} />
                 <OrbitControls
                     ref={controlsRef}
@@ -223,7 +234,8 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                     <spriteMaterial map={glowTexture} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
                 </sprite>
 
-                <mesh ref={meshRef}
+                <mesh
+                    ref={meshRef}
                     onPointerOver={(e) => { e.stopPropagation(); setHovered(); }}
                     onPointerOut={clearHover}
                     onClick={(e) => { e.stopPropagation(); onClick(); }}
@@ -231,15 +243,19 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                     <sphereGeometry args={[1, 32, 32]} />
                     <meshStandardMaterial
                         ref={materialRef}
-                        // 👇 Provide a bright base color so it's never purely black
+                        // 👇 CRITICAL: Setting color to white allows the emissive 
+                        // color to actually show up on the surface.
                         color="#ffffff"
-                        // 👇 Ensure emissive is initialized to a visible color
                         emissive="#ffffff"
+                        // 👇 CRITICAL: Setting toneMapped to false allows 
+                        // the brightness to exceed 1.0 (Bloom).
                         toneMapped={false}
                         transparent={true}
                         opacity={1}
-                        roughness={0.1}
-                        metalness={0.8}
+                        // 👇 Lowering these prevents the "Oil Slick/Black" look 
+                        // when there's no environment light.
+                        roughness={0.2}
+                        metalness={0.1}
                     />
                 </mesh>
             </Float>
