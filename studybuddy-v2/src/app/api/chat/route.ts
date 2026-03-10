@@ -69,6 +69,13 @@ export async function POST(req: Request) {
             }
         }
 
+        const formattedMessages = messages.map((m: any) => {
+            if (m.role === 'system' && contextSnippet) {
+                return { ...m, content: m.content + contextSnippet };
+            }
+            return m;
+        });
+
         // ==========================================
         // STEP 2: The LLM Waterfall
         // ==========================================
