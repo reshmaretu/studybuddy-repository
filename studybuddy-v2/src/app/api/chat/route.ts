@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { pipeline } from '@huggingface/transformers';
 
 export async function POST(req: Request) {
+    const { pipeline } = await import('@huggingface/transformers');
     try {
         const { messages, user_id } = await req.json();
         const geminiKey = process.env.GEMINI_AI_API_KEY;

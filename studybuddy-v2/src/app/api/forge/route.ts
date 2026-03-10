@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { pipeline } from '@huggingface/transformers';
 export const maxDuration = 60;
 export async function POST(req: Request) {
     try {
@@ -70,6 +69,7 @@ export async function POST(req: Request) {
         // ==========================================
         // This runs a tiny model on your server/Vercel instance
         // ✅ Optimized for 2026 CPU performance
+        const { pipeline } = await import('@huggingface/transformers');
         const embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
             // ⚡ Forced quantization (q8) makes it 4x faster and clears the 'dtype' warning
             dtype: 'q8',
