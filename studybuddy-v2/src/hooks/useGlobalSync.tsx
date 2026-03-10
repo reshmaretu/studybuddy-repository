@@ -11,8 +11,8 @@ export function useGlobalSync() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // ⚡ Determine Status based on Dashboard State
-            let status = 'idle';
+            // ⚡ Match exactly with LanternNetwork STATUS_CONFIG
+            let status: 'offline' | 'idle' | 'drafting' | 'hosting' | 'joined' | 'flowstate' | 'cafe' | 'mastering' = 'idle';
             let sessionType = 'NONE';
             let inFlow = false;
 
@@ -25,8 +25,8 @@ export function useGlobalSync() {
             } else if (activeMode === 'studyCafe') {
                 status = 'cafe';
             }
+            // Note: 'hosting' or 'joined' would be set by your Room/Lobby logic
 
-            // Update Profiles Table
             await supabase.from('profiles').update({
                 status: status,
                 is_in_flowstate: inFlow,
@@ -37,7 +37,7 @@ export function useGlobalSync() {
 
         updatePresence();
 
-        // 🛑 Cleanup on Exit or Tab Close
+        // Standard cleanup for unexpected unmounts
         return () => {
             const clearPresence = async () => {
                 const { data: { user } } = await supabase.auth.getUser();
