@@ -162,6 +162,7 @@ export default function StudyCafeOverlay() {
     const [phase, setPhase] = useState<Phase>("focus");
     const [cycleCount, setCycleCount] = useState(0);
     const [showExitConfirm, setShowExitConfirm] = useState(false);
+    const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
     const dragControls = useDragControls();
     const constraintsRef = useRef<HTMLDivElement>(null);
 
@@ -209,8 +210,27 @@ export default function StudyCafeOverlay() {
     const progress = Math.max(0, Math.min(100, ((phaseTotal - timeLeft) / phaseTotal) * 100));
     const circumference = 2 * Math.PI * 44;
 
-    const handleComplete = () => { if (task) completeTask(task.id); exitMode(); };
-    const handleExit = () => setShowExitConfirm(true);
+    const handleComplete = () => {
+        setShowCompleteConfirm(true); // Open confirmation instead of immediate exit
+    };
+    const confirmComplete = () => {
+        if (task) completeTask(task.id);
+        // ⚡ FIX: Use the actual store's state update logic
+        useStudyStore.setState({ activeMode: 'none' });
+        setShowCompleteConfirm(false);
+        exitMode();
+    };
+    const handleExit = () => {
+        setShowExitConfirm(true); // Ensure exit triggers modal
+    };
+
+    const confirmExit = () => {
+        setShowExitConfirm(false);
+        document.body.removeAttribute("data-cafe");
+        // ⚡ FIX: Use actual store state update
+        useStudyStore.setState({ activeMode: 'none' });
+        exitMode();
+    };
 
     // Set/cleanup body attribute for glassmorphism injection
     useEffect(() => {
@@ -573,6 +593,27 @@ export default function StudyCafeOverlay() {
                     )}
                 </AnimatePresence>
             </motion.div>
+
+            <AnimatePresence>
+                {showCompleteConfirm && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/80 backdrop-blur-md"
+                    >
+                        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-8 max-w-sm text-center shadow-2xl">
+                            <div className="w-16 h-16 bg-teal-500/20 text-teal-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <CheckCircle2 size={32} />
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-2">Chapter Complete?</h3>
+                            <p className="text-white/40 text-sm mb-6">Ready to log your progress and return to the Lantern Network?</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <button onClick={() => setShowCompleteConfirm(false)} className="py-3 rounded-xl border border-white/10 text-white font-bold hover:bg-white/5 transition-colors">Not yet</button>
+                                <button onClick={confirmComplete} className="py-3 rounded-xl bg-teal-500 text-black font-bold hover:bg-teal-400 transition-colors">Finish</button>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* ─── Exit Confirm ─── */}
             <AnimatePresence>

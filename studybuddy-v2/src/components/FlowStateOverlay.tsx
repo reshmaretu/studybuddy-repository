@@ -17,7 +17,7 @@ export default function FlowStateOverlay() {
     } = useStudyStore();
 
     const [showExitConfirm, setShowExitConfirm] = useState(false);
-
+    const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
     // Keep ticking while in flow state
     useEffect(() => {
         let interval: NodeJS.Timeout;
@@ -38,7 +38,14 @@ export default function FlowStateOverlay() {
     };
 
     const handleComplete = () => {
+        setShowCompleteConfirm(true); // Open modal
+    };
+
+    const confirmComplete = () => {
         if (task) completeTask(task.id);
+        // ⚡ FIX: Use actual store state update
+        useStudyStore.setState({ activeMode: 'none' });
+        setShowCompleteConfirm(false);
         exitMode();
     };
 
@@ -48,6 +55,8 @@ export default function FlowStateOverlay() {
 
     const confirmExit = () => {
         setShowExitConfirm(false);
+        // ⚡ FIX: Use actual store state update
+        useStudyStore.setState({ activeMode: 'none' });
         exitMode();
     };
 
@@ -127,6 +136,27 @@ export default function FlowStateOverlay() {
                         </button>
                     </div>
                 </div>
+
+                <AnimatePresence>
+                    {showCompleteConfirm && (
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/80 backdrop-blur-md"
+                        >
+                            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-8 max-w-sm text-center shadow-2xl">
+                                <div className="w-16 h-16 bg-teal-500/20 text-teal-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <CheckCircle2 size={32} />
+                                </div>
+                                <h3 className="text-xl font-bold text-white mb-2">Chapter Complete?</h3>
+                                <p className="text-white/40 text-sm mb-6">Ready to log your progress and return to the Lantern Network?</p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button onClick={() => setShowCompleteConfirm(false)} className="py-3 rounded-xl border border-white/10 text-white font-bold hover:bg-white/5 transition-colors">Not yet</button>
+                                    <button onClick={confirmComplete} className="py-3 rounded-xl bg-teal-500 text-black font-bold hover:bg-teal-400 transition-colors">Finish</button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* Exit Confirmation Modal */}
                 <AnimatePresence>

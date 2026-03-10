@@ -312,9 +312,18 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                             )}
                             {isSelected && !isSelf && (user.status === 'hosting' || user.status === 'joined') && (
                                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-4 pt-4 border-t border-white/5">
-                                    <p className="text-[10px] font-black uppercase text-white/40 mb-2">Current Sanctuary</p>
-                                    <p className="text-xs font-bold text-white mb-4 italic">"{user.roomTitle || 'Quiet Study'}"</p>
-                                    <button onClick={() => router.push(`/room/${user.roomCode}`)} className="w-full py-3 bg-teal-400 text-black text-xs font-black rounded-xl shadow-lg hover:scale-105 transition-all">Join Room [{user.roomCode}]</button>
+                                    <p className="text-[10px] font-black uppercase text-white/40 mb-2">
+                                        {user.status === 'drafting' ? 'Blueprint in Progress' : 'Current Sanctuary'}
+                                    </p>
+                                    <p className="text-xs font-bold text-white mb-4 italic">
+                                        "{user.roomTitle || 'Quiet Study'}"
+                                    </p>
+                                    <button
+                                        onClick={() => router.push(`/room/${user.roomCode}`)}
+                                        className="w-full py-3 bg-teal-400 text-black text-xs font-black rounded-xl shadow-lg"
+                                    >
+                                        Join Room [{user.roomCode}]
+                                    </button>
                                 </motion.div>
                             )}
                         </motion.div>
