@@ -60,6 +60,7 @@ const CustomSelect = ({ label, options, value, onChange, disabled = false, isPre
 };
 
 export default function StudyRoom({ params }: { params: Promise<{ roomCode: string }> }) {
+    const channelRef = useRef<any>(null);
     const { roomCode } = use(params);
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -119,11 +120,20 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             if (room?.host_id === user.id) setIsHost(true);
             setHostId(room?.host_id);
 
-            const channel = supabase.channel(`room:${roomCode}`, { config: { presence: { key: user.id } } });
+            const channel = supabase.channel(`room:${roomCode}`, {
+                config: { presence: { key: user.id } }
+            });
+            channelRef.current = channel;
 
             channel
+            channel
                 .on('presence', { event: 'sync' }, () => setParticipants(Object.values(channel.presenceState()).flat()))
-                .on('broadcast', { event: 'sync_settings' }, ({ payload }) => setSettings(payload))
+                .on('broadcast', { event: 'room_closed' }, () => {
+                    alert("The Architect has abandoned the sanctuary.");
+                    // ⚡ CLEANUP BEFORE REDIRECT
+                    supabase.removeChannel(channel);
+                    router.push('/lantern');
+                })
                 .on('broadcast', { event: 'launch' }, () => setStatus('LAUNCHING'))
                 // 👇 FIXED: Listen for the host destroying the room
                 .on('broadcast', { event: 'room_closed' }, () => {
@@ -135,6 +145,12 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 });
         };
         initRoom();
+        return () => {
+            // ⚡ AUTO-CLEANUP on unmount (e.g., clicking back button)
+            if (channelRef.current) {
+                supabase.removeChannel(channelRef.current);
+            }
+        };
     }, [roomCode, router]);
 
     // 3. BROADCAST UPDATES
@@ -150,12 +166,20 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
     // 👇 FIXED: Properly destroy the room and kick everyone
     const handleAbandon = async () => {
+        const channel = supabase.channel(`room:${roomCode}`); // Use same name as subscription
+
         if (isHost) {
-            // Tell everyone else to leave
-            await supabase.channel(`room:${roomCode}`).send({ type: 'broadcast', event: 'room_closed' });
-            // Delete the room from the database
+            // 1. Tell everyone else to leave via broadcast
+            await channel.send({ type: 'broadcast', event: 'room_closed' });
+
+            // 2. Delete the room from the database
             await supabase.from('rooms').delete().eq('room_code', roomCode);
         }
+
+        // ⚡ THE FIX: Explicitly remove the channel to kill the Realtime subscription
+        // This prevents joiners from getting "Ghost" notifications after they leave.
+        await supabase.removeChannel(channel);
+
         router.push('/lantern');
     };
 

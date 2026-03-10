@@ -56,24 +56,22 @@ export default function PresenceSync() {
 
     // 2. LIVE UPDATE: Fires whenever activeMode or isTutorModeActive changes
     useEffect(() => {
-        if (!userIdRef.current) return;
+        if (!userIdRef.current || !channelRef.current) return;
 
-        // ⚡ BROADCAST: Updates other users' maps instantly via Presence
-        if (channelRef.current) {
+        const updateStatus = async () => {
+            // ⚡ BROADCAST FIRST (Instant for map)
             channelRef.current.track({ user_id: userIdRef.current, status: currentStatus });
-        }
 
-        // 🐢 PERSIST: Updates the database for the initial page fetch
-        // We explicitly clear/set priority columns to prevent "Ghost" Flowstate/Mastering glows
-        supabase.from('profiles')
-            .update({
+            // 🐢 UPDATE DB (Background)
+            await supabase.from('profiles').update({
                 status: currentStatus,
                 is_in_flowstate: currentStatus === 'flowState',
                 active_session_type: currentStatus === 'mastering' ? 'AI_TUTOR' : null,
-                last_seen: new Date().toISOString() // Heartbeat for Ghost removal
-            })
-            .eq('id', userIdRef.current);
+                last_seen: new Date().toISOString()
+            }).eq('id', userIdRef.current);
+        };
 
+        updateStatus();
     }, [currentStatus]);
 
     return null;
