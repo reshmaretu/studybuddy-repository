@@ -9,17 +9,15 @@ export default function PresenceSync() {
     const channelRef = useRef<any>(null);
 
     // ⚡ INSTANT STATUS DERIVATION
-    // Matches the casing used in your TypeScript types ('flowState' vs 'flowstate')
     const currentStatus = isTutorModeActive ? 'mastering' : (activeMode === 'none' ? 'idle' : activeMode);
 
-    // 1. INITIALIZATION: Run once on mount
+    // 1. SETUP: Runs once to get User and setup Tab-Close listener
     useEffect(() => {
         const init = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
             userIdRef.current = user.id;
 
-            // Setup Realtime Channel
             channelRef.current = supabase.channel('online-presence', {
                 config: { presence: { key: user.id } }
             });
@@ -33,46 +31,45 @@ export default function PresenceSync() {
 
         init();
 
-        // 🛑 EMERGENCY TAB-CLOSE CLEANUP
-        // Fires before the browser kills the JS process
+        // 🛑 THE FIX: Only set offline when the browser tab is actually CLOSED
         const handleTabClose = () => {
             if (userIdRef.current) {
-                // Using a non-awaited call to increase the chance it hits the network buffer
+                // Use a standard fetch or beacon if possible, but this works in most modern browsers
                 supabase.from('profiles').update({
                     status: 'offline',
                     is_in_flowstate: false,
                     active_session_type: null
-                }).eq('id', userIdRef.current);
+                }).eq('id', userIdRef.current).then();
             }
         };
 
         window.addEventListener('beforeunload', handleTabClose);
-
         return () => {
             window.removeEventListener('beforeunload', handleTabClose);
-            channelRef.current?.unsubscribe();
+            if (channelRef.current) supabase.removeChannel(channelRef.current);
         };
-    }, []);
+    }, []); // 👈 Empty array: This cleanup ONLY runs when you leave the app
 
-    // 2. LIVE UPDATE: Fires whenever activeMode or isTutorModeActive changes
+    // 2. MODE SWITCH: Runs when status changes. NO "offline" cleanup here!
     useEffect(() => {
-        if (!userIdRef.current || !channelRef.current) return;
+        if (!userIdRef.current) return;
 
-        const updateStatus = async () => {
-            // ⚡ BROADCAST FIRST (Instant for map)
+        // Fast broadcast
+        if (channelRef.current) {
             channelRef.current.track({ user_id: userIdRef.current, status: currentStatus });
+        }
 
-            // 🐢 UPDATE DB (Background)
-            await supabase.from('profiles').update({
+        // Database Update
+        supabase.from('profiles')
+            .update({
                 status: currentStatus,
                 is_in_flowstate: currentStatus === 'flowState',
                 active_session_type: currentStatus === 'mastering' ? 'AI_TUTOR' : null,
                 last_seen: new Date().toISOString()
-            }).eq('id', userIdRef.current);
-        };
+            })
+            .eq('id', userIdRef.current);
 
-        updateStatus();
-    }, [currentStatus]);
+    }, [currentStatus]); // 👈 No return cleanup function here!
 
     return null;
 }
