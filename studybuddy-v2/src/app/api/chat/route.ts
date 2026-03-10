@@ -193,3 +193,10 @@ export async function OPTIONS(req: Request) {
         },
     });
 }
+
+export async function GET() {
+    return NextResponse.json({
+        status: "success",
+        message: "The Chat API is alive on Vercel!"
+    });
+}
