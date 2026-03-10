@@ -68,11 +68,11 @@ export async function POST(req: Request) {
         // ==========================================
         // 2. GEMINI EMBEDDINGS (Still use Gemini for Vector)
         // ==========================================
-        const embedRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${geminiKey}`, {
+        const embedRes = await fetch(`https://generativelanguage.googleapis.com/v1/models/embedding-001:embedContent?key=${geminiKey}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                model: "models/text-embedding-004",
+                model: "models/text-embedding-001",
                 content: { parts: [{ text: finalContent }] }
             })
         });
