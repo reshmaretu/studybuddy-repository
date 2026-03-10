@@ -1,18 +1,19 @@
-// app/layout.tsx
-import SyncProvider from "@/components/SyncProvider";
-import PresenceSync from "./PresenceSync";
+"use client";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-    // 🛑 REMOVE useGlobalSync() from here!
+import React, { createContext, useContext } from "react";
+import { useGlobalSync } from "@/hooks/useGlobalSync";
+
+const SyncContext = createContext({});
+
+export default function SyncProvider({ children }: { children: React.ReactNode }) {
+    // This is where the logic actually lives!
+    useGlobalSync();
 
     return (
-        <html lang="en" data-theme="deep-teal" suppressHydrationWarning>
-            <body className="...">
-                <SyncProvider> {/* 👈 ADD THIS WRAPPER */}
-                    <PresenceSync />
-                    {children}
-                </SyncProvider>
-            </body>
-        </html>
+        <SyncContext.Provider value={{}}>
+            {children}
+        </SyncContext.Provider>
     );
 }
+
+export const useSync = () => useContext(SyncContext);

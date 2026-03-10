@@ -27,18 +27,18 @@ export default function RootLayout({
     <html lang="en" data-theme="deep-teal" suppressHydrationWarning>
       <body className={`${inter.className} flex min-h-screen bg-[var(--bg-dark)] text-[var(--text-main)] transition-colors duration-300 overflow-x-hidden`}>
 
-        {/* 1. The Provider wraps everything that needs to share state */}
         <SyncProvider>
+          {/* PresenceSync is now INSIDE the provider so it can use the sync context */}
           <PresenceSync />
 
           <Sidebar />
 
-          {/* 2. Main content area - rendered ONLY ONCE */}
           <main className="flex-1 ml-[80px] p-8 transition-all duration-300 relative z-[1]">
+            {/* children is rendered ONLY ONCE here */}
             {children}
           </main>
 
-          {/* 3. Global Overlays/Widgets */}
+          {/* Global Components */}
           <ChumWidget />
           <FocusModal />
           <FlowStateOverlay />
