@@ -33,7 +33,12 @@ export async function POST(req: Request) {
                 body: formData
             });
 
-            if (!uploadRes.ok) throw new Error("LlamaParse upload failed");
+            if (!uploadRes.ok) {
+                // 👇 Extract the actual error message from LlamaParse so we can see it!
+                const errorText = await uploadRes.text();
+                console.error("LlamaParse Error Details:", errorText);
+                throw new Error(`LlamaParse rejected the file: ${errorText}`);
+            }
             const { id: jobId } = await uploadRes.json();
 
             // Simple Poll for Results (In production, use a more robust retry loop)
