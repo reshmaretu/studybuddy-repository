@@ -68,7 +68,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     // --- STATES ---
     const [status, setStatus] = useState<'DRAFT' | 'LAUNCHING' | 'ACTIVE'>('DRAFT');
     const [isHost, setIsHost] = useState(false);
-    const [hostId, setHostId] = useState<string | null>(null); // 👈 TRACKS THE HOST
+    const [hostId, setHostId] = useState<string | null>(null);
     const [participants, setParticipants] = useState<any[]>([]);
     const [countdown, setCountdown] = useState(5);
     const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
@@ -117,7 +117,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
             const { data: room } = await supabase.from('rooms').select('*').eq('room_code', roomCode).single();
             if (room?.host_id === user.id) setIsHost(true);
-            setHostId(room?.host_id); // 👈 SAVES HOST ID
+            setHostId(room?.host_id);
 
             const channel = supabase.channel(`room:${roomCode}`, { config: { presence: { key: user.id } } });
 
@@ -125,6 +125,11 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 .on('presence', { event: 'sync' }, () => setParticipants(Object.values(channel.presenceState()).flat()))
                 .on('broadcast', { event: 'sync_settings' }, ({ payload }) => setSettings(payload))
                 .on('broadcast', { event: 'launch' }, () => setStatus('LAUNCHING'))
+                // 👇 FIXED: Listen for the host destroying the room
+                .on('broadcast', { event: 'room_closed' }, () => {
+                    alert("The Architect has abandoned the sanctuary.");
+                    router.push('/lantern');
+                })
                 .subscribe(async (s) => {
                     if (s === 'SUBSCRIBED') await channel.track({ id: user.id, name: userName });
                 });
@@ -141,6 +146,17 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         if (status === 'DRAFT' && updates.workDuration) setSecondsLeft(updates.workDuration * 60);
 
         supabase.channel(`room:${roomCode}`).send({ type: 'broadcast', event: 'sync_settings', payload: newSettings });
+    };
+
+    // 👇 FIXED: Properly destroy the room and kick everyone
+    const handleAbandon = async () => {
+        if (isHost) {
+            // Tell everyone else to leave
+            await supabase.channel(`room:${roomCode}`).send({ type: 'broadcast', event: 'room_closed' });
+            // Delete the room from the database
+            await supabase.from('rooms').delete().eq('room_code', roomCode);
+        }
+        router.push('/lantern');
     };
 
     // 4. LAUNCH SEQUENCE & ENGINE
@@ -311,7 +327,6 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
                 <div className="flex-1 flex flex-col items-center justify-center z-10">
 
-                    {/* 👇 FIXED: JOINERS NOW SEE THE HOST'S LIVE CONSTRUCTION! */}
                     {status === 'DRAFT' && !isHost && (
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
@@ -323,22 +338,24 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
                             <div className="space-y-4 mt-6 text-left bg-white/5 p-5 rounded-2xl border border-white/5">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black text-white/40 uppercase">Protocol</span>
-                                    <span className="text-xs font-bold text-white uppercase">{settings.mode}</span>
+                                    <span className="text-[10px] font-black text-white/40 uppercase flex-shrink-0">Protocol</span>
+                                    <span className="text-xs font-bold text-white uppercase truncate text-right ml-4 max-w-[180px]">{settings.mode}</span>
                                 </div>
                                 {(settings.mode === 'pomodoro' || settings.mode === 'fixed') && (
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-black text-white/40 uppercase">Duration</span>
-                                        <span className="text-xs font-bold text-white">{settings.workDuration}m</span>
+                                        <span className="text-[10px] font-black text-white/40 uppercase flex-shrink-0">Duration</span>
+                                        <span className="text-xs font-bold text-white truncate text-right ml-4 max-w-[180px]">{settings.workDuration}m</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black text-white/40 uppercase">Atmosphere</span>
-                                    <span className="text-xs font-bold text-white truncate max-w-[120px]">{settings.vibeAsset}</span>
+                                    <span className="text-[10px] font-black text-white/40 uppercase flex-shrink-0">Atmosphere</span>
+                                    {/* 👇 FIXED: max-w increased to 180px and text right-aligned to prevent awkward cutoffs */}
+                                    <span className="text-xs font-bold text-white truncate text-right ml-4 max-w-[180px]">{settings.vibeAsset}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black text-white/40 uppercase">Audio</span>
-                                    <span className="text-xs font-bold text-white truncate max-w-[120px]">{settings.audioTrack}</span>
+                                    <span className="text-[10px] font-black text-white/40 uppercase flex-shrink-0">Audio</span>
+                                    {/* 👇 FIXED: max-w increased to 180px */}
+                                    <span className="text-xs font-bold text-white truncate text-right ml-4 max-w-[180px]">{settings.audioTrack}</span>
                                 </div>
                             </div>
                         </motion.div>
@@ -375,7 +392,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 </AnimatePresence>
             </main>
 
-            {/* 👇 FIXED: RIGHT PRESENCE SIDEBAR (WITH HOST CROWN!) */}
+            {/* RIGHT PRESENCE SIDEBAR */}
             <aside className="w-72 flex-shrink-0 border-l border-white/5 z-20 hidden lg:flex flex-col bg-black/20 p-8">
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-6 flex items-center gap-2">
                     <Users size={14} /> Presence ({participants.length})
@@ -414,7 +431,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             <h3 className="text-xl font-black text-white mb-2">{isHost ? "Abandon Blueprint?" : "Sever Connection?"}</h3>
                             <p className="text-sm text-white/40 mb-8 font-medium">You will be returned to the Lantern Network map.</p>
                             <div className="flex flex-col gap-3">
-                                <button onClick={() => router.push('/lantern')} className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-600 transition-colors">Confirm Exit</button>
+                                {/* 👇 FIXED: Changed from router.push to handleAbandon to ensure room cleanup */}
+                                <button onClick={handleAbandon} className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-600 transition-colors">Confirm Exit</button>
                                 <button onClick={() => setShowAbandonConfirm(false)} className="w-full py-4 bg-white/5 text-white/60 hover:text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-colors">Stay in Room</button>
                             </div>
                         </motion.div>

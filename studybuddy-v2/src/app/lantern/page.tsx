@@ -83,7 +83,7 @@ export default function LanternNetPage() {
 
     useEffect(() => {
         const initNetworkData = async () => {
-            // 1. 👇 Fetch Current User's custom Display Name
+            // 1. Fetch Current User
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 const { data: profileData } = await supabase.from('profiles').select('display_name, full_name').eq('id', user.id).single();
@@ -95,26 +95,33 @@ export default function LanternNetPage() {
                 }
             }
 
-            // 2. Fetch Live Rooms with their Host's Names
-            const { data } = await supabase.from('rooms').select('*, profiles(display_name, full_name)');
-            if (data) {
-                const realUsers: LanternUser[] = data.map((room: any) => ({
-                    id: room.host_id,
-                    // Fallback Logic: Display Name -> Full Name -> "Live Host"
-                    name: room.profiles?.display_name || room.profiles?.full_name || "Live Host",
-                    chumLabel: "👻 Chum",
-                    status: room.mode === 'cafe' ? 'cafe' : 'flowstate',
-                    hours: 100,
-                    isHosting: true,
-                    roomCode: room.room_code,
-                    isPremium: false,
-                    gridX: Math.floor(Math.random() * 12),
-                    gridY: Math.floor(Math.random() * 12),
-                    jitterX: (Math.random() - 0.5) * 60,
-                    jitterY: (Math.random() - 0.5) * 60,
-                }));
+            // 2. Fetch Rooms and ALL Profiles separately to guarantee we get names
+            const { data: rooms } = await supabase.from('rooms').select('*');
+            const { data: allProfiles } = await supabase.from('profiles').select('id, display_name, full_name');
 
-                // Deduplicate hosts to prevent the React mapping key error
+            if (rooms && allProfiles) {
+                const realUsers: LanternUser[] = rooms.map((room: any) => {
+                    // Manually find the host's profile
+                    const hostProfile = allProfiles.find(p => p.id === room.host_id);
+
+                    return {
+                        id: room.host_id,
+                        // 👇 Guaranteed to get the actual name now!
+                        name: hostProfile?.display_name || hostProfile?.full_name || "Unknown Architect",
+                        chumLabel: "👻 Chum",
+                        status: room.mode === 'cafe' ? 'cafe' : 'flowstate',
+                        hours: 100,
+                        isHosting: true,
+                        roomCode: room.room_code,
+                        isPremium: false,
+                        gridX: Math.floor(Math.random() * 12),
+                        gridY: Math.floor(Math.random() * 12),
+                        jitterX: (Math.random() - 0.5) * 60,
+                        jitterY: (Math.random() - 0.5) * 60,
+                    };
+                });
+
+                // Deduplicate hosts to prevent React mapping key errors
                 const uniqueUsers = Array.from(new Map(realUsers.map(item => [item.id, item])).values());
                 setLiveRooms(uniqueUsers);
             }
