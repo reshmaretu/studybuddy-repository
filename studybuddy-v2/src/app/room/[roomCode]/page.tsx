@@ -169,6 +169,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 setStatus('ACTIVE');
                 if (settings.mode === 'stopwatch' || settings.mode === 'free') setSecondsLeft(0);
                 else setSecondsLeft(settings.workDuration * 60);
+
+                // 👇 FIXED: Auto-start the timer!
+                setIsActive(true);
             }
         }
     }, [status, countdown, settings]);

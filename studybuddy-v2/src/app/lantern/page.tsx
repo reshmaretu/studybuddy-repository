@@ -60,14 +60,11 @@ const generateMockNetwork = (): LanternUser[] => {
 export default function LanternNetPage() {
     const [isMounted, setIsMounted] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const [network] = useState<LanternUser[]>(generateMockNetwork);
     const { totalSessions, isPremiumUser } = useStudyStore();
     const router = useRouter();
 
-    const [liveRooms, setLiveRooms] = useState<LanternUser[]>([]);
-
-    // 👇 NEW: Store the current logged-in user's profile data
-    const [myProfile, setMyProfile] = useState<{ displayName: string; fullName: string } | null>(null);
+    // The single source of truth for the entire map
+    const [fullNetwork, setFullNetwork] = useState<LanternUser[]>([]);
 
     const [isHostModalOpen, setIsHostModalOpen] = useState(false);
     const [roomSettings, setRoomSettings] = useState({
@@ -81,115 +78,66 @@ export default function LanternNetPage() {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // ⚡ REALTIME DATABASE FETCH
     useEffect(() => {
-        const initNetworkData = async () => {
-            // 1. Fetch Current User
+        let isSubscribed = true;
+
+        const fetchNetwork = async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data: profileData } = await supabase.from('profiles').select('display_name, full_name').eq('id', user.id).single();
-                if (profileData) {
-                    setMyProfile({
-                        displayName: profileData.display_name,
-                        fullName: profileData.full_name
-                    });
-                }
-            }
+            const currentUserId = user?.id;
 
-            // 2. Fetch Rooms and ALL Profiles separately to guarantee we get names
-            const { data: rooms } = await supabase.from('rooms').select('*');
-            const { data: allProfiles } = await supabase.from('profiles').select('id, display_name, full_name');
+            const [profilesRes, roomsRes] = await Promise.all([
+                supabase.from('profiles').select('id, display_name, full_name, focus_hours'),
+                supabase.from('rooms').select('*')
+            ]);
 
-            if (rooms && allProfiles) {
-                const realUsers: LanternUser[] = rooms.map((room: any) => {
-                    // Manually find the host's profile
-                    const hostProfile = allProfiles.find(p => p.id === room.host_id);
+            if (profilesRes.data && isSubscribed) {
+                const rooms = roomsRes.data || [];
+
+                const users: LanternUser[] = profilesRes.data.map((p, index) => {
+                    const hostedRoom = rooms.find(r => r.host_id === p.id);
+                    const isMe = p.id === currentUserId;
 
                     return {
-                        id: room.host_id,
-                        // 👇 Guaranteed to get the actual name now!
-                        name: hostProfile?.display_name || hostProfile?.full_name || "Unknown Architect",
-                        chumLabel: "👻 Chum",
-                        status: room.mode === 'cafe' ? 'cafe' : 'flowstate',
-                        hours: 100,
-                        isHosting: true,
-                        roomCode: room.room_code,
-                        isPremium: false,
-                        gridX: Math.floor(Math.random() * 12),
-                        gridY: Math.floor(Math.random() * 12),
-                        jitterX: (Math.random() - 0.5) * 60,
-                        jitterY: (Math.random() - 0.5) * 60,
+                        id: isMe ? 'me' : p.id,
+                        name: p.display_name || p.full_name || "Anonymous Architect",
+                        hours: p.focus_hours || (isMe ? totalSessions : 0) || 0,
+                        status: hostedRoom ? 'flowstate' : 'idle',
+                        isHosting: !!hostedRoom,
+                        roomCode: hostedRoom?.room_code,
+                        isPremium: false, // You can fetch this from profiles if needed
+                        chumLabel: "Architect",
+                        // Force 'me' to the center, scatter everyone else
+                        gridX: isMe ? 6 : Math.floor(index / 5),
+                        gridY: isMe ? 6 : index % 5,
+                        jitterX: isMe ? 0 : Math.random() * 8 - 4,
+                        jitterY: isMe ? 0 : Math.random() * 8 - 4,
                     };
                 });
 
-                // Deduplicate hosts to prevent React mapping key errors
-                const uniqueUsers = Array.from(new Map(realUsers.map(item => [item.id, item])).values());
-                setLiveRooms(uniqueUsers);
+                // Ensure 'me' is always at the top of the array
+                users.sort((a, b) => (a.id === 'me' ? -1 : b.id === 'me' ? 1 : 0));
+                setFullNetwork(users);
             }
         };
-        initNetworkData();
-    }, []);
 
-    const handleBroadcast = async () => {
-        if (isSubmitting) return;
-        setIsSubmitting(true);
-        const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        fetchNetwork();
 
-        if (!user || userError) {
-            alert("You need to be logged in to host a Sanctuary!");
-            setIsSubmitting(false);
-            return;
-        }
+        // Listen for live room changes
+        const roomSub = supabase.channel('lantern_net_rooms')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => fetchNetwork())
+            .subscribe();
 
-        const { error: insertError } = await supabase.from('rooms').insert({
-            room_code: roomCode,
-            host_id: user.id,
-            name: roomSettings.title,
-            mode: roomSettings.mode,
-            capacity: roomSettings.capacity,
-            is_private: roomSettings.isLocked,
-            vibe: roomSettings.vibe,
-            password: null
-        });
-
-        if (insertError) {
-            console.error("Error creating room:", insertError);
-            alert("Failed to open the sanctuary.");
-            setIsSubmitting(false);
-            return;
-        }
-
-        await supabase.from('profiles').update({
-            is_hosting: true,
-            current_room: roomCode
-        }).eq('id', user.id);
-
-        setIsHostModalOpen(false);
-        router.push(`/room/${roomCode}`);
-    };
-
-    // 👇 UPDATE: Use your fetched profile name for your own Map Node!
-    const fullNetwork = useMemo(() => {
-        // Fallback Chain for the current user
-        const myName = myProfile?.displayName || myProfile?.fullName || "You";
-
-        const me: LanternUser = {
-            id: "me",
-            name: myName, // 👈 Dynamically injected here!
-            chumLabel: "👻 Ghost",
-            status: 'flowstate',
-            hours: totalSessions || 0,
-            isHosting: true,
-            isPremium: true,
-            gridX: 6,
-            gridY: 6,
-            jitterX: 0,
-            jitterY: 0
+        return () => {
+            isSubscribed = false;
+            supabase.removeChannel(roomSub);
         };
-        return [me, ...liveRooms, ...network];
-    }, [network, liveRooms, totalSessions, myProfile]);
+    }, [totalSessions]);
 
-    // 👇 FIXED: Use 'fullNetwork' instead of 'users', and name it 'filteredNetwork'
+    // ... (Keep your handleBroadcast function here) ...
+    const handleBroadcast = async () => { /* ... existing logic ... */ };
+
+    // SEARCH FILTER
     const filteredNetwork = fullNetwork.filter(user =>
         user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (user.roomCode && user.roomCode.toLowerCase().includes(searchQuery.toLowerCase()))
