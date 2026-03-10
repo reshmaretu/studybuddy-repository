@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { pipeline, env } from '@xenova/transformers';
 
+// 👇 Force Vercel to download the AI weights to the writable temp folder
+env.cacheDir = '/tmp';
 export async function POST(req: Request) {
     try {
-        const { pipeline, env } = await import('@huggingface/transformers');
-        env.cacheDir = '/tmp';
         const { messages, user_id } = await req.json();
 
         // 1. Catch the VIP Pass sent from the frontend
@@ -49,8 +50,7 @@ export async function POST(req: Request) {
                 // 🔄 STEP 1: SWITCH TO LOCAL EMBEDDINGS (384)
                 // ==========================================
                 const embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
-                    dtype: 'q8', // Fast math for 2026 CPUs
-                    device: 'cpu'
+                    quantized: true
                 });
 
                 const output = await embedder(latestUserMessage, { pooling: 'mean', normalize: true });

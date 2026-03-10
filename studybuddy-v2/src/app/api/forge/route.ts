@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { pipeline, env } from '@xenova/transformers';
+
+// 👇 Force Vercel to download the AI weights to the writable temp folder
+env.cacheDir = '/tmp';
 export const maxDuration = 60;
 export async function POST(req: Request) {
     try {
@@ -74,14 +78,9 @@ export async function POST(req: Request) {
         // ==========================================
         // This runs a tiny model on your server/Vercel instance
         // ✅ Optimized for 2026 CPU performance
-        const { pipeline, env } = await import('@huggingface/transformers');
-
-        // 👇 THIS IS THE VERCEL FIX: Force downloads into the writable temp folder
-        env.cacheDir = '/tmp';
 
         const embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
-            dtype: 'q8',
-            device: 'cpu'
+            quantized: true
         });
 
         const output = await embedder(finalContent, {

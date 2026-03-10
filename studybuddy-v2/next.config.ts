@@ -1,8 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // Tell Webpack to leave the transformers library alone!
-  serverExternalPackages: ['@huggingface/transformers'],
+  serverExternalPackages: ['@xenova/transformers'],
 };
 
 export default nextConfig;
