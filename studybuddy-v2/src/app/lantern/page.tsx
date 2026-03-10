@@ -12,51 +12,16 @@ export interface LanternUser {
     id: string;
     name: string;
     chumLabel: string;
-    status: 'flowstate' | 'cafe' | 'idle';
+    status: 'offline' | 'idle' | 'drafting' | 'hosting' | 'joined' | 'flowstate' | 'cafe' | 'mastering';
     hours: number;
-    isHosting: boolean;
     roomCode?: string;
     isPremium: boolean;
+    isHosting: boolean; // 👈 Add this back
     gridX: number;
     gridY: number;
     jitterX: number;
     jitterY: number;
 }
-
-const generateMockNetwork = (): LanternUser[] => {
-    // ... (Keep your existing generateMockNetwork function exactly as is)
-    const names = ["Alex", "Jordan", "Taylor", "Casey", "Riley", "Sam"];
-    const chums = ["👻 Ghost", "🦉 Owl", "🦊 Fox", "🐼 Panda"];
-    const users: LanternUser[] = [];
-    const occupied = new Set();
-
-    for (let i = 0; i < 45; i++) {
-        let cx, cy;
-        do {
-            cx = Math.floor(Math.random() * 12);
-            cy = Math.floor(Math.random() * 12);
-        } while (occupied.has(`${cx},${cy}`));
-        occupied.add(`${cx},${cy}`);
-
-        const statusVal = Math.random();
-        users.push({
-            id: `user-${i}`,
-            name: names[Math.floor(Math.random() * names.length)] + (Math.floor(Math.random() * 99)),
-            chumLabel: chums[Math.floor(Math.random() * chums.length)],
-            status: (statusVal > 0.6 ? 'flowstate' : (statusVal > 0.3 ? 'cafe' : 'idle')) as any,
-            hours: Math.floor(Math.random() * 500) + 10,
-            isHosting: Math.random() > 0.8,
-            roomCode: Math.random().toString(36).substring(2, 6).toUpperCase(),
-            isPremium: Math.random() > 0.7,
-            gridX: cx,
-            gridY: cy,
-            jitterX: (Math.random() - 0.5) * 60,
-            jitterY: (Math.random() - 0.5) * 60,
-        });
-    }
-    return users;
-};
-
 export default function LanternNetPage() {
     const [isMounted, setIsMounted] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
@@ -78,65 +43,106 @@ export default function LanternNetPage() {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // ⚡ REALTIME DATABASE FETCH
+    // ⚡ SINGLE SOURCE OF TRUTH: FETCH & REAL-TIME SYNC
     useEffect(() => {
         let isSubscribed = true;
 
         const fetchNetwork = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            const currentUserId = user?.id;
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            const currentUserId = authUser?.id;
 
             const [profilesRes, roomsRes] = await Promise.all([
-                // 👇 FIXED: Changed 'focus_hours' to 'total_hours'
-                supabase.from('profiles').select('id, display_name, full_name, total_hours'),
+                supabase.from('profiles').select('id, display_name, full_name, total_hours, chum_avatar, status'),
                 supabase.from('rooms').select('*')
             ]);
 
             if (profilesRes.data && isSubscribed) {
                 const rooms = roomsRes.data || [];
-
                 const users: LanternUser[] = profilesRes.data.map((p, index) => {
                     const hostedRoom = rooms.find(r => r.host_id === p.id);
                     const isMe = p.id === currentUserId;
 
                     return {
                         id: isMe ? 'me' : p.id,
-                        name: p.display_name || p.full_name || "Anonymous Architect",
-                        // 👇 FIXED: Changed p.focus_hours to p.total_hours
-                        hours: p.total_hours || (isMe ? totalSessions : 0) || 0,
-                        status: hostedRoom ? 'flowstate' : 'idle',
+                        name: p.display_name || p.full_name || "Anonymous",
+                        hours: p.total_hours || 0,
+                        // Priority: Hosting > Drafting > DB Status > Offline
+                        status: hostedRoom
+                            ? (hostedRoom.status === 'DRAFT' ? 'drafting' : 'hosting')
+                            : (p.status || 'offline'),
                         isHosting: !!hostedRoom,
                         roomCode: hostedRoom?.room_code,
                         isPremium: false,
-                        chumLabel: "Architect",
+                        chumLabel: p.chum_avatar || "👻 Ghost",
                         gridX: isMe ? 6 : Math.floor(index / 5),
                         gridY: isMe ? 6 : index % 5,
-                        jitterX: isMe ? 0 : Math.random() * 8 - 4,
-                        jitterY: isMe ? 0 : Math.random() * 8 - 4,
+                        jitterX: isMe ? 0 : (Math.random() - 0.5) * 40,
+                        jitterY: isMe ? 0 : (Math.random() - 0.5) * 40,
                     };
                 });
-
-                // Ensure 'me' is always at the top of the array
-                users.sort((a, b) => (a.id === 'me' ? -1 : b.id === 'me' ? 1 : 0));
                 setFullNetwork(users);
             }
         };
 
         fetchNetwork();
 
-        // Listen for live room changes
-        const roomSub = supabase.channel('lantern_net_rooms')
+        // 🟢 COMBINED REAL-TIME CHANNEL
+        // Listens for room changes AND tracks user presence in one go
+        const channel = supabase.channel('lantern_sync')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => fetchNetwork())
-            .subscribe();
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => fetchNetwork())
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) {
+                        // Mark user as idle/online when they enter the map
+                        await supabase.from('profiles').update({ status: 'idle' }).eq('id', user.id);
+                        fetchNetwork();
+                    }
+                }
+            });
 
         return () => {
             isSubscribed = false;
-            supabase.removeChannel(roomSub);
+            supabase.removeChannel(channel);
         };
-    }, [totalSessions]);
+    }, [totalSessions]); // totalSessions triggers a refresh if global stats change
 
-    // ... (Keep your handleBroadcast function here) ...
-    const handleBroadcast = async () => { /* ... existing logic ... */ };
+    const handleBroadcast = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (!user || authError) {
+            alert("Session expired. Please log in again.");
+            setIsSubmitting(false);
+            return;
+        }
+
+        const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+        const { error } = await supabase.from('rooms').insert({
+            room_code: roomCode,
+            host_id: user.id,
+            name: roomSettings.title,
+            status: 'DRAFT',
+            work_duration: roomSettings.workDuration,
+            break_duration: roomSettings.breakDuration,
+            mode: roomSettings.mode,
+            capacity: roomSettings.capacity,
+            is_private: roomSettings.isLocked,
+            vibe: roomSettings.vibe || 'default'
+        });
+
+        if (!error) {
+            router.push(`/room/${roomCode}`);
+        } else {
+            console.error("Insert Error:", error.message);
+            alert("Architect error: Could not initialize blueprint.");
+            setIsSubmitting(false);
+        }
+    };
 
     // SEARCH FILTER
     const filteredNetwork = fullNetwork.filter(user =>

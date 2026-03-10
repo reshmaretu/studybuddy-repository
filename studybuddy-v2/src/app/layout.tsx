@@ -7,6 +7,8 @@ import FocusModal from "@/components/FocusModal"; // <-- Import FocusModal
 import FlowStateOverlay from "@/components/FlowStateOverlay";
 import StudyCafeOverlay from "@/components/StudyCafeOverlay";
 import MindDumpPad from "@/components/MindDumpPad";
+import { supabase } from "@/lib/supabase";
+import PresenceSync from "@/components/PresenceSync";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="deep-teal" suppressHydrationWarning>
       <body className={`${inter.className} flex min-h-screen bg-[var(--bg-dark)] text-[var(--text-main)] transition-colors duration-300 overflow-x-hidden`}>
-
+        <PresenceSync />
         <script
           dangerouslySetInnerHTML={{
             __html: `
