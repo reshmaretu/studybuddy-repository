@@ -16,13 +16,13 @@ const STATUS_CONFIG: Record<LanternUser['status'], { color: string; emissive: nu
     offline: { color: '#555522', emissive: 0.5, scale: 0.4, pulse: 0 },
     idle: { color: '#ffcc00', emissive: 5.0, scale: 0.6, pulse: 1 },
     drafting: { color: '#ffd000', emissive: 6.0, scale: 0.6, pulse: 2 },
-    hosting: { color: '#ffff00', emissive: 18.0, scale: 0.9, pulse: 4 }, // Pure Yellow
+    hosting: { color: '#ffff00', emissive: 18.0, scale: 0.9, pulse: 4 },
     joined: { color: '#ffff33', emissive: 10.0, scale: 0.8, pulse: 3 },
-    flowstate: { color: '#00ffff', emissive: 25.0, scale: 0.8, pulse: 6 }, // Cyan/Teal
-    cafe: { color: '#ff8800', emissive: 8.0, scale: 0.7, pulse: 1.5 },
-    mastering: { color: '#ff00ff', emissive: 18.0, scale: 0.7, pulse: 5 }  // Magenta
+    // 👇 DASHBOARD MODES
+    flowstate: { color: '#00ffff', emissive: 25.0, scale: 0.8, pulse: 6 },
+    cafe: { color: '#ff8800', emissive: 12.0, scale: 0.7, pulse: 1.5 },
+    mastering: { color: '#c084fc', emissive: 35.0, scale: 1.2, pulse: 14 } // 💎 Hyper-Pulse Shard
 };
-
 const createGlowTexture = () => {
     const canvas = document.createElement('canvas');
     canvas.width = 64; canvas.height = 64;
@@ -95,6 +95,8 @@ export default function ThreeLanternNet({ users }: { users: LanternUser[] }) {
 
                 {/* 👇 ADD A TOP-DOWN LIGHT for better 3D depth */}
                 <directionalLight position={[0, 0, 50]} intensity={2} color="#ffffff" />
+
+                <GlobalPulse key={users.length} />
 
                 <LanternConstellation users={users} is3D={is3D} onWarp={setWarpTarget} intensity={globalIntensity} />
 
@@ -200,8 +202,10 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
         // 👇 FIXED: Removed the rogue '4' and added a Math.max to prevent total darkness
         const displayIntensity = Math.max(0.5, intensity);
         const baseIntensity = (isHovered || isSelected ? config.emissive + 5 : config.emissive) * displayIntensity;
-
-        const pulse = Math.sin(state.clock.elapsedTime * config.pulse) * 0.2 + 1;
+        const pulseSpeed = user.status === 'mastering'
+            ? config.pulse + (user.focusScore / 100) // 👈 High scorers "shimmer" faster
+            : config.pulse;
+        const pulse = Math.sin(state.clock.elapsedTime * pulseSpeed) * 0.2 + 1;
         const targetColor = new THREE.Color(isSelf ? "#ff007f" : config.color);
 
         materialRef.current.color.lerp(targetColor, delta * 4);
@@ -260,13 +264,52 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
                             className="bg-[#111111]/95 backdrop-blur-xl border border-white/5 p-5 rounded-3xl shadow-2xl w-64 pointer-events-auto text-white">
                             <div className="flex justify-between items-start mb-4">
-                                <div><h3 className="font-black text-sm">{user.name}</h3><p className="text-[10px] text-teal-400 font-bold uppercase">{user.chumLabel}</p></div>
+                                <div>
+                                    <h3 className="font-black text-sm">{user.name}</h3>
+                                    {/* 👇 DYNAMIC STATUS LABEL */}
+                                    <p
+                                        className="text-[10px] font-black uppercase tracking-widest mt-0.5"
+                                        style={{ color: STATUS_CONFIG[user.status as keyof typeof STATUS_CONFIG]?.color || '#fff' }}
+                                    >
+                                        ● {user.status}
+                                    </p>
+                                </div>
                                 <div className="text-2xl">{user.chumLabel.split(' ')[0]}</div>
                             </div>
                             <div className="grid grid-cols-2 gap-3 bg-black/40 p-3 rounded-2xl border border-white/5">
                                 <div className="flex flex-col"><span className="text-[8px] uppercase font-black opacity-40">Total Hours</span><span className="text-xs font-mono font-bold text-teal-400">{user.hours}h</span></div>
                                 <div className="flex flex-col text-right"><span className="text-[8px] uppercase font-black opacity-40">Focus Score</span><span className="text-xs font-bold text-[#e8c366]">{user.focusScore || 0}</span></div>
                             </div>
+                            {/* 💎 AI MASTERING SHARD */}
+                            {user.status === 'mastering' && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 5 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="mt-4 p-3 bg-purple-500/20 border border-purple-500/30 rounded-2xl text-center backdrop-blur-md"
+                                >
+                                    <div className="flex items-center justify-center gap-2 mb-1">
+                                        <span className="relative flex h-2 w-2">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                                        </span>
+                                        <p className="text-[10px] text-purple-200 font-black uppercase tracking-tighter">AI Shard Active</p>
+                                    </div>
+                                    <p className="text-[9px] text-purple-300/80 italic">"Generating mastering insights..."</p>
+                                </motion.div>
+                            )}
+
+                            {/* 🌊 FLOWSTATE PULSE */}
+                            {user.status === 'flowstate' && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="mt-4 p-3 bg-teal-400/10 border border-teal-400/20 rounded-2xl text-center"
+                                >
+                                    <p className="text-[10px] text-teal-400 font-black uppercase tracking-widest animate-pulse">
+                                        Deep Work Zone
+                                    </p>
+                                </motion.div>
+                            )}
                             {isSelected && !isSelf && (user.status === 'hosting' || user.status === 'joined') && (
                                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-4 pt-4 border-t border-white/5">
                                     <p className="text-[10px] font-black uppercase text-white/40 mb-2">Current Sanctuary</p>

@@ -52,7 +52,11 @@ export default function LanternNetPage() {
             const currentUserId = authUser?.id;
 
             const [profilesRes, roomsRes] = await Promise.all([
-                supabase.from('profiles').select('id, display_name, full_name, total_hours, chum_avatar, status'),
+                supabase.from('profiles').select(`
+            id, display_name, full_name, total_hours, 
+            chum_avatar, status, focus_score, is_premium,
+            is_in_flowstate, active_session_type
+        `),
                 supabase.from('rooms').select('*')
             ]);
 
@@ -62,17 +66,29 @@ export default function LanternNetPage() {
                     const hostedRoom = rooms.find(r => r.host_id === p.id);
                     const isMe = p.id === currentUserId;
 
+                    // ⚡ STATUS PRIORITY: AI Mastering > Flowstate > Cafe > Hosting > Idle
+                    let currentStatus: LanternUser['status'] = 'idle';
+
+                    if (p.active_session_type === 'AI_TUTOR') {
+                        currentStatus = 'mastering';
+                    } else if (p.is_in_flowstate) {
+                        currentStatus = 'flowstate';
+                    } else if (hostedRoom) {
+                        currentStatus = hostedRoom.mode === 'cafe' ? 'cafe' : 'hosting';
+                    } else {
+                        currentStatus = (p.status as any) || 'offline';
+                    }
+
                     return {
                         id: isMe ? 'me' : p.id,
                         name: p.display_name || p.full_name || "Anonymous",
                         hours: p.total_hours || 0,
-                        // Priority: Hosting > Drafting > DB Status > Offline
-                        status: hostedRoom
-                            ? (hostedRoom.status === 'DRAFT' ? 'drafting' : 'hosting')
-                            : (p.status || 'offline'),
+                        focusScore: p.focus_score || 0, // 👈 Derived from your schema
+                        status: currentStatus,
                         isHosting: !!hostedRoom,
                         roomCode: hostedRoom?.room_code,
-                        isPremium: false,
+                        roomTitle: hostedRoom?.name,
+                        isPremium: p.is_premium || false,
                         chumLabel: p.chum_avatar || "👻 Ghost",
                         gridX: isMe ? 6 : Math.floor(index / 5),
                         gridY: isMe ? 6 : index % 5,
