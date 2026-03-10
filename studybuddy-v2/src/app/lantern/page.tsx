@@ -29,25 +29,30 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
     const hostedRoom = rooms.find(r => r.host_id === p.id);
     const isMe = p.id === currentUserId;
 
-    // ⚡ STATUS PRIORITY LOGIC
+    // ⚡ STATUS PRIORITY: AI Mastering > Flowstate > Drafting/Hosting > DB Status
     let currentStatus: LanternUser['status'] = 'idle';
 
     if (p.active_session_type === 'AI_TUTOR') {
-        currentStatus = 'mastering';
+        currentStatus = 'mastering'; // 💎 Purple Hyper-Pulse Shard
     } else if (p.is_in_flowstate) {
-        currentStatus = 'flowstate';
+        currentStatus = 'flowstate'; // 🌊 Cyan Deep Glow (Match camelCase in PresenceSync)
     } else if (hostedRoom) {
-        currentStatus = hostedRoom.mode === 'cafe' ? 'cafe' : 'hosting';
+        // ⚡ THE DRAFTING FIX: 
+        // Check the room's 'status' column. If it's 'DRAFT', label it as drafting.
+        currentStatus = hostedRoom.status === 'DRAFT'
+            ? 'drafting'
+            : (hostedRoom.mode === 'cafe' ? 'cafe' : 'hosting');
     } else {
+        // Fallback to the 'status' column (e.g., 'studyCafe', 'idle')
         currentStatus = (p.status as any) || 'offline';
     }
 
     return {
         id: isMe ? 'me' : p.id,
         name: p.display_name || p.full_name || "Anonymous",
+        status: currentStatus,
         hours: p.total_hours || 0,
         focusScore: p.focus_score || 0,
-        status: currentStatus,
         isHosting: !!hostedRoom,
         roomCode: hostedRoom?.room_code,
         roomTitle: hostedRoom?.name,
