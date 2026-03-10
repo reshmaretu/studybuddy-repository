@@ -6,44 +6,59 @@ import { useStudyStore } from "@/store/useStudyStore";
 export default function PresenceSync() {
     const { activeMode, isTutorModeActive } = useStudyStore();
     const userIdRef = useRef<string | null>(null);
+    const channelRef = useRef<any>(null);
 
-    // ⚡ THE "TURBO" EFFECT: Determine status outside the effect
+    // ⚡ Derive status instantly for the dependency array
     const currentStatus = isTutorModeActive ? 'mastering' : (activeMode === 'none' ? 'idle' : activeMode);
 
+    // 1. Setup Phase: Only runs once to get User and Initialize Channel
     useEffect(() => {
-        let channel: any;
-
-        const sync = async () => {
+        const init = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
+
             userIdRef.current = user.id;
 
-            // 1. Fire-and-forget DB update (don't 'await' it to prevent UI lag)
-            supabase.from('profiles').update({ status: currentStatus }).eq('id', user.id);
-
-            // 2. Realtime Channel
-            channel = supabase.channel('online-presence', {
+            // Initialize channel once and keep it in a ref
+            channelRef.current = supabase.channel('online-presence', {
                 config: { presence: { key: user.id } }
             });
 
-            channel.subscribe(async (status: string) => {
+            channelRef.current.subscribe(async (status: string) => {
                 if (status === 'SUBSCRIBED') {
-                    // 3. Track immediately
-                    await channel.track({ user_id: user.id, status: currentStatus });
+                    await channelRef.current.track({ user_id: user.id, status: currentStatus });
                 }
             });
         };
 
-        sync();
+        init();
 
         return () => {
             if (userIdRef.current) {
-                // Emergency offline flip
+                // Final offline flip
                 supabase.from('profiles').update({ status: 'offline' }).eq('id', userIdRef.current);
-                channel?.unsubscribe();
+                channelRef.current?.unsubscribe();
             }
         };
-    }, [currentStatus]); // 👈 Re-syncs the INSTANT currentStatus changes
+    }, []); // Empty dependency array: only init once
 
+    // 2. Update Phase: Runs every time currentStatus changes
+    useEffect(() => {
+        if (!userIdRef.current) return;
+
+        if (channelRef.current) {
+            channelRef.current.track({ user_id: userIdRef.current, status: currentStatus });
+        }
+
+        supabase.from('profiles')
+            .update({
+                status: currentStatus,
+                // ⚡ FIX: Use 'flowState' (camelCase) to match your interface types
+                is_in_flowstate: currentStatus === 'flowState',
+                active_session_type: currentStatus === 'mastering' ? 'AI_TUTOR' : null
+            })
+            .eq('id', userIdRef.current);
+
+    }, [currentStatus]);
     return null;
 }
