@@ -8,18 +8,18 @@ export default function PresenceSync() {
     const userIdRef = useRef<string | null>(null);
     const channelRef = useRef<any>(null);
 
-    // ⚡ Derive status instantly for the dependency array
+    // ⚡ INSTANT STATUS DERIVATION
+    // Matches the casing used in your TypeScript types ('flowState' vs 'flowstate')
     const currentStatus = isTutorModeActive ? 'mastering' : (activeMode === 'none' ? 'idle' : activeMode);
 
-    // 1. Setup Phase: Only runs once to get User and Initialize Channel
+    // 1. INITIALIZATION: Run once on mount
     useEffect(() => {
         const init = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-
             userIdRef.current = user.id;
 
-            // Initialize channel once and keep it in a ref
+            // Setup Realtime Channel
             channelRef.current = supabase.channel('online-presence', {
                 config: { presence: { key: user.id } }
             });
@@ -33,32 +33,48 @@ export default function PresenceSync() {
 
         init();
 
-        return () => {
+        // 🛑 EMERGENCY TAB-CLOSE CLEANUP
+        // Fires before the browser kills the JS process
+        const handleTabClose = () => {
             if (userIdRef.current) {
-                // Final offline flip
-                supabase.from('profiles').update({ status: 'offline' }).eq('id', userIdRef.current);
-                channelRef.current?.unsubscribe();
+                // Using a non-awaited call to increase the chance it hits the network buffer
+                supabase.from('profiles').update({
+                    status: 'offline',
+                    is_in_flowstate: false,
+                    active_session_type: null
+                }).eq('id', userIdRef.current);
             }
         };
-    }, []); // Empty dependency array: only init once
 
-    // 2. Update Phase: Runs every time currentStatus changes
+        window.addEventListener('beforeunload', handleTabClose);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleTabClose);
+            channelRef.current?.unsubscribe();
+        };
+    }, []);
+
+    // 2. LIVE UPDATE: Fires whenever activeMode or isTutorModeActive changes
     useEffect(() => {
         if (!userIdRef.current) return;
 
+        // ⚡ BROADCAST: Updates other users' maps instantly via Presence
         if (channelRef.current) {
             channelRef.current.track({ user_id: userIdRef.current, status: currentStatus });
         }
 
+        // 🐢 PERSIST: Updates the database for the initial page fetch
+        // We explicitly clear/set priority columns to prevent "Ghost" Flowstate/Mastering glows
         supabase.from('profiles')
             .update({
                 status: currentStatus,
-                // ⚡ FIX: Use 'flowState' (camelCase) to match your interface types
                 is_in_flowstate: currentStatus === 'flowState',
-                active_session_type: currentStatus === 'mastering' ? 'AI_TUTOR' : null
+                active_session_type: currentStatus === 'mastering' ? 'AI_TUTOR' : null,
+                last_seen: new Date().toISOString() // Heartbeat for Ghost removal
             })
             .eq('id', userIdRef.current);
 
     }, [currentStatus]);
+
     return null;
 }
