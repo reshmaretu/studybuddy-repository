@@ -86,8 +86,15 @@ export default function ThreeLanternNet({ users }: { users: LanternUser[] }) {
                 <PerspectiveCamera makeDefault position={[0, 0, 120]} fov={30} />
                 <FloatingParticles />
                 <GlobalPulse />
-                <ambientLight intensity={0.2} />
-                <pointLight position={[10, 10, 10]} intensity={1.5} color="#2dd4bf" />
+                {/* 👇 INCREASE AMBIENT LIGHT to 0.8 to illuminate the dust and mesh shells */}
+                <ambientLight intensity={0.8} />
+
+                {/* 👇 ADD A CENTRAL POINT LIGHT that fills the entire "Void" */}
+                <pointLight position={[0, 0, 0]} intensity={2.5} color="#2dd4bf" distance={200} decay={1} />
+
+                {/* 👇 ADD A TOP-DOWN LIGHT for better 3D depth */}
+                <directionalLight position={[0, 50, 20]} intensity={1.5} color="#ffffff" />
+
                 <LanternConstellation users={users} is3D={is3D} onWarp={setWarpTarget} />
                 <CameraRig is3D={is3D} controlsRef={controlsRef} warpTarget={warpTarget} intensity={globalIntensity} onWarpComplete={() => setWarpTarget(null)} />
                 <OrbitControls
@@ -177,7 +184,10 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
         const config = STATUS_CONFIG[statusKey] || STATUS_CONFIG.idle;
 
         groupRef.current.position.set(xPos, yPos, THREE.MathUtils.lerp(groupRef.current.position.z, targetZ, delta * 5));
-        const baseIntensity = (isHovered || isSelected ? config.emissive + 5 : config.emissive) * intensity; 4
+
+        // 👇 FIXED: Removed the rogue '4' and added a Math.max to prevent total darkness
+        const displayIntensity = Math.max(0.5, intensity);
+        const baseIntensity = (isHovered || isSelected ? config.emissive + 5 : config.emissive) * displayIntensity;
 
         const pulse = Math.sin(state.clock.elapsedTime * config.pulse) * 0.2 + 1;
         const targetColor = new THREE.Color(isSelf ? "#ff007f" : config.color);
@@ -221,10 +231,15 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                     <sphereGeometry args={[1, 32, 32]} />
                     <meshStandardMaterial
                         ref={materialRef}
+                        // 👇 Provide a bright base color so it's never purely black
+                        color="#ffffff"
+                        // 👇 Ensure emissive is initialized to a visible color
+                        emissive="#ffffff"
                         toneMapped={false}
                         transparent={true}
-                        roughness={0}
-                        metalness={1}
+                        opacity={1}
+                        roughness={0.1}
+                        metalness={0.8}
                     />
                 </mesh>
             </Float>
