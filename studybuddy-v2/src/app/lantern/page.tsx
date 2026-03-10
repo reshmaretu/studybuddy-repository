@@ -64,8 +64,10 @@ export default function LanternNetPage() {
     const { totalSessions, isPremiumUser } = useStudyStore();
     const router = useRouter();
 
-    // 👇 NEW: State to hold the real rooms from Supabase
     const [liveRooms, setLiveRooms] = useState<LanternUser[]>([]);
+
+    // 👇 NEW: Store the current logged-in user's profile data
+    const [myProfile, setMyProfile] = useState<{ displayName: string; fullName: string } | null>(null);
 
     const [isHostModalOpen, setIsHostModalOpen] = useState(false);
     const [roomSettings, setRoomSettings] = useState({
@@ -79,39 +81,51 @@ export default function LanternNetPage() {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // 👇 NEW: Fetch REAL active rooms from Supabase on mount
     useEffect(() => {
-        const fetchLiveRooms = async () => {
-            const { data } = await supabase.from('rooms').select('*');
+        const initNetworkData = async () => {
+            // 1. 👇 Fetch Current User's custom Display Name
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: profileData } = await supabase.from('profiles').select('display_name, full_name').eq('id', user.id).single();
+                if (profileData) {
+                    setMyProfile({
+                        displayName: profileData.display_name,
+                        fullName: profileData.full_name
+                    });
+                }
+            }
+
+            // 2. Fetch Live Rooms with their Host's Names
+            const { data } = await supabase.from('rooms').select('*, profiles(display_name, full_name)');
             if (data) {
-                const realUsers: LanternUser[] = data.map((room) => ({
+                const realUsers: LanternUser[] = data.map((room: any) => ({
                     id: room.host_id,
-                    name: room.name || "Live Host",
-                    chumLabel: "👻 Chum", // You can update this to fetch from profiles later
+                    // Fallback Logic: Display Name -> Full Name -> "Live Host"
+                    name: room.profiles?.display_name || room.profiles?.full_name || "Live Host",
+                    chumLabel: "👻 Chum",
                     status: room.mode === 'cafe' ? 'cafe' : 'flowstate',
-                    hours: 100, // Placeholder legacy hours
+                    hours: 100,
                     isHosting: true,
                     roomCode: room.room_code,
                     isPremium: false,
-                    // Give them random coordinates in the 3D map
                     gridX: Math.floor(Math.random() * 12),
                     gridY: Math.floor(Math.random() * 12),
                     jitterX: (Math.random() - 0.5) * 60,
                     jitterY: (Math.random() - 0.5) * 60,
                 }));
-                setLiveRooms(realUsers);
+
+                // Deduplicate hosts to prevent the React mapping key error
+                const uniqueUsers = Array.from(new Map(realUsers.map(item => [item.id, item])).values());
+                setLiveRooms(uniqueUsers);
             }
         };
-        fetchLiveRooms();
+        initNetworkData();
     }, []);
 
     const handleBroadcast = async () => {
-        if (isSubmitting) return; // 🛑 Block extra clicks
+        if (isSubmitting) return;
         setIsSubmitting(true);
-        // 1. Generate a unique 6-character room code
         const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-        // 2. Get the current authenticated user
         const { data: { user }, error: userError } = await supabase.auth.getUser();
 
         if (!user || userError) {
@@ -120,7 +134,6 @@ export default function LanternNetPage() {
             return;
         }
 
-        // 3. Insert using ONLY your existing columns
         const { error: insertError } = await supabase.from('rooms').insert({
             room_code: roomCode,
             host_id: user.id,
@@ -139,24 +152,23 @@ export default function LanternNetPage() {
             return;
         }
 
-        // 4. Update the user's profile to light up the map
         await supabase.from('profiles').update({
             is_hosting: true,
             current_room: roomCode
         }).eq('id', user.id);
 
-        // 5. Close the modal
         setIsHostModalOpen(false);
-
-        // 6. Teleport to the room (Settings are now handled INSIDE the room!)
         router.push(`/room/${roomCode}`);
     };
 
-    // 👇 UPDATE: Merge the real live rooms into the full network
+    // 👇 UPDATE: Use your fetched profile name for your own Map Node!
     const fullNetwork = useMemo(() => {
+        // Fallback Chain for the current user
+        const myName = myProfile?.displayName || myProfile?.fullName || "You";
+
         const me: LanternUser = {
             id: "me",
-            name: "You",
+            name: myName, // 👈 Dynamically injected here!
             chumLabel: "👻 Ghost",
             status: 'flowstate',
             hours: totalSessions || 0,
@@ -168,7 +180,7 @@ export default function LanternNetPage() {
             jitterY: 0
         };
         return [me, ...liveRooms, ...network];
-    }, [network, liveRooms, totalSessions]);
+    }, [network, liveRooms, totalSessions, myProfile]);
 
     const filteredNetwork = fullNetwork.filter(u =>
         u.name.toLowerCase().includes(searchQuery.toLowerCase())

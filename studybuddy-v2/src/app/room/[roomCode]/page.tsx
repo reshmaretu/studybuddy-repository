@@ -107,6 +107,15 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return router.push('/lantern');
 
+            // 👇 NEW: Fetch the user's profile to get their Display Name or Full Name
+            const { data: profile } = await supabase.from('profiles')
+                .select('display_name, full_name')
+                .eq('id', user.id)
+                .single();
+
+            // The Fallback Chain: Display Name -> Full Name -> Email Prefix -> "Chum"
+            const userName = profile?.display_name || profile?.full_name || user.email?.split('@')[0] || "Chum";
+
             const { data: room } = await supabase.from('rooms').select('*').eq('room_code', roomCode).single();
             if (room?.host_id === user.id) setIsHost(true);
 
@@ -118,7 +127,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 .on('broadcast', { event: 'sync_settings' }, ({ payload }) => setSettings(payload))
                 .on('broadcast', { event: 'launch' }, () => setStatus('LAUNCHING'))
                 .subscribe(async (s) => {
-                    if (s === 'SUBSCRIBED') await channel.track({ id: user.id, name: user.email?.split('@')[0] || "Chum" });
+                    // 👇 UPDATE: Track the custom userName we just fetched!
+                    if (s === 'SUBSCRIBED') await channel.track({ id: user.id, name: userName });
                 });
         };
         initRoom();
