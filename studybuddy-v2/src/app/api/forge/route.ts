@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { pipeline } from '@huggingface/transformers';
-
+export const maxDuration = 60;
 export async function POST(req: Request) {
     try {
         const { title, content, files, user_id } = await req.json();
