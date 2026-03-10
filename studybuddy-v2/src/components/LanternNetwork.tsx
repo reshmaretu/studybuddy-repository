@@ -88,15 +88,15 @@ export default function ThreeLanternNet({ users }: { users: LanternUser[] }) {
                 <FloatingParticles />
                 <GlobalPulse />
                 {/* 👇 INCREASE AMBIENT LIGHT to 0.8 to illuminate the dust and mesh shells */}
-                <ambientLight intensity={0.8} />
+                <ambientLight intensity={1.5} />
 
                 {/* 👇 ADD A CENTRAL POINT LIGHT that fills the entire "Void" */}
                 <pointLight position={[0, 0, 0]} intensity={2.5} color="#2dd4bf" distance={200} decay={1} />
 
                 {/* 👇 ADD A TOP-DOWN LIGHT for better 3D depth */}
-                <directionalLight position={[0, 50, 20]} intensity={1.5} color="#ffffff" />
+                <directionalLight position={[0, 0, 50]} intensity={2} color="#ffffff" />
 
-                <LanternConstellation users={users} is3D={is3D} onWarp={setWarpTarget} />
+                <LanternConstellation users={users} is3D={is3D} onWarp={setWarpTarget} intensity={globalIntensity} />
 
                 <EffectComposer enableNormalPass={false}>
                     <Bloom
@@ -127,7 +127,7 @@ export default function ThreeLanternNet({ users }: { users: LanternUser[] }) {
     );
 }
 
-function LanternConstellation({ users, is3D, onWarp }: { users: LanternUser[], is3D: boolean, onWarp: (v: THREE.Vector3) => void }) {
+function LanternConstellation({ users, is3D, onWarp, intensity }: { users: LanternUser[], is3D: boolean, onWarp: (v: THREE.Vector3) => void, intensity: number }) {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -151,6 +151,7 @@ function LanternConstellation({ users, is3D, onWarp }: { users: LanternUser[], i
                             user={user}
                             is3D={is3D}
                             isSelf={isSelf}
+                            intensity={intensity}
                             isHovered={hoveredId === user.id}
                             isSelected={selectedId === user.id}
                             setHovered={() => setHoveredId(user.id)}
@@ -241,21 +242,14 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                     onClick={(e) => { e.stopPropagation(); onClick(); }}
                 >
                     <sphereGeometry args={[1, 32, 32]} />
+                    {/* 👇 Switching to a simpler material setup to guarantee color visibility */}
                     <meshStandardMaterial
                         ref={materialRef}
-                        // 👇 CRITICAL: Setting color to white allows the emissive 
-                        // color to actually show up on the surface.
-                        color="#ffffff"
+                        color="#ffffff" // 👈 Base must be white to prevent the black hole look
                         emissive="#ffffff"
-                        // 👇 CRITICAL: Setting toneMapped to false allows 
-                        // the brightness to exceed 1.0 (Bloom).
-                        toneMapped={false}
-                        transparent={true}
-                        opacity={1}
-                        // 👇 Lowering these prevents the "Oil Slick/Black" look 
-                        // when there's no environment light.
-                        roughness={0.2}
-                        metalness={0.1}
+                        toneMapped={false} // 👈 Mandatory for the Bloom glow
+                        roughness={0.1}
+                        metalness={0} // 👈 Setting metalness to 0 stops it from reflecting the black void
                     />
                 </mesh>
             </Float>
@@ -359,30 +353,35 @@ function GlobalPulse() {
 }
 
 function FloatingParticles() {
-    const ref = useRef<any>(null); // 👈 Fixed
-    const [sphere] = useState(() => random.inSphere(new Float32Array(6000), { radius: 100 }));
+    const ref = useRef<THREE.Points>(null);
+
+    // 1. Ensure we generate enough points (2000 nodes * 3 coordinates = 6000)
+    const [sphere] = useState(() => {
+        const positions = new Float32Array(6000);
+        for (let i = 0; i < 6000; i++) {
+            positions[i] = (Math.random() - 0.5) * 200; // Manual fallback if maath fails
+        }
+        return positions;
+    });
 
     useFrame((state, delta) => {
-        // 👇 ALWAYS add this check to ensure the ref isn't null during the first frame
-        if (!ref.current) return;
-
-        ref.current.rotation.x -= delta / 15;
-        ref.current.rotation.y -= delta / 20;
+        if (ref.current) {
+            ref.current.rotation.x -= delta / 15;
+            ref.current.rotation.y -= delta / 20;
+        }
     });
 
     return (
-        <group rotation={[0, 0, Math.PI / 4]}>
-            <Points ref={ref} positions={sphere} stride={3} frustumCulled={false}>
-                <PointMaterial
-                    transparent
-                    color="#2dd4bf"
-                    size={0.15}
-                    sizeAttenuation={true}
-                    depthWrite={false}
-                    opacity={0.2}
-                    blending={THREE.AdditiveBlending}
-                />
-            </Points>
-        </group>
+        <Points ref={ref} positions={sphere} stride={3} frustumCulled={false}>
+            <PointMaterial
+                transparent
+                color="#2dd4bf"
+                size={0.4} // 👈 Increased size for visibility
+                sizeAttenuation={true}
+                depthWrite={false}
+                opacity={0.4} // 👈 Increased opacity
+                blending={THREE.AdditiveBlending}
+            />
+        </Points>
     );
 }
