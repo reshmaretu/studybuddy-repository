@@ -12,14 +12,14 @@ import * as random from 'maath/random/dist/maath-random.esm';
 // --- CONFIG & UTILS ---
 
 const STATUS_CONFIG: Record<LanternUser['status'], { color: string; emissive: number; scale: number; pulse: number }> = {
-    offline: { color: '#4a4a22', emissive: 0.5, scale: 0.4, pulse: 0 },
-    idle: { color: '#fbbf24', emissive: 4.0, scale: 0.6, pulse: 1 },
-    drafting: { color: '#fbbf24', emissive: 5.0, scale: 0.6, pulse: 2 },
-    hosting: { color: '#fde047', emissive: 12.0, scale: 0.9, pulse: 4 },
-    joined: { color: '#fde047', emissive: 8.0, scale: 0.8, pulse: 3 },
-    flowstate: { color: '#2dd4bf', emissive: 15.0, scale: 0.8, pulse: 6 },
-    cafe: { color: '#f97316', emissive: 6.0, scale: 0.7, pulse: 1.5 },
-    mastering: { color: '#c084fc', emissive: 12.0, scale: 0.7, pulse: 5 }
+    offline: { color: '#555522', emissive: 0.5, scale: 0.4, pulse: 0 },
+    idle: { color: '#ffcc00', emissive: 5.0, scale: 0.6, pulse: 1 },
+    drafting: { color: '#ffd000', emissive: 6.0, scale: 0.6, pulse: 2 },
+    hosting: { color: '#ffff00', emissive: 18.0, scale: 0.9, pulse: 4 }, // Pure Yellow
+    joined: { color: '#ffff33', emissive: 10.0, scale: 0.8, pulse: 3 },
+    flowstate: { color: '#00ffff', emissive: 25.0, scale: 0.8, pulse: 6 }, // Cyan/Teal
+    cafe: { color: '#ff8800', emissive: 8.0, scale: 0.7, pulse: 1.5 },
+    mastering: { color: '#ff00ff', emissive: 18.0, scale: 0.7, pulse: 5 }  // Magenta
 };
 
 const createGlowTexture = () => {
@@ -39,10 +39,27 @@ const createGlowTexture = () => {
 // --- COMPONENTS ---
 
 export default function ThreeLanternNet({ users }: { users: LanternUser[] }) {
-    const [globalIntensity, setGlobalIntensity] = useState(1.5);
     const [is3D, setIs3D] = useState(false);
     const [warpTarget, setWarpTarget] = useState<THREE.Vector3 | null>(null);
     const controlsRef = useRef<any>(null);
+
+    const [globalIntensity, setGlobalIntensity] = useState(0);
+
+    // 2. THE POWER UP LOGIC
+    useEffect(() => {
+        let current = 0;
+        const target = 1.8; // The "Sweet Spot" for brightness
+        const interval = setInterval(() => {
+            if (current >= target) {
+                clearInterval(interval);
+                return;
+            }
+            current += 0.04; // Speed of the power-up
+            setGlobalIntensity(current);
+        }, 30); // Runs every 30ms
+
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <div className="w-full h-full bg-[#05080c] relative group">
@@ -202,7 +219,13 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                     onClick={(e) => { e.stopPropagation(); onClick(); }}
                 >
                     <sphereGeometry args={[1, 32, 32]} />
-                    <meshStandardMaterial ref={materialRef} toneMapped={false} />
+                    <meshStandardMaterial
+                        ref={materialRef}
+                        toneMapped={false}
+                        transparent={true}
+                        roughness={0}
+                        metalness={1}
+                    />
                 </mesh>
             </Float>
 
