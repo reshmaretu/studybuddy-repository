@@ -12,7 +12,7 @@ export function useGlobalSync() {
             if (!user) return;
 
             // ⚡ Match exactly with LanternNetwork STATUS_CONFIG
-            let status: 'offline' | 'idle' | 'drafting' | 'hosting' | 'joined' | 'flowstate' | 'cafe' | 'mastering' = 'idle';
+            let status: 'offline' | 'idle' | 'drafting' | 'hosting' | 'joined' | 'flowState' | 'cafe' | 'mastering' = 'idle';
             let sessionType = 'NONE';
             let inFlow = false;
 
@@ -20,7 +20,7 @@ export function useGlobalSync() {
                 status = 'mastering';
                 sessionType = 'AI_TUTOR';
             } else if (activeMode === 'flowState') {
-                status = 'flowstate';
+                status = 'flowState';
                 inFlow = true;
             } else if (activeMode === 'studyCafe') {
                 status = 'cafe';

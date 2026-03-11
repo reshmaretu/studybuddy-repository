@@ -35,13 +35,12 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
     if (p.active_session_type === 'AI_TUTOR') {
         currentStatus = 'mastering'; // 💎 Purple Hyper-Pulse Shard
     } else if (p.is_in_flowstate) {
-        currentStatus = 'flowstate'; // 🌊 Cyan Deep Glow (Match camelCase in PresenceSync)
+        currentStatus = 'flowState'; // 🌊 Cyan Deep Glow (Match camelCase in PresenceSync)
     } else if (hostedRoom) {
         // ⚡ THE DRAFTING FIX: 
         // Check the room's 'status' column. If it's 'DRAFT', label it as drafting.
-        currentStatus = hostedRoom.status === 'DRAFT'
-            ? 'drafting'
-            : (hostedRoom.mode === 'cafe' ? 'cafe' : 'hosting');
+        currentStatus = hostedRoom.status === 'DRAFT' ? 'drafting' :
+            (hostedRoom.mode === 'cafe' ? 'cafe' : 'hosting');
     } else {
         // Fallback to the 'status' column (e.g., 'studyCafe', 'idle')
         currentStatus = (p.status as any) || 'offline';

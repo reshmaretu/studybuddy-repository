@@ -324,8 +324,33 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                         </div>
 
                         <div className="pt-6 border-t border-white/5 space-y-3">
-                            <button onClick={() => { setStatus('LAUNCHING'); supabase.channel(`room:${roomCode}`).send({ type: 'broadcast', event: 'launch' }) }} className="w-full py-4 bg-[#84ccb9] text-black rounded-2xl font-black uppercase text-xs">Initialize Sanctuary</button>
-                            <button onClick={() => setShowAbandonConfirm(true)} className="w-full py-3 text-white/30 text-[10px] font-bold uppercase hover:text-red-400 transition-colors">Abandon Blueprint</button>
+                            <button
+                                onClick={async () => {
+                                    // 1. Update local UI state
+                                    setStatus('LAUNCHING');
+
+                                    // ⚡ 2. UPDATE DATABASE: This informs the Lantern Map to switch status
+                                    await supabase
+                                        .from('rooms')
+                                        .update({ status: 'ACTIVE' }) // Ensure your DB accepts 'ACTIVE'
+                                        .eq('room_code', roomCode);
+
+                                    // 3. Broadcast to all joiners to start their 5s countdown
+                                    supabase.channel(`room:${roomCode}`).send({
+                                        type: 'broadcast',
+                                        event: 'launch'
+                                    });
+                                }}
+                                className="w-full py-4 bg-[#84ccb9] text-black rounded-2xl font-black uppercase text-xs hover:bg-[#a1d9cc] transition-colors"
+                            >
+                                Initialize Sanctuary
+                            </button>
+                            <button
+                                onClick={() => setShowAbandonConfirm(true)}
+                                className="w-full py-3 text-white/30 text-[10px] font-bold uppercase hover:text-red-400 transition-colors"
+                            >
+                                Abandon Blueprint
+                            </button>
                         </div>
                     </motion.aside>
                 )}
