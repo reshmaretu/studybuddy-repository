@@ -153,6 +153,32 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         };
     }, [roomCode, router]);
 
+    const handleInitializeSanctuary = async () => {
+        // 1. Update local UI to start countdown
+        setStatus('LAUNCHING');
+
+        // ⚡ 2. Persist to DB: This unlocks the room for the global Map
+        const { error } = await supabase
+            .from('rooms')
+            .update({ status: 'ACTIVE' })
+            .eq('room_code', roomCode);
+
+        if (error) {
+            console.error("Architect Sync Error:", error.message);
+            // Fallback: stay in DRAFT if the DB fails to update
+            setStatus('DRAFT');
+            return;
+        }
+
+        // 3. Broadcast to Joiners: Use the existing channelRef
+        if (channelRef.current) {
+            channelRef.current.send({
+                type: 'broadcast',
+                event: 'launch'
+            });
+        }
+    };
+
     // 3. BROADCAST UPDATES
     const updateSettings = (updates: Partial<typeof settings>) => {
         if (!isHost) return;
@@ -325,22 +351,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
                         <div className="pt-6 border-t border-white/5 space-y-3">
                             <button
-                                onClick={async () => {
-                                    // 1. Update local UI state
-                                    setStatus('LAUNCHING');
-
-                                    // ⚡ 2. UPDATE DATABASE: This informs the Lantern Map to switch status
-                                    await supabase
-                                        .from('rooms')
-                                        .update({ status: 'ACTIVE' }) // Ensure your DB accepts 'ACTIVE'
-                                        .eq('room_code', roomCode);
-
-                                    // 3. Broadcast to all joiners to start their 5s countdown
-                                    supabase.channel(`room:${roomCode}`).send({
-                                        type: 'broadcast',
-                                        event: 'launch'
-                                    });
-                                }}
+                                onClick={handleInitializeSanctuary}
                                 className="w-full py-4 bg-[#84ccb9] text-black rounded-2xl font-black uppercase text-xs hover:bg-[#a1d9cc] transition-colors"
                             >
                                 Initialize Sanctuary
