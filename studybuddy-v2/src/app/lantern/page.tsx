@@ -13,7 +13,7 @@ export interface LanternUser {
     name: string;
     chumLabel: string;
     focusScore: number;
-    status: 'offline' | 'idle' | 'drafting' | 'hosting' | 'joined' | 'flowstate' | 'cafe' | 'mastering';
+    status: 'offline' | 'idle' | 'drafting' | 'hosting' | 'joined' | 'flowState' | 'cafe' | 'mastering';
     hours: number;
     roomCode?: string;
     roomTitle?: string;
@@ -29,20 +29,18 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
     const hostedRoom = rooms.find(r => r.host_id === p.id);
     const isMe = p.id === currentUserId;
 
-    // ⚡ STATUS PRIORITY: AI Mastering > Flowstate > Drafting/Hosting > DB Status
     let currentStatus: LanternUser['status'] = 'idle';
 
     if (p.active_session_type === 'AI_TUTOR') {
-        currentStatus = 'mastering'; // 💎 Purple Hyper-Pulse Shard
+        currentStatus = 'mastering'; // Purple
     } else if (p.is_in_flowstate) {
-        currentStatus = 'flowState'; // 🌊 Cyan Deep Glow (Match camelCase in PresenceSync)
+        currentStatus = 'flowState'; // Cyan
     } else if (hostedRoom) {
-        // ⚡ THE DRAFTING FIX: 
-        // Check the room's 'status' column. If it's 'DRAFT', label it as drafting.
+        // Fix: Toggle between Drafting and Hosting based on DB status
         currentStatus = hostedRoom.status === 'DRAFT' ? 'drafting' :
             (hostedRoom.mode === 'cafe' ? 'cafe' : 'hosting');
     } else {
-        // Fallback to the 'status' column (e.g., 'studyCafe', 'idle')
+        // Fallback to DB status column
         currentStatus = (p.status as any) || 'offline';
     }
 

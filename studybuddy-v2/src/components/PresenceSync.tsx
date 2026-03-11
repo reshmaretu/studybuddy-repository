@@ -11,7 +11,6 @@ export default function PresenceSync() {
     // ⚡ INSTANT STATUS DERIVATION
     const currentStatus = isTutorModeActive ? 'mastering' : (activeMode === 'none' ? 'idle' : activeMode);
 
-    // 1. SETUP: Runs once to get User and setup Tab-Close listener
     useEffect(() => {
         const init = async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -31,10 +30,10 @@ export default function PresenceSync() {
 
         init();
 
-        // 🛑 THE FIX: Only set offline when the browser tab is actually CLOSED
+        // 🛑 THE ONLY PLACE FOR OFFLINE: When the tab actually closes.
         const handleTabClose = () => {
             if (userIdRef.current) {
-                // Use a standard fetch or beacon if possible, but this works in most modern browsers
+                // Use a non-awaited call to ensure it fires before the process dies
                 supabase.from('profiles').update({
                     status: 'offline',
                     is_in_flowstate: false,
@@ -46,20 +45,21 @@ export default function PresenceSync() {
         window.addEventListener('beforeunload', handleTabClose);
         return () => {
             window.removeEventListener('beforeunload', handleTabClose);
+            // ⚡ CRITICAL: Do NOT update DB to offline here. 
+            // Only kill the realtime channel to prevent memory leaks.
             if (channelRef.current) supabase.removeChannel(channelRef.current);
         };
-    }, []); // 👈 Empty array: This cleanup ONLY runs when you leave the app
+    }, []);
 
-    // 2. MODE SWITCH: Runs when status changes. NO "offline" cleanup here!
     useEffect(() => {
         if (!userIdRef.current) return;
 
-        // Fast broadcast
+        // Broadcast to Map instantly
         if (channelRef.current) {
             channelRef.current.track({ user_id: userIdRef.current, status: currentStatus });
         }
 
-        // Database Update
+        // Persistent Sync
         supabase.from('profiles')
             .update({
                 status: currentStatus,
@@ -69,7 +69,7 @@ export default function PresenceSync() {
             })
             .eq('id', userIdRef.current);
 
-    }, [currentStatus]); // 👈 No return cleanup function here!
+    }, [currentStatus]);
 
     return null;
 }
