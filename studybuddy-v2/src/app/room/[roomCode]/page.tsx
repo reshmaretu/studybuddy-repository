@@ -121,35 +121,21 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             setIsHost(isActuallyHost);
             setHostId(room.host_id);
 
-            // 2. Fetch Profile Name
-            const { data: profile } = await supabase.from('profiles')
-                .select('display_name, full_name')
-                .eq('id', user.id).single();
-
+            // 2. Resolve Profile Name
+            const { data: profile } = await supabase.from('profiles').select('display_name, full_name').eq('id', user.id).single();
             const resolvedName = profile?.display_name || profile?.full_name || user.email?.split('@')[0] || "Chum";
             setUserName(resolvedName);
 
-            // 3. Anchor Status (Prevents Ghosting/Offline flips)
-            if (isActuallyHost) {
-                await supabase.from('profiles')
-                    .update({ status: room.status === 'ACTIVE' ? 'hosting' : 'drafting' })
-                    .eq('id', user.id);
-
-                // Sync Room Settings to DB
-                await supabase.from('rooms').update({
-                    name: settings.name,
-                    status: room.status // Keep current DB status to avoid resetting ACTIVE to DRAFT on refresh
-                }).eq('room_code', roomCode);
-            } else {
-                // Joiner Anchor
-                await supabase.from('profiles').update({ status: 'joined' }).eq('id', user.id);
-            }
+            // 3. ⚓ ANCHOR STATUS: Set profile status to prevent global sync interference
+            // This stops the 'offline' flip by telling the DB the user is busy here.
+            await supabase.from('profiles').update({
+                status: isActuallyHost ? (room.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined'
+            }).eq('id', user.id);
 
             // 4. Initialize Realtime
             const channel = supabase.channel(`room:${roomCode}`, {
                 config: { presence: { key: user.id } }
             });
-
             activeChannel = channel;
             channelRef.current = channel;
 
@@ -158,29 +144,23 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     const state = channel.presenceState();
                     setParticipants(Object.values(state).flat());
                 })
-                .on('broadcast', { event: 'room_closed' }, () => {
-                    router.push('/lantern');
-                })
-            channel.subscribe(async (s) => {
-                if (s === 'SUBSCRIBED') {
-                    await channel.track({
-                        id: user.id,
-                        name: resolvedName,
-                        // ⚡ CRITICAL: Use 'hosting', 'drafting', or 'joined' to match LanternMap colors
-                        status: isActuallyHost ? (status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
-                        roomCode: roomCode,
-                        isHost: isActuallyHost
-                    });
-                }
-            });
+                .on('broadcast', { event: 'room_closed' }, () => router.push('/lantern'))
+                .subscribe(async (s) => {
+                    if (s === 'SUBSCRIBED') {
+                        // ⚡ HEARTBEAT: Explicitly track status so Lantern Map stays updated
+                        await channel.track({
+                            id: user.id,
+                            name: resolvedName,
+                            status: isActuallyHost ? (room.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined'
+                        });
+                    }
+                });
         };
 
         initRoom();
 
         return () => {
-            if (activeChannel) {
-                supabase.removeChannel(activeChannel);
-            }
+            if (activeChannel) supabase.removeChannel(activeChannel);
         };
     }, [roomCode]);
 
