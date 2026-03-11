@@ -80,6 +80,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         mode: 'pomodoro',
         workDuration: 25,
         breakDuration: 5,
+        longBreakDuration: 15,
+        cyclesBeforeLongBreak: 4,
+        currentCycle: 1,
         vibeCategory: 'Theme Default',
         vibeAsset: THEMES[0],
         audioTrack: 'None',
@@ -238,10 +241,19 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     if (settings.mode === 'stopwatch' || settings.mode === 'free') return prev + 1;
                     if (prev <= 1) {
                         if (settings.mode === 'pomodoro') {
-                            const nextBreak = !isBreak;
-                            setIsBreak(nextBreak);
+                            const nextIsBreak = !isBreak;
+                            setIsBreak(nextIsBreak);
                             setIsActive(false);
-                            return nextBreak ? settings.breakDuration * 60 : settings.workDuration * 60;
+
+                            if (nextIsBreak) {
+                                // Check if it's time for a long break
+                                const isLongBreak = settings.currentCycle % settings.cyclesBeforeLongBreak === 0;
+                                return isLongBreak ? settings.longBreakDuration * 60 : settings.breakDuration * 60;
+                            } else {
+                                // Returning to work: Increment the cycle count
+                                setSettings(s => ({ ...s, currentCycle: s.currentCycle + 1 }));
+                                return settings.workDuration * 60;
+                            }
                         }
                         setIsActive(false);
                         return 0;
@@ -260,14 +272,19 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             <AnimatePresence>
                 {status === 'DRAFT' && isHost && (
                     <motion.aside
-                        initial={{ x: -350, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -350, opacity: 0 }}
-                        className="w-[340px] flex-shrink-0 h-[calc(100vh-48px)] my-6 ml-6 rounded-[32px] bg-[#111111]/90 backdrop-blur-2xl border border-white/5 p-6 flex flex-col z-50 shadow-2xl"
+                        initial={{ x: -350, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: -350, opacity: 0 }}
+                        className="w-[340px] flex-shrink-0 h-[calc(100vh-48px)] my-6 ml-6 rounded-[32px] bg-[#111111]/90 backdrop-blur-2xl border border-white/5 flex flex-col z-50 shadow-2xl overflow-hidden"
                     >
-                        <div className="flex-1 overflow-y-auto space-y-6 pr-2 custom-scrollbar pb-6">
+                        {/* 1. FIXED HEADER */}
+                        <div className="p-6 border-b border-white/5">
                             <h2 className="text-[#e8c366] font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
                                 <Sparkles size={14} /> Sanctuary Architect
                             </h2>
 
+                            {/* 2. SCROLLABLE MIDDLE (The Settings) */}
+                            <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar scrollbar-hide"></div>
                             {/* Timer Protocol */}
                             <section className="space-y-4">
                                 <label className="text-[10px] font-black text-white/30 uppercase">Protocol</label>

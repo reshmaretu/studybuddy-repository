@@ -2,12 +2,15 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useStudyStore } from "@/store/useStudyStore";
+import { usePathname } from "next/navigation";
 
 export default function PresenceSync() {
+    const pathname = usePathname();
     const { activeMode, isTutorModeActive } = useStudyStore();
     const userIdRef = useRef<string | null>(null);
     const channelRef = useRef<any>(null);
 
+    const isInRoom = pathname.includes('/room/');
     // ⚡ INSTANT STATUS DERIVATION
     const currentStatus = isTutorModeActive ? 'mastering' : (activeMode === 'none' ? 'idle' : activeMode);
 
@@ -56,15 +59,11 @@ export default function PresenceSync() {
     useEffect(() => {
         if (!userIdRef.current) return;
 
-        // 1. Update Realtime Presence (Map movement)
-        if (channelRef.current) {
-            channelRef.current.track({ user_id: userIdRef.current, status: currentStatus });
-        }
-
-        // 2. Update Database (Global Persistence)
+        // 1. Update Database (Global Persistence)
+        // We keep this active so the Lantern Map knows you're in a room
         supabase.from('profiles')
             .update({
-                status: currentStatus,
+                status: isInRoom ? 'hosting' : currentStatus, // ⚡ Force 'hosting' if in room
                 is_in_flowstate: currentStatus === 'flowState',
                 active_session_type: currentStatus === 'mastering' ? 'AI_TUTOR' : null,
                 last_seen: new Date().toISOString()
@@ -72,7 +71,15 @@ export default function PresenceSync() {
             .eq('id', userIdRef.current)
             .then();
 
-        // 3. 💓 RE-SYNC HEARTBEAT: Ensure the latest status is what gets pulsed
+        // 2. 🛑 CONDITIONAL REALTIME TRACKING
+        // If we are in a room, we STOP the global heartbeat. 
+        // The StudyRoom component's own channel will handle your presence there.
+        if (isInRoom) return;
+
+        if (channelRef.current) {
+            channelRef.current.track({ user_id: userIdRef.current, status: currentStatus });
+        }
+
         const heartbeat = setInterval(() => {
             if (channelRef.current && userIdRef.current) {
                 channelRef.current.track({ user_id: userIdRef.current, status: currentStatus });
@@ -80,7 +87,7 @@ export default function PresenceSync() {
         }, 30000);
 
         return () => clearInterval(heartbeat);
-    }, [currentStatus]); // Now the heartbeat always has the freshest status!
+    }, [currentStatus, isInRoom]); // ⚡ Re-sync when entering/leaving rooms
 
     return null;
 }
