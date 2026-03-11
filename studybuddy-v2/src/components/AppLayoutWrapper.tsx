@@ -11,11 +11,9 @@ import MindDumpPad from "./MindDumpPad";
 
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/register" || pathname === "/room/[roomCode]";
-
+    const isRoomPage = pathname.startsWith("/room/");
+    const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/register" || isRoomPage;
     if (isPublicPage) {
-        // ⚡ FIX: Removed min-h-screen. Let the content define the height naturally.
-        // Removed overflow-x-hidden here as well (we will apply it to a child if needed).
         return (
             <div className="w-full bg-[#1E1A1D]">
                 {children}

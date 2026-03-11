@@ -430,10 +430,29 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
                             {/* PREMIUM TOGGLES */}
                             <section className="pt-4 border-t border-white/5 space-y-4">
+                                {/* Visualizer Toggle */}
                                 <div className={`flex items-center justify-between ${shakeTarget === 'visualizer' ? 'animate-shake' : ''}`}>
-                                    <span className={`text-[10px] font-bold uppercase flex items-center gap-2 ${!isPremiumUser ? 'text-white/20' : 'text-white/50'}`}>Visualizer {!isPremiumUser && <Lock size={10} />}</span>
-                                    <button onClick={() => handlePremiumToggle('showVisualizer', settings.showVisualizer)} className={`w-10 h-5 rounded-full relative transition-colors ${settings.showVisualizer ? 'bg-[#e8c366]' : 'bg-white/10'}`}>
+                                    <span className={`text-[10px] font-bold uppercase flex items-center gap-2 ${!isPremiumUser ? 'text-white/20' : 'text-white/50'}`}>
+                                        Visualizer {!isPremiumUser && <Lock size={10} className="text-[#e8c366]" />}
+                                    </span>
+                                    <button
+                                        onClick={() => handlePremiumToggle('showVisualizer', settings.showVisualizer)}
+                                        className={`w-10 h-5 rounded-full relative transition-colors ${settings.showVisualizer ? 'bg-[#e8c366]' : 'bg-white/10'}`}
+                                    >
                                         <motion.div layout className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" animate={{ x: settings.showVisualizer ? 20 : 0 }} />
+                                    </button>
+                                </div>
+
+                                {/* Ghost Mode Toggle */}
+                                <div className={`flex items-center justify-between ${shakeTarget === 'ghost' ? 'animate-shake' : ''}`}>
+                                    <span className={`text-[10px] font-bold uppercase flex items-center gap-2 ${!isPremiumUser ? 'text-white/20' : 'text-white/50'}`}>
+                                        Ghost Mode {!isPremiumUser && <Lock size={10} className="text-[#84ccb9]" />}
+                                    </span>
+                                    <button
+                                        onClick={() => handlePremiumToggle('isGhostMode', settings.isGhostMode)}
+                                        className={`w-10 h-5 rounded-full relative transition-colors ${settings.isGhostMode ? 'bg-[#84ccb9]' : 'bg-white/10'}`}
+                                    >
+                                        <motion.div layout className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" animate={{ x: settings.isGhostMode ? 20 : 0 }} />
                                     </button>
                                 </div>
                             </section>
