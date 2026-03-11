@@ -158,6 +158,17 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     const state = channel.presenceState();
                     setParticipants(Object.values(state).flat());
                 })
+                .on('broadcast', { event: 'launch' }, () => {
+                    // 🚀 Joiners start their engine when host launches
+                    setStatus('LAUNCHING');
+                })
+                .on('broadcast', { event: 'sync_settings' }, ({ payload }) => {
+                    // ⚡ FIX: Apply host's live settings to joiner's local state
+                    setSettings(prev => ({ ...prev, ...payload }));
+                    if (status === 'DRAFT') {
+                        setSecondsLeft(payload.workDuration * 60);
+                    }
+                })
                 .on('broadcast', { event: 'room_closed' }, () => router.push('/lantern'))
                 .subscribe(async (s) => {
                     if (s === 'SUBSCRIBED') {
