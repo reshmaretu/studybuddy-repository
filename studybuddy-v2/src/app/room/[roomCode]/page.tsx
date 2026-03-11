@@ -65,6 +65,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     const router = useRouter();
     const searchParams = useSearchParams();
     const { isPremiumUser } = useStudyStore();
+    const [userName, setUserName] = useState("Chum");
 
     // --- STATES ---
     const [status, setStatus] = useState<'DRAFT' | 'LAUNCHING' | 'ACTIVE'>('DRAFT');
@@ -117,14 +118,22 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 .eq('id', user.id)
                 .single();
 
-            const userName = profile?.display_name || profile?.full_name || user.email?.split('@')[0] || "Chum";
+            const name = profile?.display_name || profile?.full_name || user.email?.split('@')[0] || "Chum";
+            setUserName(name); // ⚡ Store in state so it's accessible
 
-            const { data: room } = await supabase.from('rooms')
-                .select('*')
-                .eq('room_code', roomCode)
-                .single();
+            const { data: room } = await supabase.from('rooms').select('*').eq('room_code', roomCode).single();
 
-            if (room?.host_id === user.id) setIsHost(true);
+            if (room?.host_id === user.id) {
+                setIsHost(true);
+                // ⚡ INITIAL SYNC: Write the default blueprint to DB immediately
+                await supabase.from('rooms').update({
+                    name: settings.name,
+                    mode: settings.mode,
+                    work_duration: settings.workDuration,
+                    break_duration: settings.breakDuration,
+                    status: 'DRAFT'
+                }).eq('room_code', roomCode);
+            }
             setHostId(room?.host_id);
 
             const channel = supabase.channel(`room:${roomCode}`, {
@@ -136,17 +145,19 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 .on('presence', { event: 'sync' }, () => {
                     setParticipants(Object.values(channel.presenceState()).flat());
                 })
-                .on('broadcast', { event: 'launch' }, () => {
-                    setStatus('LAUNCHING');
+                .on('broadcast', { event: 'sync_settings' }, ({ payload }) => {
+                    // ⚡ Sync the joiner's local state to the host's live changes
+                    setSettings(payload);
+                    if (status === 'DRAFT') setSecondsLeft(payload.workDuration * 60);
                 })
+                .on('broadcast', { event: 'launch' }, () => setStatus('LAUNCHING'))
                 .on('broadcast', { event: 'room_closed' }, () => {
                     alert("The Architect has abandoned the sanctuary.");
-                    supabase.removeChannel(channel);
                     router.push('/lantern');
                 })
                 .subscribe(async (s) => {
                     if (s === 'SUBSCRIBED') {
-                        await channel.track({ id: user.id, name: userName });
+                        await channel.track({ id: user.id, name: name }); // Use local 'name' here
                     }
                 });
         };
@@ -288,79 +299,87 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     return (
         <div className={`h-full w-full flex flex-row overflow-hidden transition-colors duration-1000 ${isBreak ? 'bg-[#0f2924]' : 'bg-[#05080c]'}`}>
 
-            {/* 1. ARCHITECT SIDEBAR (Fixed Header/Footer with Scrollable Settings) */}
+            {/* 1. ARCHITECT SIDEBAR */}
             <AnimatePresence>
                 {status === 'DRAFT' && isHost && (
                     <motion.aside
-                        initial={{ x: -350, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        exit={{ x: -350, opacity: 0 }}
+                        initial={{ x: -350, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -350, opacity: 0 }}
                         className="w-[340px] flex-shrink-0 h-[calc(100vh-48px)] my-6 ml-6 rounded-[32px] bg-[#111111]/90 backdrop-blur-2xl border border-white/5 flex flex-col z-50 shadow-2xl overflow-hidden"
                     >
-                        {/* FIXED HEADER */}
                         <div className="p-6 border-b border-white/5 bg-black/20">
                             <h2 className="text-[#e8c366] font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
                                 <Sparkles size={14} /> Sanctuary Architect
                             </h2>
                         </div>
 
-                        {/* SCROLLABLE SETTINGS */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar scrollbar-hide">
                             <section className="space-y-4">
                                 <label className="text-[10px] font-black text-white/30 uppercase">Protocol</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {['pomodoro', 'fixed', 'free', 'stopwatch'].map(m => (
                                         <button
-                                            key={m}
-                                            disabled={m === 'stopwatch' && !isPremiumUser}
+                                            key={m} disabled={m === 'stopwatch' && !isPremiumUser}
                                             onClick={() => updateSettings({ mode: m })}
-                                            className={`p-2.5 rounded-xl border text-[10px] font-bold uppercase transition-all flex items-center justify-center gap-2 ${settings.mode === m ? 'border-[#84ccb9] bg-[#84ccb9]/10 text-[#84ccb9]' : 'border-white/5 text-white/40 hover:text-white'
-                                                } ${m === 'stopwatch' && !isPremiumUser ? 'opacity-30 grayscale cursor-not-allowed' : ''}`}
+                                            className={`p-2.5 rounded-xl border text-[10px] font-bold uppercase transition-all ${settings.mode === m ? 'border-[#84ccb9] bg-[#84ccb9]/10 text-[#84ccb9]' : 'border-white/5 text-white/40 hover:text-white'}`}
                                         >
-                                            {m} {m === 'stopwatch' && <Lock size={10} />}
+                                            {m} {m === 'stopwatch' && <Shield size={10} />}
                                         </button>
                                     ))}
                                 </div>
 
-                                {(settings.mode === 'pomodoro' || settings.mode === 'fixed') && (
-                                    <div className="p-5 bg-white/5 rounded-2xl border border-white/5 space-y-5">
+                                {/* DYNAMIC POMODORO CONTROLS */}
+                                {settings.mode === 'pomodoro' && (
+                                    <div className="p-5 bg-white/5 rounded-2xl border border-white/5 space-y-6">
                                         <div>
                                             <div className="flex justify-between mb-3 text-[10px] font-bold text-white/40 uppercase">
-                                                <span>Work Block</span>
+                                                <span>Focus Block</span>
                                                 <span className="text-[#84ccb9]">{settings.workDuration}m</span>
                                             </div>
-                                            <input type="range" min="1" max="120" value={settings.workDuration} onChange={(e) => updateSettings({ workDuration: Number(e.target.value) })} className="w-full accent-[#84ccb9]" />
+                                            <input type="range" min="15" max="90" value={settings.workDuration} onChange={(e) => updateSettings({ workDuration: Number(e.target.value) })} className="w-full accent-[#84ccb9]" />
                                         </div>
-                                        {settings.mode === 'pomodoro' && (
-                                            <div>
-                                                <div className="flex justify-between mb-3 text-[10px] font-bold text-white/40 uppercase">
-                                                    <span>Break Block</span>
-                                                    <span className="text-[#84ccb9]">{settings.breakDuration}m</span>
-                                                </div>
-                                                <input type="range" min="1" max="60" value={settings.breakDuration} onChange={(e) => updateSettings({ breakDuration: Number(e.target.value) })} className="w-full accent-[#84ccb9]" />
+                                        <div>
+                                            <div className="flex justify-between mb-3 text-[10px] font-bold text-white/40 uppercase">
+                                                <span>Short Break</span>
+                                                <span className="text-[#84ccb9]">{settings.breakDuration}m</span>
                                             </div>
-                                        )}
+                                            <input type="range" min="3" max="30" value={settings.breakDuration} onChange={(e) => updateSettings({ breakDuration: Number(e.target.value) })} className="w-full accent-[#84ccb9]" />
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between mb-3 text-[10px] font-bold text-white/40 uppercase">
+                                                <span>Long Break</span>
+                                                <span className="text-[#84ccb9]">{settings.longBreakDuration}m</span>
+                                            </div>
+                                            <input type="range" min="10" max="60" value={settings.longBreakDuration} onChange={(e) => updateSettings({ longBreakDuration: Number(e.target.value) })} className="w-full accent-[#84ccb9]" />
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between mb-3 text-[10px] font-bold text-white/40 uppercase">
+                                                <span>Cycles Until Long Break</span>
+                                                <span className="text-[#84ccb9]">{settings.cyclesBeforeLongBreak}</span>
+                                            </div>
+                                            <input type="range" min="2" max="6" value={settings.cyclesBeforeLongBreak} onChange={(e) => updateSettings({ cyclesBeforeLongBreak: Number(e.target.value) })} className="w-full accent-[#84ccb9]" />
+                                        </div>
+
+                                        {/* SEQUENCE BLUEPRINT */}
+                                        <div className="pt-4 border-t border-white/5">
+                                            <label className="text-[9px] font-black text-white/20 uppercase mb-3 block">Sequence Blueprint</label>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {Array.from({ length: settings.cyclesBeforeLongBreak }).map((_, i) => (
+                                                    <div key={i} className="flex gap-1.5 items-center">
+                                                        <div className="px-2 py-1 bg-[#84ccb9]/20 text-[#84ccb9] text-[10px] font-bold rounded-md">{settings.workDuration}</div>
+                                                        {i < settings.cyclesBeforeLongBreak - 1 ? (
+                                                            <div className="px-2 py-1 bg-[#e8c366]/20 text-[#e8c366] text-[10px] font-bold rounded-md">{settings.breakDuration}</div>
+                                                        ) : (
+                                                            <div className="px-2 py-1 bg-teal-500/20 text-teal-400 text-[10px] font-bold rounded-md">{settings.longBreakDuration}</div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </section>
-
-                            <section className="space-y-3">
-                                <label className="text-[10px] font-black text-white/30 uppercase">Visual Atmosphere</label>
-                                <CustomSelect value={settings.vibeCategory} options={['Theme Default', 'Static Lo-Fi', 'Live Lo-Fi (Pro)']} onChange={(cat: string) => updateSettings({ vibeCategory: cat })} />
-                                <CustomSelect value={settings.vibeAsset} options={THEMES} onChange={(asset: string) => updateSettings({ vibeAsset: asset })} isPremiumUser={isPremiumUser} />
-                            </section>
-
-                            <section className="space-y-4 pt-4 border-t border-white/5">
-                                <div className={`flex items-center justify-between ${!isPremiumUser && 'opacity-30'}`}>
-                                    <span className="text-[10px] font-bold text-white/50 uppercase flex items-center gap-2">Visualizer {!isPremiumUser && <Lock size={10} />}</span>
-                                    <button disabled={!isPremiumUser} onClick={() => updateSettings({ showVisualizer: !settings.showVisualizer })} className={`w-10 h-5 rounded-full relative transition-colors ${settings.showVisualizer ? 'bg-[#e8c366]' : 'bg-white/10'}`}>
-                                        <motion.div layout className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" animate={{ x: settings.showVisualizer ? 20 : 0 }} />
-                                    </button>
-                                </div>
-                            </section>
                         </div>
 
-                        {/* FIXED FOOTER */}
                         <div className="p-6 border-t border-white/5 bg-black/40 space-y-3">
                             <button onClick={handleInitializeSanctuary} className="w-full py-4 bg-[#84ccb9] text-black rounded-2xl font-black uppercase text-xs hover:bg-[#a1d9cc] transition-colors">
                                 Initialize Sanctuary
@@ -388,7 +407,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 </header>
 
                 <div className="flex-1 flex flex-col items-center justify-center z-10">
-                    {/* JOINER WAIT SCREEN (Reactive Sync) */}
+                    {/* JOINER WAIT SCREEN (Reactive Blueprint Sync) */}
                     {status === 'DRAFT' && !isHost && (
                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-black/40 backdrop-blur-md border border-white/10 p-8 rounded-[32px] text-center max-w-md w-full shadow-2xl">
                             <div className="w-12 h-12 border-4 border-[#84ccb9]/20 border-t-[#84ccb9] rounded-full animate-spin mx-auto mb-6" />
@@ -398,19 +417,32 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     <span className="text-[10px] font-black text-white/40 uppercase">Protocol</span>
                                     <span className="text-xs font-bold text-white uppercase">{settings.mode}</span>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black text-white/40 uppercase">Atmosphere</span>
-                                    <span className="text-xs font-bold text-white truncate text-right ml-4 max-w-[180px]">{settings.vibeAsset}</span>
-                                </div>
+                                {settings.mode === 'pomodoro' && (
+                                    <div className="space-y-3 pt-3">
+                                        <span className="text-[10px] font-black text-white/20 uppercase block">Projected Sequence</span>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {Array.from({ length: settings.cyclesBeforeLongBreak }).map((_, i) => (
+                                                <div key={i} className="flex gap-1.5 items-center">
+                                                    <div className="px-1.5 py-0.5 bg-[#84ccb9]/20 text-[#84ccb9] text-[9px] font-bold rounded">{settings.workDuration}</div>
+                                                    {i < settings.cyclesBeforeLongBreak - 1 ? (
+                                                        <div className="px-1.5 py-0.5 bg-[#e8c366]/20 text-[#e8c366] text-[9px] font-bold rounded">{settings.breakDuration}</div>
+                                                    ) : (
+                                                        <div className="px-1.5 py-0.5 bg-teal-500/20 text-teal-400 text-[9px] font-bold rounded">{settings.longBreakDuration}</div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </motion.div>
                     )}
 
-                    {/* ACTIVE TIMER ENGINE */}
+                    {/* ACTIVE TIMER */}
                     {status === 'ACTIVE' && (
                         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-white/30 mb-2 block">
-                                {isBreak ? "Break Time Remaining" : "Current Cycle: " + (settings.currentCycle || 1)}
+                                {isBreak ? "Break Time Remaining" : `Cycle ${settings.currentCycle} of ${settings.cyclesBeforeLongBreak}`}
                             </span>
                             <div className="text-[14rem] md:text-[18rem] font-black tabular-nums leading-none tracking-tighter text-white">
                                 {Math.floor(secondsLeft / 60).toString().padStart(2, '0')}:{(secondsLeft % 60).toString().padStart(2, '0')}
@@ -463,11 +495,11 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
                             <div className="grid grid-cols-2 gap-4 mb-8">
                                 <div className="bg-white/5 p-4 rounded-3xl border border-white/5">
-                                    <span className="text-[10px] font-black text-[#84ccb9] uppercase block mb-1">Time Spent</span>
+                                    <span className="text-[10px] font-black text-[#84ccb9] uppercase block mb-1">Session Progress</span>
                                     <span className="text-xl font-black text-white">{Math.floor((isActive ? secondsLeft : 0) / 60)}m</span>
                                 </div>
                                 <div className="bg-white/5 p-4 rounded-3xl border border-white/5">
-                                    <span className="text-[10px] font-black text-[#e8c366] uppercase block mb-1">Cycles Mastered</span>
+                                    <span className="text-[10px] font-black text-[#e8c366] uppercase block mb-1">Crystals Forged</span>
                                     <span className="text-xl font-black text-white">{settings.currentCycle ? settings.currentCycle - 1 : 0}</span>
                                 </div>
                             </div>
