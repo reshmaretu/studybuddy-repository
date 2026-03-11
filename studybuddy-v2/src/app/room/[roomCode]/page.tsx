@@ -116,7 +116,11 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
             const userName = profile?.display_name || profile?.full_name || user.email?.split('@')[0] || "Chum";
 
-            const { data: room } = await supabase.from('rooms').select('*').eq('room_code', roomCode).single();
+            const { data: room } = await supabase.from('rooms')
+                .select('*')
+                .eq('room_code', roomCode)
+                .single();
+
             if (room?.host_id === user.id) setIsHost(true);
             setHostId(room?.host_id);
 
@@ -126,38 +130,37 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             channelRef.current = channel;
 
             channel
-            channel
-                .on('presence', { event: 'sync' }, () => setParticipants(Object.values(channel.presenceState()).flat()))
+                .on('presence', { event: 'sync' }, () => {
+                    setParticipants(Object.values(channel.presenceState()).flat());
+                })
+                .on('broadcast', { event: 'launch' }, () => {
+                    setStatus('LAUNCHING');
+                })
                 .on('broadcast', { event: 'room_closed' }, () => {
                     alert("The Architect has abandoned the sanctuary.");
-                    // ⚡ CLEANUP BEFORE REDIRECT
                     supabase.removeChannel(channel);
                     router.push('/lantern');
                 })
-                .on('broadcast', { event: 'launch' }, () => setStatus('LAUNCHING'))
-                // 👇 FIXED: Listen for the host destroying the room
-                .on('broadcast', { event: 'room_closed' }, () => {
-                    alert("The Architect has abandoned the sanctuary.");
-                    router.push('/lantern');
-                })
                 .subscribe(async (s) => {
-                    if (s === 'SUBSCRIBED') await channel.track({ id: user.id, name: userName });
+                    if (s === 'SUBSCRIBED') {
+                        await channel.track({ id: user.id, name: userName });
+                    }
                 });
         };
+
         initRoom();
+
         return () => {
-            // ⚡ AUTO-CLEANUP on unmount (e.g., clicking back button)
             if (channelRef.current) {
                 supabase.removeChannel(channelRef.current);
             }
         };
-    }, [roomCode, router]);
+    }, [roomCode, router]); // Keep dependencies minimal
 
     const handleInitializeSanctuary = async () => {
-        // 1. Update local UI to start countdown
-        setStatus('LAUNCHING');
+        if (!isHost) return;
 
-        // ⚡ 2. Persist to DB: This unlocks the room for the global Map
+        // 1. UPDATE DATABASE FIRST: This switches the global map to 'Hosting'
         const { error } = await supabase
             .from('rooms')
             .update({ status: 'ACTIVE' })
@@ -165,18 +168,19 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
         if (error) {
             console.error("Architect Sync Error:", error.message);
-            // Fallback: stay in DRAFT if the DB fails to update
-            setStatus('DRAFT');
             return;
         }
 
-        // 3. Broadcast to Joiners: Use the existing channelRef
+        // 2. BROADCAST SECOND: Tell everyone in the room to start
         if (channelRef.current) {
-            channelRef.current.send({
+            await channelRef.current.send({
                 type: 'broadcast',
                 event: 'launch'
             });
         }
+
+        // 3. START LOCAL ENGINE: Host starts their own countdown
+        setStatus('LAUNCHING');
     };
 
     // 3. BROADCAST UPDATES
