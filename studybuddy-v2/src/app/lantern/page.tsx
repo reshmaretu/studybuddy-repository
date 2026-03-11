@@ -32,15 +32,15 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
     let currentStatus: LanternUser['status'] = 'idle';
 
     if (p.active_session_type === 'AI_TUTOR') {
-        currentStatus = 'mastering'; // Purple
+        currentStatus = 'mastering';
     } else if (p.is_in_flowstate) {
-        currentStatus = 'flowState'; // Cyan
+        // ⚡ FIX: PresenceSync sends 'flowState', NOT 'flowstate'
+        currentStatus = 'flowState';
     } else if (hostedRoom) {
-        // Fix: Toggle between Drafting and Hosting based on DB status
+        // ⚡ FIX: Check the DB 'status' column to toggle between drafting and hosting
         currentStatus = hostedRoom.status === 'DRAFT' ? 'drafting' :
             (hostedRoom.mode === 'cafe' ? 'cafe' : 'hosting');
     } else {
-        // Fallback to DB status column
         currentStatus = (p.status as any) || 'offline';
     }
 

@@ -19,7 +19,7 @@ const STATUS_CONFIG: Record<LanternUser['status'], { color: string; emissive: nu
     hosting: { color: '#ffff00', emissive: 18.0, scale: 0.9, pulse: 4 },
     joined: { color: '#ffff33', emissive: 10.0, scale: 0.8, pulse: 3 },
     // 👇 DASHBOARD MODES
-    flowstate: { color: '#00ffff', emissive: 25.0, scale: 0.8, pulse: 6 },
+    flowState: { color: '#00ffff', emissive: 25.0, scale: 0.8, pulse: 6 },
     cafe: { color: '#ff8800', emissive: 12.0, scale: 0.7, pulse: 1.5 },
     mastering: { color: '#c084fc', emissive: 35.0, scale: 1.2, pulse: 14 } // 💎 Hyper-Pulse Shard
 };
@@ -310,36 +310,31 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                     </p>
                                 </motion.div>
                             )}
+
                             {/* 🔗 ROOM INTERACTION SECTION */}
-                            {isSelected && !isSelf && (
-                                ['hosting', 'joined', 'drafting', 'cafe'].includes(user.status)
-                            ) && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        className="mt-4 pt-4 border-t border-white/5"
+                            {isSelected && !isSelf && (['hosting', 'joined', 'drafting'].includes(user.status)) && (
+                                <motion.div initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    className="mt-4 pt-4 border-t border-white/5">
+                                    <p className="text-[10px] font-black uppercase text-white/40 mb-2">
+                                        {user.status === 'drafting' ? 'Blueprint in Progress' : 'Current Sanctuary'}
+                                    </p>
+                                    <p className="text-xs font-bold text-white mb-4 italic">
+                                        "{user.roomTitle || 'Quiet Study'}"
+                                    </p>
+                                    <button
+                                        onClick={() => router.push(`/room/${user.roomCode}`)}
+                                        className="w-full py-3 bg-teal-400 text-black text-xs font-black rounded-xl shadow-lg"
                                     >
-                                        <p className="text-[10px] font-black uppercase text-white/40 mb-2">
-                                            {user.status === 'drafting' ? 'Blueprint in Progress' : 'Current Sanctuary'}
-                                        </p>
-
-                                        <p className="text-xs font-bold text-white mb-4 italic">
-                                            "{user.roomTitle || 'Quiet Study'}"
-                                        </p>
-
-                                        <button
-                                            onClick={() => router.push(`/room/${user.roomCode}`)}
-                                            className="w-full py-3 bg-teal-400 text-black text-xs font-black rounded-xl shadow-lg hover:bg-teal-300 transition-colors"
-                                        >
-                                            {user.status === 'drafting' ? 'View Blueprint' : `Join Room [${user.roomCode}]`}
-                                        </button>
-                                    </motion.div>
-                                )}
+                                        {user.status === 'drafting' ? 'View Blueprint' : `Join Room [${user.roomCode || '...'}]`}
+                                    </button>
+                                </motion.div>
+                            )}
                         </motion.div>
                     </Html>
                 )}
             </AnimatePresence>
-        </group>
+        </group >
     );
 }
 
