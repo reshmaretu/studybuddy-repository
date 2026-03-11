@@ -186,15 +186,33 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         setStatus('LAUNCHING');
     };
 
-    // 3. BROADCAST UPDATES
-    const updateSettings = (updates: Partial<typeof settings>) => {
+    const updateSettings = async (updates: Partial<typeof settings>) => {
         if (!isHost) return;
+
         const newSettings = { ...settings, ...updates };
         setSettings(newSettings);
 
-        if (status === 'DRAFT' && updates.workDuration) setSecondsLeft(updates.workDuration * 60);
+        // Sync timer locally if we're still in setup
+        if (status === 'DRAFT' && updates.workDuration) {
+            setSecondsLeft(updates.workDuration * 60);
+        }
 
-        supabase.channel(`room:${roomCode}`).send({ type: 'broadcast', event: 'sync_settings', payload: newSettings });
+        // ⚡ FIX: Update the DB so the Lantern Map isn't "Undefined"
+        await supabase.from('rooms').update({
+            name: newSettings.name,
+            mode: newSettings.mode,
+            work_duration: newSettings.workDuration,
+            break_duration: newSettings.breakDuration
+        }).eq('room_code', roomCode);
+
+        // ⚡ FIX: Use the existing channelRef to broadcast to joiners
+        if (channelRef.current) {
+            channelRef.current.send({
+                type: 'broadcast',
+                event: 'sync_settings',
+                payload: newSettings
+            });
+        }
     };
 
     // 👇 FIXED: Properly destroy the room and kick everyone
@@ -238,7 +256,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         if (status === 'ACTIVE' && isActive) {
             interval = setInterval(() => {
                 setSecondsLeft(prev => {
-                    if (settings.mode === 'stopwatch' || settings.mode === 'free') return prev + 1;
+                    // ⚡ FIX: Both count UP, but 'free' is the standard open mode
+                    if (settings.mode === 'free' || settings.mode === 'stopwatch') return prev + 1;
+
                     if (prev <= 1) {
                         if (settings.mode === 'pomodoro') {
                             const nextIsBreak = !isBreak;
@@ -246,11 +266,11 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             setIsActive(false);
 
                             if (nextIsBreak) {
-                                // Check if it's time for a long break
+                                // ⚡ ADVANCED POMODORO: Check for Long Break every 4 cycles
                                 const isLongBreak = settings.currentCycle % settings.cyclesBeforeLongBreak === 0;
                                 return isLongBreak ? settings.longBreakDuration * 60 : settings.breakDuration * 60;
                             } else {
-                                // Returning to work: Increment the cycle count
+                                // Back to work: Increment cycle count
                                 setSettings(s => ({ ...s, currentCycle: s.currentCycle + 1 }));
                                 return settings.workDuration * 60;
                             }
@@ -268,7 +288,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     return (
         <div className={`h-full w-full flex flex-row overflow-hidden transition-colors duration-1000 ${isBreak ? 'bg-[#0f2924]' : 'bg-[#05080c]'}`}>
 
-            {/* ARCHITECT SIDEBAR */}
+            {/* 1. ARCHITECT SIDEBAR (Fixed Header/Footer with Scrollable Settings) */}
             <AnimatePresence>
                 {status === 'DRAFT' && isHost && (
                     <motion.aside
@@ -277,31 +297,31 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                         exit={{ x: -350, opacity: 0 }}
                         className="w-[340px] flex-shrink-0 h-[calc(100vh-48px)] my-6 ml-6 rounded-[32px] bg-[#111111]/90 backdrop-blur-2xl border border-white/5 flex flex-col z-50 shadow-2xl overflow-hidden"
                     >
-                        {/* 1. FIXED HEADER */}
-                        <div className="p-6 border-b border-white/5">
+                        {/* FIXED HEADER */}
+                        <div className="p-6 border-b border-white/5 bg-black/20">
                             <h2 className="text-[#e8c366] font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
                                 <Sparkles size={14} /> Sanctuary Architect
                             </h2>
+                        </div>
 
-                            {/* 2. SCROLLABLE MIDDLE (The Settings) */}
-                            <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar scrollbar-hide"></div>
-                            {/* Timer Protocol */}
+                        {/* SCROLLABLE SETTINGS */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar scrollbar-hide">
                             <section className="space-y-4">
                                 <label className="text-[10px] font-black text-white/30 uppercase">Protocol</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {['pomodoro', 'fixed', 'free', 'stopwatch'].map(m => (
                                         <button
-                                            key={m} disabled={m === 'stopwatch' && !isPremiumUser}
+                                            key={m}
+                                            disabled={m === 'stopwatch' && !isPremiumUser}
                                             onClick={() => updateSettings({ mode: m })}
                                             className={`p-2.5 rounded-xl border text-[10px] font-bold uppercase transition-all flex items-center justify-center gap-2 ${settings.mode === m ? 'border-[#84ccb9] bg-[#84ccb9]/10 text-[#84ccb9]' : 'border-white/5 text-white/40 hover:text-white'
                                                 } ${m === 'stopwatch' && !isPremiumUser ? 'opacity-30 grayscale cursor-not-allowed' : ''}`}
                                         >
-                                            {m} {m === 'stopwatch' && <Shield size={10} />}
+                                            {m} {m === 'stopwatch' && <Lock size={10} />}
                                         </button>
                                     ))}
                                 </div>
 
-                                {/* Sliders */}
                                 {(settings.mode === 'pomodoro' || settings.mode === 'fixed') && (
                                     <div className="p-5 bg-white/5 rounded-2xl border border-white/5 space-y-5">
                                         <div>
@@ -324,64 +344,28 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                 )}
                             </section>
 
-                            {/* Custom Visual Dropdowns */}
                             <section className="space-y-3">
                                 <label className="text-[10px] font-black text-white/30 uppercase">Visual Atmosphere</label>
-                                <CustomSelect
-                                    value={settings.vibeCategory}
-                                    options={['Theme Default', 'Static Lo-Fi', 'Live Lo-Fi (Pro)']}
-                                    onChange={(cat: string) => {
-                                        const defaultAsset = cat === 'Theme Default' ? THEMES[0] : cat === 'Static Lo-Fi' ? STATIC_BGS[0] : LIVE_BGS[0];
-                                        updateSettings({ vibeCategory: cat, vibeAsset: defaultAsset });
-                                    }}
-                                />
-                                <CustomSelect
-                                    value={settings.vibeAsset}
-                                    options={settings.vibeCategory === 'Theme Default' ? THEMES : settings.vibeCategory === 'Static Lo-Fi' ? STATIC_BGS : LIVE_BGS}
-                                    onChange={(asset: string) => updateSettings({ vibeAsset: asset })}
-                                    isPremiumUser={isPremiumUser}
-                                />
+                                <CustomSelect value={settings.vibeCategory} options={['Theme Default', 'Static Lo-Fi', 'Live Lo-Fi (Pro)']} onChange={(cat: string) => updateSettings({ vibeCategory: cat })} />
+                                <CustomSelect value={settings.vibeAsset} options={THEMES} onChange={(asset: string) => updateSettings({ vibeAsset: asset })} isPremiumUser={isPremiumUser} />
                             </section>
 
-                            <section className="space-y-3">
-                                <label className="text-[10px] font-black text-white/30 uppercase">Audio Track</label>
-                                <CustomSelect
-                                    value={settings.audioTrack}
-                                    options={AUDIO_TRACKS}
-                                    onChange={(track: string) => updateSettings({ audioTrack: track })}
-                                    isPremiumUser={isPremiumUser}
-                                />
-                            </section>
-
-                            {/* Ghost Mode & Pro Toggles */}
-                            <section className="pt-4 border-t border-white/5 space-y-4">
+                            <section className="space-y-4 pt-4 border-t border-white/5">
                                 <div className={`flex items-center justify-between ${!isPremiumUser && 'opacity-30'}`}>
                                     <span className="text-[10px] font-bold text-white/50 uppercase flex items-center gap-2">Visualizer {!isPremiumUser && <Lock size={10} />}</span>
                                     <button disabled={!isPremiumUser} onClick={() => updateSettings({ showVisualizer: !settings.showVisualizer })} className={`w-10 h-5 rounded-full relative transition-colors ${settings.showVisualizer ? 'bg-[#e8c366]' : 'bg-white/10'}`}>
-                                        <motion.div layout className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" style={{ x: settings.showVisualizer ? 20 : 0 }} />
-                                    </button>
-                                </div>
-                                <div className={`flex items-center justify-between ${!isPremiumUser && 'opacity-30'}`}>
-                                    <span className="text-[10px] font-bold text-white/50 uppercase flex items-center gap-2">Ghost Mode {!isPremiumUser && <Lock size={10} />}</span>
-                                    <button disabled={!isPremiumUser} onClick={() => updateSettings({ isGhostMode: !settings.isGhostMode })} className={`w-10 h-5 rounded-full relative transition-colors ${settings.isGhostMode ? 'bg-[#84ccb9]' : 'bg-white/10'}`}>
-                                        <motion.div layout className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" style={{ x: settings.isGhostMode ? 20 : 0 }} />
+                                        <motion.div layout className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" animate={{ x: settings.showVisualizer ? 20 : 0 }} />
                                     </button>
                                 </div>
                             </section>
                         </div>
 
-                        <div className="pt-6 border-t border-white/5 space-y-3">
-                            <button
-                                onClick={handleInitializeSanctuary}
-                                className="w-full py-4 bg-[#84ccb9] text-black rounded-2xl font-black uppercase text-xs hover:bg-[#a1d9cc] transition-colors"
-                            >
+                        {/* FIXED FOOTER */}
+                        <div className="p-6 border-t border-white/5 bg-black/40 space-y-3">
+                            <button onClick={handleInitializeSanctuary} className="w-full py-4 bg-[#84ccb9] text-black rounded-2xl font-black uppercase text-xs hover:bg-[#a1d9cc] transition-colors">
                                 Initialize Sanctuary
                             </button>
-
-                            <button
-                                onClick={() => setShowAbandonConfirm(true)}
-                                className="w-full py-3 text-white/30 text-[10px] font-bold uppercase hover:text-red-400 transition-colors"
-                            >
+                            <button onClick={() => setShowAbandonConfirm(true)} className="w-full py-3 text-white/30 text-[10px] font-bold uppercase hover:text-red-400 transition-colors">
                                 Abandon Blueprint
                             </button>
                         </div>
@@ -389,7 +373,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 )}
             </AnimatePresence>
 
-            {/* MAIN TIMER AREA */}
+            {/* 2. MAIN TIMER AREA */}
             <main className="flex-1 min-w-0 relative flex flex-col p-8 z-10">
                 <header className="flex justify-between items-center z-20">
                     <div>
@@ -403,63 +387,37 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     </button>
                 </header>
 
-                {/* VISUALIZER PLACEHOLDER */}
-                {settings.showVisualizer && (
-                    <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
-                        <Activity size={400} className="text-[#e8c366]" />
-                    </div>
-                )}
-
                 <div className="flex-1 flex flex-col items-center justify-center z-10">
-
+                    {/* JOINER WAIT SCREEN (Reactive Sync) */}
                     {status === 'DRAFT' && !isHost && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="bg-black/40 backdrop-blur-md border border-white/10 p-8 rounded-[32px] text-center max-w-md w-full shadow-2xl"
-                        >
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-black/40 backdrop-blur-md border border-white/10 p-8 rounded-[32px] text-center max-w-md w-full shadow-2xl">
                             <div className="w-12 h-12 border-4 border-[#84ccb9]/20 border-t-[#84ccb9] rounded-full animate-spin mx-auto mb-6" />
                             <h3 className="text-[#84ccb9] font-black uppercase tracking-[0.2em] text-xs mb-2">Architect is Constructing</h3>
-
                             <div className="space-y-4 mt-6 text-left bg-white/5 p-5 rounded-2xl border border-white/5">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black text-white/40 uppercase flex-shrink-0">Protocol</span>
-                                    <span className="text-xs font-bold text-white uppercase truncate text-right ml-4 max-w-[180px]">{settings.mode}</span>
+                                    <span className="text-[10px] font-black text-white/40 uppercase">Protocol</span>
+                                    <span className="text-xs font-bold text-white uppercase">{settings.mode}</span>
                                 </div>
-                                {(settings.mode === 'pomodoro' || settings.mode === 'fixed') && (
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-black text-white/40 uppercase flex-shrink-0">Duration</span>
-                                        <span className="text-xs font-bold text-white truncate text-right ml-4 max-w-[180px]">{settings.workDuration}m</span>
-                                    </div>
-                                )}
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black text-white/40 uppercase flex-shrink-0">Atmosphere</span>
-                                    {/* 👇 FIXED: max-w increased to 180px and text right-aligned to prevent awkward cutoffs */}
+                                    <span className="text-[10px] font-black text-white/40 uppercase">Atmosphere</span>
                                     <span className="text-xs font-bold text-white truncate text-right ml-4 max-w-[180px]">{settings.vibeAsset}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black text-white/40 uppercase flex-shrink-0">Audio</span>
-                                    {/* 👇 FIXED: max-w increased to 180px */}
-                                    <span className="text-xs font-bold text-white truncate text-right ml-4 max-w-[180px]">{settings.audioTrack}</span>
                                 </div>
                             </div>
                         </motion.div>
                     )}
 
-                    {status === 'ACTIVE' && (!settings.isGhostMode || isHost) && (
+                    {/* ACTIVE TIMER ENGINE */}
+                    {status === 'ACTIVE' && (
                         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-white/30 mb-2 block">
-                                {settings.mode === 'stopwatch' || settings.mode === 'free' ? "Session Time" : "Session Progress"}
+                                {isBreak ? "Break Time Remaining" : "Current Cycle: " + (settings.currentCycle || 1)}
                             </span>
-                            <div className="text-[14rem] md:text-[18rem] font-black tabular-nums leading-none tracking-tighter drop-shadow-2xl text-white">
+                            <div className="text-[14rem] md:text-[18rem] font-black tabular-nums leading-none tracking-tighter text-white">
                                 {Math.floor(secondsLeft / 60).toString().padStart(2, '0')}:{(secondsLeft % 60).toString().padStart(2, '0')}
                             </div>
                             <div className="flex justify-center gap-4 mt-10">
-                                <button onClick={() => setIsActive(!isActive)} className="px-12 py-5 bg-[#84ccb9] text-black rounded-[24px] font-black text-xl hover:scale-105 transition-all flex items-center gap-3 shadow-[0_0_30px_rgba(132,204,185,0.2)]">
+                                <button onClick={() => setIsActive(!isActive)} className="px-12 py-5 bg-[#84ccb9] text-black rounded-[24px] font-black text-xl hover:scale-105 transition-all flex items-center gap-3">
                                     {isActive ? <><Pause fill="currentColor" /> Pause</> : <><Play fill="currentColor" /> Initiate</>}
-                                </button>
-                                <button onClick={() => { setIsActive(false); setSecondsLeft(settings.mode === 'stopwatch' || settings.mode === 'free' ? 0 : settings.workDuration * 60); }} className="p-5 bg-white/5 rounded-[24px] text-white/40 hover:text-white border border-white/5 transition-all hover:bg-white/10">
-                                    <RotateCcw size={24} />
                                 </button>
                             </div>
                         </motion.div>
@@ -477,53 +435,55 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 </AnimatePresence>
             </main>
 
-            {/* RIGHT PRESENCE SIDEBAR */}
+            {/* 3. RIGHT PRESENCE SIDEBAR */}
             <aside className="w-72 flex-shrink-0 border-l border-white/5 z-20 hidden lg:flex flex-col bg-black/20 p-8">
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-6 flex items-center gap-2">
                     <Users size={14} /> Presence ({participants.length})
                 </h3>
                 <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar">
-                    {participants.map(p => {
-                        const isThisUserTheHost = p.id === hostId;
-
-                        return (
-                            <div key={p.id} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${isThisUserTheHost ? 'bg-[#84ccb9]/10 border-[#84ccb9]/30' : 'bg-white/5 border-white/5'}`}>
-                                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-lg shadow-inner">
-                                    {isThisUserTheHost ? '👑' : '👻'}
-                                </div>
-                                <div className="flex flex-col min-w-0">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm font-bold text-white truncate max-w-[100px]">{p.name}</span>
-                                        {isThisUserTheHost && (
-                                            <span className="text-[8px] bg-[#84ccb9] text-black px-1.5 py-0.5 rounded uppercase font-black tracking-wider flex-shrink-0">
-                                                Host
-                                            </span>
-                                        )}
-                                    </div>
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-[#84ccb9] mt-0.5">Focusing</p>
-                                </div>
+                    {participants.map(p => (
+                        <div key={p.id} className={`flex items-center gap-3 p-3 rounded-2xl border ${p.id === hostId ? 'bg-[#84ccb9]/10 border-[#84ccb9]/30' : 'bg-white/5 border-white/5'}`}>
+                            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-lg">{p.id === hostId ? '👑' : '👻'}</div>
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-sm font-bold text-white truncate">{p.name}</span>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-[#84ccb9] mt-0.5">{isBreak ? "Resting" : "Focusing"}</p>
                             </div>
-                        );
-                    })}
+                        </div>
+                    ))}
                 </div>
             </aside>
 
-            {/* ABANDON CONFIRMATION MODAL */}
+            {/* 4. LEGACY LOG MODAL (The Mastery Summary) */}
             <AnimatePresence>
                 {showAbandonConfirm && (
-                    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#111111] border border-white/10 p-10 rounded-[40px] max-w-sm text-center shadow-2xl">
-                            <h3 className="text-xl font-black text-white mb-2">{isHost ? "Abandon Blueprint?" : "Sever Connection?"}</h3>
-                            <p className="text-sm text-white/40 mb-8 font-medium">You will be returned to the Lantern Network map.</p>
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/90 backdrop-blur-xl p-6">
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#111111] border border-[#84ccb9]/20 p-10 rounded-[40px] max-w-md w-full text-center shadow-2xl relative overflow-hidden">
+                            <h3 className="text-2xl font-black text-white mb-2">Harvest Mastery?</h3>
+                            <p className="text-xs text-white/40 mb-8 uppercase tracking-widest font-black">Legacy Log Summary</p>
+
+                            <div className="grid grid-cols-2 gap-4 mb-8">
+                                <div className="bg-white/5 p-4 rounded-3xl border border-white/5">
+                                    <span className="text-[10px] font-black text-[#84ccb9] uppercase block mb-1">Time Spent</span>
+                                    <span className="text-xl font-black text-white">{Math.floor((isActive ? secondsLeft : 0) / 60)}m</span>
+                                </div>
+                                <div className="bg-white/5 p-4 rounded-3xl border border-white/5">
+                                    <span className="text-[10px] font-black text-[#e8c366] uppercase block mb-1">Cycles Mastered</span>
+                                    <span className="text-xl font-black text-white">{settings.currentCycle ? settings.currentCycle - 1 : 0}</span>
+                                </div>
+                            </div>
+
                             <div className="flex flex-col gap-3">
-                                {/* 👇 FIXED: Changed from router.push to handleAbandon to ensure room cleanup */}
-                                <button onClick={handleAbandon} className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-600 transition-colors">Confirm Exit</button>
-                                <button onClick={() => setShowAbandonConfirm(false)} className="w-full py-4 bg-white/5 text-white/60 hover:text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-colors">Stay in Room</button>
+                                <button onClick={handleAbandon} className="w-full py-5 bg-[#84ccb9] text-black rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-[#a1d9cc] transition-all">
+                                    Forge Legacy & Exit
+                                </button>
+                                <button onClick={() => setShowAbandonConfirm(false)} className="w-full py-4 text-white/30 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">
+                                    Continue Focusing
+                                </button>
                             </div>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
-        </div >
+        </div>
     );
 }
