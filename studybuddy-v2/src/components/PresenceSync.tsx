@@ -57,24 +57,23 @@ export default function PresenceSync() {
 
     // ⚡ SYNC ON EVERY STATUS CHANGE
     useEffect(() => {
-        if (!userIdRef.current || isInRoom) return;
+        if (!userIdRef.current) return;
 
-        // 1. Update Database (Global Persistence)
-        // We keep this active so the Lantern Map knows you're in a room
+        // 🛑 STOP GLOBAL SYNC IN ROOMS
+        // If isInRoom is true, we exit early and do NOT track or update status.
+        // The StudyRoom component is now the sole owner of the status.
+        if (isInRoom) return;
+
+        // Update Database (Global Persistence)
         supabase.from('profiles')
             .update({
-                status: isInRoom ? 'hosting' : currentStatus, // ⚡ Force 'hosting' if in room
+                status: currentStatus,
                 is_in_flowstate: currentStatus === 'flowState',
                 active_session_type: currentStatus === 'mastering' ? 'AI_TUTOR' : null,
                 last_seen: new Date().toISOString()
             })
             .eq('id', userIdRef.current)
             .then();
-
-        // 2. 🛑 CONDITIONAL REALTIME TRACKING
-        // If we are in a room, we STOP the global heartbeat. 
-        // The StudyRoom component's own channel will handle your presence there.
-        if (isInRoom) return;
 
         if (channelRef.current) {
             channelRef.current.track({ user_id: userIdRef.current, status: currentStatus });

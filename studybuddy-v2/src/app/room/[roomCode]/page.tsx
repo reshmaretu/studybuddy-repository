@@ -127,7 +127,6 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             setHostId(room?.host_id);
 
             if (isActuallyHost) {
-                // Force the DB to 'DRAFT' if it was lost, ensuring joiners see the right state
                 await supabase.from('rooms').update({ status: 'DRAFT' }).eq('room_code', roomCode);
             }
 
@@ -233,19 +232,19 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
     // 👇 FIXED: Properly destroy the room and kick everyone
     const handleAbandon = async () => {
-        if (isHost) {
-            // 1. Broadcast "room_closed" on the active channelRef
-            if (channelRef.current) {
-                await channelRef.current.send({
-                    type: 'broadcast',
-                    event: 'room_closed'
-                });
-            }
-            // 2. Remove the room record from DB (Securely removes from Lantern Map)
+        // ⚡ FIX: Use the active channelRef instead of creating a new one
+        if (isHost && channelRef.current) {
+            // 1. Tell joiners to leave FIRST
+            await channelRef.current.send({
+                type: 'broadcast',
+                event: 'room_closed'
+            });
+
+            // 2. Remove the room from the DB (Securely removes from Lantern Map)
             await supabase.from('rooms').delete().eq('room_code', roomCode);
         }
 
-        // 3. Cleanup local subscription
+        // 3. Cleanup local Realtime subscription
         if (channelRef.current) {
             await supabase.removeChannel(channelRef.current);
         }
