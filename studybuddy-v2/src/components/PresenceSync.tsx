@@ -17,54 +17,62 @@ export default function PresenceSync() {
     // ⚡ Match exactly with LanternNetwork STATUS_CONFIG
     const currentStatus = isTutorModeActive ? 'mastering' : (activeMode === 'none' ? 'idle' : (activeMode === 'studyCafe' ? 'cafe' : activeMode));
 
-    useEffect(() => {
-        const init = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) userIdRef.current = user.id;
-        };
-        init();
-    }, []);
+    const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
-        const handleTabClose = async () => {
-            // Only set offline if we aren't in a specialized mode that handles its own cleanup
+        const handleTabClose = () => {
+            // 🛑 EMBARGO: If in a room/mode, let that component's cleanup handle it.
             if (!userIdRef.current || isSpecialMode) return;
 
-            await supabase.from('profiles').update({
+            // ⚡ USE CASE: navigator.sendBeacon is more reliable for "fire and forget" 
+            // updates during tab closure than a standard async supabase call.
+            const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${userIdRef.current}`;
+            const headers = {
+                'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json'
+            };
+            const body = JSON.stringify({
                 status: 'offline',
                 is_in_flowstate: false,
-                active_session_type: null
-            }).eq('id', userIdRef.current);
+                last_seen: new Date().toISOString()
+            });
+
+            navigator.sendBeacon(url, body);
         };
 
         window.addEventListener('beforeunload', handleTabClose);
         return () => window.removeEventListener('beforeunload', handleTabClose);
-    }, [isSpecialMode]);
+    }, [isSpecialMode, isReady]);
 
     useEffect(() => {
-        // 🛑 EMBARGO: Do not heartbeat if in a specialized mode
-        if (!userIdRef.current || isSpecialMode) return;
+        // 🛑 EMBARGO: If in room/mode or not ready, stay silent
+        if (!isReady || !userIdRef.current || isSpecialMode) return;
 
         // 1. Initialize Global Realtime Channel
         const channel = supabase.channel('global-presence');
         channelRef.current = channel;
 
-        const syncStatus = async () => {
+        const syncToDB = async () => {
+            // 🛡️ Final guard: don't overwrite if overlays/rooms are in control
             const { data: profile } = await supabase.from('profiles').select('status').eq('id', userIdRef.current).single();
             const protectedStatuses = ['hosting', 'drafting', 'flowState', 'cafe'];
             if (protectedStatuses.includes(profile?.status)) return;
 
+            // ⚡ UPDATING DATABASE
             await supabase.from('profiles').update({
                 status: currentStatus,
                 last_seen: new Date().toISOString()
             }).eq('id', userIdRef.current);
         };
 
-        // 2. Subscribe and Track
+        // 2. Subscribe and Pulse
         channel.subscribe(async (s) => {
             if (s === 'SUBSCRIBED') {
+                // Pulse Presence for the Lantern Map
                 await channel.track({ user_id: userIdRef.current, status: currentStatus });
-                syncStatus(); // Sync DB only after successful subscription
+                // Update persistent database status
+                await syncToDB();
             }
         });
 
@@ -80,7 +88,7 @@ export default function PresenceSync() {
             supabase.removeChannel(channel);
             channelRef.current = null;
         };
-    }, [currentStatus, isSpecialMode]);
+    }, [currentStatus, isSpecialMode, isReady]); // ⚡ ADDED isReady to ensure ID availability
 
     return null;
 }

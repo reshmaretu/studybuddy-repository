@@ -180,17 +180,19 @@ export default function StudyCafeOverlay() {
         return () => clearInterval(interval);
     }, [activeMode, isRunning, timeLeft]);
 
-    // 2. Refined Anchor (Specific to Cafe)
     useEffect(() => {
-        const anchor = async () => {
+        const anchorStatus = async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            if (user && activeMode === 'studyCafe') {
+            if (user && activeMode !== 'none') {
                 await supabase.from('profiles')
-                    .update({ status: 'cafe', is_in_flowstate: false })
+                    .update({
+                        status: activeMode === 'studyCafe' ? 'cafe' : 'flowState',
+                        is_in_flowstate: activeMode === 'flowState'
+                    })
                     .eq('id', user.id);
             }
         };
-        anchor();
+        anchorStatus();
     }, [activeMode]);
 
     // Phase transitions
