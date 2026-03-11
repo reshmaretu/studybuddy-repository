@@ -121,6 +121,16 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
             const { data: room } = await supabase.from('rooms').select('*').eq('room_code', roomCode).single();
 
+            // ⚡ FIX: Always derive isHost from the DB record on load/refresh
+            const isActuallyHost = room?.host_id === user.id;
+            setIsHost(isActuallyHost);
+            setHostId(room?.host_id);
+
+            if (isActuallyHost) {
+                // Force the DB to 'DRAFT' if it was lost, ensuring joiners see the right state
+                await supabase.from('rooms').update({ status: 'DRAFT' }).eq('room_code', roomCode);
+            }
+
             // 2. Initial Sync to fix the "Broken/Undefined" Map status
             if (room?.host_id === user.id) {
                 setIsHost(true);
@@ -223,19 +233,22 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
     // 👇 FIXED: Properly destroy the room and kick everyone
     const handleAbandon = async () => {
-        const channel = supabase.channel(`room:${roomCode}`); // Use same name as subscription
-
         if (isHost) {
-            // 1. Tell everyone else to leave via broadcast
-            await channel.send({ type: 'broadcast', event: 'room_closed' });
-
-            // 2. Delete the room from the database
+            // 1. Broadcast "room_closed" on the active channelRef
+            if (channelRef.current) {
+                await channelRef.current.send({
+                    type: 'broadcast',
+                    event: 'room_closed'
+                });
+            }
+            // 2. Remove the room record from DB (Securely removes from Lantern Map)
             await supabase.from('rooms').delete().eq('room_code', roomCode);
         }
 
-        // ⚡ THE FIX: Explicitly remove the channel to kill the Realtime subscription
-        // This prevents joiners from getting "Ghost" notifications after they leave.
-        await supabase.removeChannel(channel);
+        // 3. Cleanup local subscription
+        if (channelRef.current) {
+            await supabase.removeChannel(channelRef.current);
+        }
 
         router.push('/lantern');
     };

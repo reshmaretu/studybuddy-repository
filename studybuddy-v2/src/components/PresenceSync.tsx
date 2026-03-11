@@ -57,7 +57,7 @@ export default function PresenceSync() {
 
     // ⚡ SYNC ON EVERY STATUS CHANGE
     useEffect(() => {
-        if (!userIdRef.current) return;
+        if (!userIdRef.current || isInRoom) return;
 
         // 1. Update Database (Global Persistence)
         // We keep this active so the Lantern Map knows you're in a room
