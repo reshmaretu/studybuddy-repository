@@ -26,18 +26,22 @@ export default function FlowStateOverlay() {
         return () => clearInterval(interval);
     }, [activeMode, isRunning, timeLeft]);
 
-    // 2. Refined Anchor (Specific to Cafe)
     useEffect(() => {
         const anchor = async () => {
             const { data: { user } } = await supabase.auth.getUser();
+            // 🛡️ Guard: Only update if THIS specific mode is active
             if (user && activeMode === 'studyCafe') {
                 await supabase.from('profiles')
-                    .update({ status: 'cafe', is_in_flowstate: false })
+                    .update({
+                        status: 'cafe',
+                        is_in_flowstate: false,
+                        last_seen: new Date().toISOString()
+                    })
                     .eq('id', user.id);
             }
         };
         anchor();
-    }, [activeMode]);
+    }, [activeMode]); //
 
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
