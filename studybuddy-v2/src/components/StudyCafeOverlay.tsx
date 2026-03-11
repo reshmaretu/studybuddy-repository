@@ -7,6 +7,7 @@ import {
     Coffee, X, Play, Pause, SkipForward,
     CheckCircle2, Music, Wind, Waves, Flame, Droplets, ChevronUp, ChevronDown
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 // ─── Atmosphere Definitions ─────────────────────────────────────────────────
 const ATMOSPHERES = [
@@ -170,14 +171,27 @@ export default function StudyCafeOverlay() {
     const task = activeTaskId ? tasks.find(t => t.id === activeTaskId) : null;
     const isActive = activeMode === "studyCafe";
 
-    // Timer tick
+    // 1. Add this tick effect so the timer actually moves
     useEffect(() => {
         let interval: NodeJS.Timeout;
-        if (isActive && isRunning && timeLeft > 0) {
+        if (activeMode === 'studyCafe' && isRunning && timeLeft > 0) {
             interval = setInterval(() => useStudyStore.getState().decrementTimer(), 1000);
         }
         return () => clearInterval(interval);
-    }, [isActive, isRunning, timeLeft]);
+    }, [activeMode, isRunning, timeLeft]);
+
+    // 2. Refined Anchor (Specific to Cafe)
+    useEffect(() => {
+        const anchor = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && activeMode === 'studyCafe') {
+                await supabase.from('profiles')
+                    .update({ status: 'cafe', is_in_flowstate: false })
+                    .eq('id', user.id);
+            }
+        };
+        anchor();
+    }, [activeMode]);
 
     // Phase transitions
     const phaseRef = useRef(phase);
@@ -213,21 +227,37 @@ export default function StudyCafeOverlay() {
     const handleComplete = () => {
         setShowCompleteConfirm(true); // Open confirmation instead of immediate exit
     };
-    const confirmComplete = () => {
-        if (task) completeTask(task.id);
-        // ⚡ FIX: Use the actual store's state update logic
-        useStudyStore.setState({ activeMode: 'none' });
-        setShowCompleteConfirm(false);
-        exitMode();
-    };
+
     const handleExit = () => {
         setShowExitConfirm(true); // Ensure exit triggers modal
     };
 
-    const confirmExit = () => {
+    const confirmComplete = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (task) completeTask(task.id);
+
+        if (user) {
+            await supabase.from('profiles')
+                .update({ status: 'idle', is_in_flowstate: false })
+                .eq('id', user.id);
+        }
+
+        useStudyStore.setState({ activeMode: 'none' });
+        setShowCompleteConfirm(false);
+        exitMode();
+    };
+
+    const confirmExit = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
         setShowExitConfirm(false);
         document.body.removeAttribute("data-cafe");
-        // ⚡ FIX: Use actual store state update
+
+        if (user) {
+            await supabase.from('profiles')
+                .update({ status: 'idle', is_in_flowstate: false })
+                .eq('id', user.id);
+        }
+
         useStudyStore.setState({ activeMode: 'none' });
         exitMode();
     };
@@ -642,14 +672,12 @@ export default function StudyCafeOverlay() {
                                     style={{ border: "1px solid rgba(255,255,255,0.1)" }}
                                 >Stay</button>
                                 <button
-                                    onClick={() => {
-                                        setShowExitConfirm(false);
-                                        document.body.removeAttribute("data-cafe");
-                                        exitMode();
-                                    }}
+                                    onClick={confirmExit} // ⚡ FIX: Use the async handoff function instead of inline exitMode
                                     className="py-3 rounded-xl font-bold text-red-400 hover:bg-red-500 hover:text-white transition-all"
                                     style={{ border: "1px solid rgba(239,68,68,0.3)" }}
-                                >Leave</button>
+                                >
+                                    Leave
+                                </button>
                             </div>
                         </motion.div>
                     </motion.div>

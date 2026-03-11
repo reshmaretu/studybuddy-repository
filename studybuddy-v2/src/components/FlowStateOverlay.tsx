@@ -4,6 +4,7 @@ import { useStudyStore } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, X } from "lucide-react";
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function FlowStateOverlay() {
     const {
@@ -16,16 +17,30 @@ export default function FlowStateOverlay() {
         exitMode
     } = useStudyStore();
 
-    const [showExitConfirm, setShowExitConfirm] = useState(false);
-    const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
-    // Keep ticking while in flow state
+    // 1. Add this tick effect so the timer actually moves
     useEffect(() => {
         let interval: NodeJS.Timeout;
-        if (activeMode !== 'none' && isRunning && timeLeft > 0) {
+        if (activeMode === 'studyCafe' && isRunning && timeLeft > 0) {
             interval = setInterval(() => useStudyStore.getState().decrementTimer(), 1000);
         }
         return () => clearInterval(interval);
     }, [activeMode, isRunning, timeLeft]);
+
+    // 2. Refined Anchor (Specific to Cafe)
+    useEffect(() => {
+        const anchor = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && activeMode === 'studyCafe') {
+                await supabase.from('profiles')
+                    .update({ status: 'cafe', is_in_flowstate: false })
+                    .eq('id', user.id);
+            }
+        };
+        anchor();
+    }, [activeMode]);
+
+    const [showExitConfirm, setShowExitConfirm] = useState(false);
+    const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
 
     if (activeMode !== "flowState") return null;
 
@@ -41,23 +56,39 @@ export default function FlowStateOverlay() {
         setShowCompleteConfirm(true); // Open modal
     };
 
-    const confirmComplete = () => {
+    const confirmComplete = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
         if (task) completeTask(task.id);
-        // ⚡ FIX: Use actual store state update
+
+        // 🛡️ HANDOFF: Explicitly tell the DB you are back to idle 
+        // This prevents the "Offline" flip during unmounting
+        if (user) {
+            await supabase.from('profiles')
+                .update({ status: 'idle', is_in_flowstate: false })
+                .eq('id', user.id);
+        }
+
         useStudyStore.setState({ activeMode: 'none' });
         setShowCompleteConfirm(false);
         exitMode();
     };
 
-    const handleExitClick = () => {
-        setShowExitConfirm(true);
-    };
-
-    const confirmExit = () => {
+    const confirmExit = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
         setShowExitConfirm(false);
-        // ⚡ FIX: Use actual store state update
+
+        if (user) {
+            await supabase.from('profiles')
+                .update({ status: 'idle', is_in_flowstate: false })
+                .eq('id', user.id);
+        }
+
         useStudyStore.setState({ activeMode: 'none' });
         exitMode();
+    };
+
+    const handleExitClick = () => {
+        setShowExitConfirm(true);
     };
 
     const cancelExit = () => {

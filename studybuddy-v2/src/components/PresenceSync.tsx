@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useStudyStore } from "@/store/useStudyStore";
 import { usePathname } from "next/navigation";
@@ -10,13 +10,25 @@ export default function PresenceSync() {
     const userIdRef = useRef<string | null>(null);
     const channelRef = useRef<any>(null);
 
-    const isInRoom = pathname.includes('/room/');
-    // ⚡ INSTANT STATUS DERIVATION
-    const currentStatus = isTutorModeActive ? 'mastering' : (activeMode === 'none' ? 'idle' : activeMode);
+    const isInRoom = pathname.startsWith('/room/');
+    // 🛑 EMBARGO: If any of these are active, this component stays SILENT
+    const isSpecialMode = isInRoom || activeMode === 'flowState' || activeMode === 'studyCafe';
+
+    // ⚡ Match exactly with LanternNetwork STATUS_CONFIG
+    const currentStatus = isTutorModeActive ? 'mastering' : (activeMode === 'none' ? 'idle' : (activeMode === 'studyCafe' ? 'cafe' : activeMode));
+
+    useEffect(() => {
+        const init = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) userIdRef.current = user.id;
+        };
+        init();
+    }, []);
 
     useEffect(() => {
         const handleTabClose = async () => {
-            if (!userIdRef.current || isInRoom) return; // ⚡ DON'T set offline if in a room (room cleanup handles this)
+            // Only set offline if we aren't in a specialized mode that handles its own cleanup
+            if (!userIdRef.current || isSpecialMode) return;
 
             await supabase.from('profiles').update({
                 status: 'offline',
@@ -27,16 +39,16 @@ export default function PresenceSync() {
 
         window.addEventListener('beforeunload', handleTabClose);
         return () => window.removeEventListener('beforeunload', handleTabClose);
-    }, [isInRoom]); // ⚡ Listen to room status to toggle listener behavior
+    }, [isSpecialMode]);
 
-    // ⚡ SYNC ON EVERY STATUS CHANGE
     useEffect(() => {
-        if (!userIdRef.current || isInRoom) return; // 🛑 HARD EXIT: If in room, this component is totally silent
+        if (!userIdRef.current || isSpecialMode) return;
 
         const syncStatus = async () => {
-            // 🛡️ DOUBLE CHECK: One final guard against race conditions
+            // 🛡️ Guard: Check if a Room/Mode component already took control of the DB
             const { data: profile } = await supabase.from('profiles').select('status').eq('id', userIdRef.current).single();
-            if (profile?.status === 'hosting' || profile?.status === 'drafting') return;
+            const protectedStatuses = ['hosting', 'drafting', 'flowState', 'cafe'];
+            if (protectedStatuses.includes(profile?.status)) return;
 
             await supabase.from('profiles')
                 .update({
@@ -50,20 +62,14 @@ export default function PresenceSync() {
 
         syncStatus();
 
-        // 💓 GLOBAL HEARTBEAT (Only active when NOT in a room)
         const heartbeat = setInterval(() => {
             if (channelRef.current && userIdRef.current) {
                 channelRef.current.track({ user_id: userIdRef.current, status: currentStatus });
             }
         }, 30000);
 
-        // Initial track
-        if (channelRef.current) {
-            channelRef.current.track({ user_id: userIdRef.current, status: currentStatus });
-        }
-
         return () => clearInterval(heartbeat);
-    }, [currentStatus, isInRoom]); // ⚡ Re-sync when entering/leaving rooms
+    }, [currentStatus, isSpecialMode]);
 
     return null;
 }
