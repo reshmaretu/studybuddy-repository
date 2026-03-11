@@ -113,13 +113,27 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return router.push('/lantern');
 
-            // 1. Fetch Room Source of Truth
             const { data: room } = await supabase.from('rooms').select('*').eq('room_code', roomCode).single();
             if (!room) return router.push('/lantern');
 
             const isActuallyHost = room.host_id === user.id;
             setIsHost(isActuallyHost);
             setHostId(room.host_id);
+
+            // ⚡ FIX: Sync Joiner to the current DB status immediately
+            if (room.status === 'ACTIVE') {
+                setStatus('ACTIVE');
+                setIsActive(true);
+                // Sync durations from DB to joiner's local state
+                setSettings(s => ({
+                    ...s,
+                    name: room.name || s.name,
+                    mode: room.mode || s.mode,
+                    workDuration: room.work_duration || s.workDuration,
+                    breakDuration: room.break_duration || s.breakDuration
+                }));
+                setSecondsLeft(room.work_duration * 60);
+            }
 
             // 2. Resolve Profile Name
             const { data: profile } = await supabase.from('profiles').select('display_name, full_name').eq('id', user.id).single();

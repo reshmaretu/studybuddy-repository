@@ -20,6 +20,25 @@ export default function PresenceSync() {
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
+        const init = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                userIdRef.current = user.id;
+
+                // ⚡ FIX: Force an initial "idle" sync if not in a special mode
+                if (!isSpecialMode) {
+                    await supabase.from('profiles')
+                        .update({ status: 'idle', last_seen: new Date().toISOString() })
+                        .eq('id', user.id);
+                }
+
+                setIsReady(true);
+            }
+        };
+        init();
+    }, [isSpecialMode]);
+
+    useEffect(() => {
         const handleTabClose = () => {
             // 🛑 EMBARGO: If in a room/mode, let that component's cleanup handle it.
             if (!userIdRef.current || isSpecialMode) return;
