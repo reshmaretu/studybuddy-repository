@@ -17,15 +17,18 @@ export default function PresenceSync() {
             if (!user) return;
             userIdRef.current = user.id;
 
-            channelRef.current = supabase.channel('online-presence', {
-                config: { presence: { key: user.id } }
-            });
+            // Only create the channel once
+            if (!channelRef.current) {
+                channelRef.current = supabase.channel('online-presence', {
+                    config: { presence: { key: user.id } }
+                });
 
-            channelRef.current.subscribe(async (status: string) => {
-                if (status === 'SUBSCRIBED') {
-                    await channelRef.current.track({ user_id: user.id, status: currentStatus });
-                }
-            });
+                channelRef.current.subscribe(async (status: string) => {
+                    if (status === 'SUBSCRIBED') {
+                        await channelRef.current.track({ user_id: user.id, status: currentStatus });
+                    }
+                });
+            }
         };
 
         init();
@@ -33,7 +36,6 @@ export default function PresenceSync() {
         // 🛑 THE ONLY PLACE FOR OFFLINE: When the tab actually closes.
         const handleTabClose = () => {
             if (userIdRef.current) {
-                // Use a non-awaited call to ensure it fires before the process dies
                 supabase.from('profiles').update({
                     status: 'offline',
                     is_in_flowstate: false,
@@ -45,21 +47,21 @@ export default function PresenceSync() {
         window.addEventListener('beforeunload', handleTabClose);
         return () => {
             window.removeEventListener('beforeunload', handleTabClose);
-            // ⚡ CRITICAL: Do NOT update DB to offline here. 
-            // Only kill the realtime channel to prevent memory leaks.
-            if (channelRef.current) supabase.removeChannel(channelRef.current);
+            // We don't remove channel here anymore because we want it persistent 
+            // until the component truly unmounts globally.
         };
     }, []);
 
+    // ⚡ SYNC ON EVERY STATUS CHANGE
     useEffect(() => {
         if (!userIdRef.current) return;
 
-        // Broadcast to Map instantly
+        // 1. Update Realtime Presence (Map movement)
         if (channelRef.current) {
             channelRef.current.track({ user_id: userIdRef.current, status: currentStatus });
         }
 
-        // Persistent Sync
+        // 2. Update Database (Global Persistence)
         supabase.from('profiles')
             .update({
                 status: currentStatus,
@@ -67,9 +69,18 @@ export default function PresenceSync() {
                 active_session_type: currentStatus === 'mastering' ? 'AI_TUTOR' : null,
                 last_seen: new Date().toISOString()
             })
-            .eq('id', userIdRef.current);
+            .eq('id', userIdRef.current)
+            .then();
 
-    }, [currentStatus]);
+        // 3. 💓 RE-SYNC HEARTBEAT: Ensure the latest status is what gets pulsed
+        const heartbeat = setInterval(() => {
+            if (channelRef.current && userIdRef.current) {
+                channelRef.current.track({ user_id: userIdRef.current, status: currentStatus });
+            }
+        }, 30000);
+
+        return () => clearInterval(heartbeat);
+    }, [currentStatus]); // Now the heartbeat always has the freshest status!
 
     return null;
 }

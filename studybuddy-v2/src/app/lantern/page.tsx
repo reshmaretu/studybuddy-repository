@@ -66,7 +66,7 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
 export default function LanternNetPage() {
     const [isMounted, setIsMounted] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const { totalSessions, isPremiumUser } = useStudyStore();
+    const { totalSessions, isPremiumUser, activeMode, isTutorModeActive } = useStudyStore();
     const router = useRouter();
 
     // The single source of truth for the entire map
@@ -86,12 +86,12 @@ export default function LanternNetPage() {
 
     useEffect(() => {
         let isSubscribed = true;
-        let currentUserId: string | null = null; // 👈 Scoped for the entire effect
+        let currentUserId: string | null = null;
 
         const fetchNetwork = async () => {
             const { data: { user: authUser } } = await supabase.auth.getUser();
-            if (!authUser) return;
-            currentUserId = authUser.id; // 👈 Assign once
+            if (!authUser || !isSubscribed) return;
+            currentUserId = authUser.id;
 
             const [profilesRes, roomsRes] = await Promise.all([
                 supabase.from('profiles').select(`
@@ -102,14 +102,18 @@ export default function LanternNetPage() {
                 supabase.from('rooms').select('*')
             ]);
 
-            // Inside fetchNetwork
             if (profilesRes.data && isSubscribed) {
                 const rooms = roomsRes.data || [];
                 const users: LanternUser[] = profilesRes.data.map((p, index) => {
-                    // ❌ DON'T DO: const isMe = p.id === currentUserId; 
-                    // ❌ DON'T DO: return formatUser(p, rooms, isMe, index);
-
-                    // ✅ DO: Pass the currentUserId string directly
+                    // If it's ME, we ignore the DB status and use the STORE status for local echo
+                    if (p.id === currentUserId) {
+                        return formatUser({
+                            ...p,
+                            is_in_flowstate: activeMode === 'flowState',
+                            active_session_type: isTutorModeActive ? 'AI_TUTOR' : null,
+                            status: activeMode === 'none' ? 'idle' : activeMode
+                        }, rooms, currentUserId, index);
+                    }
                     return formatUser(p, rooms, currentUserId, index);
                 });
                 setFullNetwork(users);
@@ -122,26 +126,19 @@ export default function LanternNetPage() {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => fetchNetwork())
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
                 const p = payload.new;
-
-                setFullNetwork(prev => prev.map(u => {
-                    // We calculate isMe ONLY to find the right object in the array
-                    const isMe = p.id === currentUserId;
-                    const isTargetUser = u.id === p.id || (u.id === 'me' && isMe);
-
-                    if (!isTargetUser) return u;
-
-                    // ✅ PASS currentUserId (string), NOT isMe (boolean)
-                    return formatUser(p, [], currentUserId, 0);
-                }));
+                // Only update others from the DB; your local state handles "Me"
+                if (p.id !== currentUserId) {
+                    setFullNetwork(prev => prev.map(u => u.id === p.id ? formatUser(p, [], currentUserId, 0) : u));
+                }
             })
-
             .subscribe();
 
         return () => {
             isSubscribed = false;
             supabase.removeChannel(channel);
         };
-    }, [totalSessions]);
+        // ⚡ ADDED: activeMode and isTutorModeActive as dependencies
+    }, [totalSessions, activeMode, isTutorModeActive]);
 
     const handleBroadcast = async () => {
         if (isSubmitting) return;
