@@ -107,10 +107,13 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
     // 2. INIT REALTIME & AUTH
     useEffect(() => {
+        let activeChannel: any = null;
+
         const initRoom = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return router.push('/lantern');
 
+            // 1. Fetch Room Source of Truth
             const { data: room } = await supabase.from('rooms').select('*').eq('room_code', roomCode).single();
             if (!room) return router.push('/lantern');
 
@@ -118,16 +121,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             setIsHost(isActuallyHost);
             setHostId(room.host_id);
 
-            if (isActuallyHost) {
-                await supabase.from('profiles')
-                    .update({ status: room.status === 'ACTIVE' ? 'hosting' : 'drafting' })
-                    .eq('id', user.id);
-
-                // Also ensure the room record is synced
-                await supabase.from('rooms').update({ status: room.status }).eq('room_code', roomCode);
-            }
-
-            // 1. Get profile first to ensure we have a name
+            // 2. Fetch Profile Name
             const { data: profile } = await supabase.from('profiles')
                 .select('display_name, full_name')
                 .eq('id', user.id).single();
@@ -135,22 +129,28 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             const resolvedName = profile?.display_name || profile?.full_name || user.email?.split('@')[0] || "Chum";
             setUserName(resolvedName);
 
-            // 2. Initial Sync to fix the "Broken/Undefined" Map status
-            if (room?.host_id === user.id) {
-                setIsHost(true);
+            // 3. Anchor Status (Prevents Ghosting/Offline flips)
+            if (isActuallyHost) {
+                await supabase.from('profiles')
+                    .update({ status: room.status === 'ACTIVE' ? 'hosting' : 'drafting' })
+                    .eq('id', user.id);
+
+                // Sync Room Settings to DB
                 await supabase.from('rooms').update({
                     name: settings.name,
-                    mode: settings.mode,
-                    work_duration: settings.workDuration,
-                    break_duration: settings.breakDuration,
-                    status: 'DRAFT'
+                    status: room.status // Keep current DB status to avoid resetting ACTIVE to DRAFT on refresh
                 }).eq('room_code', roomCode);
+            } else {
+                // Joiner Anchor
+                await supabase.from('profiles').update({ status: 'joined' }).eq('id', user.id);
             }
-            setHostId(room?.host_id);
 
+            // 4. Initialize Realtime
             const channel = supabase.channel(`room:${roomCode}`, {
                 config: { presence: { key: user.id } }
             });
+
+            activeChannel = channel;
             channelRef.current = channel;
 
             channel
@@ -158,15 +158,17 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     const state = channel.presenceState();
                     setParticipants(Object.values(state).flat());
                 })
-                .on('broadcast', { event: 'sync_settings' }, ({ payload }) => {
-                    setSettings(payload);
-                    if (status === 'DRAFT') setSecondsLeft(payload.workDuration * 60);
+                .on('broadcast', { event: 'room_closed' }, () => {
+                    router.push('/lantern');
                 })
-                .on('broadcast', { event: 'launch' }, () => setStatus('LAUNCHING'))
                 .subscribe(async (s) => {
                     if (s === 'SUBSCRIBED') {
-                        // ⚡ TRACK with the resolvedName
-                        await channel.track({ id: user.id, name: resolvedName });
+                        // ⚡ HEARTBEAT: Explicitly track status so Lantern Map stays updated
+                        await channel.track({
+                            id: user.id,
+                            name: resolvedName,
+                            status: isActuallyHost ? (room.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined'
+                        });
                     }
                 });
         };
@@ -174,11 +176,28 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         initRoom();
 
         return () => {
-            if (channelRef.current) {
-                supabase.removeChannel(channelRef.current);
+            if (activeChannel) {
+                supabase.removeChannel(activeChannel);
             }
         };
-    }, [roomCode, router]); // Keep dependencies minimal
+    }, [roomCode]);
+
+    useEffect(() => {
+        const handleUnload = () => {
+            if (isHost) {
+                // ⚡ Use a synchronous-style beacon to ensure the room is deleted
+                const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rooms?room_code=eq.${roomCode}`;
+                const headers = {
+                    'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+                };
+                navigator.sendBeacon(url, JSON.stringify({ method: 'DELETE' }));
+            }
+        };
+
+        window.addEventListener('beforeunload', handleUnload);
+        return () => window.removeEventListener('beforeunload', handleUnload);
+    }, [isHost, roomCode]);
 
     const handleInitializeSanctuary = async () => {
         if (!isHost) return;
@@ -237,20 +256,25 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
     const handleAbandon = async () => {
         if (isHost && channelRef.current) {
-            // 1. Send the broadcast FIRST
+            // 1. 📢 BROADCAST: Signal all joiners to exit immediately
             await channelRef.current.send({
                 type: 'broadcast',
                 event: 'room_closed'
             });
 
-            await supabase.from('rooms').delete().eq('room_code', roomCode);
-            await supabase.from('profiles').update({ status: 'idle' }).eq('id', hostId);
+            // 2. 🗑️ DATABASE: Securely delete the room record
+            // This removes the room from the Lantern Map for everyone
+            const { error } = await supabase.from('rooms').delete().eq('room_code', roomCode);
+
+            // 3. ⚓ RESET: Manually flip host back to idle to bridge the PresenceSync gap
+            if (!error) {
+                await supabase.from('profiles').update({ status: 'idle' }).eq('id', hostId);
+            }
         }
 
-        // 3. Cleanup local Realtime subscription
+        // 4. 🔌 CLEANUP: Kill the channel after signals are sent
         if (channelRef.current) {
             await supabase.removeChannel(channelRef.current);
-            channelRef.current = null;
         }
 
         router.push('/lantern');
