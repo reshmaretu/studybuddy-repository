@@ -22,20 +22,27 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
     }
 
     return (
-        // ⚡ DASHBOARD: Full locked height, hidden overflow, all overlays loaded here.
-        <div className="flex h-screen w-full overflow-hidden bg-[var(--bg-dark)]">
+        <>
+            {/* 🛡️ SINGLE SOURCE OF TRUTH: Mounted once at the top level */}
             <PresenceSync />
-            <Sidebar />
 
-            <main className="flex-1 ml-[80px] p-8 h-full overflow-y-auto relative z-[1] custom-scrollbar">
-                {children}
-            </main>
-
-            <ChumWidget />
-            <FocusModal />
-            <FlowStateOverlay />
-            <StudyCafeOverlay />
-            <MindDumpPad />
-        </div>
+            {isPublicPage ? (
+                <div className="w-full h-full bg-[#05080c]">
+                    {children}
+                </div>
+            ) : (
+                <div className="flex h-screen w-full overflow-hidden bg-[var(--bg-dark)]">
+                    <Sidebar />
+                    <main className="flex-1 ml-[80px] p-8 h-full overflow-y-auto relative z-[1] custom-scrollbar">
+                        {children}
+                    </main>
+                    <ChumWidget />
+                    <FocusModal />
+                    <FlowStateOverlay />
+                    <StudyCafeOverlay />
+                    <MindDumpPad />
+                </div>
+            )}
+        </>
     );
 }

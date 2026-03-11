@@ -42,33 +42,44 @@ export default function PresenceSync() {
     }, [isSpecialMode]);
 
     useEffect(() => {
+        // 🛑 EMBARGO: Do not heartbeat if in a specialized mode
         if (!userIdRef.current || isSpecialMode) return;
 
+        // 1. Initialize Global Realtime Channel
+        const channel = supabase.channel('global-presence');
+        channelRef.current = channel;
+
         const syncStatus = async () => {
-            // 🛡️ Guard: Check if a Room/Mode component already took control of the DB
             const { data: profile } = await supabase.from('profiles').select('status').eq('id', userIdRef.current).single();
             const protectedStatuses = ['hosting', 'drafting', 'flowState', 'cafe'];
             if (protectedStatuses.includes(profile?.status)) return;
 
-            await supabase.from('profiles')
-                .update({
-                    status: currentStatus,
-                    is_in_flowstate: currentStatus === 'flowState',
-                    active_session_type: currentStatus === 'mastering' ? 'AI_TUTOR' : null,
-                    last_seen: new Date().toISOString()
-                })
-                .eq('id', userIdRef.current);
+            await supabase.from('profiles').update({
+                status: currentStatus,
+                last_seen: new Date().toISOString()
+            }).eq('id', userIdRef.current);
         };
 
-        syncStatus();
+        // 2. Subscribe and Track
+        channel.subscribe(async (s) => {
+            if (s === 'SUBSCRIBED') {
+                await channel.track({ user_id: userIdRef.current, status: currentStatus });
+                syncStatus(); // Sync DB only after successful subscription
+            }
+        });
 
-        const heartbeat = setInterval(() => {
-            if (channelRef.current && userIdRef.current) {
-                channelRef.current.track({ user_id: userIdRef.current, status: currentStatus });
+        // 3. Keep-Alive Heartbeat
+        const heartbeat = setInterval(async () => {
+            if (channelRef.current) {
+                await channelRef.current.track({ user_id: userIdRef.current, status: currentStatus });
             }
         }, 30000);
 
-        return () => clearInterval(heartbeat);
+        return () => {
+            clearInterval(heartbeat);
+            supabase.removeChannel(channel);
+            channelRef.current = null;
+        };
     }, [currentStatus, isSpecialMode]);
 
     return null;
