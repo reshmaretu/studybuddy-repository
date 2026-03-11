@@ -71,14 +71,16 @@ export default function LandingPage() {
         <div className="w-full h-full rounded-full blur-[4px] bg-inherit opacity-50" />
       </motion.div>
 
-      {/* 🌌 AMBIENT PARALLAX BACKGROUND */}
-      <motion.div
-        style={{ y: bgY }}
-        className="absolute inset-0 pointer-events-none z-0 opacity-40"
-      >
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-[#789B8C] mix-blend-screen filter blur-[150px] opacity-10 rounded-full animate-pulse" style={{ animationDuration: '10s' }} />
-        <div className="absolute top-[40%] right-[-10%] w-[60vw] h-[60vw] bg-[#CD9A5B] mix-blend-screen filter blur-[150px] opacity-[0.07] rounded-full animate-pulse" style={{ animationDuration: '15s' }} />
-      </motion.div>
+      {/* 🌌 AMBIENT PARALLAX BACKGROUND (FIXED) */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <motion.div
+          style={{ y: bgY }}
+          className="absolute inset-0 opacity-40"
+        >
+          <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-[#789B8C] mix-blend-screen filter blur-[150px] opacity-10 rounded-full animate-pulse" style={{ animationDuration: '10s' }} />
+          <div className="absolute top-[40%] right-[-10%] w-[60vw] h-[60vw] bg-[#CD9A5B] mix-blend-screen filter blur-[150px] opacity-[0.07] rounded-full animate-pulse" style={{ animationDuration: '15s' }} />
+        </motion.div>
+      </div>
 
       {/* ─── NAVIGATION ─── */}
       <nav className="fixed top-0 w-full h-[80px] flex justify-between items-center px-6 lg:px-[10%] bg-[#1E1A1D]/70 backdrop-blur-2xl border-b border-[#3E353B]/50 z-50">

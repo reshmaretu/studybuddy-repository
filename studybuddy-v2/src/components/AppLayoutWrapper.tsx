@@ -14,10 +14,10 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
     const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/register";
 
     if (isPublicPage) {
-        // ⚡ PUBLIC PAGE: Absolutely no dashboard components loaded. 
-        // overflow-x-hidden applied here to contain animations.
+        // ⚡ FIX: Removed min-h-screen. Let the content define the height naturally.
+        // Removed overflow-x-hidden here as well (we will apply it to a child if needed).
         return (
-            <div className="w-full min-h-screen overflow-x-hidden bg-[#1E1A1D]">
+            <div className="w-full bg-[#1E1A1D]">
                 {children}
             </div>
         );
