@@ -345,6 +345,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             >
                                 Initialize Sanctuary
                             </button>
+
                             <button
                                 onClick={() => setShowAbandonConfirm(true)}
                                 className="w-full py-3 text-white/30 text-[10px] font-bold uppercase hover:text-red-400 transition-colors"
@@ -491,6 +492,6 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     </div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 }

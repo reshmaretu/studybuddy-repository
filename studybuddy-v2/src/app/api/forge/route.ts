@@ -6,14 +6,13 @@ export const maxDuration = 60; // Essential for LlamaParse wait times
 export async function POST(req: Request) {
     try {
         const { title, content, files, user_id } = await req.json();
-        const authHeader = req.headers.get('Authorization');
+
         const llamaKey = process.env.LLAMA_CLOUD_API_KEY;
         const geminiKey = process.env.GEMINI_AI_API_KEY;
 
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            { global: { headers: { Authorization: authHeader || '' } } }
+            process.env.SUPABASE_SERVICE_ROLE_KEY! // 👈 Make sure this is in your .env.local
         );
 
         let finalContent = content || "";

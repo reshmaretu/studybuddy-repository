@@ -226,7 +226,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
         const s = isHovered || isSelected ? config.scale + 0.2 : config.scale;
         meshRef.current.scale.lerp(new THREE.Vector3(s, s, s), delta * 4);
 
-        const isHighEnergy = ['hosting', 'flowstate', 'mastering'].includes(user.status);
+        const isHighEnergy = ['hosting', 'flowState', 'mastering'].includes(user.status);
         spriteRef.current.material.opacity = THREE.MathUtils.lerp(spriteRef.current.material.opacity, isHighEnergy ? 0.5 : 0.1, delta * 2);
         spriteRef.current.scale.setScalar(THREE.MathUtils.lerp(spriteRef.current.scale.x, isSelf ? 6 : 4, delta * 2));
         spriteRef.current.material.color.lerp(targetColor, delta * 4);
@@ -299,7 +299,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                             )}
 
                             {/* 🌊 FLOWSTATE PULSE */}
-                            {user.status === 'flowstate' && (
+                            {user.status === 'flowState' && (
                                 <motion.div
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
@@ -326,7 +326,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                         onClick={() => router.push(`/room/${user.roomCode}`)}
                                         className="w-full py-3 bg-teal-400 text-black text-xs font-black rounded-xl shadow-lg"
                                     >
-                                        {user.status === 'drafting' ? 'View Blueprint' : `Join Room [${user.roomCode || '...'}]`}
+                                        {user.status === 'drafting' ? 'View Blueprint' : `Join Sanctuary [${user.roomCode || '...'}]`}
                                     </button>
                                 </motion.div>
                             )}

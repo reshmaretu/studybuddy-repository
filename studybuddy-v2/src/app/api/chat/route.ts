@@ -7,12 +7,10 @@ export async function POST(req: Request) {
     try {
         const { messages, user_id } = await req.json();
         const geminiKey = process.env.GEMINI_AI_API_KEY;
-        const authHeader = req.headers.get('Authorization');
 
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            { global: { headers: { Authorization: authHeader || '' } } }
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
         // 1. Premium & Profile Check
