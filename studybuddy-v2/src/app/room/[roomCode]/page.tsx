@@ -17,24 +17,23 @@ const AUDIO_TRACKS = [
     { name: 'Deep Focus Ambient', pro: true }, { name: 'Binaural Alpha Waves', pro: true }
 ];
 
-// --- CUSTOM DROPDOWN COMPONENT ---
-const CustomSelect = ({ label, options, value, onChange, disabled = false, isPremiumUser = true }: any) => {
-    const [isOpen, setIsOpen] = useState(false);
+const CustomSelect = ({ options, value, onChange, disabled = false, isPremiumUser = true, isOpen, onToggle }: any) => {
     return (
         <div className={`relative ${isOpen ? 'z-[100]' : 'z-10'}`}>
             <button
+                type="button"
                 disabled={disabled}
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={onToggle} // ⚡ Controlled by parent
                 className={`w-full bg-[#111111] border border-white/5 p-4 rounded-xl text-xs font-bold flex justify-between items-center transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-white/20'}`}
             >
-                <span className={value.includes('(Pro)') && !isPremiumUser ? 'text-white/40' : 'text-[#84ccb9]'}>{value}</span>
+                <span className={(typeof value === 'string' && value.includes('(Pro)') && !isPremiumUser) ? 'text-white/40' : 'text-[#84ccb9]'}>{value}</span>
                 <ChevronDown size={14} className={`text-white/40 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
                         initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
-                        className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden max-h-48 overflow-y-auto custom-scrollbar"
+                        className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl z-[110] overflow-hidden max-h-48 overflow-y-auto custom-scrollbar"
                     >
                         {options.map((opt: any) => {
                             const optName = typeof opt === 'string' ? opt : opt.name;
@@ -42,9 +41,8 @@ const CustomSelect = ({ label, options, value, onChange, disabled = false, isPre
                             return (
                                 <button
                                     key={optName} disabled={isProLocked}
-                                    onClick={() => { onChange(optName); setIsOpen(false); }}
-                                    className={`w-full text-left px-4 py-3 text-xs font-bold flex items-center justify-between transition-colors ${value === optName ? 'bg-[#84ccb9]/10 text-[#84ccb9]' : 'text-white/60 hover:bg-white/5 hover:text-white'
-                                        } ${isProLocked ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                    onClick={() => { onChange(optName); onToggle(); }}
+                                    className={`w-full text-left px-4 py-3 text-xs font-bold flex items-center justify-between transition-colors ${value === optName ? 'bg-[#84ccb9]/10 text-[#84ccb9]' : 'text-white/60 hover:bg-white/5 hover:text-white'} ${isProLocked ? 'opacity-30 cursor-not-allowed' : ''}`}
                                 >
                                     {optName}
                                     {isProLocked && <Lock size={12} />}
@@ -306,26 +304,35 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         updateSettings({ [key]: !currentVal });
     };
 
-    return (
-        <div className={`h-full w-full flex flex-row overflow-hidden transition-colors duration-1000 relative ${isBreak ? 'bg-[#0f2924]' : 'bg-[#05080c]'}`}>
+    const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
-            {/* 🎥 ATMOSPHERE LAYER (Syncs background for Host & Joiners) */}
+    return (
+        // ⚡ FIX: High z-index and fixed inset ensure the room fits the screen perfectly without global sidebars
+        <div className={`fixed inset-0 flex flex-row overflow-hidden transition-colors duration-1000 z-[9999] ${isBreak ? 'bg-[#0f2924]' : 'bg-[#05080c]'}`}>
+
+            {/* 🎥 ATMOSPHERE LAYER (Visual + Audio Sync) */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                {/* Visual Background Rendering */}
                 <div
                     className="w-full h-full bg-cover bg-center opacity-30 transition-all duration-1000"
-                    style={{ backgroundImage: settings.vibeCategory === 'Theme Default' ? 'none' : `url(/assets/bgs/${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.jpg)` }}
+                    style={{ backgroundImage: settings.vibeAsset.includes('Void') ? 'none' : `url(/assets/bgs/${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.jpg)` }}
                 />
-                {/* Audio Indicator (Add logic here for hidden audio player using settings.audioTrack) */}
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px]" />
+
+                {/* 🔊 HIDDEN AUDIO PLAYER */}
+                {settings.audioTrack !== 'None' && (
+                    <audio
+                        autoPlay loop
+                        src={`/assets/audio/${settings.audioTrack.toLowerCase().replace(/ /g, '_')}.mp3`}
+                    />
+                )}
             </div>
 
             {/* 1. ARCHITECT SIDEBAR */}
             <AnimatePresence>
                 {status === 'DRAFT' && isHost && (
                     <motion.aside
-                        initial={{ x: -350, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -350, opacity: 0 }}
-                        className="w-[340px] flex-shrink-0 h-[calc(100vh-48px)] my-6 ml-6 rounded-[32px] bg-[#111111]/90 backdrop-blur-2xl border border-white/5 flex flex-col z-50 shadow-2xl overflow-hidden"
+                        initial={{ x: -350 }} animate={{ x: 0 }} exit={{ x: -350 }}
+                        className="w-[340px] flex-shrink-0 h-full bg-[#111111]/95 backdrop-blur-2xl border-r border-white/5 flex flex-col z-50 shadow-2xl overflow-hidden"
                     >
                         <div className="p-6 border-b border-white/5 bg-black/20">
                             <h2 className="text-[#e8c366] font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
@@ -334,6 +341,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar scrollbar-hide">
+                            {/* Protocol Selection */}
                             <section className="space-y-4">
                                 <label className="text-[10px] font-black text-white/30 uppercase">Protocol</label>
                                 <div className="grid grid-cols-2 gap-2">
@@ -356,20 +364,25 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     ))}
                                 </div>
 
+                                {/* Pomodoro Sliders */}
                                 {settings.mode === 'pomodoro' && (
                                     <div className="p-5 bg-white/5 rounded-2xl border border-white/5 space-y-6">
+                                        {/* Focus Block */}
                                         <div>
                                             <div className="flex justify-between mb-3 text-[10px] font-bold text-white/40 uppercase"><span>Focus</span> <span className="text-[#84ccb9]">{settings.workDuration}m</span></div>
                                             <input type="range" min="15" max="90" value={settings.workDuration} onChange={(e) => updateSettings({ workDuration: Number(e.target.value) })} className="w-full accent-[#84ccb9]" />
                                         </div>
+                                        {/* Short Break */}
                                         <div>
                                             <div className="flex justify-between mb-3 text-[10px] font-bold text-white/40 uppercase"><span>Short Break</span> <span className="text-[#84ccb9]">{settings.breakDuration}m</span></div>
                                             <input type="range" min="3" max="30" value={settings.breakDuration} onChange={(e) => updateSettings({ breakDuration: Number(e.target.value) })} className="w-full accent-[#84ccb9]" />
                                         </div>
+                                        {/* Long Break */}
                                         <div>
                                             <div className="flex justify-between mb-3 text-[10px] font-bold text-white/40 uppercase"><span>Long Break</span> <span className="text-[#84ccb9]">{settings.longBreakDuration}m</span></div>
                                             <input type="range" min="10" max="60" value={settings.longBreakDuration} onChange={(e) => updateSettings({ longBreakDuration: Number(e.target.value) })} className="w-full accent-[#84ccb9]" />
                                         </div>
+                                        {/* Cycles */}
                                         <div>
                                             <div className="flex justify-between mb-3 text-[10px] font-bold text-white/40 uppercase"><span>Cycles</span> <span className="text-[#84ccb9]">{settings.cyclesBeforeLongBreak}</span></div>
                                             <input type="range" min="2" max="6" value={settings.cyclesBeforeLongBreak} onChange={(e) => updateSettings({ cyclesBeforeLongBreak: Number(e.target.value) })} className="w-full accent-[#84ccb9]" />
@@ -378,12 +391,15 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                 )}
                             </section>
 
-                            {/* VISUAL ATMOSPHERE DROPDOWNS */}
+                            {/* VISUAL ATMOSPHERE */}
                             <section className="space-y-3">
-                                <label className="text-[10px] font-black text-white/30 uppercase">Visual Atmosphere</label>
+                                <label className="text-[10px] font-black text-white/30 uppercase">Atmosphere</label>
                                 <CustomSelect
                                     value={settings.vibeCategory}
                                     options={['Theme Default', 'Static Lo-Fi', 'Live Lo-Fi (Pro)']}
+                                    isOpen={openDropdown === 'cat'}
+                                    onToggle={() => setOpenDropdown(openDropdown === 'cat' ? null : 'cat')}
+                                    isPremiumUser={isPremiumUser}
                                     onChange={(cat: string) => {
                                         const defaultAsset = cat === 'Theme Default' ? THEMES[0] : cat === 'Static Lo-Fi' ? STATIC_BGS[0] : LIVE_BGS[0];
                                         updateSettings({ vibeCategory: cat, vibeAsset: defaultAsset });
@@ -392,16 +408,27 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                 <CustomSelect
                                     value={settings.vibeAsset}
                                     options={settings.vibeCategory === 'Theme Default' ? THEMES : settings.vibeCategory === 'Static Lo-Fi' ? STATIC_BGS : LIVE_BGS}
-                                    onChange={(asset: string) => updateSettings({ vibeAsset: asset })}
+                                    isOpen={openDropdown === 'asset'}
+                                    onToggle={() => setOpenDropdown(openDropdown === 'asset' ? null : 'asset')}
                                     isPremiumUser={isPremiumUser}
+                                    onChange={(asset: string) => updateSettings({ vibeAsset: asset })}
                                 />
                             </section>
 
+                            {/* AUDIO TRACK */}
                             <section className="space-y-3">
                                 <label className="text-[10px] font-black text-white/30 uppercase">Audio Track</label>
-                                <CustomSelect value={settings.audioTrack} options={AUDIO_TRACKS} onChange={(track: string) => updateSettings({ audioTrack: track })} isPremiumUser={isPremiumUser} />
+                                <CustomSelect
+                                    value={settings.audioTrack}
+                                    options={AUDIO_TRACKS}
+                                    isOpen={openDropdown === 'audio'}
+                                    onToggle={() => setOpenDropdown(openDropdown === 'audio' ? null : 'audio')}
+                                    isPremiumUser={isPremiumUser}
+                                    onChange={(track: string) => updateSettings({ audioTrack: track })}
+                                />
                             </section>
 
+                            {/* PREMIUM TOGGLES */}
                             <section className="pt-4 border-t border-white/5 space-y-4">
                                 <div className={`flex items-center justify-between ${shakeTarget === 'visualizer' ? 'animate-shake' : ''}`}>
                                     <span className={`text-[10px] font-bold uppercase flex items-center gap-2 ${!isPremiumUser ? 'text-white/20' : 'text-white/50'}`}>Visualizer {!isPremiumUser && <Lock size={10} />}</span>
@@ -435,11 +462,12 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 </header>
 
                 <div className="flex-1 flex flex-col items-center justify-center z-10">
-                    {/* JOINER WAIT SCREEN (Shows real-time sequence and atmosphere even if non-premium) */}
+                    {/* JOINER WAIT SCREEN (Shows real-time blueprint updates) */}
                     {status === 'DRAFT' && !isHost && (
                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-black/40 backdrop-blur-md border border-white/10 p-8 rounded-[32px] text-center max-w-md w-full shadow-2xl">
                             <div className="w-12 h-12 border-4 border-[#84ccb9]/20 border-t-[#84ccb9] rounded-full animate-spin mx-auto mb-6" />
                             <h3 className="text-[#84ccb9] font-black uppercase tracking-[0.2em] text-xs mb-2">Architect is Constructing</h3>
+
                             <div className="space-y-4 mt-6 text-left bg-white/5 p-5 rounded-2xl border border-white/5">
                                 <div className="flex justify-between items-center">
                                     <span className="text-[10px] font-black text-white/40 uppercase">Protocol</span>
@@ -449,10 +477,23 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     <span className="text-[10px] font-black text-white/40 uppercase">Atmosphere</span>
                                     <span className={`text-xs font-bold truncate max-w-[150px] ${settings.vibeCategory.includes('Pro') ? 'text-[#e8c366]' : 'text-white'}`}>{settings.vibeAsset}</span>
                                 </div>
+                                {/* LIVE PREVIEW FOR JOINERS */}
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-black text-white/40 uppercase">Audio Track</span>
+                                    <span className="text-xs font-bold text-white truncate max-w-[150px]">{settings.audioTrack}</span>
+                                </div>
+                                <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                                    <span className="text-[10px] font-black text-white/40 uppercase">Active Protocols</span>
+                                    <div className="flex gap-3">
+                                        <Activity size={14} className={settings.showVisualizer ? "text-[#e8c366]" : "text-white/10"} />
+                                        <Shield size={14} className={settings.isGhostMode ? "text-[#84ccb9]" : "text-white/10"} />
+                                    </div>
+                                </div>
                             </div>
                         </motion.div>
                     )}
 
+                    {/* ACTIVE TIMER */}
                     {status === 'ACTIVE' && (
                         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-white/30 mb-2 block">{isBreak ? "Break" : `Cycle ${settings.currentCycle}`}</span>
@@ -477,7 +518,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 </AnimatePresence>
             </main>
 
-            {/* 3. PRESENCE SIDEBAR */}
+            {/* 3. RIGHT PRESENCE SIDEBAR */}
             <aside className="w-72 flex-shrink-0 border-l border-white/5 z-20 hidden lg:flex flex-col bg-black/20 p-8">
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-6 flex items-center gap-2">
                     <Users size={14} /> Presence ({participants.length})
@@ -487,7 +528,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                         <div key={p.id} className={`flex items-center gap-3 p-3 rounded-2xl border ${p.id === hostId ? 'bg-[#84ccb9]/10 border-[#84ccb9]/30' : 'bg-white/5 border-white/5'}`}>
                             <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-lg">{p.id === hostId ? '👑' : '👻'}</div>
                             <div className="flex flex-col min-w-0">
-                                <span className="text-sm font-bold text-white truncate">{p.name || p.display_name}</span>
+                                <span className="text-sm font-bold text-white truncate">{p.name || userName}</span>
                                 <p className="text-[9px] font-black uppercase tracking-widest text-[#84ccb9] mt-0.5">{isBreak ? "Resting" : "Focusing"}</p>
                             </div>
                         </div>
