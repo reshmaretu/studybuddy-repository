@@ -1,61 +1,26 @@
-// app/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
+import AppLayoutWrapper from "@/components/AppLayoutWrapper";
 import SyncProvider from "@/components/SyncProvider";
-import PresenceSync from "@/components/PresenceSync";
-import ChumWidget from "@/components/ChumWidget";
-import FocusModal from "@/components/FocusModal";
-import FlowStateOverlay from "@/components/FlowStateOverlay";
-import StudyCafeOverlay from "@/components/StudyCafeOverlay";
-import MindDumpPad from "@/components/MindDumpPad";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "StudyBuddy v2",
+  title: "StudyBuddy",
   description: "Your cozy productivity sanctuary.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-theme="deep-teal" suppressHydrationWarning>
-      <body className={`${inter.className} flex min-h-screen bg-[var(--bg-dark)] text-[var(--text-main)] transition-colors duration-300 overflow-x-hidden`}>
-
+      {/* ⚡ Completely bare body tag to prevent any scrolling collisions */}
+      <body className={`${inter.className} bg-[#1E1A1D] text-[#EFE6DD]`}>
         <SyncProvider>
-          {/* PresenceSync is now INSIDE the provider so it can use the sync context */}
-          <PresenceSync />
-
-          <Sidebar />
-
-          <main className="flex-1 ml-[80px] p-8 transition-all duration-300 relative z-[1]">
-            {/* children is rendered ONLY ONCE here */}
+          <AppLayoutWrapper>
             {children}
-          </main>
-
-          {/* Global Components */}
-          <ChumWidget />
-          <FocusModal />
-          <FlowStateOverlay />
-          <StudyCafeOverlay />
-          <MindDumpPad />
+          </AppLayoutWrapper>
         </SyncProvider>
-
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                let theme = localStorage.getItem('appTheme') || 'deep-teal';
-                document.documentElement.setAttribute('data-theme', theme);
-              } catch (e) {}
-            `,
-          }}
-        />
       </body>
     </html>
   );

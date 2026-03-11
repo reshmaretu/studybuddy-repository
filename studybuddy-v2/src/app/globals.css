@@ -126,6 +126,10 @@
     --accent-yellow: #aaaaaa;
 }
 
+html {
+    scroll-behavior: smooth !important;
+}
+
 body {
     background-color: var(--bg-dark);
     color: var(--text-main);
