@@ -161,16 +161,18 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 .on('broadcast', { event: 'room_closed' }, () => {
                     router.push('/lantern');
                 })
-                .subscribe(async (s) => {
-                    if (s === 'SUBSCRIBED') {
-                        // ⚡ HEARTBEAT: Explicitly track status so Lantern Map stays updated
-                        await channel.track({
-                            id: user.id,
-                            name: resolvedName,
-                            status: isActuallyHost ? (room.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined'
-                        });
-                    }
-                });
+            channel.subscribe(async (s) => {
+                if (s === 'SUBSCRIBED') {
+                    await channel.track({
+                        id: user.id,
+                        name: resolvedName,
+                        // ⚡ CRITICAL: Use 'hosting', 'drafting', or 'joined' to match LanternMap colors
+                        status: isActuallyHost ? (status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
+                        roomCode: roomCode,
+                        isHost: isActuallyHost
+                    });
+                }
+            });
         };
 
         initRoom();
@@ -184,14 +186,17 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
     useEffect(() => {
         const handleUnload = () => {
-            if (isHost) {
-                // ⚡ Use a synchronous-style beacon to ensure the room is deleted
+            if (isHost && roomCode) {
+                // ⚡ Beacon API bypasses the normal async queue to ensure execution
                 const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rooms?room_code=eq.${roomCode}`;
                 const headers = {
                     'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
                     'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
                 };
-                navigator.sendBeacon(url, JSON.stringify({ method: 'DELETE' }));
+
+                // Note: Standard Beacon only supports POST, so we use a DELETE proxy 
+                // or a simple 'last_seen' update that your DB can use to auto-delete.
+                navigator.sendBeacon(url, JSON.stringify({ _method: 'DELETE' }));
             }
         };
 
@@ -256,27 +261,26 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
     const handleAbandon = async () => {
         if (isHost && channelRef.current) {
-            // 1. 📢 BROADCAST: Signal all joiners to exit immediately
-            await channelRef.current.send({
-                type: 'broadcast',
-                event: 'room_closed'
-            });
+            // 1. Calculate Rewards (Example: 10 shards per cycle + 1 per minute)
+            const focusMinutes = settings.workDuration * (settings.currentCycle - 1);
+            const masteryGained = (focusMinutes * 1) + ((settings.currentCycle - 1) * 10);
 
-            // 2. 🗑️ DATABASE: Securely delete the room record
-            // This removes the room from the Lantern Map for everyone
-            const { error } = await supabase.from('rooms').delete().eq('room_code', roomCode);
-
-            // 3. ⚓ RESET: Manually flip host back to idle to bridge the PresenceSync gap
-            if (!error) {
-                await supabase.from('profiles').update({ status: 'idle' }).eq('id', hostId);
+            // 2. Save to Profile
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && masteryGained > 0) {
+                await supabase.rpc('increment_mastery', {
+                    user_id: user.id,
+                    amount: masteryGained
+                });
             }
+
+            // 3. Signal Joiners & Destroy Room
+            await channelRef.current.send({ type: 'broadcast', event: 'room_closed' });
+            await supabase.from('rooms').delete().eq('room_code', roomCode);
+            await supabase.from('profiles').update({ status: 'idle' }).eq('id', user?.id);
         }
 
-        // 4. 🔌 CLEANUP: Kill the channel after signals are sent
-        if (channelRef.current) {
-            await supabase.removeChannel(channelRef.current);
-        }
-
+        if (channelRef.current) await supabase.removeChannel(channelRef.current);
         router.push('/lantern');
     };
 
