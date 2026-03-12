@@ -63,6 +63,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     const router = useRouter();
     const searchParams = useSearchParams();
     const { isPremiumUser } = useStudyStore();
+    const [isRoomPremium, setIsRoomPremium] = useState(false);
 
     // --- STATES ---
     const [status, setStatus] = useState<'DRAFT' | 'LAUNCHING' | 'ACTIVE'>('DRAFT');
@@ -125,9 +126,11 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             setCurrentUserId(user.id); // ⚡ Track ID for the "You" effect
 
             // ⚡ FETCH AVATAR & NAME
-            const { data: profile } = await supabase.from('profiles').select('display_name, full_name, chum_avatar').eq('id', user.id).single();
+            const { data: profile } = await supabase.from('profiles').select('display_name, full_name, chum_avatar, is_premium').eq('id', user.id).single();
             const resolvedName = profile?.display_name || profile?.full_name || user.email?.split('@')[0] || "Chum";
             const resolvedAvatar = profile?.chum_avatar || "👻";
+
+            setIsRoomPremium(profile?.is_premium || false);
 
             let roomData = null;
             for (let i = 0; i < 3; i++) {
@@ -373,7 +376,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
     // ⚡ ADD THIS HELPER FOR PREMIUM TOGGLES
     const handlePremiumToggle = (key: string, currentVal: boolean) => {
-        if (!isPremiumUser) {
+        if (!isRoomPremium) {
             setShakeTarget(key);
             setTimeout(() => setShakeTarget(null), 400); // Reset after animation
             return;
@@ -558,37 +561,31 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
                             {/* PREMIUM TOGGLES */}
                             <section className="pt-4 border-t border-white/5 space-y-4">
-                                {/* ⚡ FIX: Visualizer Toggle - Blocked cursor & Shake */}
+                                {/* Visualizer Toggle */}
                                 <div
                                     onClick={() => handlePremiumToggle('showVisualizer', settings.showVisualizer)}
-                                    className={`flex items-center justify-between transition-opacity ${!isPremiumUser ? 'cursor-not-allowed opacity-50 hover:opacity-70' : 'cursor-pointer'} ${shakeTarget === 'showVisualizer' ? 'animate-shake' : ''}`}
+                                    className={`flex items-center justify-between transition-opacity ${!isRoomPremium ? 'cursor-not-allowed opacity-50 hover:opacity-70' : 'cursor-pointer'} ${shakeTarget === 'showVisualizer' ? 'animate-shake' : ''}`}
                                 >
-                                    <span className={`text-[10px] font-bold uppercase flex items-center ${!isPremiumUser ? 'text-white/20' : 'text-white/50'}`}>
-                                        Visualizer {!isPremiumUser && <Lock size={10} className="ml-2 text-[#e8c366]" />}
-                                        <SettingLabel
-                                            text="Visualizer"
-                                            tooltip="Enables reactive music visualizer." // 👈 Updated
-                                        />
-                                    </span>
-                                    {/* Pointer events none ensures the click hits the wrapper div */}
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Visualizer</span>
+                                        {!isRoomPremium && <Lock size={10} className="text-[#e8c366]" />}
+                                        <InfoTooltip text="Enables an audio-reactive visualizer for the room." />
+                                    </div>
                                     <div className={`w-10 h-5 rounded-full relative transition-colors pointer-events-none ${settings.showVisualizer ? 'bg-[#e8c366]' : 'bg-white/10'}`}>
                                         <motion.div layout className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" animate={{ x: settings.showVisualizer ? 20 : 0 }} />
                                     </div>
                                 </div>
 
-                                {/* ⚡ FIX: Ghost Mode Toggle - Blocked cursor & Shake */}
+                                {/* Ghost Mode Toggle */}
                                 <div
                                     onClick={() => handlePremiumToggle('isGhostMode', settings.isGhostMode)}
-                                    className={`flex items-center justify-between transition-opacity ${!isPremiumUser ? 'cursor-not-allowed opacity-50 hover:opacity-70' : 'cursor-pointer'} ${shakeTarget === 'isGhostMode' ? 'animate-shake' : ''}`}
+                                    className={`flex items-center justify-between transition-opacity ${!isRoomPremium ? 'cursor-not-allowed opacity-50 hover:opacity-70' : 'cursor-pointer'} ${shakeTarget === 'isGhostMode' ? 'animate-shake' : ''}`}
                                 >
-                                    <span className={`text-[10px] font-bold uppercase flex items-center ${!isPremiumUser ? 'text-white/20' : 'text-white/50'}`}>
-                                        Ghost Mode {!isPremiumUser && <Lock size={10} className="ml-2 text-[#84ccb9]" />}
-                                        <SettingLabel
-                                            text="Ghost Mode"
-                                            tooltip="Hides the timer UI to minimize distractions." // 👈 Updated
-                                        />
-                                    </span>
-                                    {/* Pointer events none ensures the click hits the wrapper div */}
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Ghost Mode</span>
+                                        {!isRoomPremium && <Lock size={10} className="text-[#84ccb9]" />}
+                                        <InfoTooltip text="Hides the timer UI to minimize distractions." />
+                                    </div>
                                     <div className={`w-10 h-5 rounded-full relative transition-colors pointer-events-none ${settings.isGhostMode ? 'bg-[#84ccb9]' : 'bg-white/10'}`}>
                                         <motion.div layout className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" animate={{ x: settings.isGhostMode ? 20 : 0 }} />
                                     </div>
@@ -707,7 +704,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
                         return (
                             <div key={p.id} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${isMe ? 'bg-white/10 border-white/40 shadow-[0_0_15px_rgba(255,255,255,0.1)]'
-                                    : isRoomHost ? 'bg-[#84ccb9]/10 border-[#84ccb9]/30' : 'bg-white/5 border-white/5'
+                                : isRoomHost ? 'bg-[#84ccb9]/10 border-[#84ccb9]/30' : 'bg-white/5 border-white/5'
                                 }`}
                             >
                                 {/* ⚡ Avatar Circle: Forced 40x40px, no shrinking, no overflowing */}
