@@ -125,6 +125,31 @@
     --accent-cyan: #dddddd;
     --accent-yellow: #aaaaaa;
 }
+
+/* 🌸 SAKURA SPECIFIC OVERRIDES */
+[data-theme="sakura"] .bg-background-dark,
+[data-theme="sakura"] body {
+    background-color: var(--bg-dark) !important;
+}
+
+/* Fix for standard buttons/toggles to use theme accents */
+[data-theme="sakura"] button[class*="bg-teal"],
+[data-theme="sakura"] .accent-teal-bg {
+    background-color: var(--accent-teal) !important;
+    color: white !important;
+}
+
+/* Progress bar and range input synchronization */
+[data-theme="sakura"] input[type="range"]::-webkit-slider-thumb {
+    background: var(--accent-teal) !important;
+}
+
+body[data-theme="sakura"][data-cafe="true"] .rounded-2xl {
+    background: rgba(255, 255, 255, 0.4) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--accent-cyan) !important;
+}
+
 .no-scrollbar::-webkit-scrollbar {
     display: none;
 }

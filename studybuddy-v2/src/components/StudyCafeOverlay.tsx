@@ -280,26 +280,19 @@ export default function StudyCafeOverlay() {
         <>
             {/* ── Override CSS vars for glassmorphism globally ─── */}
             <style>{`
-                @keyframes cafe-breathe {
-                    0%, 100% { filter: brightness(1) saturate(1); }
-                    50%       { filter: brightness(0.88) saturate(1.15); }
-                }
-                
-                body[data-cafe="true"] {
-                    /* CSS variable overrides so all widget panels turn glassy */
-                    --bg-card: rgba(8, 8, 12, 0.20) !important;
-                    --bg-dark: rgba(4, 4, 8, 0.22) !important;
-                    --bg-sidebar: rgba(6, 8, 12, 0.05) !important;
-                    
-                    /* 🛡️ THE BORDER FIX: Softens all sharp edges globally in Cafe mode */
-                    --border-color: rgba(255, 255, 255, 0.06) !important; 
-                }
-                
-                /* Sidebar border only */
-                body[data-cafe="true"] nav {
-                    border-right-color: rgba(255,255,255,0.08) !important;
-                }
-            `}</style>
+    body[data-cafe="true"] {
+        /* 💎 THE GLASS FIX: Use dynamic variables so Sakura glass is pinkish, Teal glass is bluish */
+        --bg-card: color-mix(in srgb, var(--bg-card) 20%, transparent) !important;
+        --bg-dark: color-mix(in srgb, var(--bg-dark) 22%, transparent) !important;
+        --border-color: color-mix(in srgb, var(--text-main) 10%, transparent) !important;
+    }
+    
+    /* Force glassmorphism on all dashboard widgets */
+    body[data-cafe="true"] .bg-background-card {
+        backdrop-filter: blur(20px) saturate(1.5) !important;
+        -webkit-backdrop-filter: blur(20px) saturate(1.5) !important;
+    }
+`}</style>
 
             {/* The Fixed Background Layer */}
             <div
