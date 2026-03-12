@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, use, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { LogOut, Users, Play, Pause, RotateCcw, Sparkles, Shield, Lock, Activity, ChevronDown, Check } from "lucide-react";
+import { Info, LogOut, Users, Play, Pause, RotateCcw, Sparkles, Shield, Lock, Activity, ChevronDown, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useStudyStore } from "@/store/useStudyStore";
@@ -370,17 +370,54 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
+    // 1. The Hover Card Logic
+    const InfoTooltip = ({ text }: { text: string }) => (
+        <div className="group relative inline-flex items-center ml-2 align-middle">
+            <Info size={12} className="text-white/30 hover:text-white cursor-help transition-colors" />
+            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-48 p-3 bg-[#1a1a1a]/95 backdrop-blur-md border border-white/10 rounded-xl text-[10px] font-bold text-white/80 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[999] shadow-2xl tracking-normal normal-case">
+                {text}
+            </div>
+        </div>
+    );
+
+    // 2. The Combined Label Wrapper
+    const SettingLabel = ({ text, tooltip }: { text: string; tooltip?: string }) => (
+        <label className="text-[10px] font-black text-white/30 uppercase flex items-center">
+            {text}
+            {tooltip && <InfoTooltip text={tooltip} />}
+        </label>
+    );
+
     return (
-        // ⚡ FIX: High z-index and fixed inset ensure the room fits the screen perfectly without global sidebars
+        // ⚡ FIX: High z-index and fixed inset ensure the room fits the screen perfectly
         <div className={`fixed inset-0 flex flex-row overflow-hidden transition-colors duration-1000 z-[9999] ${isBreak ? 'bg-[#0f2924]' : 'bg-[#05080c]'}`}>
 
             {/* 🎥 ATMOSPHERE LAYER (Visual + Audio Sync) */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                <div
-                    className="w-full h-full bg-cover bg-center opacity-30 transition-all duration-1000"
-                    style={{ backgroundImage: settings.vibeAsset.includes('Void') ? 'none' : `url(/assets/bgs/${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.jpg)` }}
-                />
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px]" />
+                <AnimatePresence mode="wait">
+                    {/* ⚡ THE BLUEPRINT GRID: Shows only during Draft phase when no custom theme is picked */}
+                    {status === 'DRAFT' && settings.vibeAsset === THEMES[0] ? (
+                        <motion.div
+                            key="blueprint"
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            transition={{ duration: 1 }}
+                            className="absolute inset-0 bg-blueprint"
+                        />
+                    ) : (
+                        <motion.div
+                            key="visual-theme"
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            transition={{ duration: 1 }}
+                            className="absolute inset-0"
+                        >
+                            <div
+                                className="w-full h-full bg-cover bg-center opacity-30 transition-all duration-1000"
+                                style={{ backgroundImage: settings.vibeAsset.includes('Void') ? 'none' : `url(/assets/bgs/${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.jpg)` }}
+                            />
+                            <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px]" />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* 🔊 HIDDEN AUDIO PLAYER */}
                 {settings.audioTrack !== 'None' && (
@@ -404,12 +441,17 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             </h2>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar scrollbar-hide">
+                        {/* ⚡ FIX: Added Tailwind scrollbar hiding classes */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                             {/* Protocol Selection */}
                             <section className="space-y-4">
-                                <label className="text-[10px] font-black text-white/30 uppercase">Protocol</label>
+                                <SettingLabel
+                                    text="Protocol"
+                                    tooltip="Select the time management method for the sanctuary."
+                                />
                                 <div className="grid grid-cols-2 gap-2">
-                                    {['pomodoro', 'fixed', 'free', 'stopwatch'].map(m => (
+                                    {/* ⚡ FIX: Removed 'free' */}
+                                    {['pomodoro', 'fixed', 'stopwatch'].map(m => (
                                         <button
                                             key={m}
                                             onClick={() => {
@@ -443,7 +485,10 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                         </div>
                                         {/* Long Break */}
                                         <div>
-                                            <div className="flex justify-between mb-3 text-[10px] font-bold text-white/40 uppercase"><span>Long Break</span> <span className="text-[#84ccb9]">{settings.longBreakDuration}m</span></div>
+                                            <div className="flex justify-between mb-3 text-[10px] font-bold text-white/40 uppercase flex items-center">
+                                                <span>Long Break <InfoTooltip text="Triggers automatically after your set number of focus cycles." /></span>
+                                                <span className="text-[#84ccb9]">{settings.longBreakDuration}m</span>
+                                            </div>
                                             <input type="range" min="10" max="60" value={settings.longBreakDuration} onChange={(e) => updateSettings({ longBreakDuration: Number(e.target.value) })} className="w-full accent-[#84ccb9]" />
                                         </div>
                                         {/* Cycles */}
@@ -457,7 +502,10 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
                             {/* VISUAL ATMOSPHERE */}
                             <section className="space-y-3">
-                                <label className="text-[10px] font-black text-white/30 uppercase">Atmosphere</label>
+                                <SettingLabel
+                                    text="Atmosphere"
+                                    tooltip="Live Lo-Fi animations require Architect Pro."
+                                />
                                 <CustomSelect
                                     value={settings.vibeCategory}
                                     options={['Theme Default', 'Static Lo-Fi', 'Live Lo-Fi (Pro)']}
@@ -481,7 +529,10 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
                             {/* AUDIO TRACK */}
                             <section className="space-y-3">
-                                <label className="text-[10px] font-black text-white/30 uppercase">Audio Track</label>
+                                <SettingLabel
+                                    text="Audio Track"
+                                    tooltip="High-fidelity ambient audio designed for deep work."
+                                />
                                 <CustomSelect
                                     value={settings.audioTrack}
                                     options={AUDIO_TRACKS}
@@ -494,30 +545,34 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
                             {/* PREMIUM TOGGLES */}
                             <section className="pt-4 border-t border-white/5 space-y-4">
-                                {/* Visualizer Toggle */}
-                                <div className={`flex items-center justify-between ${shakeTarget === 'visualizer' ? 'animate-shake' : ''}`}>
-                                    <span className={`text-[10px] font-bold uppercase flex items-center gap-2 ${!isPremiumUser ? 'text-white/20' : 'text-white/50'}`}>
-                                        Visualizer {!isPremiumUser && <Lock size={10} className="text-[#e8c366]" />}
+                                {/* ⚡ FIX: Visualizer Toggle - Blocked cursor & Shake */}
+                                <div
+                                    onClick={() => handlePremiumToggle('showVisualizer', settings.showVisualizer)}
+                                    className={`flex items-center justify-between transition-opacity ${!isPremiumUser ? 'cursor-not-allowed opacity-50 hover:opacity-70' : 'cursor-pointer'} ${shakeTarget === 'showVisualizer' ? 'animate-shake' : ''}`}
+                                >
+                                    <span className={`text-[10px] font-bold uppercase flex items-center ${!isPremiumUser ? 'text-white/20' : 'text-white/50'}`}>
+                                        Visualizer {!isPremiumUser && <Lock size={10} className="ml-2 text-[#e8c366]" />}
+                                        <InfoTooltip text="Enables an audio-reactive visualizer for the room." />
                                     </span>
-                                    <button
-                                        onClick={() => handlePremiumToggle('showVisualizer', settings.showVisualizer)}
-                                        className={`w-10 h-5 rounded-full relative transition-colors ${settings.showVisualizer ? 'bg-[#e8c366]' : 'bg-white/10'}`}
-                                    >
+                                    {/* Pointer events none ensures the click hits the wrapper div */}
+                                    <div className={`w-10 h-5 rounded-full relative transition-colors pointer-events-none ${settings.showVisualizer ? 'bg-[#e8c366]' : 'bg-white/10'}`}>
                                         <motion.div layout className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" animate={{ x: settings.showVisualizer ? 20 : 0 }} />
-                                    </button>
+                                    </div>
                                 </div>
 
-                                {/* Ghost Mode Toggle */}
-                                <div className={`flex items-center justify-between ${shakeTarget === 'ghost' ? 'animate-shake' : ''}`}>
-                                    <span className={`text-[10px] font-bold uppercase flex items-center gap-2 ${!isPremiumUser ? 'text-white/20' : 'text-white/50'}`}>
-                                        Ghost Mode {!isPremiumUser && <Lock size={10} className="text-[#84ccb9]" />}
+                                {/* ⚡ FIX: Ghost Mode Toggle - Blocked cursor & Shake */}
+                                <div
+                                    onClick={() => handlePremiumToggle('isGhostMode', settings.isGhostMode)}
+                                    className={`flex items-center justify-between transition-opacity ${!isPremiumUser ? 'cursor-not-allowed opacity-50 hover:opacity-70' : 'cursor-pointer'} ${shakeTarget === 'isGhostMode' ? 'animate-shake' : ''}`}
+                                >
+                                    <span className={`text-[10px] font-bold uppercase flex items-center ${!isPremiumUser ? 'text-white/20' : 'text-white/50'}`}>
+                                        Ghost Mode {!isPremiumUser && <Lock size={10} className="ml-2 text-[#84ccb9]" />}
+                                        <InfoTooltip text="Hides your focus status from the Lantern Map while in this room." />
                                     </span>
-                                    <button
-                                        onClick={() => handlePremiumToggle('isGhostMode', settings.isGhostMode)}
-                                        className={`w-10 h-5 rounded-full relative transition-colors ${settings.isGhostMode ? 'bg-[#84ccb9]' : 'bg-white/10'}`}
-                                    >
+                                    {/* Pointer events none ensures the click hits the wrapper div */}
+                                    <div className={`w-10 h-5 rounded-full relative transition-colors pointer-events-none ${settings.isGhostMode ? 'bg-[#84ccb9]' : 'bg-white/10'}`}>
                                         <motion.div layout className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" animate={{ x: settings.isGhostMode ? 20 : 0 }} />
-                                    </button>
+                                    </div>
                                 </div>
                             </section>
                         </div>
@@ -529,6 +584,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     </motion.aside>
                 )}
             </AnimatePresence>
+
+
 
             {/* 2. MAIN AREA */}
             <main className="flex-1 min-w-0 relative flex flex-col p-8 z-10">

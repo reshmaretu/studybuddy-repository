@@ -126,7 +126,17 @@
     --accent-yellow: #aaaaaa;
 }
 
-@keyframes shake {
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Shake animation for denied premium clicks */
+@keyframes premium-shake {
 
     0%,
     100% {
@@ -134,16 +144,16 @@
     }
 
     25% {
-        transform: translateX(-6px);
+        transform: translateX(-4px);
     }
 
     75% {
-        transform: translateX(6px);
+        transform: translateX(4px);
     }
 }
 
-.animate-shake {
-    animation: shake 0.2s ease-in-out 0s 2;
+.animate-premium-shake {
+    animation: premium-shake 0.3s cubic-bezier(.36, .07, .19, .97) both;
 }
 
 html {
@@ -486,5 +496,25 @@ body[data-cafe="true"] nav * {
 
     .form-wrapper h1 {
         font-size: 2rem;
+    }
+}
+
+/* Creates a moving teal grid on a dark void */
+.bg-blueprint {
+    background-color: #05080c;
+    background-image:
+        linear-gradient(rgba(45, 212, 191, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(45, 212, 191, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: blueprintPan 30s linear infinite;
+}
+
+@keyframes blueprintPan {
+    0% {
+        background-position: 0% 100%;
+    }
+
+    100% {
+        background-position: 100% 0%;
     }
 }
