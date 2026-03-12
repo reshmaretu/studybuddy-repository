@@ -11,7 +11,7 @@ function DropZoneContainer({ id, title, subtitle, children, isEmpty, emptyText }
     const { isOver, setNodeRef } = useDroppable({ id });
 
     return (
-        <div className="bg-[#1a1c23] border border-[var(--border-color)] rounded-2xl p-6 flex flex-col h-full min-h-[500px]">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-6 flex flex-col h-full min-h-[500px]">
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-[var(--text-main)]">{title}</h2>
                 <span className="text-xs font-medium text-[var(--text-muted)]">{subtitle}</span>
@@ -19,7 +19,7 @@ function DropZoneContainer({ id, title, subtitle, children, isEmpty, emptyText }
 
             <div
                 ref={setNodeRef}
-                className={`flex-1 rounded-xl p-4 transition-all duration-300 flex flex-col gap-3 ${isOver ? "bg-[var(--accent-teal)]/5 border-2 border-dashed border-[var(--accent-teal)]" : "border-2 border-dashed border-[var(--border-color)] bg-[#14161b]"
+                className={`flex-1 rounded-xl p-4 transition-all duration-300 flex flex-col gap-3 ${isOver ? "bg-[var(--accent-teal)]/5 border-2 border-dashed border-[var(--accent-teal)]" : "border-2 border-dashed border-[var(--border-color)] bg-[var(--bg-dark)]"
                     }`}
             >
                 {isEmpty ? (

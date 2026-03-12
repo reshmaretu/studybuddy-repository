@@ -15,7 +15,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
     const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/register" || isRoomPage;
     if (isPublicPage) {
         return (
-            <div className="w-full bg-[#1E1A1D]">
+            <div className="w-full bg-[var(--bg-dark)]">
                 {children}
             </div>
         );
@@ -27,7 +27,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
             <PresenceSync />
 
             {isPublicPage ? (
-                <div className="w-full h-full bg-[#05080c]">
+                <div className="w-full h-full bg-[var(--bg-dark)]">
                     {children}
                 </div>
             ) : (

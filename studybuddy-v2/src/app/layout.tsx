@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     })();
   `}} />
       </head>
-      <body className={`${inter.className} bg-[#1E1A1D] text-[#EFE6DD]`}>
+      <body className={`${inter.className} bg-[var(--bg-dark)] text-[var(--text-main)]`}>
         <AppLayoutWrapper>
           {children}
         </AppLayoutWrapper>

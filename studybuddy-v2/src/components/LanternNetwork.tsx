@@ -262,7 +262,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                 {(isHovered || isSelected) && (
                     <Html distanceFactor={is3D ? 30 : 45} position={[0, 8, 0]} center className="pointer-events-none">
                         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                            className="bg-[#111111]/95 backdrop-blur-xl border border-white/5 p-5 rounded-3xl w-64 pointer-events-auto shadow-2xl text-white">
+                            className="bg-[var(--bg-dark)]/95 backdrop-blur-xl border border-[var(--border-color)] p-5 rounded-3xl w-64 pointer-events-auto shadow-2xl text-[var(--text-main)]">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="font-black text-sm">{user.name}</h3>
@@ -276,9 +276,9 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                 </div>
                                 <div className="text-2xl">{user.chumLabel.split(' ')[0]}</div>
                             </div>
-                            <div className="grid grid-cols-2 gap-3 bg-black/40 p-3 rounded-2xl border border-white/5">
-                                <div className="flex flex-col"><span className="text-[8px] uppercase font-black opacity-40">Total Hours</span><span className="text-xs font-mono font-bold text-teal-400">{user.hours}h</span></div>
-                                <div className="flex flex-col text-right"><span className="text-[8px] uppercase font-black opacity-40">Focus Score</span><span className="text-xs font-bold text-[#e8c366]">{user.focusScore || 0}</span></div>
+                            <div className="grid grid-cols-2 gap-3 bg-black/40 p-3 rounded-2xl border border-[var(--border-color)]">
+                                <div className="flex flex-col"><span className="text-[8px] uppercase font-black opacity-40">Total Hours</span><span className="text-xs font-mono font-bold text-[var(--accent-teal)]">{ user.hours}h</span></div>
+                                <div className="flex flex-col text-right"><span className="text-[8px] uppercase font-black opacity-40">Focus Score</span><span className="text-xs font-bold text-[var(--accent-yellow)]">{user.focusScore || 0}</span></div>
                             </div>
                             {/* 💎 AI MASTERING SHARD */}
                             {user.status === 'mastering' && (
@@ -315,7 +315,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                             {isSelected && !isSelf && (['hosting', 'joined', 'drafting'].includes(user.status)) && (
                                 <motion.div initial={{ height: 0, opacity: 0 }}
                                     animate={{ height: 'auto', opacity: 1 }}
-                                    className="mt-4 pt-4 border-t border-white/5">
+                                    className="mt-4 pt-4 border-t border-[var(--border-color)]">
                                     <p className="text-[10px] font-black uppercase text-white/40 mb-2">
                                         {user.status === 'drafting' ? 'Blueprint in Progress' : 'Current Sanctuary'}
                                     </p>
@@ -324,7 +324,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                     </p>
                                     <button
                                         onClick={() => router.push(`/room/${user.roomCode}`)}
-                                        className="w-full py-3 bg-teal-400 text-black text-xs font-black rounded-xl shadow-lg"
+                                        className="w-full py-3 bg-[var(--accent-teal)] text-black text-xs font-black rounded-xl shadow-lg"
                                     >
                                         {user.status === 'drafting' ? 'View Blueprint' : `Join Sanctuary [${user.roomCode || '...'}]`}
                                     </button>

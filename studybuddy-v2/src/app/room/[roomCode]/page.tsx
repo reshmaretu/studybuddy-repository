@@ -8,7 +8,16 @@ import { supabase } from "@/lib/supabase";
 import { useStudyStore } from "@/store/useStudyStore";
 
 // --- RESOURCE DICTIONARIES ---
-const THEMES = ['System Default Void', 'Midnight Sakura', 'Lofi Rain'];
+const ROOM_THEMES = [
+    { id: 'deep-teal', name: 'Deep Teal', premium: false },
+    { id: 'dark-forest', name: 'Dark Forest', premium: false },
+    { id: 'light', name: 'Light Mode', premium: false },
+    { id: 'sakura', name: 'Sakura Sanctuary', premium: true },
+    { id: 'academia', name: 'Dark Academia', premium: true },
+    { id: 'lofi', name: 'Lofi Sunset', premium: true },
+    { id: 'nordic', name: 'Nordic Frost', premium: true },
+    { id: 'e-ink', name: 'E-Ink (Obsidian)', premium: true },
+];
 const STATIC_BGS = ['Cozy Library', 'Rainy Window', 'Night City', 'Coffee Shop'];
 const LIVE_BGS = ['Cyberpunk Alley (Pro)', 'Zen Waterfall (Pro)', 'Space Station (Pro)'];
 const AUDIO_TRACKS = [
@@ -24,16 +33,16 @@ const CustomSelect = ({ options, value, onChange, disabled = false, isPremiumUse
                 type="button"
                 disabled={disabled}
                 onClick={onToggle} // ⚡ Controlled by parent
-                className={`w-full bg-[#111111] border border-white/5 p-4 rounded-xl text-xs font-bold flex justify-between items-center transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-white/20'}`}
+                className={`w-full bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-xl text-xs font-bold flex justify-between items-center transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-[var(--text-muted)]'}`}
             >
-                <span className={(typeof value === 'string' && value.includes('(Pro)') && !isPremiumUser) ? 'text-white/40' : 'text-[#84ccb9]'}>{value}</span>
-                <ChevronDown size={14} className={`text-white/40 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                <span className={(typeof value === 'string' && value.includes('(Pro)') && !isPremiumUser) ? 'text-[var(--text-muted)]' : 'text-[var(--accent-teal)]'}>{value}</span>
+                <ChevronDown size={14} className={`text-[var(--text-muted)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
                         initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
-                        className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl z-[110] overflow-hidden max-h-48 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                        className="absolute top-full left-0 right-0 mt-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl z-[110] overflow-hidden max-h-48 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                     >
                         {options.map((opt: any) => {
                             const optName = typeof opt === 'string' ? opt : opt.name;
@@ -42,7 +51,7 @@ const CustomSelect = ({ options, value, onChange, disabled = false, isPremiumUse
                                 <button
                                     key={optName} disabled={isProLocked}
                                     onClick={() => { onChange(optName); onToggle(); }}
-                                    className={`w-full text-left px-4 py-3 text-xs font-bold flex items-center justify-between transition-colors ${value === optName ? 'bg-[#84ccb9]/10 text-[#84ccb9]' : 'text-white/60 hover:bg-white/5 hover:text-white'} ${isProLocked ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                    className={`w-full text-left px-4 py-3 text-xs font-bold flex items-center justify-between transition-colors ${value === optName ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-sidebar)] hover:text-[var(--text-main)]'} ${isProLocked ? 'opacity-30 cursor-not-allowed' : ''}`}
                                 >
                                     {optName}
                                     {isProLocked && <Lock size={12} />}
@@ -83,11 +92,16 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         cyclesBeforeLongBreak: 4,
         currentCycle: 1,
         vibeCategory: 'Theme Default',
-        vibeAsset: 'System Default Void', // Fallback
+        vibeAsset: 'deep-teal', // Default theme ID
+        roomTheme: null as string | null, // null = host hasn't changed, use personal theme
         audioTrack: 'None',
         showVisualizer: false,
         isGhostMode: false,
     });
+
+    // --- THEME RESOLUTION ---
+    // Resolved theme: host's choice > personal localStorage theme > deep-teal
+    const resolvedTheme = settings.roomTheme || (typeof window !== 'undefined' ? localStorage.getItem('appTheme') : null) || 'deep-teal';
 
     const [secondsLeft, setSecondsLeft] = useState(25 * 60);
     const [isActive, setIsActive] = useState(false);
@@ -459,8 +473,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     // 1. The Hover Card Logic
     const InfoTooltip = ({ text }: { text: string }) => (
         <div className="group relative inline-flex items-center ml-2 align-middle">
-            <Info size={12} className="text-white/30 hover:text-white cursor-help transition-colors" />
-            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-48 p-3 bg-[#1a1a1a]/95 backdrop-blur-md border border-white/10 rounded-xl text-[10px] font-bold text-white/80 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[999] shadow-2xl tracking-normal normal-case">
+            <Info size={12} className="text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-help transition-colors" />
+            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-48 p-3 bg-[var(--bg-card)]/95 backdrop-blur-md border border-[var(--border-color)] rounded-xl text-[10px] font-bold text-[var(--text-main)]/80 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[999] shadow-2xl tracking-normal normal-case">
                 {text}
             </div>
         </div>
@@ -468,7 +482,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
     // 2. The Combined Label Wrapper
     const SettingLabel = ({ text, tooltip }: { text: string; tooltip?: string }) => (
-        <label className="text-[10px] font-black text-white/30 uppercase flex items-center">
+        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase flex items-center">
             {text}
             {tooltip && <InfoTooltip text={tooltip} />}
         </label>
@@ -476,13 +490,13 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
     return (
         // ⚡ FIX: High z-index and fixed inset ensure the room fits the screen perfectly
-        <div className={`fixed inset-0 flex flex-row overflow-hidden transition-colors duration-1000 z-[9999] ${isBreak ? 'bg-[#0f2924]' : 'bg-[#05080c]'}`}>
+        <div data-theme={resolvedTheme} className={`fixed inset-0 flex flex-row overflow-hidden transition-colors duration-1000 z-[9999] ${isBreak ? 'bg-[var(--bg-sidebar)]' : 'bg-[var(--bg-dark)]'}`}>
 
             {/* 🎥 ATMOSPHERE LAYER (Visual + Audio Sync) */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <AnimatePresence mode="wait">
                     {/* ⚡ THE BLUEPRINT GRID: Shows only during Draft phase when no custom theme is picked */}
-                    {status === 'DRAFT' && settings.vibeAsset === THEMES[0] ? (
+                    {status === 'DRAFT' && settings.vibeCategory === 'Theme Default' ? (
                         <motion.div
                             key="blueprint"
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -517,10 +531,10 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     <motion.aside
                         initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
                         // ⚡ FIX: Appended the scrollbar hiding classes to the end of the className string
-                        className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl z-[110] overflow-hidden max-h-48 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                        className="w-80 flex-shrink-0 bg-[var(--bg-card)] border-r border-[var(--border-color)] z-20 flex flex-col overflow-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                     >
-                        <div className="p-6 border-b border-white/5 bg-black/20">
-                            <h2 className="text-[#e8c366] font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+                        <div className="p-6 border-b border-[var(--border-color)] bg-black/20">
+                            <h2 className="text-[var(--accent-yellow)] font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
                                 <Sparkles size={14} /> Sanctuary Architect
                             </h2>
                         </div>
@@ -546,7 +560,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                                 }
                                                 updateSettings({ mode: m });
                                             }}
-                                            className={`p-2.5 rounded-xl border text-[10px] font-bold uppercase transition-all flex items-center justify-center gap-2 ${settings.mode === m ? 'border-[#84ccb9] bg-[#84ccb9]/10 text-[#84ccb9]' : 'border-white/5 text-white/40 hover:text-white'
+                                            className={`p-2.5 rounded-xl border text-[10px] font-bold uppercase transition-all flex items-center justify-center gap-2 ${settings.mode === m ? 'border-[var(--accent-teal)] bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
                                                 } ${m === 'stopwatch' && !isPremiumUser ? 'opacity-30 grayscale cursor-not-allowed' : ''} ${shakeTarget === 'stopwatch' && m === 'stopwatch' ? 'animate-shake' : ''}`}
                                         >
                                             {m} {m === 'stopwatch' && <Shield size={10} />}
@@ -556,29 +570,29 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
                                 {/* Pomodoro Sliders */}
                                 {settings.mode === 'pomodoro' && (
-                                    <div className="p-5 bg-white/5 rounded-2xl border border-white/5 space-y-6">
+                                    <div className="p-5 bg-[var(--bg-sidebar)]/50 rounded-2xl border border-[var(--border-color)] space-y-6">
                                         {/* Focus Block */}
                                         <div>
-                                            <div className="flex justify-between mb-3 text-[10px] font-bold text-white/40 uppercase"><span>Focus</span> <span className="text-[#84ccb9]">{settings.workDuration}m</span></div>
-                                            <input type="range" min="15" max="90" value={settings.workDuration} onChange={(e) => updateSettings({ workDuration: Number(e.target.value) })} className="w-full accent-[#84ccb9]" />
+                                            <div className="flex justify-between mb-3 text-[10px] font-bold text-[var(--text-muted)] uppercase"><span>Focus</span> <span className="text-[var(--accent-teal)]">{settings.workDuration}m</span></div>
+                                            <input type="range" min="15" max="90" value={settings.workDuration} onChange={(e) => updateSettings({ workDuration: Number(e.target.value) })} className="w-full accent-[var(--accent-teal)]" />
                                         </div>
                                         {/* Short Break */}
                                         <div>
-                                            <div className="flex justify-between mb-3 text-[10px] font-bold text-white/40 uppercase"><span>Short Break</span> <span className="text-[#84ccb9]">{settings.breakDuration}m</span></div>
-                                            <input type="range" min="3" max="30" value={settings.breakDuration} onChange={(e) => updateSettings({ breakDuration: Number(e.target.value) })} className="w-full accent-[#84ccb9]" />
+                                            <div className="flex justify-between mb-3 text-[10px] font-bold text-[var(--text-muted)] uppercase"><span>Short Break</span> <span className="text-[var(--accent-teal)]">{settings.breakDuration}m</span></div>
+                                            <input type="range" min="3" max="30" value={settings.breakDuration} onChange={(e) => updateSettings({ breakDuration: Number(e.target.value) })} className="w-full accent-[var(--accent-teal)]" />
                                         </div>
                                         {/* Long Break */}
                                         <div>
-                                            <div className="flex justify-between mb-3 text-[10px] font-bold text-white/40 uppercase flex items-center">
+                                            <div className="flex justify-between mb-3 text-[10px] font-bold text-[var(--text-muted)] uppercase flex items-center">
                                                 <span>Long Break <InfoTooltip text="Triggers automatically after your set number of focus cycles." /></span>
-                                                <span className="text-[#84ccb9]">{settings.longBreakDuration}m</span>
+                                                <span className="text-[var(--accent-teal)]">{settings.longBreakDuration}m</span>
                                             </div>
-                                            <input type="range" min="10" max="60" value={settings.longBreakDuration} onChange={(e) => updateSettings({ longBreakDuration: Number(e.target.value) })} className="w-full accent-[#84ccb9]" />
+                                            <input type="range" min="10" max="60" value={settings.longBreakDuration} onChange={(e) => updateSettings({ longBreakDuration: Number(e.target.value) })} className="w-full accent-[var(--accent-teal)]" />
                                         </div>
                                         {/* Cycles */}
                                         <div>
-                                            <div className="flex justify-between mb-3 text-[10px] font-bold text-white/40 uppercase"><span>Cycles</span> <span className="text-[#84ccb9]">{settings.cyclesBeforeLongBreak}</span></div>
-                                            <input type="range" min="2" max="6" value={settings.cyclesBeforeLongBreak} onChange={(e) => updateSettings({ cyclesBeforeLongBreak: Number(e.target.value) })} className="w-full accent-[#84ccb9]" />
+                                            <div className="flex justify-between mb-3 text-[10px] font-bold text-[var(--text-muted)] uppercase"><span>Cycles</span> <span className="text-[var(--accent-teal)]">{settings.cyclesBeforeLongBreak}</span></div>
+                                            <input type="range" min="2" max="6" value={settings.cyclesBeforeLongBreak} onChange={(e) => updateSettings({ cyclesBeforeLongBreak: Number(e.target.value) })} className="w-full accent-[var(--accent-teal)]" />
                                         </div>
                                     </div>
                                 )}
@@ -597,18 +611,39 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     onToggle={() => setOpenDropdown(openDropdown === 'cat' ? null : 'cat')}
                                     isPremiumUser={isRoomPremium}
                                     onChange={(cat: string) => {
-                                        const defaultAsset = cat === 'Theme Default' ? THEMES[0] : cat === 'Static Lo-Fi' ? STATIC_BGS[0] : LIVE_BGS[0];
-                                        updateSettings({ vibeCategory: cat, vibeAsset: defaultAsset });
+                                        const defaultAsset = cat === 'Theme Default' ? 'deep-teal' : cat === 'Static Lo-Fi' ? STATIC_BGS[0] : LIVE_BGS[0];
+                                        updateSettings({ vibeCategory: cat, vibeAsset: defaultAsset, roomTheme: cat === 'Theme Default' ? null : settings.roomTheme });
                                     }}
                                 />
-                                <CustomSelect
-                                    value={settings.vibeAsset}
-                                    options={settings.vibeCategory === 'Theme Default' ? THEMES : settings.vibeCategory === 'Static Lo-Fi' ? STATIC_BGS : LIVE_BGS}
-                                    isOpen={openDropdown === 'asset'}
-                                    onToggle={() => setOpenDropdown(openDropdown === 'asset' ? null : 'asset')}
-                                    isPremiumUser={isRoomPremium}
-                                    onChange={(asset: string) => updateSettings({ vibeAsset: asset })}
-                                />
+                                {settings.vibeCategory === 'Theme Default' ? (
+                                    <CustomSelect
+                                        value={ROOM_THEMES.find(t => t.id === resolvedTheme)?.name || 'Deep Teal'}
+                                        options={ROOM_THEMES.map(t => ({ name: t.name, pro: t.premium }))}
+                                        isOpen={openDropdown === 'asset'}
+                                        onToggle={() => setOpenDropdown(openDropdown === 'asset' ? null : 'asset')}
+                                        isPremiumUser={isRoomPremium}
+                                        onChange={(themeName: string) => {
+                                            const theme = ROOM_THEMES.find(t => t.name === themeName);
+                                            if (theme) {
+                                                if (theme.premium && !isRoomPremium) {
+                                                    setShakeTarget('theme');
+                                                    setTimeout(() => setShakeTarget(null), 400);
+                                                    return;
+                                                }
+                                                updateSettings({ vibeAsset: theme.id, roomTheme: theme.id });
+                                            }
+                                        }}
+                                    />
+                                ) : (
+                                    <CustomSelect
+                                        value={settings.vibeAsset}
+                                        options={settings.vibeCategory === 'Static Lo-Fi' ? STATIC_BGS : LIVE_BGS}
+                                        isOpen={openDropdown === 'asset'}
+                                        onToggle={() => setOpenDropdown(openDropdown === 'asset' ? null : 'asset')}
+                                        isPremiumUser={isRoomPremium}
+                                        onChange={(asset: string) => updateSettings({ vibeAsset: asset })}
+                                    />
+                                )}
                             </section>
 
                             {/* AUDIO TRACK */}
@@ -628,18 +663,18 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             </section>
 
                             {/* PREMIUM TOGGLES */}
-                            <section className="pt-4 border-t border-white/5 space-y-4">
+                            <section className="pt-4 border-t border-[var(--border-color)] space-y-4">
                                 {/* Visualizer Toggle */}
                                 <div
                                     onClick={() => handlePremiumToggle('showVisualizer', settings.showVisualizer)}
                                     className={`flex items-center justify-between transition-opacity ${!isRoomPremium ? 'cursor-not-allowed opacity-50 hover:opacity-70' : 'cursor-pointer'} ${shakeTarget === 'showVisualizer' ? 'animate-shake' : ''}`}
                                 >
                                     <div className="flex items-center gap-2">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Visualizer</span>
-                                        {!isRoomPremium && <Lock size={10} className="text-[#e8c366]" />}
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Visualizer</span>
+                                        {!isRoomPremium && <Lock size={10} className="text-[var(--accent-yellow)]" />}
                                         <InfoTooltip text="Enables an audio-reactive visualizer for the room." />
                                     </div>
-                                    <div className={`w-10 h-5 rounded-full relative transition-colors pointer-events-none ${settings.showVisualizer ? 'bg-[#e8c366]' : 'bg-white/10'}`}>
+                                    <div className={`w-10 h-5 rounded-full relative transition-colors pointer-events-none ${settings.showVisualizer ? 'bg-[var(--accent-yellow)]' : 'bg-[var(--text-muted)]/20'}`}>
                                         <motion.div layout className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" animate={{ x: settings.showVisualizer ? 20 : 0 }} />
                                     </div>
                                 </div>
@@ -650,20 +685,20 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     className={`flex items-center justify-between transition-opacity ${!isRoomPremium ? 'cursor-not-allowed opacity-50 hover:opacity-70' : 'cursor-pointer'} ${shakeTarget === 'isGhostMode' ? 'animate-shake' : ''}`}
                                 >
                                     <div className="flex items-center gap-2">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Ghost Mode</span>
-                                        {!isRoomPremium && <Lock size={10} className="text-[#84ccb9]" />}
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Ghost Mode</span>
+                                        {!isRoomPremium && <Lock size={10} className="text-[var(--accent-teal)]" />}
                                         <InfoTooltip text="Hides the timer UI to minimize distractions." />
                                     </div>
-                                    <div className={`w-10 h-5 rounded-full relative transition-colors pointer-events-none ${settings.isGhostMode ? 'bg-[#84ccb9]' : 'bg-white/10'}`}>
+                                    <div className={`w-10 h-5 rounded-full relative transition-colors pointer-events-none ${settings.isGhostMode ? 'bg-[var(--accent-teal)]' : 'bg-[var(--text-muted)]/20'}`}>
                                         <motion.div layout className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" animate={{ x: settings.isGhostMode ? 20 : 0 }} />
                                     </div>
                                 </div>
                             </section>
                         </div>
 
-                        <div className="p-6 border-t border-white/5 bg-black/40 space-y-3">
-                            <button onClick={handleInitializeSanctuary} className="w-full py-4 bg-[#84ccb9] text-black rounded-2xl font-black uppercase text-xs hover:bg-[#a1d9cc] transition-colors">Initialize Sanctuary</button>
-                            <button onClick={() => setShowAbandonConfirm(true)} className="w-full py-3 text-white/30 text-[10px] font-bold uppercase hover:text-red-400 transition-colors">Abandon Blueprint</button>
+                        <div className="p-6 border-t border-[var(--border-color)] bg-black/40 space-y-3">
+                            <button onClick={handleInitializeSanctuary} className="w-full py-4 bg-[var(--accent-teal)] text-black rounded-2xl font-black uppercase text-xs hover:brightness-110 transition-all">Initialize Sanctuary</button>
+                            <button onClick={() => setShowAbandonConfirm(true)} className="w-full py-3 text-[var(--text-muted)] text-[10px] font-bold uppercase hover:text-red-400 transition-colors">Abandon Blueprint</button>
                         </div>
                     </motion.aside>
                 )}
@@ -675,12 +710,12 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             <main className="flex-1 min-w-0 relative flex flex-col p-8 z-10">
                 <header className="flex justify-between items-center z-20">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight text-white">{settings.name} <span className="text-white/20 font-mono text-sm ml-2">#{roomCode}</span></h1>
-                        <p className={`text-[10px] font-black uppercase tracking-[0.2em] mt-1 ${isBreak ? 'text-white/60' : 'text-[#84ccb9]'}`}>
+                        <h1 className="text-2xl font-black tracking-tight text-[var(--text-main)]">{settings.name} <span className="text-[var(--text-muted)] font-mono text-sm ml-2">#{roomCode}</span></h1>
+                        <p className={`text-[10px] font-black uppercase tracking-[0.2em] mt-1 ${isBreak ? 'text-[var(--text-muted)]' : 'text-[var(--accent-teal)]'}`}>
                             {status === 'DRAFT' ? "Blueprint Phase" : isBreak ? "☕ Recovery Phase" : "⚡ Focus Protocol Active"}
                         </p>
                     </div>
-                    <button onClick={() => setShowAbandonConfirm(true)} className="flex items-center gap-2 text-xs font-bold text-white/40 hover:text-red-400 transition-colors bg-white/5 px-4 py-2 rounded-xl">
+                    <button onClick={() => setShowAbandonConfirm(true)} className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] hover:text-red-400 transition-colors bg-[var(--bg-sidebar)]/50 px-4 py-2 rounded-xl">
                         <LogOut size={14} /> Leave
                     </button>
                 </header>
@@ -688,29 +723,29 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 <div className="flex-1 flex flex-col items-center justify-center z-10">
                     {/* JOINER WAIT SCREEN (Shows real-time blueprint updates) */}
                     {status === 'DRAFT' && !isHost && (
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-black/40 backdrop-blur-md border border-white/10 p-8 rounded-[32px] text-center max-w-md w-full shadow-2xl">
-                            <div className="w-12 h-12 border-4 border-[#84ccb9]/20 border-t-[#84ccb9] rounded-full animate-spin mx-auto mb-6" />
-                            <h3 className="text-[#84ccb9] font-black uppercase tracking-[0.2em] text-xs mb-2">Architect is Constructing</h3>
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-black/40 backdrop-blur-md border border-[var(--border-color)] p-8 rounded-[32px] text-center max-w-md w-full shadow-2xl">
+                            <div className="w-12 h-12 border-4 border-[var(--accent-teal)]/20 border-t-[var(--accent-teal)] rounded-full animate-spin mx-auto mb-6" />
+                            <h3 className="text-[var(--accent-teal)] font-black uppercase tracking-[0.2em] text-xs mb-2">Architect is Constructing</h3>
 
-                            <div className="space-y-4 mt-6 text-left bg-white/5 p-5 rounded-2xl border border-white/5">
+                            <div className="space-y-4 mt-6 text-left bg-[var(--bg-sidebar)]/50 p-5 rounded-2xl border border-[var(--border-color)]">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black text-white/40 uppercase">Protocol</span>
-                                    <span className="text-xs font-bold text-white uppercase">{settings.mode}</span>
+                                    <span className="text-[10px] font-black text-[var(--text-muted)] uppercase">Protocol</span>
+                                    <span className="text-xs font-bold text-[var(--text-main)] uppercase">{settings.mode}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black text-white/40 uppercase">Atmosphere</span>
-                                    <span className={`text-xs font-bold truncate max-w-[150px] ${settings.vibeCategory.includes('Pro') ? 'text-[#e8c366]' : 'text-white'}`}>{settings.vibeAsset}</span>
+                                    <span className="text-[10px] font-black text-[var(--text-muted)] uppercase">Atmosphere</span>
+                                    <span className={`text-xs font-bold truncate max-w-[150px] ${settings.vibeCategory.includes('Pro') ? 'text-[var(--accent-yellow)]' : 'text-[var(--text-main)]'}`}>{settings.vibeAsset}</span>
                                 </div>
                                 {/* LIVE PREVIEW FOR JOINERS */}
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black text-white/40 uppercase">Audio Track</span>
-                                    <span className="text-xs font-bold text-white truncate max-w-[150px]">{settings.audioTrack}</span>
+                                    <span className="text-[10px] font-black text-[var(--text-muted)] uppercase">Audio Track</span>
+                                    <span className="text-xs font-bold text-[var(--text-main)] truncate max-w-[150px]">{settings.audioTrack}</span>
                                 </div>
-                                <div className="flex justify-between items-center pt-2 border-t border-white/5">
-                                    <span className="text-[10px] font-black text-white/40 uppercase">Active Protocols</span>
+                                <div className="flex justify-between items-center pt-2 border-t border-[var(--border-color)]">
+                                    <span className="text-[10px] font-black text-[var(--text-muted)] uppercase">Active Protocols</span>
                                     <div className="flex gap-3">
-                                        <Activity size={14} className={settings.showVisualizer ? "text-[#e8c366]" : "text-white/10"} />
-                                        <Shield size={14} className={settings.isGhostMode ? "text-[#84ccb9]" : "text-white/10"} />
+                                        <Activity size={14} className={settings.showVisualizer ? "text-[var(--accent-yellow)]" : "text-[var(--text-muted)]/30"} />
+                                        <Shield size={14} className={settings.isGhostMode ? "text-[var(--accent-teal)]" : "text-[var(--text-muted)]/30"} />
                                     </div>
                                 </div>
                             </div>
@@ -720,11 +755,11 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     {/* ACTIVE TIMER */}
                     {status === 'ACTIVE' && (
                         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
-                            <span className="text-[10px] font-black uppercase tracking-[0.5em] text-white/30 mb-2 block">{isBreak ? "Break" : `Cycle ${settings.currentCycle}`}</span>
-                            <div className="text-[14rem] md:text-[18rem] font-black tabular-nums leading-none tracking-tighter text-white">
+                            <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--text-muted)] mb-2 block">{isBreak ? "Break" : `Cycle ${settings.currentCycle}`}</span>
+                            <div className="text-[14rem] md:text-[18rem] font-black tabular-nums leading-none tracking-tighter text-[var(--text-main)]">
                                 {Math.floor(secondsLeft / 60).toString().padStart(2, '0')}:{(secondsLeft % 60).toString().padStart(2, '0')}
                             </div>
-                            <button onClick={() => setIsActive(!isActive)} className="px-12 py-5 bg-[#84ccb9] text-black rounded-[24px] font-black text-xl hover:scale-105 transition-all">
+                            <button onClick={() => setIsActive(!isActive)} className="px-12 py-5 bg-[var(--accent-teal)] text-black rounded-[24px] font-black text-xl hover:scale-105 transition-all">
                                 {isActive ? "Pause" : "Initiate"}
                             </button>
                         </motion.div>
@@ -734,9 +769,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 {/* 5S LAUNCH OVERLAY */}
                 <AnimatePresence>
                     {status === 'LAUNCHING' && (
-                        <motion.div exit={{ opacity: 0 }} className="absolute inset-0 z-[100] bg-[#05080c] flex flex-col items-center justify-center">
-                            <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="text-[18rem] font-black text-white">{countdown}</motion.div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.5em] text-[#84ccb9]">Deploying Protocol</p>
+                        <motion.div exit={{ opacity: 0 }} className="absolute inset-0 z-[100] bg-[var(--bg-dark)] flex flex-col items-center justify-center">
+                            <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="text-[18rem] font-black text-[var(--text-main)]">{countdown}</motion.div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--accent-teal)]">Deploying Protocol</p>
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -746,20 +781,20 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 {isSyncing && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="absolute inset-0 z-[200] bg-[#05080c]/90 backdrop-blur-md flex items-center justify-center"
+                        className="absolute inset-0 z-[200] bg-[var(--bg-dark)]/90 backdrop-blur-md flex items-center justify-center"
                     >
-                        <div className="bg-[#111] p-10 rounded-[32px] border border-white/10 text-center animate-pulse shadow-2xl">
-                            <Timer className="w-12 h-12 text-[#84ccb9] mx-auto mb-4" />
-                            <h3 className="text-white font-black text-xl uppercase tracking-widest">Synchronizing Timeline</h3>
-                            <p className="text-white/50 text-xs mt-2 font-bold uppercase">Fetching active cycle from Architect...</p>
+                        <div className="bg-[var(--bg-card)] p-10 rounded-[32px] border border-[var(--border-color)] text-center animate-pulse shadow-2xl">
+                            <Timer className="w-12 h-12 text-[var(--accent-teal)] mx-auto mb-4" />
+                            <h3 className="text-[var(--text-main)] font-black text-xl uppercase tracking-widest">Synchronizing Timeline</h3>
+                            <p className="text-[var(--text-muted)] text-xs mt-2 font-bold uppercase">Fetching active cycle from Architect...</p>
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
             {/* 3. RIGHT PRESENCE SIDEBAR */}
-            <aside className="w-72 flex-shrink-0 border-l border-white/5 z-20 hidden lg:flex flex-col bg-black/20 p-8">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-6 flex items-center gap-2">
+            <aside className="w-72 flex-shrink-0 border-l border-[var(--border-color)] z-20 hidden lg:flex flex-col bg-black/20 p-8">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-6 flex items-center gap-2">
                     <Users size={14} /> Presence ({participants.length})
                 </h3>
                 <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar">
@@ -771,12 +806,12 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                         const avatarEmoji = p.chumAvatar ? p.chumAvatar.split(' ')[0] : '👻';
 
                         return (
-                            <div key={p.id} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${isMe ? 'bg-white/10 border-white/40 shadow-[0_0_15px_rgba(255,255,255,0.1)]'
-                                : isRoomHost ? 'bg-[#84ccb9]/10 border-[#84ccb9]/30' : 'bg-white/5 border-white/5'
+                            <div key={p.id} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${isMe ? 'bg-[var(--bg-sidebar)] border-[var(--text-muted)]/40 shadow-[0_0_15px_rgba(255,255,255,0.1)]'
+                                : isRoomHost ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/30' : 'bg-[var(--bg-sidebar)]/50 border-[var(--border-color)]'
                                 }`}
                             >
                                 {/* ⚡ Avatar Circle: Forced 40x40px, no shrinking, no overflowing */}
-                                <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg overflow-hidden ${isRoomHost ? 'bg-[#84ccb9]/20' : 'bg-white/10'
+                                <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg overflow-hidden ${isRoomHost ? 'bg-[var(--accent-teal)]/20' : 'bg-[var(--bg-sidebar)]'
                                     }`}>
                                     {isRoomHost ? '👑' : avatarEmoji}
                                 </div>
@@ -784,16 +819,16 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                 {/* ⚡ Text Container: Flex-col, min-w-0 prevents breaking parent width */}
                                 <div className="flex flex-col min-w-0 flex-1">
                                     <div className="flex items-center gap-2 overflow-hidden">
-                                        <span className="text-sm font-bold text-white truncate">
+                                        <span className="text-sm font-bold text-[var(--text-main)] truncate">
                                             {p.name || "Anonymous"}
                                         </span>
                                         {isMe && (
-                                            <span className="shrink-0 text-[8px] font-black uppercase tracking-widest text-white/70 bg-white/10 px-1.5 py-0.5 rounded-md">
+                                            <span className="shrink-0 text-[8px] font-black uppercase tracking-widest text-[var(--text-main)]/70 bg-[var(--bg-sidebar)] px-1.5 py-0.5 rounded-md">
                                                 You
                                             </span>
                                         )}
                                     </div>
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-[#84ccb9] mt-0.5 truncate">
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-[var(--accent-teal)] mt-0.5 truncate">
                                         {isBreak ? "Resting" : "Focusing"}
                                     </p>
                                 </div>
@@ -807,22 +842,22 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             <AnimatePresence>
                 {showAbandonConfirm && (
                     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/90 backdrop-blur-xl p-6">
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#111111] border border-[#84ccb9]/20 p-10 rounded-[40px] max-w-md w-full text-center shadow-2xl relative overflow-hidden">
-                            <h3 className="text-2xl font-black text-white mb-2">Harvest Mastery?</h3>
-                            <p className="text-xs text-white/40 mb-8 uppercase tracking-widest font-black">Legacy Log Summary</p>
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[var(--bg-card)] border border-[var(--accent-teal)]/20 p-10 rounded-[40px] max-w-md w-full text-center shadow-2xl relative overflow-hidden">
+                            <h3 className="text-2xl font-black text-[var(--text-main)] mb-2">Harvest Mastery?</h3>
+                            <p className="text-xs text-[var(--text-muted)] mb-8 uppercase tracking-widest font-black">Legacy Log Summary</p>
                             <div className="grid grid-cols-2 gap-4 mb-8">
-                                <div className="bg-white/5 p-4 rounded-3xl border border-white/5">
-                                    <span className="text-[10px] font-black text-[#84ccb9] uppercase block mb-1">Session</span>
-                                    <span className="text-xl font-black text-white">{Math.floor((isActive ? secondsLeft : 0) / 60)}m</span>
+                                <div className="bg-[var(--bg-sidebar)]/50 p-4 rounded-3xl border border-[var(--border-color)]">
+                                    <span className="text-[10px] font-black text-[var(--accent-teal)] uppercase block mb-1">Session</span>
+                                    <span className="text-xl font-black text-[var(--text-main)]">{Math.floor((isActive ? secondsLeft : 0) / 60)}m</span>
                                 </div>
-                                <div className="bg-white/5 p-4 rounded-3xl border border-white/5">
-                                    <span className="text-[10px] font-black text-[#e8c366] uppercase block mb-1">Crystals</span>
-                                    <span className="text-xl font-black text-white">{settings.currentCycle ? settings.currentCycle - 1 : 0}</span>
+                                <div className="bg-[var(--bg-sidebar)]/50 p-4 rounded-3xl border border-[var(--border-color)]">
+                                    <span className="text-[10px] font-black text-[var(--accent-yellow)] uppercase block mb-1">Crystals</span>
+                                    <span className="text-xl font-black text-[var(--text-main)]">{settings.currentCycle ? settings.currentCycle - 1 : 0}</span>
                                 </div>
                             </div>
                             <div className="flex flex-col gap-3">
-                                <button onClick={handleAbandon} className="w-full py-5 bg-[#84ccb9] text-black rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-[#a1d9cc] transition-all">Forge Legacy & Exit</button>
-                                <button onClick={() => setShowAbandonConfirm(false)} className="w-full py-4 text-white/30 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">Continue Focusing</button>
+                                <button onClick={handleAbandon} className="w-full py-5 bg-[var(--accent-teal)] text-black rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:brightness-110 transition-all">Forge Legacy & Exit</button>
+                                <button onClick={() => setShowAbandonConfirm(false)} className="w-full py-4 text-[var(--text-muted)] text-[10px] font-black uppercase tracking-widest hover:text-[var(--text-main)] transition-colors">Continue Focusing</button>
                             </div>
                         </motion.div>
                     </div>
