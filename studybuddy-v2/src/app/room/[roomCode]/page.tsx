@@ -183,11 +183,13 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 .on('broadcast', { event: 'room_closed' }, () => router.push('/lantern'))
                 .subscribe(async (s) => {
                     if (s === 'SUBSCRIBED') {
-                        // ⚡ HEARTBEAT: Explicitly track status so Lantern Map stays updated
+                        // ⚡ FIX: Added roomCode and roomTitle so the Lantern Map can read them!
                         await channel.track({
                             id: user.id,
                             name: userName,
-                            status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined'
+                            status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
+                            roomCode: roomCode,
+                            roomTitle: roomData.name || settings.name // 👈 Critical for the Map tooltip
                         });
                     }
                 });
@@ -223,7 +225,18 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     const handleInitializeSanctuary = async () => {
         if (!isHost) return;
 
-        // 1. UPDATE DATABASE FIRST: This switches the global map to 'Hosting'
+        // 1. ⚡ OPTIMISTIC UI: Change local state instantly for zero lag
+        setStatus('LAUNCHING');
+
+        // 2. ⚡ INSTANT BROADCAST: Tell all joiners to start their countdowns immediately
+        if (channelRef.current) {
+            channelRef.current.send({
+                type: 'broadcast',
+                event: 'launch'
+            });
+        }
+
+        // 3. 🛡️ BACKGROUND DB SYNC: Fire and forget. Don't block the UI!
         const { error } = await supabase
             .from('rooms')
             .update({ status: 'ACTIVE' })
@@ -231,19 +244,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
         if (error) {
             console.error("Architect Sync Error:", error.message);
-            return;
         }
-
-        // 2. BROADCAST SECOND: Tell everyone in the room to start
-        if (channelRef.current) {
-            await channelRef.current.send({
-                type: 'broadcast',
-                event: 'launch'
-            });
-        }
-
-        // 3. START LOCAL ENGINE: Host starts their own countdown
-        setStatus('LAUNCHING');
     };
 
     const updateSettings = async (updates: Partial<typeof settings>) => {
