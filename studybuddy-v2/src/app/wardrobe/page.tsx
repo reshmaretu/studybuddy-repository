@@ -55,36 +55,48 @@ export default function WardrobePage() {
 
             <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-0">
 
-                {/* LEFT: CHARACTER CUSTOMIZATION (The "Mirror") */}
-                <section className="bg-background-card border border-border rounded-[40px] p-8 flex flex-col items-center justify-between relative overflow-hidden shadow-xl">
-                    <div className="absolute top-8 left-8">
+                To align the Wardrobe widgets with your Dashboard, we need to move away from the current hardcoded rounded-[40px] containers and utilize the precise design tokens seen in your Dashboard screenshot.
+
+                Your Dashboard uses rounded-3xl for widgets, rounded-xl for buttons, and specific background transparency layers.
+
+                🛠️ The Fix: Dashboard-Aligned Wardrobe Page
+                Replace the section blocks in your WardrobePage with this updated styling to achieve a 1:1 match with your Dashboard widgets.
+
+                TypeScript
+
+                /* --- Updated Left Section: Character Preview --- */
+                <section className="bg-background-card border border-border rounded-3xl p-8 flex flex-col items-center justify-between relative overflow-hidden shadow-sm">
+                    <div className="absolute top-6 left-8">
                         <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Character Preview</span>
                     </div>
 
-                    {/* Placeholder for LayeredChum System */}
+                    {/* Use the Dashboard's inner-glow circle style */}
                     <div className="flex-1 flex items-center justify-center w-full">
-                        <div className="relative w-64 h-64 bg-background-dark/50 rounded-full border border-border flex items-center justify-center text-8xl shadow-inner">
-                            👻
-                            {/* Layered images will eventually be absolute-positioned here */}
+                        <div className="relative w-64 h-64 bg-background-dark/30 rounded-full border border-border flex items-center justify-center shadow-inner">
+                            {/* 👻 Your LayeredChum will sit here */}
+                            <span className="text-8xl drop-shadow-2xl">👻</span>
                         </div>
                     </div>
 
+                    {/* Bottom buttons updated to match Dashboard secondary button style */}
                     <div className="w-full grid grid-cols-3 gap-3">
-                        <button className="py-3 bg-background-dark border border-border rounded-2xl text-[10px] font-black uppercase text-text-muted hover:text-text-main transition-colors">Base</button>
-                        <button className="py-3 bg-background-dark border border-border rounded-2xl text-[10px] font-black uppercase text-text-muted hover:text-text-main transition-colors">Outfit</button>
-                        <button className="py-3 bg-background-dark border border-border rounded-2xl text-[10px] font-black uppercase text-text-muted hover:text-text-main transition-colors">Head</button>
+                        {['Base', 'Outfit', 'Head'].map(label => (
+                            <button key={label} className="py-2.5 bg-background-dark/50 border border-border rounded-xl text-[10px] font-black uppercase text-text-muted hover:border-accent-teal hover:text-accent-teal transition-all">
+                                {label}
+                            </button>
+                        ))}
                     </div>
                 </section>
 
-                {/* RIGHT: ATMOSPHERE SELECTION (The "Sanctuary") */}
-                <section className="bg-background-card border border-border rounded-[40px] flex flex-col min-h-0 shadow-xl">
-                    <div className="p-8 border-b border-border">
-                        <h3 className="text-sm font-black text-text-main uppercase flex items-center gap-2">
-                            <Palette size={18} className="text-accent-cyan" /> Sanctuary Atmosphere
+/* --- Updated Right Sectio n: Atmosphere Selection --- */
+                <section className="bg-background-card border border-border rounded-3xl flex flex-col min-h-0 shadow-sm">
+                    <div className="p-6 border-b border-border/50">
+                        <h3 className="text-[11px] font-black text-text-main uppercase tracking-widest flex items-center gap-2">
+                            <Palette size={14} className="text-accent-cyan" /> Sanctuary Atmosphere
                         </h3>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar no-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar no-scrollbar">
                         {/* Free Tier */}
                         <div>
                             <label className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-4 block">Standard Aesthetics</label>
