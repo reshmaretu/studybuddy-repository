@@ -33,7 +33,7 @@ const CustomSelect = ({ options, value, onChange, disabled = false, isPremiumUse
                 {isOpen && (
                     <motion.div
                         initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
-                        className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl z-[110] overflow-hidden max-h-48 overflow-y-auto custom-scrollbar"
+                        className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl z-[110] overflow-hidden max-h-48 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                     >
                         {options.map((opt: any) => {
                             const optName = typeof opt === 'string' ? opt : opt.name;
