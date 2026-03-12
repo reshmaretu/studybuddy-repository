@@ -2,9 +2,6 @@
 
 import { useState, useEffect } from "react";
 
-// Excalidraw must be imported lazily on client only
-let ExcalidrawComponent: any = null;
-
 export default function ExcalidrawWrapper() {
     const [Excalidraw, setExcalidraw] = useState<any>(null);
 
@@ -23,5 +20,9 @@ export default function ExcalidrawWrapper() {
         );
     }
 
-    return <Excalidraw theme="dark" />;
+    return (
+        <div style={{ width: "100%", height: "100%" }}>
+            <Excalidraw theme="dark" />
+        </div>
+    );
 }

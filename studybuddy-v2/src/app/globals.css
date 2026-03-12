@@ -125,16 +125,6 @@
     --accent-cyan: #dddddd;
     --accent-yellow: #aaaaaa;
 }
-
-/* Blueprint grid overlay for room drafting phase */
-.bg-blueprint {
-    background-color: var(--bg-dark);
-    background-image:
-        linear-gradient(color-mix(in srgb, var(--accent-teal) 8%, transparent) 1px, transparent 1px),
-        linear-gradient(90deg, color-mix(in srgb, var(--accent-teal) 8%, transparent) 1px, transparent 1px);
-    background-size: 40px 40px;
-}
-
 .no-scrollbar::-webkit-scrollbar {
     display: none;
 }
@@ -142,6 +132,43 @@
 .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+}
+
+/* Theme-driven range input styling */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--border-color);
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-teal);
+    cursor: pointer;
+    border: 2px solid var(--bg-card);
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-teal);
+    cursor: pointer;
+    border: 2px solid var(--bg-card);
+}
+
+input[type="range"]::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--border-color);
 }
 
 /* Shake animation for denied premium clicks */
@@ -508,12 +535,12 @@ body[data-cafe="true"] nav * {
     }
 }
 
-/* Creates a moving teal grid on a dark void */
+/* Creates a moving theme-driven grid on the background */
 .bg-blueprint {
-    background-color: #05080c;
+    background-color: var(--bg-dark);
     background-image:
-        linear-gradient(rgba(45, 212, 191, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(45, 212, 191, 0.05) 1px, transparent 1px);
+        linear-gradient(color-mix(in srgb, var(--accent-teal) 8%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--accent-teal) 8%, transparent) 1px, transparent 1px);
     background-size: 40px 40px;
     animation: blueprintPan 30s linear infinite;
 }
