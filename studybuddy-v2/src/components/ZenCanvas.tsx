@@ -1,26 +1,36 @@
 "use client";
-import { Tldraw } from 'tldraw';
-import 'tldraw/tldraw.css';
 
-export default function ZenCanvas() {
+import { Tldraw } from "tldraw";
+import "tldraw/tldraw.css";
+import { useState, useEffect } from "react";
+
+export default function TldrawWrapper() {
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    // ⚡ THE HYDRATION KILL-SWITCH: 
+    // This ensures the server sends an empty div, and the heavy 
+    // tldraw engine ONLY loads once the browser is active.
+    if (!isClient) {
+        return <div className="h-full w-full bg-[var(--bg-dark)] opacity-0" />;
+    }
+
     return (
-        <div className="w-full h-full rounded-2xl overflow-hidden border border-[var(--border-color)] bg-[var(--bg-dark)]">
+        <div className="h-full w-full">
             <Tldraw
                 persistenceKey="studybuddy_v2_sanctuary"
-
-                // ⚡ FIX: In the latest v2.x, we hide the Share panel by setting 
-                // the specific UI component to null.
+                // This stops tldraw from trying to connect to their paid sync servers
                 components={{
                     SharePanel: null,
                 }}
-
                 onMount={(editor) => {
                     const theme = document.documentElement.getAttribute("data-theme");
                     const isDark = !["light", "sakura", "nordic"].includes(theme || "");
-
-                    // ⚡ FIX: 'isDarkMode' is now 'colorScheme' ('dark' | 'light')
                     editor.user.updateUserPreferences({
-                        colorScheme: isDark ? 'dark' : 'light'
+                        colorScheme: isDark ? "dark" : "light",
                     });
                 }}
             />
