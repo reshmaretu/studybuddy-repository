@@ -568,3 +568,10 @@ body[data-cafe="true"] nav * {
         background-position: 100% 0%;
     }
 }
+
+.tl-watermark_SEE-LICENSE,
+.tl-watermark {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
