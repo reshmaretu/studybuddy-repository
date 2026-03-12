@@ -126,28 +126,17 @@
     --accent-yellow: #aaaaaa;
 }
 
-/* 🌸 SAKURA SPECIFIC OVERRIDES */
-[data-theme="sakura"] .bg-background-dark,
-[data-theme="sakura"] body {
-    background-color: var(--bg-dark) !important;
-}
-
-/* Fix for standard buttons/toggles to use theme accents */
-[data-theme="sakura"] button[class*="bg-teal"],
-[data-theme="sakura"] .accent-teal-bg {
-    background-color: var(--accent-teal) !important;
-    color: white !important;
-}
-
-/* Progress bar and range input synchronization */
-[data-theme="sakura"] input[type="range"]::-webkit-slider-thumb {
-    background: var(--accent-teal) !important;
-}
-
-body[data-theme="sakura"][data-cafe="true"] .rounded-2xl {
-    background: rgba(255, 255, 255, 0.4) !important;
+/* 🌸 SAKURA + CAFE SYNC */
+[data-theme="sakura"][data-cafe="true"] .rounded-2xl {
+    /* Reset Sakura's specific card tint so the background shines through */
+    background: var(--bg-card) !important;
     color: var(--text-main) !important;
-    border: 1px solid var(--accent-cyan) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+/* Ensure Sakura text remains readable on light café backgrounds */
+[data-theme="sakura"][data-cafe="true"] * {
+    text-shadow: 0 1px 2px rgba(252, 240, 244, 0.5);
 }
 
 .no-scrollbar::-webkit-scrollbar {

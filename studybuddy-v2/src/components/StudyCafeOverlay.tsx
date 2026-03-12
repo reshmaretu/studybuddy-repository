@@ -281,17 +281,28 @@ export default function StudyCafeOverlay() {
             {/* ── Override CSS vars for glassmorphism globally ─── */}
             <style>{`
     body[data-cafe="true"] {
-        /* 💎 THE GLASS FIX: Use dynamic variables so Sakura glass is pinkish, Teal glass is bluish */
-        --bg-card: color-mix(in srgb, var(--bg-card) 20%, transparent) !important;
-        --bg-dark: color-mix(in srgb, var(--bg-dark) 22%, transparent) !important;
-        --border-color: color-mix(in srgb, var(--text-main) 10%, transparent) !important;
-    }
+    /* ⚪ PURE NEUTRAL GLASS: No tints, just light transmission */
+    --bg-card: rgba(255, 255, 255, 0.03) !important;
+    --bg-dark: rgba(255, 255, 255, 0.01) !important;
     
-    /* Force glassmorphism on all dashboard widgets */
-    body[data-cafe="true"] .bg-background-card {
-        backdrop-filter: blur(20px) saturate(1.5) !important;
-        -webkit-backdrop-filter: blur(20px) saturate(1.5) !important;
-    }
+    /* 💎 CRYSTAL BORDERS: Uses white light to define edges */
+    --border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* 🛡️ FORCE REFRECTION: This lets the background light pass through */
+body[data-cafe="true"] .bg-background-card,
+body[data-cafe="true"] .rounded-3xl,
+body[data-cafe="true"] section > div,
+body[data-cafe="true"] aside {
+    background: var(--bg-card) !important;
+    backdrop-filter: blur(20px) saturate(1.2) brightness(1.1) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.2) brightness(1.1) !important;
+    
+    /* Subtle outer glow to mimic light catching on the edge of glass */
+    box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2), 
+                0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid var(--border-color) !important;
+}
 `}</style>
 
             {/* The Fixed Background Layer */}
