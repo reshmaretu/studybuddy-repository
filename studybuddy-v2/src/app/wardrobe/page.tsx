@@ -54,17 +54,6 @@ export default function WardrobePage() {
             </header>
 
             <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-0">
-
-                To align the Wardrobe widgets with your Dashboard, we need to move away from the current hardcoded rounded-[40px] containers and utilize the precise design tokens seen in your Dashboard screenshot.
-
-                Your Dashboard uses rounded-3xl for widgets, rounded-xl for buttons, and specific background transparency layers.
-
-                🛠️ The Fix: Dashboard-Aligned Wardrobe Page
-                Replace the section blocks in your WardrobePage with this updated styling to achieve a 1:1 match with your Dashboard widgets.
-
-                TypeScript
-
-                /* --- Updated Left Section: Character Preview --- */
                 <section className="bg-background-card border border-border rounded-3xl p-8 flex flex-col items-center justify-between relative overflow-hidden shadow-sm">
                     <div className="absolute top-6 left-8">
                         <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Character Preview</span>
@@ -88,7 +77,6 @@ export default function WardrobePage() {
                     </div>
                 </section>
 
-/* --- Updated Right Sectio n: Atmosphere Selection --- */
                 <section className="bg-background-card border border-border rounded-3xl flex flex-col min-h-0 shadow-sm">
                     <div className="p-6 border-b border-border/50">
                         <h3 className="text-[11px] font-black text-text-main uppercase tracking-widest flex items-center gap-2">

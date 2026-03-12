@@ -23,7 +23,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   `}} />
       </head>
       <body className={`${inter.className} bg-[#1E1A1D] text-[#EFE6DD]`}>
-        {/* 🛡️ Consolidated to AppLayoutWrapper/PresenceSync only */}
         <AppLayoutWrapper>
           {children}
         </AppLayoutWrapper>
