@@ -132,8 +132,8 @@ function ThemeButton({ theme, isActive, isLocked, isShaking, onClick }: any) {
         <button
             onClick={onClick}
             className={`group relative flex items-center p-4 rounded-2xl border-2 transition-all duration-200 ${isShaking ? 'animate-premium-shake border-red-500' :
-                    isActive ? 'border-accent-teal bg-background-dark shadow-lg' :
-                        'border-border bg-background-sidebar/50 hover:bg-background-sidebar'
+                isActive ? 'border-accent-teal bg-background-dark shadow-lg' :
+                    'border-border bg-background-sidebar/50 hover:bg-background-sidebar'
                 } ${isLocked && !isActive ? 'opacity-60' : ''}`}
         >
             <div
