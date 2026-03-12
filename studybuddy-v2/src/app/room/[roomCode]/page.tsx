@@ -113,37 +113,48 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return router.push('/lantern');
 
-            const { data: room } = await supabase.from('rooms').select('*').eq('room_code', roomCode).single();
-            if (!room) return router.push('/lantern');
-
-            const isActuallyHost = room.host_id === user.id;
-            setIsHost(isActuallyHost);
-            setHostId(room.host_id);
-
-            // ⚡ FIX: Sync Joiner to the current DB status immediately
-            if (room.status === 'ACTIVE') {
-                setStatus('ACTIVE');
-                setIsActive(true);
-                // Sync durations from DB to joiner's local state
-                setSettings(s => ({
-                    ...s,
-                    name: room.name || s.name,
-                    mode: room.mode || s.mode,
-                    workDuration: room.work_duration || s.workDuration,
-                    breakDuration: room.break_duration || s.breakDuration
-                }));
-                setSecondsLeft(room.work_duration * 60);
+            // ⚡ RETRY LOGIC: Give the Host a window to finish the DB write
+            let roomData = null;
+            for (let i = 0; i < 3; i++) {
+                const { data } = await supabase.from('rooms').select('*').eq('room_code', roomCode).single();
+                if (data) {
+                    roomData = data;
+                    break;
+                }
+                await new Promise(r => setTimeout(r, 800)); // Wait 800ms between attempts
             }
 
-            // 2. Resolve Profile Name
-            const { data: profile } = await supabase.from('profiles').select('display_name, full_name').eq('id', user.id).single();
-            const resolvedName = profile?.display_name || profile?.full_name || user.email?.split('@')[0] || "Chum";
-            setUserName(resolvedName);
+            if (!roomData) return router.push('/lantern');
 
-            // 3. ⚓ ANCHOR STATUS: Set profile status to prevent global sync interference
-            // This stops the 'offline' flip by telling the DB the user is busy here.
+            const isActuallyHost = roomData.host_id === user.id;
+            setIsHost(isActuallyHost);
+            setHostId(roomData.host_id);
+
+            // 🚀 PHASE SYNC: Immediately move joiner to the current status
+            if (roomData.status === 'ACTIVE') {
+                setStatus('ACTIVE');
+                setIsActive(true);
+                setSettings(s => ({
+                    ...s,
+                    name: roomData.name || s.name,
+                    mode: roomData.mode || s.mode,
+                    workDuration: roomData.work_duration || s.workDuration,
+                    breakDuration: roomData.break_duration || s.breakDuration
+                }));
+                setSecondsLeft(roomData.work_duration * 60);
+            } else {
+                // If it's a DRAFT, sync the draft settings from DB
+                setSettings(s => ({
+                    ...s,
+                    name: roomData.name || s.name,
+                    mode: roomData.mode || s.mode,
+                    workDuration: roomData.work_duration || s.workDuration
+                }));
+            }
+
+            // ⚓ ANCHOR: Lock profile status
             await supabase.from('profiles').update({
-                status: isActuallyHost ? (room.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined'
+                status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined'
             }).eq('id', user.id);
 
             // 4. Initialize Realtime
@@ -175,8 +186,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                         // ⚡ HEARTBEAT: Explicitly track status so Lantern Map stays updated
                         await channel.track({
                             id: user.id,
-                            name: resolvedName,
-                            status: isActuallyHost ? (room.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined'
+                            name: userName,
+                            status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined'
                         });
                     }
                 });

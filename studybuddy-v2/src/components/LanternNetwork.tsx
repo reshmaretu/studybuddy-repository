@@ -260,9 +260,9 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
 
             <AnimatePresence>
                 {(isHovered || isSelected) && (
-                    <Html distanceFactor={is3D ? 30 : 45} position={[0, 5, 0]} center className="pointer-events-none">
+                    <Html distanceFactor={is3D ? 30 : 45} position={[0, 8, 0]} center className="pointer-events-none">
                         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                            className="bg-[#111111]/95 backdrop-blur-xl border border-white/5 p-5 rounded-3xl shadow-2xl w-64 pointer-events-auto text-white">
+                            className="bg-[#111111]/95 backdrop-blur-xl border border-white/5 p-5 rounded-3xl w-64 pointer-events-auto shadow-2xl text-white">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="font-black text-sm">{user.name}</h3>
