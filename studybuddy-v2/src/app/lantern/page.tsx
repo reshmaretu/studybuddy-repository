@@ -123,13 +123,13 @@ export default function LanternNetPage() {
         fetchNetwork();
 
         const channel = supabase.channel('lantern_sync')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => fetchNetwork())
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
-                const p = payload.new;
-                // Only update others from the DB; your local state handles "Me"
-                if (p.id !== currentUserId) {
-                    setFullNetwork(prev => prev.map(u => u.id === p.id ? formatUser(p, [], currentUserId, 0) : u));
-                }
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
+                if (isSubscribed) fetchNetwork();
+            })
+            // ⚡ THE FIX: Replace the complex payload mapping with a clean fetch.
+            // This ensures the roomCode is NEVER wiped out by an empty array when a profile updates.
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => {
+                if (isSubscribed) fetchNetwork();
             })
             .subscribe();
 
@@ -137,9 +137,7 @@ export default function LanternNetPage() {
             isSubscribed = false;
             supabase.removeChannel(channel);
         };
-        // ⚡ ADDED: activeMode and isTutorModeActive as dependencies
     }, [totalSessions, activeMode, isTutorModeActive]);
-
     const handleBroadcast = async () => {
         if (isSubmitting) return;
         setIsSubmitting(true);
