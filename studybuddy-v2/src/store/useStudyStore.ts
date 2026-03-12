@@ -114,6 +114,8 @@ interface StudyState {
     // 💎 PREMIUM STATE
     isPremiumUser: boolean;
     checkPremiumStatus: () => Promise<void>;
+
+    updateUserTheme: (themeId: string) => Promise<void>;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -186,11 +188,11 @@ export const useStudyStore = create<StudyState>()(
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
 
-                // Fetch everything from Supabase at once
                 const [tasksResponse, shardsResponse, profileResponse] = await Promise.all([
                     supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                     supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                    supabase.from('profiles').select('focus_score, total_hours').eq('id', user.id).single()
+                    // ⚡ FETCH PREMIUM STATUS HERE TOO
+                    supabase.from('profiles').select('focus_score, total_hours, is_premium').eq('id', user.id).single()
                 ]);
 
                 if (tasksResponse.data) {
@@ -214,11 +216,33 @@ export const useStudyStore = create<StudyState>()(
                 if (profileResponse.data) {
                     set({
                         focusScore: profileResponse.data.focus_score,
-                        totalSessions: profileResponse.data.total_hours
+                        totalSessions: profileResponse.data.total_hours,
+                        // 💎 This ensures the store is accurate immediately on load
+                        isPremiumUser: profileResponse.data.is_premium
                     });
                 }
 
                 set({ isInitialized: true });
+            },
+
+            updateUserTheme: async (themeId: string) => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                // Only allow update if it's a free theme OR user is premium
+                const isPremiumTheme = ["sakura", "academia", "lofi", "nordic", "e-ink"].includes(themeId);
+
+                if (isPremiumTheme && !get().isPremiumUser) {
+                    console.error("Access Denied: Premium Theme restricted.");
+                    return;
+                }
+
+                // Update DB
+                await supabase.from('profiles').update({ preferred_theme: themeId }).eq('id', user.id);
+
+                // Update UI
+                document.documentElement.setAttribute("data-theme", themeId);
+                localStorage.setItem("appTheme", themeId);
             },
 
             // ==========================================
