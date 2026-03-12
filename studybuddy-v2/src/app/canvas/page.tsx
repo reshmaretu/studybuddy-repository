@@ -3,17 +3,9 @@
 import { Palette } from "lucide-react";
 import dynamic from "next/dynamic";
 
-const Excalidraw = dynamic(
-    () => import("@excalidraw/excalidraw").then((mod) => mod.Excalidraw),
-    {
-        ssr: false,
-        loading: () => (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-[var(--bg-dark)] text-[var(--text-muted)]">
-                <div className="w-8 h-8 border-4 border-[var(--accent-teal)] border-t-transparent rounded-full animate-spin mb-4"></div>
-                <p className="font-bold tracking-widest uppercase text-sm mt-2">Unrolling Canvas...</p>
-            </div>
-        )
-    }
+const ExcalidrawWrapper = dynamic(
+    () => import("@/components/ExcalidrawWrapper"),
+    { ssr: false }
 );
 
 export default function ZenCanvas() {
@@ -33,9 +25,7 @@ export default function ZenCanvas() {
 
             {/* THE WHITEBOARD CONTAINER */}
             <div className="flex-1 rounded-2xl overflow-hidden border border-[var(--border-color)] shadow-sm relative z-0">
-                <Excalidraw
-                    theme="dark"
-                />
+                <ExcalidrawWrapper />
             </div>
 
         </div>

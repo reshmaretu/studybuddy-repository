@@ -130,10 +130,9 @@
 .bg-blueprint {
     background-color: var(--bg-dark);
     background-image:
-        linear-gradient(var(--border-color) 1px, transparent 1px),
-        linear-gradient(90deg, var(--border-color) 1px, transparent 1px);
+        linear-gradient(color-mix(in srgb, var(--accent-teal) 8%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--accent-teal) 8%, transparent) 1px, transparent 1px);
     background-size: 40px 40px;
-    opacity: 0.7;
 }
 
 .no-scrollbar::-webkit-scrollbar {
