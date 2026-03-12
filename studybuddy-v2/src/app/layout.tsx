@@ -13,6 +13,15 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-theme="deep-teal" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+    (function() {
+      const savedTheme = localStorage.getItem('appTheme') || 'deep-teal';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  `}} />
+      </head>
       <body className={`${inter.className} bg-[#1E1A1D] text-[#EFE6DD]`}>
         {/* 🛡️ Consolidated to AppLayoutWrapper/PresenceSync only */}
         <AppLayoutWrapper>
