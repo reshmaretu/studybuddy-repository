@@ -9,8 +9,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        // ⚡ These now pull directly from your globals.css variables
+        background: {
+          dark: "var(--bg-dark)",
+          sidebar: "var(--bg-sidebar)",
+          card: "var(--bg-card)",
+        },
+        border: "var(--border-color)",
+        text: {
+          main: "var(--text-main)",
+          muted: "var(--text-muted)",
+        },
+        accent: {
+          teal: "var(--accent-teal)",
+          cyan: "var(--accent-cyan)",
+          yellow: "var(--accent-yellow)",
+        },
       },
     },
   },

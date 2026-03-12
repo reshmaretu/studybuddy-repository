@@ -188,6 +188,13 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             setIsHost(isActuallyHost);
             setHostId(roomData.host_id);
 
+            if (isActuallyHost && roomData.status === 'DRAFT') {
+                setStatus('DRAFT');
+            } else if (roomData.status === 'ACTIVE') {
+                setStatus('ACTIVE');
+                setIsActive(true);
+            }
+
             // ⚡ MODE FIX: Map 'flowstate' or 'cafe' DB values back to 'pomodoro' to prevent UI breakage
             const safeMode = (roomData.mode === 'flowstate' || roomData.mode === 'cafe') ? 'pomodoro' : roomData.mode;
 
