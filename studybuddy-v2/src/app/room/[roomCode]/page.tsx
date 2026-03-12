@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, use, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Info, LogOut, Users, Play, Pause, RotateCcw, Sparkles, Shield, Lock, Activity, ChevronDown, Check } from "lucide-react";
+import { Timer, Info, LogOut, Users, Play, Pause, RotateCcw, Sparkles, Shield, Lock, Activity, ChevronDown, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useStudyStore } from "@/store/useStudyStore";
@@ -63,7 +63,6 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     const router = useRouter();
     const searchParams = useSearchParams();
     const { isPremiumUser } = useStudyStore();
-    const [userName, setUserName] = useState("Chum");
 
     // --- STATES ---
     const [status, setStatus] = useState<'DRAFT' | 'LAUNCHING' | 'ACTIVE'>('DRAFT');
@@ -73,7 +72,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     const [countdown, setCountdown] = useState(5);
     const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
 
-    // --- BROADCAST SETTINGS ---
+    // --- BROADCAST SETTINGS (Must come FIRST) ---
     const [settings, setSettings] = useState({
         name: searchParams.get('title') || "New Sanctuary",
         mode: 'pomodoro',
@@ -83,7 +82,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         cyclesBeforeLongBreak: 4,
         currentCycle: 1,
         vibeCategory: 'Theme Default',
-        vibeAsset: THEMES[0],
+        vibeAsset: 'System Default Void', // Fallback
         audioTrack: 'None',
         showVisualizer: false,
         isGhostMode: false,
@@ -92,6 +91,17 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     const [secondsLeft, setSecondsLeft] = useState(25 * 60);
     const [isActive, setIsActive] = useState(false);
     const [isBreak, setIsBreak] = useState(false);
+
+    // --- NEW SYNC STATES & REF (Must come AFTER settings and secondsLeft) ---
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    // ⚡ Now this works because secondsLeft, isActive, etc. already exist!
+    const timerStateRef = useRef({ secondsLeft, isActive, status, isBreak, currentCycle: settings.currentCycle });
+
+    useEffect(() => {
+        timerStateRef.current = { secondsLeft, isActive, status, isBreak, currentCycle: settings.currentCycle };
+    }, [secondsLeft, isActive, status, isBreak, settings.currentCycle]);
 
     // 1. PAGE PROTECTION (Before Unload)
     useEffect(() => {
@@ -112,16 +122,18 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         const initRoom = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return router.push('/lantern');
+            setCurrentUserId(user.id); // ⚡ Track ID for the "You" effect
 
-            // ⚡ RETRY LOGIC: Give the Host a window to finish the DB write
+            // ⚡ FETCH AVATAR & NAME
+            const { data: profile } = await supabase.from('profiles').select('display_name, full_name, chum_avatar').eq('id', user.id).single();
+            const resolvedName = profile?.display_name || profile?.full_name || user.email?.split('@')[0] || "Chum";
+            const resolvedAvatar = profile?.chum_avatar || "👻";
+
             let roomData = null;
             for (let i = 0; i < 3; i++) {
                 const { data } = await supabase.from('rooms').select('*').eq('room_code', roomCode).single();
-                if (data) {
-                    roomData = data;
-                    break;
-                }
-                await new Promise(r => setTimeout(r, 800)); // Wait 800ms between attempts
+                if (data) { roomData = data; break; }
+                await new Promise(r => setTimeout(r, 800));
             }
 
             if (!roomData) return router.push('/lantern');
@@ -130,37 +142,29 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             setIsHost(isActuallyHost);
             setHostId(roomData.host_id);
 
-            // 🚀 PHASE SYNC: Immediately move joiner to the current status
+            // ⚡ MODE FIX: Map 'flowstate' or 'cafe' DB values back to 'pomodoro' to prevent UI breakage
+            const safeMode = (roomData.mode === 'flowstate' || roomData.mode === 'cafe') ? 'pomodoro' : roomData.mode;
+
+            // 🚀 PHASE SYNC
             if (roomData.status === 'ACTIVE') {
                 setStatus('ACTIVE');
                 setIsActive(true);
                 setSettings(s => ({
-                    ...s,
-                    name: roomData.name || s.name,
-                    mode: roomData.mode || s.mode,
-                    workDuration: roomData.work_duration || s.workDuration,
-                    breakDuration: roomData.break_duration || s.breakDuration
+                    ...s, name: roomData.name || s.name, mode: safeMode || s.mode,
+                    workDuration: roomData.work_duration || s.workDuration, breakDuration: roomData.break_duration || s.breakDuration
                 }));
                 setSecondsLeft(roomData.work_duration * 60);
             } else {
-                // If it's a DRAFT, sync the draft settings from DB
                 setSettings(s => ({
-                    ...s,
-                    name: roomData.name || s.name,
-                    mode: roomData.mode || s.mode,
-                    workDuration: roomData.work_duration || s.workDuration
+                    ...s, name: roomData.name || s.name, mode: safeMode || s.mode, workDuration: roomData.work_duration || s.workDuration
                 }));
             }
 
-            // ⚓ ANCHOR: Lock profile status
             await supabase.from('profiles').update({
                 status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined'
             }).eq('id', user.id);
 
-            // 4. Initialize Realtime
-            const channel = supabase.channel(`room:${roomCode}`, {
-                config: { presence: { key: user.id } }
-            });
+            const channel = supabase.channel(`room:${roomCode}`, { config: { presence: { key: user.id } } });
             activeChannel = channel;
             channelRef.current = channel;
 
@@ -169,40 +173,49 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     const state = channel.presenceState();
                     setParticipants(Object.values(state).flat());
                 })
-                .on('broadcast', { event: 'launch' }, () => {
-                    // 🚀 Joiners start their engine when host launches
-                    setStatus('LAUNCHING');
-                })
+                .on('broadcast', { event: 'launch' }, () => setStatus('LAUNCHING'))
                 .on('broadcast', { event: 'sync_settings' }, ({ payload }) => {
-                    // ⚡ FIX: Apply host's live settings to joiner's local state
+                    // ⚡ INSTANT SETTINGS SYNC FOR JOINERS
                     setSettings(prev => ({ ...prev, ...payload }));
-                    if (status === 'DRAFT') {
-                        setSecondsLeft(payload.workDuration * 60);
-                    }
+                    if (status === 'DRAFT') setSecondsLeft(payload.workDuration * 60);
                 })
                 .on('broadcast', { event: 'room_closed' }, () => router.push('/lantern'))
+                // 🤝 THE HANDSHAKE: Joiner asks, Host answers
+                .on('broadcast', { event: 'request_sync' }, () => {
+                    if (isActuallyHost) { // Host broadcasts current time
+                        channel.send({ type: 'broadcast', event: 'sync_response', payload: timerStateRef.current });
+                    }
+                })
+                .on('broadcast', { event: 'sync_response' }, ({ payload }) => {
+                    if (!isActuallyHost) { // Joiner receives time
+                        setSecondsLeft(payload.secondsLeft);
+                        setIsActive(payload.isActive);
+                        setStatus(payload.status);
+                        setIsBreak(payload.isBreak);
+                        setSettings(prev => ({ ...prev, currentCycle: payload.currentCycle }));
+                        setIsSyncing(false); // Remove loading modal!
+                    }
+                })
                 .subscribe(async (s) => {
                     if (s === 'SUBSCRIBED') {
-                        // 🛡️ THE FALLBACK CHAIN: It checks the DB, then the URL, then a default string.
-                        // This guarantees it can NEVER be 'undefined'.
                         const finalRoomTitle = roomData?.name || searchParams.get('title') || "New Sanctuary";
-
                         await channel.track({
-                            id: user.id,
-                            name: userName,
+                            id: user.id, name: resolvedName, chumAvatar: resolvedAvatar, // 👈 Added Avatar
                             status: isActuallyHost ? (roomData?.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
-                            roomCode: roomCode,
-                            roomTitle: finalRoomTitle // 👈 This explicitly feeds the map tooltip
+                            roomCode: roomCode, roomTitle: finalRoomTitle
                         });
+
+                        // ⚡ LATE JOINER DETECTED: Ask host for the time!
+                        if (!isActuallyHost && roomData?.status === 'ACTIVE') {
+                            setIsSyncing(true);
+                            channel.send({ type: 'broadcast', event: 'request_sync' });
+                        }
                     }
                 });
         };
 
         initRoom();
-
-        return () => {
-            if (activeChannel) supabase.removeChannel(activeChannel);
-        };
+        return () => { if (activeChannel) supabase.removeChannel(activeChannel); };
     }, [roomCode]);
 
     useEffect(() => {
@@ -552,7 +565,10 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                 >
                                     <span className={`text-[10px] font-bold uppercase flex items-center ${!isPremiumUser ? 'text-white/20' : 'text-white/50'}`}>
                                         Visualizer {!isPremiumUser && <Lock size={10} className="ml-2 text-[#e8c366]" />}
-                                        <InfoTooltip text="Enables an audio-reactive visualizer for the room." />
+                                        <SettingLabel
+                                            text="Visualizer"
+                                            tooltip="Enables reactive music visualizer." // 👈 Updated
+                                        />
                                     </span>
                                     {/* Pointer events none ensures the click hits the wrapper div */}
                                     <div className={`w-10 h-5 rounded-full relative transition-colors pointer-events-none ${settings.showVisualizer ? 'bg-[#e8c366]' : 'bg-white/10'}`}>
@@ -567,7 +583,10 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                 >
                                     <span className={`text-[10px] font-bold uppercase flex items-center ${!isPremiumUser ? 'text-white/20' : 'text-white/50'}`}>
                                         Ghost Mode {!isPremiumUser && <Lock size={10} className="ml-2 text-[#84ccb9]" />}
-                                        <InfoTooltip text="Hides your focus status from the Lantern Map while in this room." />
+                                        <SettingLabel
+                                            text="Ghost Mode"
+                                            tooltip="Hides the timer UI to minimize distractions." // 👈 Updated
+                                        />
                                     </span>
                                     {/* Pointer events none ensures the click hits the wrapper div */}
                                     <div className={`w-10 h-5 rounded-full relative transition-colors pointer-events-none ${settings.isGhostMode ? 'bg-[#84ccb9]' : 'bg-white/10'}`}>
@@ -658,21 +677,64 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 </AnimatePresence>
             </main>
 
+            <AnimatePresence>
+                {isSyncing && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-[200] bg-[#05080c]/90 backdrop-blur-md flex items-center justify-center"
+                    >
+                        <div className="bg-[#111] p-10 rounded-[32px] border border-white/10 text-center animate-pulse shadow-2xl">
+                            <Timer className="w-12 h-12 text-[#84ccb9] mx-auto mb-4" />
+                            <h3 className="text-white font-black text-xl uppercase tracking-widest">Synchronizing Timeline</h3>
+                            <p className="text-white/50 text-xs mt-2 font-bold uppercase">Fetching active cycle from Architect...</p>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* 3. RIGHT PRESENCE SIDEBAR */}
             <aside className="w-72 flex-shrink-0 border-l border-white/5 z-20 hidden lg:flex flex-col bg-black/20 p-8">
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-6 flex items-center gap-2">
                     <Users size={14} /> Presence ({participants.length})
                 </h3>
                 <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar">
-                    {participants.map(p => (
-                        <div key={p.id} className={`flex items-center gap-3 p-3 rounded-2xl border ${p.id === hostId ? 'bg-[#84ccb9]/10 border-[#84ccb9]/30' : 'bg-white/5 border-white/5'}`}>
-                            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-lg">{p.id === hostId ? '👑' : '👻'}</div>
-                            <div className="flex flex-col min-w-0">
-                                <span className="text-sm font-bold text-white truncate">{p.name || userName}</span>
-                                <p className="text-[9px] font-black uppercase tracking-widest text-[#84ccb9] mt-0.5">{isBreak ? "Resting" : "Focusing"}</p>
+                    {participants.map(p => {
+                        const isMe = p.id === currentUserId; // 👈 Identifies if this is "You"
+                        const isRoomHost = p.id === hostId;
+
+                        return (
+                            <div
+                                key={p.id}
+                                className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${isMe
+                                    ? 'bg-white/10 border-white/40 shadow-[0_0_15px_rgba(255,255,255,0.1)]' // ⚡ "YOU" Effect
+                                    : isRoomHost
+                                        ? 'bg-[#84ccb9]/10 border-[#84ccb9]/30' // 👑 Host Effect
+                                        : 'bg-white/5 border-white/5' // 👻 Normal Joiner
+                                    }`}
+                            >
+                                {/* ⚡ FIX: Removed the duplicate avatar div and added dynamic coloring */}
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${isRoomHost ? 'bg-[#84ccb9]/20' : 'bg-white/10'
+                                    }`}>
+                                    {isRoomHost ? '👑' : (p.chumAvatar || '👻')}
+                                </div>
+
+                                <div className="flex flex-col min-w-0">
+                                    <span className="text-sm font-bold text-white truncate flex items-center gap-2">
+                                        {p.name || "Anonymous"}
+                                        {/* ⚡ "YOU" Badge */}
+                                        {isMe && (
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-white/70 bg-white/10 px-1.5 py-0.5 rounded-md">
+                                                You
+                                            </span>
+                                        )}
+                                    </span>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-[#84ccb9] mt-0.5">
+                                        {isBreak ? "Resting" : "Focusing"}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </aside>
 
