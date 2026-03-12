@@ -98,11 +98,54 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     const [isSyncing, setIsSyncing] = useState(false);
 
     // ⚡ Now this works because secondsLeft, isActive, etc. already exist!
-    const timerStateRef = useRef({ secondsLeft, isActive, status, isBreak, currentCycle: settings.currentCycle });
+    const timerStateRef = useRef({
+        secondsLeft, isActive, status, isBreak, currentCycle: settings.currentCycle, vibeAsset: settings.vibeAsset,
+        audioTrack: settings.audioTrack
+    });
 
     useEffect(() => {
-        timerStateRef.current = { secondsLeft, isActive, status, isBreak, currentCycle: settings.currentCycle };
-    }, [secondsLeft, isActive, status, isBreak, settings.currentCycle]);
+        timerStateRef.current = {
+            secondsLeft,
+            isActive,
+            status,
+            isBreak,
+            currentCycle: settings.currentCycle,
+            vibeAsset: settings.vibeAsset,
+            audioTrack: settings.audioTrack
+        };
+    }, [secondsLeft, isActive, status, isBreak, settings]);
+
+    const MediaEngine = ({ settings, isActive }: { settings: any, isActive: boolean }) => {
+        const audioRef = useRef<HTMLAudioElement>(null);
+
+        // ⚡ Handle Volume & Playback Logic
+        useEffect(() => {
+            if (!audioRef.current) return;
+
+            // Lower volume slightly when the timer is paused or in "Draft" mode
+            audioRef.current.volume = isActive ? 0.6 : 0.2;
+
+            if (isActive) {
+                audioRef.current.play().catch(() => console.log("User interaction required for audio"));
+            }
+        }, [isActive]);
+
+        if (settings.audioTrack === 'None') return null;
+
+        // ⚡ Construct the bulletproof file path
+        const fileName = settings.audioTrack.toLowerCase().replace(/ /g, '_');
+        const audioPath = `/assets/audio/${fileName}.mp3`;
+
+        return (
+            <audio
+                ref={audioRef}
+                src={audioPath}
+                autoPlay
+                loop
+                className="hidden"
+            />
+        );
+    };
 
     // 1. PAGE PROTECTION (Before Unload)
     useEffect(() => {
@@ -457,10 +500,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
                 {/* 🔊 HIDDEN AUDIO PLAYER */}
                 {settings.audioTrack !== 'None' && (
-                    <audio
-                        autoPlay loop
-                        src={`/assets/audio/${settings.audioTrack.toLowerCase().replace(/ /g, '_')}.mp3`}
-                    />
+                    <MediaEngine settings={settings} isActive={isActive} />
                 )}
             </div>
 
