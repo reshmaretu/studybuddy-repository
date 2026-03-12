@@ -699,36 +699,36 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 </h3>
                 <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar">
                     {participants.map(p => {
-                        const isMe = p.id === currentUserId; // 👈 Identifies if this is "You"
+                        const isMe = p.id === currentUserId;
                         const isRoomHost = p.id === hostId;
 
+                        // ⚡ Extract ONLY the emoji (e.g., "👻" from "👻 Ghost")
+                        const avatarEmoji = p.chumAvatar ? p.chumAvatar.split(' ')[0] : '👻';
+
                         return (
-                            <div
-                                key={p.id}
-                                className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${isMe
-                                    ? 'bg-white/10 border-white/40 shadow-[0_0_15px_rgba(255,255,255,0.1)]' // ⚡ "YOU" Effect
-                                    : isRoomHost
-                                        ? 'bg-[#84ccb9]/10 border-[#84ccb9]/30' // 👑 Host Effect
-                                        : 'bg-white/5 border-white/5' // 👻 Normal Joiner
-                                    }`}
+                            <div key={p.id} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${isMe ? 'bg-white/10 border-white/40 shadow-[0_0_15px_rgba(255,255,255,0.1)]'
+                                    : isRoomHost ? 'bg-[#84ccb9]/10 border-[#84ccb9]/30' : 'bg-white/5 border-white/5'
+                                }`}
                             >
-                                {/* ⚡ FIX: Removed the duplicate avatar div and added dynamic coloring */}
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${isRoomHost ? 'bg-[#84ccb9]/20' : 'bg-white/10'
+                                {/* ⚡ Avatar Circle: Forced 40x40px, no shrinking, no overflowing */}
+                                <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg overflow-hidden ${isRoomHost ? 'bg-[#84ccb9]/20' : 'bg-white/10'
                                     }`}>
-                                    {isRoomHost ? '👑' : (p.chumAvatar || '👻')}
+                                    {isRoomHost ? '👑' : avatarEmoji}
                                 </div>
 
-                                <div className="flex flex-col min-w-0">
-                                    <span className="text-sm font-bold text-white truncate flex items-center gap-2">
-                                        {p.name || "Anonymous"}
-                                        {/* ⚡ "YOU" Badge */}
+                                {/* ⚡ Text Container: Flex-col, min-w-0 prevents breaking parent width */}
+                                <div className="flex flex-col min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        <span className="text-sm font-bold text-white truncate">
+                                            {p.name || "Anonymous"}
+                                        </span>
                                         {isMe && (
-                                            <span className="text-[8px] font-black uppercase tracking-widest text-white/70 bg-white/10 px-1.5 py-0.5 rounded-md">
+                                            <span className="shrink-0 text-[8px] font-black uppercase tracking-widest text-white/70 bg-white/10 px-1.5 py-0.5 rounded-md">
                                                 You
                                             </span>
                                         )}
-                                    </span>
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-[#84ccb9] mt-0.5">
+                                    </div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-[#84ccb9] mt-0.5 truncate">
                                         {isBreak ? "Resting" : "Focusing"}
                                     </p>
                                 </div>
