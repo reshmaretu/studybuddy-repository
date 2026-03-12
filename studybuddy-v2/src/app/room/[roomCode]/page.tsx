@@ -183,13 +183,16 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 .on('broadcast', { event: 'room_closed' }, () => router.push('/lantern'))
                 .subscribe(async (s) => {
                     if (s === 'SUBSCRIBED') {
-                        // ⚡ FIX: Added roomCode and roomTitle so the Lantern Map can read them!
+                        // 🛡️ THE FALLBACK CHAIN: It checks the DB, then the URL, then a default string.
+                        // This guarantees it can NEVER be 'undefined'.
+                        const finalRoomTitle = roomData?.name || searchParams.get('title') || "New Sanctuary";
+
                         await channel.track({
                             id: user.id,
                             name: userName,
-                            status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
+                            status: isActuallyHost ? (roomData?.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
                             roomCode: roomCode,
-                            roomTitle: roomData.name || settings.name // 👈 Critical for the Map tooltip
+                            roomTitle: finalRoomTitle // 👈 This explicitly feeds the map tooltip
                         });
                     }
                 });

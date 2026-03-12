@@ -157,7 +157,7 @@ export default function LanternNetPage() {
         const { error } = await supabase.from('rooms').insert({
             room_code: roomCode,
             host_id: user.id,
-            name: roomSettings.title,
+            name: roomSettings.title, // 👈 The title is inserted here
             status: 'DRAFT',
             work_duration: roomSettings.workDuration,
             break_duration: roomSettings.breakDuration,
@@ -168,7 +168,9 @@ export default function LanternNetPage() {
         });
 
         if (!error) {
-            router.push(`/room/${roomCode}`);
+            // ⚡ FIX: Pass the title in the URL so StudyRoom.tsx can grab it instantly!
+            // This ensures the channel.track payload never sends 'undefined'
+            router.push(`/room/${roomCode}?title=${encodeURIComponent(roomSettings.title)}`);
         } else {
             console.error("Insert Error:", error.message);
             alert("Architect error: Could not initialize blueprint.");
@@ -286,9 +288,27 @@ export default function LanternNetPage() {
 
                                 <button
                                     onClick={handleBroadcast}
-                                    className="mt-12 w-full py-4 bg-white text-black rounded-2xl font-black text-base hover:bg-gray-100 active:scale-95 transition-all flex items-center justify-center gap-3"
+                                    disabled={isSubmitting} // ⚡ Add this to prevent double-clicks
+                                    className={`mt-12 w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all ${isSubmitting
+                                        ? 'bg-white/20 text-white/50 cursor-not-allowed'
+                                        : 'bg-white text-black hover:bg-gray-100 active:scale-95'
+                                        }`}
                                 >
-                                    <Radio size={18} /> Initialize Blueprint
+                                    {isSubmitting ? (
+                                        // ⚡ INSTANT FEEDBACK: Show a loading animation
+                                        <>
+                                            <motion.div
+                                                animate={{ rotate: 360 }}
+                                                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                                                className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full"
+                                            />
+                                            Forging Blueprint...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Radio size={18} /> Initialize Blueprint
+                                        </>
+                                    )}
                                 </button>
                             </div>
 
