@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Search, Trophy, Radio, Plus, X, Waves, Coffee, Sparkles, Clock, Timer, Lock } from "lucide-react";
-import ThreeLanternNet from "@/components/LanternNetwork";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Search, Trophy, Radio, Plus, X, Waves, Coffee, Sparkles, Clock, Timer, Lock, Crosshair } from "lucide-react";
+import ThreeLanternNet, { LanternNetHandle } from "@/components/LanternNetwork";
 import { useStudyStore } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
@@ -71,6 +71,7 @@ export default function LanternNetPage() {
 
     // The single source of truth for the entire map
     const [fullNetwork, setFullNetwork] = useState<LanternUser[]>([]);
+    const lanternRef = useRef<LanternNetHandle>(null);
 
     const [isHostModalOpen, setIsHostModalOpen] = useState(false);
     const [roomSettings, setRoomSettings] = useState({
@@ -224,7 +225,7 @@ export default function LanternNetPage() {
                         {filteredNetwork.sort((a, b) => b.hours - a.hours).map((user, index) => (
                             <div
                                 key={user.id}
-                                className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${user.id === 'me' ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/20' : 'bg-transparent border-transparent hover:border-[var(--border-color)] hover:bg-[var(--bg-dark)]'}`}
+                                className={`group/row flex items-center gap-3 p-3 rounded-2xl border transition-all ${user.id === 'me' ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/20' : 'bg-transparent border-transparent hover:border-[var(--border-color)] hover:bg-[var(--bg-dark)]'}`}
                             >
                                 <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-[var(--accent-yellow)]' : 'text-[var(--text-muted)]'}`}>
                                     {index + 1}
@@ -233,9 +234,18 @@ export default function LanternNetPage() {
                                     <span className="text-sm font-black text-[var(--text-main)]">{user.name}</span>
                                     {/* 👇 FIXED: Removed the redundant Flowstate status here to keep UI clean */}
                                 </div>
-                                <span className="text-xs font-black text-[var(--text-muted)] bg-[var(--bg-dark)] px-2 py-1 rounded-lg">
-                                    {user.hours}h
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => lanternRef.current?.warpToUser(user.id)}
+                                        className="opacity-0 group-hover/row:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-[var(--accent-teal)]/10 text-[var(--text-muted)] hover:text-[var(--accent-teal)]"
+                                        title="Locate on map"
+                                    >
+                                        <Crosshair size={14} />
+                                    </button>
+                                    <span className="text-xs font-black text-[var(--text-muted)] bg-[var(--bg-dark)] px-2 py-1 rounded-lg">
+                                        {user.hours}h
+                                    </span>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -244,7 +254,7 @@ export default function LanternNetPage() {
 
             {/* RIGHT PANEL: THREE.JS MAP */}
             <div className="flex-1 h-full rounded-[40px] overflow-hidden border border-[var(--border-color)] shadow-xl relative min-h-0">
-                <ThreeLanternNet users={filteredNetwork} />
+                <ThreeLanternNet ref={lanternRef} users={filteredNetwork} />
             </div>
 
             {/* THE STUDY ARCHITECT MODAL (Simplified Entrance) */}
@@ -261,23 +271,23 @@ export default function LanternNetPage() {
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="bg-[#1a1a1a] border border-white/5 rounded-[40px] w-full max-w-4xl overflow-hidden relative z-10 shadow-2xl flex flex-col md:flex-row min-h-[400px]"
+                            className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[40px] w-full max-w-4xl overflow-hidden relative z-10 shadow-2xl flex flex-col md:flex-row min-h-[400px]"
                         >
                             {/* LEFT: Standard Settings */}
                             <div className="flex-[1.5] p-8 lg:p-10 flex flex-col justify-between">
                                 <div>
-                                    <h2 className="text-[28px] font-black text-white flex items-center gap-3 mb-10 tracking-tight">
-                                        <Radio className="text-[#84ccb9]" size={28} /> Host Room
+                                    <h2 className="text-[28px] font-black text-[var(--text-main)] flex items-center gap-3 mb-10 tracking-tight">
+                                        <Radio className="text-[var(--accent-teal)]" size={28} /> Host Room
                                     </h2>
 
                                     <div className="space-y-8">
                                         <div>
-                                            <label className="text-[11px] font-black uppercase tracking-widest text-white/50 mb-3 block">Room Title</label>
+                                            <label className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3 block">Room Title</label>
                                             <input
                                                 type="text"
                                                 value={roomSettings.title}
                                                 onChange={(e) => setRoomSettings({ ...roomSettings, title: e.target.value })}
-                                                className="w-full bg-[#111111] border border-white/5 rounded-2xl px-5 py-4 text-white font-bold outline-none focus:border-[#84ccb9]/50 transition-all text-lg"
+                                                className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl px-5 py-4 text-[var(--text-main)] font-bold outline-none focus:border-[var(--accent-teal)]/50 transition-all text-lg"
                                                 placeholder="e.g. Deep Work Session"
                                             />
                                         </div>
@@ -288,8 +298,8 @@ export default function LanternNetPage() {
                                     onClick={handleBroadcast}
                                     disabled={isSubmitting} // ⚡ Add this to prevent double-clicks
                                     className={`mt-12 w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all ${isSubmitting
-                                        ? 'bg-white/20 text-white/50 cursor-not-allowed'
-                                        : 'bg-white text-black hover:bg-gray-100 active:scale-95'
+                                        ? 'bg-[var(--text-muted)]/30 text-[var(--text-muted)] cursor-not-allowed'
+                                        : 'bg-[var(--accent-teal)] text-black hover:brightness-110 active:scale-95'
                                         }`}
                                 >
                                     {isSubmitting ? (
@@ -311,28 +321,28 @@ export default function LanternNetPage() {
                             </div>
 
                             {/* RIGHT: Premium Architect Panel */}
-                            <div className="flex-1 bg-[#151515] border-t md:border-t-0 md:border-l border-white/5 p-8 lg:p-10 flex flex-col relative">
+                            <div className="flex-1 bg-[var(--bg-sidebar)] border-t md:border-t-0 md:border-l border-[var(--border-color)] p-8 lg:p-10 flex flex-col relative">
                                 <button
                                     onClick={() => setIsHostModalOpen(false)}
-                                    className="absolute top-6 right-6 z-20 text-white/50 hover:text-white transition-colors p-2 bg-[#1a1a1a] rounded-full border border-white/5"
+                                    className="absolute top-6 right-6 z-20 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors p-2 bg-[var(--bg-card)] rounded-full border border-[var(--border-color)]"
                                 >
                                     <X size={16} />
                                 </button>
 
-                                <h3 className="text-sm font-black text-[#e8c366] flex items-center gap-2 mb-10 uppercase tracking-widest">
+                                <h3 className="text-sm font-black text-[var(--accent-yellow)] flex items-center gap-2 mb-10 uppercase tracking-widest">
                                     <Sparkles size={16} /> Architect Pro
                                 </h3>
 
                                 <div className="space-y-8 flex-1">
                                     {/* Capacity (Premium Locked) */}
                                     <div className={`flex flex-col gap-3 ${!isPremiumUser ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
-                                        <span className="text-[11px] font-black text-white/50 uppercase tracking-widest flex justify-between">
+                                        <span className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest flex justify-between">
                                             Capacity {!isPremiumUser && <Lock size={12} />}
                                         </span>
                                         <select
                                             value={roomSettings.capacity}
                                             onChange={(e) => setRoomSettings({ ...roomSettings, capacity: Number(e.target.value) })}
-                                            className="bg-[#1a1a1a] border border-white/5 p-4 rounded-xl text-base font-bold text-white outline-none appearance-none cursor-pointer"
+                                            className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-xl text-base font-bold text-[var(--text-main)] outline-none appearance-none cursor-pointer"
                                         >
                                             <option value={5}>5 Users (Free)</option>
                                             <option value={15}>15 Users</option>
@@ -342,12 +352,12 @@ export default function LanternNetPage() {
 
                                     {/* Privacy (Premium Locked) */}
                                     <div className={`flex items-center justify-between pt-4 ${!isPremiumUser ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
-                                        <span className="text-[11px] font-black text-white/50 uppercase tracking-widest flex items-center gap-2">
+                                        <span className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest flex items-center gap-2">
                                             Private Room {!isPremiumUser && <Lock size={12} />}
                                         </span>
                                         <button
                                             onClick={() => setRoomSettings({ ...roomSettings, isLocked: !roomSettings.isLocked })}
-                                            className={`w-12 h-6 rounded-full relative transition-colors ${roomSettings.isLocked ? 'bg-[#84ccb9]' : 'bg-[#1a1a1a] border border-white/10'}`}
+                                            className={`w-12 h-6 rounded-full relative transition-colors ${roomSettings.isLocked ? 'bg-[var(--accent-teal)]' : 'bg-[var(--bg-card)] border border-[var(--border-color)]'}`}
                                         >
                                             <motion.div layout className={`w-4 h-4 rounded-full bg-white absolute top-1 ${roomSettings.isLocked ? 'right-1' : 'left-1 bg-white/50'}`} />
                                         </button>
@@ -360,7 +370,7 @@ export default function LanternNetPage() {
                                                 <input
                                                     type="text" placeholder="Enter Room Password"
                                                     onChange={(e) => setRoomSettings({ ...roomSettings, vibe: e.target.value })} // Map to your DB schema if needed
-                                                    className="w-full bg-[#111111] border border-white/5 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none mt-2"
+                                                    className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-main)] text-sm font-bold outline-none mt-2"
                                                 />
                                             </motion.div>
                                         )}

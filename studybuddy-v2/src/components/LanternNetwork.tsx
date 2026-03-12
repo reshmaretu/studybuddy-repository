@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useMemo, useEffect } from "react";
+import React, { useState, useRef, useMemo, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, PerspectiveCamera, QuadraticBezierLine, Float, Points, PointMaterial } from "@react-three/drei";
@@ -39,7 +39,11 @@ const createGlowTexture = () => {
 
 // --- COMPONENTS ---
 
-export default function ThreeLanternNet({ users }: { users: LanternUser[] }) {
+export interface LanternNetHandle {
+    warpToUser: (userId: string) => void;
+}
+
+const ThreeLanternNet = forwardRef<LanternNetHandle, { users: LanternUser[] }>(function ThreeLanternNet({ users }, ref) {
     const [is3D, setIs3D] = useState(false);
     const [warpTarget, setWarpTarget] = useState<THREE.Vector3 | null>(null);
     const controlsRef = useRef<any>(null);
@@ -61,6 +65,22 @@ export default function ThreeLanternNet({ users }: { users: LanternUser[] }) {
 
         return () => clearInterval(interval);
     }, []);
+
+    // Expose warpToUser to parent
+    const getPos = useCallback((user: LanternUser): [number, number, number] => {
+        const zPos = is3D ? (user.hours / 10) - 20 : 0;
+        return [(user.gridX - 6) * 12 + (user.jitterX / 8), (user.gridY - 6) * 12 + (user.jitterY / 8), zPos];
+    }, [is3D]);
+
+    useImperativeHandle(ref, () => ({
+        warpToUser: (userId: string) => {
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                const pos = getPos(user);
+                setWarpTarget(new THREE.Vector3(pos[0], pos[1], pos[2]));
+            }
+        }
+    }), [users, getPos]);
 
     return (
         <div className="w-full h-full bg-[#05080c] relative group">
@@ -127,7 +147,9 @@ export default function ThreeLanternNet({ users }: { users: LanternUser[] }) {
             </Canvas>
         </div>
     );
-}
+});
+
+export default ThreeLanternNet;
 
 function LanternConstellation({ users, is3D, onWarp, intensity }: { users: LanternUser[], is3D: boolean, onWarp: (v: THREE.Vector3) => void, intensity: number }) {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -340,7 +362,25 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
 
 function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete }: any) {
     const isTransitioning = useRef(false);
+    const isCancelled = useRef(false);
     useEffect(() => { isTransitioning.current = true; if (controlsRef.current) controlsRef.current.enabled = false; }, [is3D, controlsRef]);
+
+    // Cancel warp on user zoom/scroll
+    useEffect(() => {
+        const handleWheel = () => {
+            if (warpTarget) {
+                isCancelled.current = true;
+                onWarpComplete();
+            }
+        };
+        window.addEventListener('wheel', handleWheel, { passive: true });
+        return () => window.removeEventListener('wheel', handleWheel);
+    }, [warpTarget, onWarpComplete]);
+
+    // Reset cancelled flag when warp target changes
+    useEffect(() => {
+        if (warpTarget) isCancelled.current = false;
+    }, [warpTarget]);
 
     useFrame((state, delta) => {
         const cam = state.camera as THREE.PerspectiveCamera;
@@ -348,7 +388,7 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete }: any) {
         cam.fov = THREE.MathUtils.lerp(cam.fov, is3D ? 50 : 30, speed);
         cam.updateProjectionMatrix();
 
-        if (warpTarget) {
+        if (warpTarget && !isCancelled.current) {
             const offset = new THREE.Vector3(0, 0, 40);
             const targetPos = warpTarget.clone().add(offset);
             cam.position.lerp(targetPos, speed);

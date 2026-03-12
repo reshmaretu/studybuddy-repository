@@ -1,13 +1,10 @@
 "use client";
 
-// 1. ALL imports must be at the very top!
 import { Palette } from "lucide-react";
 import dynamic from "next/dynamic";
-import "@tldraw/tldraw/tldraw.css";
 
-// 2. We dynamically import the named 'Tldraw' component so it doesn't crash SSR
-const Tldraw = dynamic(
-    () => import("@tldraw/tldraw").then((mod) => mod.Tldraw),
+const Excalidraw = dynamic(
+    () => import("@excalidraw/excalidraw").then((mod) => mod.Excalidraw),
     {
         ssr: false,
         loading: () => (
@@ -21,7 +18,6 @@ const Tldraw = dynamic(
 
 export default function ZenCanvas() {
     return (
-        // calc(100vh - 4rem) ensures the canvas fills exactly the remaining screen height
         <div className="h-[calc(100vh-4rem)] flex flex-col space-y-4">
 
             {/* HEADER */}
@@ -37,16 +33,9 @@ export default function ZenCanvas() {
 
             {/* THE WHITEBOARD CONTAINER */}
             <div className="flex-1 rounded-2xl overflow-hidden border border-[var(--border-color)] shadow-sm relative z-0">
-
-                {/* Tldraw Engine: 
-          - persistenceKey: Automatically saves your entire mindmap to local storage!
-          - inferDarkMode: Makes the canvas dark to match StudyBuddy's vibe.
-        */}
-                <Tldraw
-                    persistenceKey="studybuddy-zen-canvas-v1"
-                    inferDarkMode={true}
+                <Excalidraw
+                    theme="dark"
                 />
-
             </div>
 
         </div>
