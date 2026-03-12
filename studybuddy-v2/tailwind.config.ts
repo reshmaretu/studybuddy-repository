@@ -9,7 +9,6 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ⚡ These now pull directly from your globals.css variables
         background: {
           dark: "var(--bg-dark)",
           sidebar: "var(--bg-sidebar)",

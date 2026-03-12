@@ -29,7 +29,6 @@ export default function FlowStateOverlay() {
     useEffect(() => {
         const anchor = async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            // 🛡️ Guard: Only update if THIS specific mode is active
             if (user && activeMode === 'studyCafe') {
                 await supabase.from('profiles')
                     .update({
@@ -41,7 +40,7 @@ export default function FlowStateOverlay() {
             }
         };
         anchor();
-    }, [activeMode]); //
+    }, [activeMode]);
 
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
