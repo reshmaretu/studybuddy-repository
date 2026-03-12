@@ -331,7 +331,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 if (settings.mode === 'stopwatch' || settings.mode === 'free') setSecondsLeft(0);
                 else setSecondsLeft(settings.workDuration * 60);
 
-                // 👇 FIXED: Auto-start the timer!
+                // 👇 Auto-start the timer!
                 setIsActive(true);
             }
         }
@@ -339,34 +339,54 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
     useEffect(() => {
         let interval: NodeJS.Timeout;
+        // ⚡ Timestamp Anchor: Record exactly when the engine started or resumed
+        let expectedTimestamp = Date.now();
+
         if (status === 'ACTIVE' && isActive) {
+            // Run the interval fast (every 200ms) to catch lag instantly without trusting the browser's 1000ms heartbeat
             interval = setInterval(() => {
-                setSecondsLeft(prev => {
-                    // ⚡ FIX: Both count UP, but 'free' is the standard open mode
-                    if (settings.mode === 'free' || settings.mode === 'stopwatch') return prev + 1;
+                const now = Date.now();
+                const deltaTime = now - expectedTimestamp; // How much time ACTUALLY passed?
 
-                    if (prev <= 1) {
-                        if (settings.mode === 'pomodoro') {
-                            const nextIsBreak = !isBreak;
-                            setIsBreak(nextIsBreak);
-                            setIsActive(false);
+                // Only tick if at least 1 full second (1000ms) has passed
+                if (deltaTime >= 1000) {
+                    // If the tab was asleep for 5 seconds, secondsMissed will be 5
+                    const secondsMissed = Math.floor(deltaTime / 1000);
+                    expectedTimestamp += secondsMissed * 1000; // Move the anchor forward safely
 
-                            if (nextIsBreak) {
-                                // ⚡ ADVANCED POMODORO: Check for Long Break every 4 cycles
-                                const isLongBreak = settings.currentCycle % settings.cyclesBeforeLongBreak === 0;
-                                return isLongBreak ? settings.longBreakDuration * 60 : settings.breakDuration * 60;
-                            } else {
-                                // Back to work: Increment cycle count
-                                setSettings(s => ({ ...s, currentCycle: s.currentCycle + 1 }));
-                                return settings.workDuration * 60;
-                            }
+                    setSecondsLeft(prev => {
+                        // ⚡ Count UP mode (Stopwatch / Free)
+                        if (settings.mode === 'free' || settings.mode === 'stopwatch') {
+                            return prev + secondsMissed;
                         }
-                        setIsActive(false);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
+
+                        // ⚡ Count DOWN mode (Pomodoro / Fixed)
+                        const next = prev - secondsMissed;
+
+                        // Hit Zero!
+                        if (next <= 0) {
+                            if (settings.mode === 'pomodoro') {
+                                const nextIsBreak = !isBreak;
+                                setIsBreak(nextIsBreak);
+                                setIsActive(false); // Pause so they can initiate the next phase
+
+                                if (nextIsBreak) {
+                                    // ADVANCED POMODORO: Check for Long Break every 4 cycles
+                                    const isLongBreak = settings.currentCycle % settings.cyclesBeforeLongBreak === 0;
+                                    return isLongBreak ? settings.longBreakDuration * 60 : settings.breakDuration * 60;
+                                } else {
+                                    // Back to work: Increment cycle count
+                                    setSettings(s => ({ ...s, currentCycle: s.currentCycle + 1 }));
+                                    return settings.workDuration * 60;
+                                }
+                            }
+                            setIsActive(false);
+                            return 0;
+                        }
+                        return next;
+                    });
+                }
+            }, 200);
         }
         return () => clearInterval(interval);
     }, [isActive, status, isBreak, settings]);
@@ -448,8 +468,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             <AnimatePresence>
                 {status === 'DRAFT' && isHost && (
                     <motion.aside
-                        initial={{ x: -350 }} animate={{ x: 0 }} exit={{ x: -350 }}
-                        className="w-[340px] flex-shrink-0 h-full bg-[#111111]/95 backdrop-blur-2xl border-r border-white/5 flex flex-col z-50 shadow-2xl overflow-hidden"
+                        initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                        // ⚡ FIX: Appended the scrollbar hiding classes to the end of the className string
+                        className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl z-[110] overflow-hidden max-h-48 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                     >
                         <div className="p-6 border-b border-white/5 bg-black/20">
                             <h2 className="text-[#e8c366] font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
@@ -527,7 +548,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     options={['Theme Default', 'Static Lo-Fi', 'Live Lo-Fi (Pro)']}
                                     isOpen={openDropdown === 'cat'}
                                     onToggle={() => setOpenDropdown(openDropdown === 'cat' ? null : 'cat')}
-                                    isPremiumUser={isPremiumUser}
+                                    isPremiumUser={isRoomPremium}
                                     onChange={(cat: string) => {
                                         const defaultAsset = cat === 'Theme Default' ? THEMES[0] : cat === 'Static Lo-Fi' ? STATIC_BGS[0] : LIVE_BGS[0];
                                         updateSettings({ vibeCategory: cat, vibeAsset: defaultAsset });
@@ -538,7 +559,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     options={settings.vibeCategory === 'Theme Default' ? THEMES : settings.vibeCategory === 'Static Lo-Fi' ? STATIC_BGS : LIVE_BGS}
                                     isOpen={openDropdown === 'asset'}
                                     onToggle={() => setOpenDropdown(openDropdown === 'asset' ? null : 'asset')}
-                                    isPremiumUser={isPremiumUser}
+                                    isPremiumUser={isRoomPremium}
                                     onChange={(asset: string) => updateSettings({ vibeAsset: asset })}
                                 />
                             </section>
@@ -554,7 +575,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     options={AUDIO_TRACKS}
                                     isOpen={openDropdown === 'audio'}
                                     onToggle={() => setOpenDropdown(openDropdown === 'audio' ? null : 'audio')}
-                                    isPremiumUser={isPremiumUser}
+                                    isPremiumUser={isRoomPremium}
                                     onChange={(track: string) => updateSettings({ audioTrack: track })}
                                 />
                             </section>
