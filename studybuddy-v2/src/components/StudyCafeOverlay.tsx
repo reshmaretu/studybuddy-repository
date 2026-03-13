@@ -119,26 +119,40 @@ function CenteredVisualizer({ accent, isRunning }: { accent: string; isRunning: 
     }, []);
 
     return (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center relative">
+            {/* 🌈 THE PULSE AURA: A blurred glow behind the bars */}
+            <motion.div
+                className="absolute inset-0 rounded-full blur-3xl opacity-20"
+                animate={isRunning ? {
+                    scale: [0.8, 1.2, 0.8],
+                    backgroundColor: [accent, `${accent}aa`, accent]
+                } : { opacity: 0 }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            />
+
             {/* Upper bars */}
-            <div className="flex items-end gap-[2px]">
+            <div className="flex items-end gap-[3px] relative z-10">
                 {barHeights.map((heights, i) => (
-                    <motion.div key={`u${i}`} className="w-[3px] rounded-t-full"
-                        style={{ backgroundColor: accent }}
-                        animate={isRunning ? { height: heights.map(h => `${h}px`), opacity: [0.5, 1, 0.6, 0.9, 0.5] } : { height: '3px', opacity: 0.15 }}
-                        transition={{ duration: 1.1 + (i % 5) * 0.16, repeat: Infinity, delay: (i % 7) * 0.07, ease: 'easeInOut' }}
+                    <motion.div key={`u${i}`} className="w-[4px] rounded-t-full"
+                        style={{ backgroundColor: accent, boxShadow: `0 0 15px ${accent}44` }}
+                        animate={isRunning ? {
+                            height: heights.map(h => `${h * 1.5}px`), // Taller bars for more energy
+                            opacity: [0.6, 1, 0.6]
+                        } : { height: '4px', opacity: 0.2 }}
+                        transition={{ duration: 1.1 + (i % 5) * 0.2, repeat: Infinity, ease: 'easeInOut' }}
                     />
                 ))}
             </div>
-            {/* Center line */}
-            <div style={{ width: '100%', height: '1px', backgroundColor: `${accent}33` }} />
+
+            <div style={{ width: '120%', height: '1px', backgroundColor: `${accent}44` }} className="my-1" />
+
             {/* Lower (mirror) bars */}
-            <div className="flex items-start gap-[2px]">
+            <div className="flex items-start gap-[3px] opacity-40 relative z-10">
                 {barHeights.map((heights, i) => (
-                    <motion.div key={`d${i}`} className="w-[3px] rounded-b-full"
+                    <motion.div key={`d${i}`} className="w-[4px] rounded-b-full"
                         style={{ backgroundColor: accent }}
-                        animate={isRunning ? { height: heights.map(h => `${h * 0.5}px`), opacity: [0.2, 0.45, 0.25, 0.4, 0.2] } : { height: '3px', opacity: 0.07 }}
-                        transition={{ duration: 1.1 + (i % 5) * 0.16, repeat: Infinity, delay: (i % 7) * 0.07, ease: 'easeInOut' }}
+                        animate={isRunning ? { height: heights.map(h => `${h * 0.7}px`) } : { height: '3px' }}
+                        transition={{ duration: 1.1 + (i % 5) * 0.2, repeat: Infinity, ease: 'easeInOut' }}
                     />
                 ))}
             </div>
@@ -279,8 +293,26 @@ export default function StudyCafeOverlay() {
     return (
         <>
             <style>{`
+
+body[data-cafe="true"] .bg-background-card,
+body[data-cafe="true"] section > div {
+    /* Clear out all default styling that causes double-lines */
+    border: none !important;
+    background: var(--bg-card) !important;
+    outline: none !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 🛡️ THE STRAY LINE KILLER: Targets nested task cards */
+body[data-cafe="true"] [class*="TaskCard"], 
+body[data-cafe="true"] .h-32.border-dashed {
+    background: transparent !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: none !important; /* Prevents blur-stacking */
+    box-shadow: none !important;
+}
+
 body[data-cafe="true"] {
-    /* 🧊 REFINED CRYSTAL: Slightly more "substance" (0.04 vs 0.01) */
     --bg-card: rgba(255, 255, 255, 0.04) !important;
     --bg-dark: rgba(0, 0, 0, 0.2) !important; /* Darker base for better contrast */
     --border-color: rgba(255, 255, 255, 0.15) !important;
@@ -292,7 +324,7 @@ body[data-cafe="true"] section > div,
 body[data-cafe="true"] fieldset,
 body[data-cafe="true"] .rounded-2xl,
 body[data-cafe="true"] .rounded-xl {
-    /* 🛡️ THE GLASS LAYER */
+=
     background: linear-gradient(
         135deg, 
         rgba(255, 255, 255, 0.08) 0%, 
@@ -301,19 +333,23 @@ body[data-cafe="true"] .rounded-xl {
     backdrop-filter: blur(24px) saturate(1.6) brightness(0.9) !important;
     -webkit-backdrop-filter: blur(24px) saturate(1.6) brightness(0.9) !important;
     
-    /* 💎 DOUBLE-EDGED BORDER: Creates a sharp "Crystal" edge */
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     box-shadow: 
         0 12px 40px rgba(0, 0, 0, 0.4),
         inset 0 0 0 1.5px rgba(255, 255, 255, 0.05) !important;
 }
 
-/* 🚪 SIDEBAR GLASS: Slightly more opaque to ground the UI */
 body[data-cafe="true"] nav {
     background: rgba(10, 10, 15, 0.4) !important;
     backdrop-filter: blur(30px) !important;
     border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
+
+body[data-cafe="true"] .visualizer-container {
+    border: none !important;
+    box-shadow: none !important;
+}
+
 `}</style>
 
             {/* The Fixed Background Layer */}
