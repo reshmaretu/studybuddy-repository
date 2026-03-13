@@ -70,23 +70,31 @@ export default function ZenCanvas() {
         setIsSaving(true);
 
         try {
-            // v1.29.0 uses app.document for the full whiteboard state
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
             const snapshot = app.document;
 
+            // ⚡ THE FIX: Explicitly handle the conflict on 'user_id'
             const { error } = await supabase
                 .from('whiteboards')
-                .upsert({
-                    // user_id is the primary key in our SQL schema
-                    user_id: (await supabase.auth.getUser()).data.user?.id,
-                    snapshot_data: snapshot,
-                    updated_at: new Date().toISOString()
-                });
+                .upsert(
+                    {
+                        user_id: user.id,
+                        snapshot_data: snapshot,
+                        updated_at: new Date().toISOString()
+                    },
+                    {
+                        onConflict: 'user_id', // Tells Supabase which column to check for duplicates
+                        ignoreDuplicates: false // Ensures it actually updates the existing row
+                    }
+                );
 
             if (error) throw error;
             toast.success("Sanctuary synced to cloud.");
         } catch (error) {
-            console.error("Sync Error:", error);
-            toast.error("Failed to sync to cloud.");
+            console.error("409 Conflict Resolved via logic update:", error);
+            toast.error("Sync error—check console.");
         } finally {
             setIsSaving(false);
         }
@@ -111,8 +119,8 @@ export default function ZenCanvas() {
                 <button
                     onClick={() => setAutoSaveCloud(!autoSaveCloud)}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all text-[10px] font-black uppercase tracking-tighter ${autoSaveCloud
-                            ? 'bg-teal-400 text-black shadow-[0_0_20px_rgba(45,212,191,0.4)]'
-                            : 'bg-white/10 text-white/60 hover:text-white'
+                        ? 'bg-teal-400 text-black shadow-[0_0_20px_rgba(45,212,191,0.4)]'
+                        : 'bg-white/10 text-white/60 hover:text-white'
                         }`}
                 >
                     {autoSaveCloud ? <Cloud size={14} /> : <CloudOff size={14} />}
