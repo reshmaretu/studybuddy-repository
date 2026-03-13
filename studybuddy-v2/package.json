@@ -18,6 +18,7 @@
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",
     "@supabase/supabase-js": "^2.98.0",
+    "@tldraw/tldraw": "^4.4.1",
     "@types/three": "^0.183.1",
     "ai": "^6.0.116",
     "date-fns": "^4.1.0",
