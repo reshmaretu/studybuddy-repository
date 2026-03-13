@@ -278,8 +278,6 @@ export default function StudyCafeOverlay() {
 
     return (
         <>
-            {/* ── Override CSS vars for glassmorphism globally ─── */}
-            /* ─── Study Cafe: Crystal Glass Refraction ────────────────────────────────── */
             <style>{`
 body[data-cafe="true"] {
     /* ⚪ PURE NEUTRAL GLASS: Minimal alpha for maximum depth */
@@ -289,7 +287,6 @@ body[data-cafe="true"] {
     --text-main: #ffffff !important;
 }
 
-/* 🛡️ THE STRIPPER: Removes the opaque "boxes" from the dashboard */
 body[data-cafe="true"] .bg-background-card,
 body[data-cafe="true"] section > div,
 body[data-cafe="true"] fieldset,
@@ -299,24 +296,20 @@ body[data-cafe="true"] .rounded-xl {
     backdrop-filter: blur(14px) saturate(1.4) brightness(1.1) !important;
     -webkit-backdrop-filter: blur(14px) saturate(1.4) brightness(1.1) !important;
     
-    /* 💎 CRYSTAL EDGES: Using a gradient border instead of a solid line */
     border: none !important;
     box-shadow: 
         0 8px 32px 0 rgba(0, 0, 0, 0.3),
         inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
     
-    /* Fix for stray lines: ensure child containers don't have their own borders */
     outline: none !important;
 }
 
-/* 🚪 THE SIDEBAR: Force transparency on the nav */
 body[data-cafe="true"] nav {
     background: rgba(255, 255, 255, 0.02) !important;
     backdrop-filter: blur(20px) !important;
     border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-/* 🖋️ LABEL FIX: Ensure white text across the board */
 body[data-cafe="true"] h1, 
 body[data-cafe="true"] h2, 
 body[data-cafe="true"] h3, 
