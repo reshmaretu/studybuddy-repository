@@ -12,10 +12,10 @@ const nextConfig: NextConfig = {
             value: "default-src 'self'; " +
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:; " +
               "style-src 'self' 'unsafe-inline'; " +
-              "img-src 'self' blob: data: https://*.tldraw.com https://grainy-gradients.vercel.app; " +
+              "img-src 'self' blob: data: https://*.tldraw.com https://cdn.tldraw.com https://grainy-gradients.vercel.app; " +
               "font-src 'self' data: https://*.tldraw.com; " +
               "worker-src 'self' blob:; " +
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.tldraw.com; " +
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.tldraw.com https://cdn.tldraw.com; " +
               "object-src 'none';"
           },
         ],
