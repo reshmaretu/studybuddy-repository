@@ -126,17 +126,9 @@
     --accent-yellow: #aaaaaa;
 }
 
-/* 🌸 SAKURA + CAFE SYNC */
-[data-theme="sakura"][data-cafe="true"] .rounded-2xl {
-    /* Reset Sakura's specific card tint so the background shines through */
-    background: var(--bg-card) !important;
-    color: var(--text-main) !important;
-    border: 1px solid var(--border-color) !important;
-}
-
-/* Ensure Sakura text remains readable on light café backgrounds */
-[data-theme="sakura"][data-cafe="true"] * {
-    text-shadow: 0 1px 2px rgba(252, 240, 244, 0.5);
+/* Ensure text remains readable on café backgrounds */
+body[data-cafe="true"] * {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -219,16 +211,19 @@ body {
 
 /* ─── Study Cafe: True Frosted Glass ───────────────────────────────────────── */
 body[data-cafe="true"] {
-    /* Ensure the global text is readable against glow */
-    --text-main: #ffffff;
-    --text-muted: rgba(255, 255, 255, 0.6);
+    /* 🌑 Force Dark Atmosphere Precedence (Overrides Sakura and other light themes) */
+    --bg-dark: #02060a !important;
+    --bg-sidebar: #050a0f !important;
+    --bg-card: rgba(255, 255, 255, 0.04) !important;
+    --border-color: rgba(255, 255, 255, 0.12) !important;
+    --text-main: #ffffff !important;
+    --text-muted: rgba(255, 255, 255, 0.55) !important;
+    background-color: #02060a !important;
 }
 
-body[data-cafe="true"] .rounded-2xl,
-body[data-cafe="true"] .rounded-xl,
-body[data-cafe="true"] section>div,
-body[data-cafe="true"] .bg-background-card,
-body[data-cafe="true"] .rounded-2xl {
+/* Apply glassmorphism ONLY to cards, excluding the Sidebar completely */
+body[data-cafe="true"] .bg-\[var\(--bg-card\)\]:not(nav *),
+body[data-cafe="true"] .bg-\[var\(--bg-card\)\]:not(aside *) {
     /* 🧊 Ultra-low alpha for maximum background bleed */
     background: rgba(255, 255, 255, 0.01) !important;
     backdrop-filter: blur(16px) saturate(1.8) !important;

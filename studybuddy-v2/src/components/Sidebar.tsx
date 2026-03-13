@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { useStudyStore } from "@/store/useStudyStore";
 import {
     LayoutGrid, Sprout, Palette, Coffee, Waves, Calendar,
     BookOpen, BarChart3, Shirt, Settings, LogOut, Radio
@@ -20,6 +22,18 @@ export default function Sidebar() {
         { name: "Insights", href: "/insights", icon: BarChart3 },
         { name: "Wardrobe", href: "/wardrobe", icon: Shirt },
     ];
+
+    const { activeMode } = useStudyStore();
+    const [shakeWardrobe, setShakeWardrobe] = useState(false);
+    const isCafe = activeMode === 'studyCafe';
+
+    const handleWardrobeClick = (e: React.MouseEvent) => {
+        if (isCafe) {
+            e.preventDefault();
+            setShakeWardrobe(true);
+            setTimeout(() => setShakeWardrobe(false), 300);
+        }
+    };
 
     return (
         <nav className="fixed top-0 left-0 h-screen w-[80px] hover:w-[240px] bg-[var(--bg-sidebar)] border-r border-[var(--border-color)] transition-all duration-300 z-50 overflow-hidden group">
@@ -43,16 +57,21 @@ export default function Sidebar() {
                         {navItems.map((item) => {
                             const isActive = pathname === item.href;
                             const Icon = item.icon;
+                            const isWardrobe = item.name === "Wardrobe";
 
                             return (
                                 <Link
                                     key={item.name}
-                                    href={item.href}
+                                    href={isWardrobe && isCafe ? "#" : item.href}
+                                    onClick={isWardrobe ? handleWardrobeClick : undefined}
                                     className={`flex items-center h-12 mx-2 rounded-lg transition-all overflow-hidden whitespace-nowrap
                                         ${isActive
                                             ? "bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]"
                                             : "text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5"
-                                        }`}
+                                        }
+                                        ${isWardrobe && isCafe ? "cursor-not-allowed" : ""}
+                                        ${isWardrobe && shakeWardrobe ? "animate-premium-shake" : ""}
+                                    `}
                                 >
                                     <div className="w-[64px] flex-shrink-0 flex items-center justify-center">
                                         <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className={isActive ? "text-[var(--accent-teal)]" : ""} />

@@ -294,62 +294,30 @@ export default function StudyCafeOverlay() {
         <>
             <style>{`
 
-body[data-cafe="true"] .bg-background-card,
-body[data-cafe="true"] section > div {
-    /* Clear out all default styling that causes double-lines */
+/* 1. Kill the section container borders/bg but KEEP the individual cards inside */
+body[data-cafe="true"] section.pt-2 {
     border: none !important;
-    background: var(--bg-card) !important;
-    outline: none !important;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
-}
-
-/* 🛡️ THE STRAY LINE KILLER: Targets nested task cards */
-body[data-cafe="true"] [class*="TaskCard"], 
-body[data-cafe="true"] .h-32.border-dashed {
     background: transparent !important;
-    border: 1px solid rgba(255, 255, 255, 0.05) !important;
-    backdrop-filter: none !important; /* Prevents blur-stacking */
     box-shadow: none !important;
 }
 
-body[data-cafe="true"] {
-    --bg-card: rgba(255, 255, 255, 0.04) !important;
-    --bg-dark: rgba(0, 0, 0, 0.2) !important; /* Darker base for better contrast */
-    --border-color: rgba(255, 255, 255, 0.15) !important;
-    --text-main: #ffffff !important;
-}
-
-body[data-cafe="true"] .bg-background-card,
-body[data-cafe="true"] section > div,
-body[data-cafe="true"] fieldset,
-body[data-cafe="true"] .rounded-2xl,
-body[data-cafe="true"] .rounded-xl {
-=
-    background: linear-gradient(
-        135deg, 
-        rgba(255, 255, 255, 0.08) 0%, 
-        rgba(255, 255, 255, 0.02) 100%
-    ) !important;
-    backdrop-filter: blur(24px) saturate(1.6) brightness(0.9) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(1.6) brightness(0.9) !important;
-    
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    box-shadow: 
-        0 12px 40px rgba(0, 0, 0, 0.4),
-        inset 0 0 0 1.5px rgba(255, 255, 255, 0.05) !important;
-}
-
-body[data-cafe="true"] nav {
-    background: rgba(10, 10, 15, 0.4) !important;
-    backdrop-filter: blur(30px) !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-body[data-cafe="true"] .visualizer-container {
+/* 2. Target the Task Titles wrapper specifically if needed */
+body[data-cafe="true"] section.pt-2 > div:first-child {
     border: none !important;
+    background: transparent !important;
     box-shadow: none !important;
 }
 
+/* 3. Restore definition to individual items */
+body[data-cafe="true"] section .grid .border-\\[3px\\],
+body[data-cafe="true"] section .grid .bg-\\[var\\(--bg-card\\)\\],
+body[data-cafe="true"] section .bg-\\[var\\(--bg-card\\)\\].p-8 {
+    /* These now get the glassy border from globals.css */
+    /* If the user wants specific borders, we can define them here */
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: rgba(255,255,255, 0.02) !important;
+}
+    
 `}</style>
 
             {/* The Fixed Background Layer */}
