@@ -1,12 +1,20 @@
 "use client";
 
-import { Tldraw } from "@tldraw/tldraw";
-import { useState } from "react";
-import { supabase } from "@/lib/supabase"; // Ensure your client is exported here
-import { toast } from "sonner"; // Or your preferred notification tool
+import dynamic from "next/dynamic";
+import { useState, useEffect } from "react";
+import { Save, Cloud, CloudOff } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+
+// ⚡ The Dynamic Gatekeeper: ssr: false is CRITICAL
+const TldrawSafe = dynamic(() => import("@/components/TldrawSafe"), {
+    ssr: false,
+    loading: () => <div className="h-full w-full bg-[var(--bg-dark)] animate-pulse rounded-[32px]" />
+});
 
 export default function ZenCanvas() {
     const [app, setApp] = useState<any>(null);
+    const [autoSaveCloud, setAutoSaveCloud] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
     const handleSave = async () => {
@@ -38,11 +46,9 @@ export default function ZenCanvas() {
 
     return (
         <div className="relative h-full w-full">
-            <Tldraw
-                // 'id' triggers the IndexedDB local persistence automatically
-                id="studybuddy_sanctuary"
-                onMount={(inst) => setApp(inst)}
-                showMenu={false}
+            <TldrawSafe
+                id="studybuddy-zen-canvas-v1"
+                onMount={(appInstance) => setApp(appInstance)}
             />
 
             <button
