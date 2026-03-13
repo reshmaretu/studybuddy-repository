@@ -1,16 +1,20 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import { Save, Cloud, CloudOff } from "lucide-react";
+import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
-// ⚡ The Dynamic Gatekeeper: ssr: false is CRITICAL
-const TldrawSafe = dynamic(() => import("@/components/TldrawSafe"), {
-    ssr: false,
-    loading: () => <div className="h-full w-full bg-[var(--bg-dark)] animate-pulse rounded-[32px]" />
-});
+// ⚡ THE SHIELD: This dynamically imports the actual Tldraw component
+// only when the code is running in a browser (ssr: false).
+const TldrawComponent = dynamic(
+    () => import("@tldraw/tldraw").then((mod) => mod.Tldraw),
+    {
+        ssr: false,
+        loading: () => <div className="h-full w-full bg-[var(--bg-dark)] animate-pulse" />
+    }
+);
 
 export default function ZenCanvas() {
     const [app, setApp] = useState<any>(null);
@@ -45,19 +49,23 @@ export default function ZenCanvas() {
     };
 
     return (
-        <div className="relative h-full w-full">
-            <TldrawSafe
-                id="studybuddy-zen-canvas-v1"
-                onMount={(appInstance) => setApp(appInstance)}
-            />
+        <div style={{ position: "absolute", inset: 0 }}>
+            {/* 🎨 Floating Sanctuary UI */}
+            <div className="absolute top-4 right-4 z-[100] flex items-center gap-2 ...">
+                <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="absolute bottom-6 right-6 z-[100] bg-[var(--accent-teal)] hover:opacity-90 text-white px-4 py-2 rounded-xl font-bold shadow-lg transition-all disabled:opacity-50"
+                >
+                    {isSaving ? "SYNCING..." : "SYNC TO CLOUD"}
+                </button>
+            </div>
 
-            <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="absolute bottom-6 right-6 z-[100] bg-[var(--accent-teal)] hover:opacity-90 text-white px-4 py-2 rounded-xl font-bold shadow-lg transition-all disabled:opacity-50"
-            >
-                {isSaving ? "SYNCING..." : "SYNC TO CLOUD"}
-            </button>
+            <TldrawComponent
+                id="studybuddy-zen-canvas-v1"
+                showMenu={false}
+                onMount={(appInstance: any) => setApp(appInstance)}
+            />
         </div>
     );
 }
