@@ -280,10 +280,10 @@ export default function StudyCafeOverlay() {
         <>
             <style>{`
 body[data-cafe="true"] {
-    /* ⚪ PURE NEUTRAL GLASS: Minimal alpha for maximum depth */
-    --bg-card: rgba(255, 255, 255, 0.01) !important;
-    --bg-dark: rgba(255, 255, 255, 0.005) !important;
-    --border-color: rgba(255, 255, 255, 0.08) !important;
+    /* 🧊 REFINED CRYSTAL: Slightly more "substance" (0.04 vs 0.01) */
+    --bg-card: rgba(255, 255, 255, 0.04) !important;
+    --bg-dark: rgba(0, 0, 0, 0.2) !important; /* Darker base for better contrast */
+    --border-color: rgba(255, 255, 255, 0.15) !important;
     --text-main: #ffffff !important;
 }
 
@@ -292,30 +292,27 @@ body[data-cafe="true"] section > div,
 body[data-cafe="true"] fieldset,
 body[data-cafe="true"] .rounded-2xl,
 body[data-cafe="true"] .rounded-xl {
-    background: var(--bg-card) !important;
-    backdrop-filter: blur(14px) saturate(1.4) brightness(1.1) !important;
-    -webkit-backdrop-filter: blur(14px) saturate(1.4) brightness(1.1) !important;
+    /* 🛡️ THE GLASS LAYER */
+    background: linear-gradient(
+        135deg, 
+        rgba(255, 255, 255, 0.08) 0%, 
+        rgba(255, 255, 255, 0.02) 100%
+    ) !important;
+    backdrop-filter: blur(24px) saturate(1.6) brightness(0.9) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(1.6) brightness(0.9) !important;
     
-    border: none !important;
+    /* 💎 DOUBLE-EDGED BORDER: Creates a sharp "Crystal" edge */
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
     box-shadow: 
-        0 8px 32px 0 rgba(0, 0, 0, 0.3),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-    
-    outline: none !important;
+        0 12px 40px rgba(0, 0, 0, 0.4),
+        inset 0 0 0 1.5px rgba(255, 255, 255, 0.05) !important;
 }
 
+/* 🚪 SIDEBAR GLASS: Slightly more opaque to ground the UI */
 body[data-cafe="true"] nav {
-    background: rgba(255, 255, 255, 0.02) !important;
-    backdrop-filter: blur(20px) !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-
-body[data-cafe="true"] h1, 
-body[data-cafe="true"] h2, 
-body[data-cafe="true"] h3, 
-body[data-cafe="true"] span, 
-body[data-cafe="true"] p {
-    color: #ffffff !important;
+    background: rgba(10, 10, 15, 0.4) !important;
+    backdrop-filter: blur(30px) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 `}</style>
 
@@ -332,12 +329,16 @@ body[data-cafe="true"] p {
             />
 
             {/* 🛡️ THE VISUALIZER FIX: Moved into the background layer (z-index 0) behind the dashboard */}
-            <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
-
-                {/* Visualizer centered perfectly in the background */}
+            {/* 🛡️ THE VISUALIZER FIX: Increased opacity and adjusted positioning */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
                 <div
-                    className="absolute flex items-center justify-center opacity-40 blur-[1px]"
-                    style={{ bottom: '20%', left: 'calc(50% + 40px)', transform: 'translateX(-50%)' }}
+                    className="absolute flex items-center justify-center opacity-80" // Increased from 40%
+                    style={{
+                        bottom: '25%',
+                        left: 'calc(50% + 40px)',
+                        transform: 'translateX(-50%)',
+                        filter: 'drop-shadow(0 0 12px var(--atmo-glow))' // Uses the theme's accent color
+                    }}
                 >
                     <CenteredVisualizer accent={atmo.accent} isRunning={isRunning} />
                 </div>
