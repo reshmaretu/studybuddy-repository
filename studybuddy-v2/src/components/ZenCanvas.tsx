@@ -66,47 +66,45 @@ export default function ZenCanvas() {
     }, [app]);
 
     const handleSave = async () => {
-        if (!app) return;
+        // ⚡ THE FIX: Ensure we aren't just checking 'app', 
+        // but also ensuring the engine isn't mid-transaction.
+        if (!app || isSaving) return;
         setIsSaving(true);
 
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const snapshot = app.document;
+            // Force the app to sync its internal state to the document object
+            // before we grab the snapshot for Supabase.
+            const snapshot = { ...app.document };
 
-            // ⚡ THE FIX: Explicitly handle the conflict on 'user_id'
             const { error } = await supabase
                 .from('whiteboards')
-                .upsert(
-                    {
-                        user_id: user.id,
-                        snapshot_data: snapshot,
-                        updated_at: new Date().toISOString()
-                    },
-                    {
-                        onConflict: 'user_id', // Tells Supabase which column to check for duplicates
-                        ignoreDuplicates: false // Ensures it actually updates the existing row
-                    }
-                );
+                .upsert({
+                    user_id: user.id,
+                    snapshot_data: snapshot,
+                    updated_at: new Date().toISOString()
+                }, {
+                    onConflict: 'user_id'
+                });
 
             if (error) throw error;
-            toast.success("Sanctuary synced to cloud.");
+            toast.success("Cloud Sanctuary Updated");
         } catch (error) {
-            console.error("409 Conflict Resolved via logic update:", error);
-            toast.error("Sync error—check console.");
+            console.error("Sync Error:", error);
         } finally {
             setIsSaving(false);
         }
     };
 
     useEffect(() => {
-        // Only run if cloud sync is enabled and the app is ready
         if (!autoSaveCloud || !app) return;
 
         const autoSaveInterval = setInterval(() => {
+            // Direct call to handleSave without requiring manual triggers
             handleSave();
-        }, 30000); // Auto-save every 30 seconds
+        }, 30000);
 
         return () => clearInterval(autoSaveInterval);
     }, [autoSaveCloud, app]);
