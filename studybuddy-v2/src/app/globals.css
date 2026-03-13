@@ -227,27 +227,26 @@ body[data-cafe="true"] {
 body[data-cafe="true"] .rounded-2xl,
 body[data-cafe="true"] .rounded-xl,
 body[data-cafe="true"] section>div,
-body[data-cafe="true"] .bg-background-card {
-    /* 🧊 Lower alpha (0.05 - 0.08) is the secret to high-end glass */
-    background: rgba(255, 255, 255, 0.03) !important;
-    backdrop-filter: blur(20px) saturate(1.8) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(1.8) !important;
+body[data-cafe="true"] .bg-background-card,
+body[data-cafe="true"] .rounded-2xl {
+    /* 🧊 Ultra-low alpha for maximum background bleed */
+    background: rgba(255, 255, 255, 0.01) !important;
+    backdrop-filter: blur(16px) saturate(1.8) !important;
 
-    /* 💎 Thinner, more surgical borders */
-    border: 0.5px solid rgba(255, 255, 255, 0.12) !important;
+    /* 💎 High-contrast thin border for definition */
+    border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
+
+    /* 🌫️ Soften the inner shadow to remove "boxed" feeling */
     box-shadow:
-        0 8px 32px 0 rgba(0, 0, 0, 0.37),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-
-    /* 📐 Fix weird corners/lines */
-    overflow: hidden;
+        0 4px 24px -1px rgba(0, 0, 0, 0.2),
+        inset 0 0 12px rgba(255, 255, 255, 0.02) !important;
 }
 
 /* 📊 Visualizer & High-Activity Areas (Extra Clear) */
-body[data-cafe="true"] .visualizer-container,
-body[data-cafe="true"] canvas {
+body[data-cafe="true"] .visualizer-container {
     background: transparent !important;
     backdrop-filter: none !important;
+    border: none !important;
 }
 
 /* 🖋️ Fix Text Labels being overridden */
@@ -257,6 +256,10 @@ body[data-cafe="true"] p,
 body[data-cafe="true"] label {
     color: #ffffff !important;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+body[data-cafe="true"] .text-text-muted {
+    color: rgba(255, 255, 255, 0.45) !important;
 }
 
 /* =========================================

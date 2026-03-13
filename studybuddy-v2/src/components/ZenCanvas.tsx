@@ -20,8 +20,20 @@ const TldrawComponent = dynamic(
 
 export default function ZenCanvas() {
     const [app, setApp] = useState<any>(null);
-    const [autoSaveCloud, setAutoSaveCloud] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Initialize state from localStorage
+    const [autoSaveCloud, setAutoSaveCloud] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('zen_cloud_sync') === 'true';
+        }
+        return false;
+    });
+
+    // Update localStorage when it changes
+    useEffect(() => {
+        localStorage.setItem('zen_cloud_sync', autoSaveCloud.toString());
+    }, [autoSaveCloud]);
 
     useEffect(() => {
         const loadFromCloud = async () => {
@@ -80,6 +92,17 @@ export default function ZenCanvas() {
         }
     };
 
+    useEffect(() => {
+        // Only run if cloud sync is enabled and the app is ready
+        if (!autoSaveCloud || !app) return;
+
+        const autoSaveInterval = setInterval(() => {
+            handleSave();
+        }, 30000); // Auto-save every 30 seconds
+
+        return () => clearInterval(autoSaveInterval);
+    }, [autoSaveCloud, app]);
+
     return (
         <div style={{ position: "absolute", inset: 0 }}>
             {/* 🎨 Floating Sanctuary UI */}
@@ -87,8 +110,8 @@ export default function ZenCanvas() {
                 <button
                     onClick={() => setAutoSaveCloud(!autoSaveCloud)}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all text-[10px] font-bold tracking-tight ${autoSaveCloud
-                            ? 'bg-[#00f2ff]/20 text-[#00f2ff] shadow-[0_0_15px_rgba(0,242,255,0.3)]'
-                            : 'text-white/40 hover:text-white/80'
+                        ? 'bg-[#00f2ff]/20 text-[#00f2ff] shadow-[0_0_15px_rgba(0,242,255,0.3)]'
+                        : 'text-white/40 hover:text-white/80'
                         }`}
                 >
                     {autoSaveCloud ? <Cloud size={14} className="animate-pulse" /> : <CloudOff size={14} />}
