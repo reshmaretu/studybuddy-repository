@@ -16,10 +16,42 @@ const TldrawComponent = dynamic(
     }
 );
 
+
+
 export default function ZenCanvas() {
     const [app, setApp] = useState<any>(null);
     const [autoSaveCloud, setAutoSaveCloud] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        const loadFromCloud = async () => {
+            if (!app) return;
+
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const { data, error } = await supabase
+                    .from('whiteboards')
+                    .select('snapshot_data')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (error && error.code !== 'PGRST116') throw error; // PGRST116 means no data found
+
+                if (data?.snapshot_data) {
+                    // v1.29.0 specific method to load the document
+                    app.loadDocument(data.snapshot_data);
+                    toast.success("Welcome back to your Sanctuary.");
+                }
+            } catch (error) {
+                console.error("Load Error:", error);
+                toast.error("Could not retrieve cloud data.");
+            }
+        };
+
+        loadFromCloud();
+    }, [app]);
 
     const handleSave = async () => {
         if (!app) return;
@@ -53,11 +85,23 @@ export default function ZenCanvas() {
             {/* 🎨 Floating Sanctuary UI */}
             <div className="absolute top-4 right-4 z-[100] flex items-center gap-2 ...">
                 <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="absolute bottom-6 right-6 z-[100] bg-[var(--accent-teal)] hover:opacity-90 text-white px-4 py-2 rounded-xl font-bold shadow-lg transition-all disabled:opacity-50"
+                    onClick={() => setAutoSaveCloud(!autoSaveCloud)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest ${autoSaveCloud
+                        ? 'bg-[var(--accent-teal)] text-white shadow-lg shadow-teal-500/20'
+                        : 'bg-white/5 text-text-muted hover:bg-white/10'
+                        }`}
                 >
-                    {isSaving ? "SYNCING..." : "SYNC TO CLOUD"}
+                    {autoSaveCloud ? <Cloud size={14} /> : <CloudOff size={14} />}
+                    {autoSaveCloud ? "Cloud Sync: ON" : "Local Only"}
+                </button>
+
+                <button
+                    onClick={handleSave}
+                    disabled={isSaving || autoSaveCloud}
+                    className="flex items-center gap-2 px-4 py-2 bg-[var(--text-main)] text-[var(--bg-dark)] rounded-xl hover:scale-105 active:scale-95 transition-all text-[10px] font-black uppercase tracking-widest disabled:opacity-30"
+                >
+                    <Save size={14} className={isSaving ? "animate-spin" : ""} />
+                    {isSaving ? "Syncing..." : "Save Snapshot"}
                 </button>
             </div>
 
