@@ -1,10 +1,9 @@
-import ZenCanvas from "@/components/ZenCanvas";
+import { Tldraw } from '@tldraw/tldraw'
 
-export default function ExpoPage() {
+export default function ExpoBoard() {
     return (
-        <main>
-            <h1>School Expo Whiteboard</h1>
-            <ZenCanvas />
-        </main>
-    );
+        <div style={{ position: 'fixed', inset: 0 }}>
+            <Tldraw />
+        </div>
+    )
 }
