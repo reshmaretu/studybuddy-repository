@@ -1,15 +1,10 @@
-"use client"; // forces client-side rendering
+"use client";
 
-import dynamic from "next/dynamic";
+import { Tldraw } from "@tldraw/tldraw";
 
-// Dynamically import tldraw to avoid SSR issues
-const Tldraw = dynamic(() => import("@tldraw/tldraw").then(mod => mod.Tldraw), {
-    ssr: false,
-});
-
-export default function ExpoBoard() {
+export default function ZenCanvas() {
     return (
-        <div style={{ position: "fixed", inset: 0 }}>
+        <div style={{ position: "absolute", inset: 0 }}>
             <Tldraw />
         </div>
     );
