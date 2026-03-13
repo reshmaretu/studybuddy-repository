@@ -106,26 +106,24 @@ export default function ZenCanvas() {
     return (
         <div style={{ position: "absolute", inset: 0 }}>
             {/* 🎨 Floating Sanctuary UI */}
-            <div className="absolute top-4 right-4 z-[200] flex items-center gap-2 bg-[#1a1c1e]/60 backdrop-blur-xl p-1.5 rounded-2xl border border-white/10 shadow-2xl">
+            {/* 🎨 Zen Controls: High-Contrast Crystal */}
+            <div className="absolute top-4 right-4 z-[200] flex items-center gap-2 bg-white/5 backdrop-blur-2xl p-1.5 rounded-2xl border border-white/10 shadow-2xl">
                 <button
                     onClick={() => setAutoSaveCloud(!autoSaveCloud)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all text-[10px] font-bold tracking-tight ${autoSaveCloud
-                        ? 'bg-[#00f2ff]/20 text-[#00f2ff] shadow-[0_0_15px_rgba(0,242,255,0.3)]'
-                        : 'text-white/40 hover:text-white/80'
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all text-[10px] font-black uppercase tracking-tighter ${autoSaveCloud
+                            ? 'bg-teal-400 text-black shadow-[0_0_20px_rgba(45,212,191,0.4)]'
+                            : 'bg-white/10 text-white/60 hover:text-white'
                         }`}
                 >
-                    {autoSaveCloud ? <Cloud size={14} className="animate-pulse" /> : <CloudOff size={14} />}
-                    {autoSaveCloud ? "SYNC ACTIVE" : "LOCAL MODE"}
+                    {autoSaveCloud ? <Cloud size={14} /> : <CloudOff size={14} />}
+                    {autoSaveCloud ? "SYNCING" : "LOCAL"}
                 </button>
-
-                <div className="w-[1px] h-4 bg-white/10 mx-1" />
 
                 <button
                     onClick={handleSave}
                     disabled={isSaving || autoSaveCloud}
-                    className="flex items-center gap-2 px-4 py-1.5 bg-white text-black rounded-xl hover:scale-[1.02] active:scale-95 transition-all text-[10px] font-black disabled:opacity-30"
+                    className="px-4 py-1.5 bg-white text-black rounded-xl hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest disabled:opacity-30"
                 >
-                    <Save size={14} className={isSaving ? "animate-spin" : ""} />
                     {isSaving ? "STASHING..." : "SAVE SNAPSHOT"}
                 </button>
             </div>

@@ -279,29 +279,50 @@ export default function StudyCafeOverlay() {
     return (
         <>
             {/* ── Override CSS vars for glassmorphism globally ─── */}
+            /* ─── Study Cafe: Crystal Glass Refraction ────────────────────────────────── */
             <style>{`
-    body[data-cafe="true"] {
-    /* ⚪ PURE NEUTRAL GLASS: No tints, just light transmission */
-    --bg-card: rgba(255, 255, 255, 0.03) !important;
-    --bg-dark: rgba(255, 255, 255, 0.01) !important;
-    
-    /* 💎 CRYSTAL BORDERS: Uses white light to define edges */
-    --border-color: rgba(255, 255, 255, 0.12) !important;
+body[data-cafe="true"] {
+    /* ⚪ PURE NEUTRAL GLASS: Minimal alpha for maximum depth */
+    --bg-card: rgba(255, 255, 255, 0.01) !important;
+    --bg-dark: rgba(255, 255, 255, 0.005) !important;
+    --border-color: rgba(255, 255, 255, 0.08) !important;
+    --text-main: #ffffff !important;
 }
 
-/* 🛡️ FORCE REFRECTION: This lets the background light pass through */
+/* 🛡️ THE STRIPPER: Removes the opaque "boxes" from the dashboard */
 body[data-cafe="true"] .bg-background-card,
-body[data-cafe="true"] .rounded-3xl,
 body[data-cafe="true"] section > div,
-body[data-cafe="true"] aside {
+body[data-cafe="true"] fieldset,
+body[data-cafe="true"] .rounded-2xl,
+body[data-cafe="true"] .rounded-xl {
     background: var(--bg-card) !important;
-    backdrop-filter: blur(20px) saturate(1.2) brightness(1.1) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(1.2) brightness(1.1) !important;
+    backdrop-filter: blur(14px) saturate(1.4) brightness(1.1) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(1.4) brightness(1.1) !important;
     
-    /* Subtle outer glow to mimic light catching on the edge of glass */
-    box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2), 
-                0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid var(--border-color) !important;
+    /* 💎 CRYSTAL EDGES: Using a gradient border instead of a solid line */
+    border: none !important;
+    box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+    
+    /* Fix for stray lines: ensure child containers don't have their own borders */
+    outline: none !important;
+}
+
+/* 🚪 THE SIDEBAR: Force transparency on the nav */
+body[data-cafe="true"] nav {
+    background: rgba(255, 255, 255, 0.02) !important;
+    backdrop-filter: blur(20px) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* 🖋️ LABEL FIX: Ensure white text across the board */
+body[data-cafe="true"] h1, 
+body[data-cafe="true"] h2, 
+body[data-cafe="true"] h3, 
+body[data-cafe="true"] span, 
+body[data-cafe="true"] p {
+    color: #ffffff !important;
 }
 `}</style>
 
