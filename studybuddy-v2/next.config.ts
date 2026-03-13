@@ -13,7 +13,14 @@ const nextConfig: NextConfig = {
               - connect-src: includes Supabase and WSS for your Lantern Net.
               - img-src: includes blob/data for tldraw asset rendering.
             */
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:; worker-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.tldraw.com; img-src 'self' blob: data: https://*.tldraw.com; font-src 'self' data: https://*.tldraw.com;",
+            value: "default-src 'self'; " +
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:; " +
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " + // ⚡ Explicitly allowed inline styles
+              "img-src 'self' blob: data: https://*.tldraw.com https://grainy-gradients.vercel.app; " +
+              "font-src 'self' data: https://*.tldraw.com https://fonts.gstatic.com; " +
+              "worker-src 'self' blob:; " +
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.tldraw.com; " +
+              "object-src 'none';"
           },
         ],
       },
