@@ -576,4 +576,4 @@ body[data-cafe="true"] nav * {
     pointer-events: none !important;
 }
 
-@import "../../node_modules/@tldraw/tldraw/index.css";
+@import "@tldraw/tldraw/index.css";
