@@ -2,7 +2,7 @@
 
 // ⚡ Use the scoped package for v1.x
 import { Tldraw } from "@tldraw/tldraw";
-import "@tldraw/tldraw/index.css";
+import "@tldraw/tldraw/dist/tldraw.css"
 import { useState, useEffect } from "react";
 import { Save, Cloud, CloudOff } from "lucide-react";
 
