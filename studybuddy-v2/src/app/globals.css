@@ -217,55 +217,46 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Study Cafe Mode: Glowing Glassmorphism ───────────────────────────────────────── */
+/* ─── Study Cafe: True Frosted Glass ───────────────────────────────────────── */
+body[data-cafe="true"] {
+    /* Ensure the global text is readable against glow */
+    --text-main: #ffffff;
+    --text-muted: rgba(255, 255, 255, 0.6);
+}
 
-/* Widgets, Sections, Headers */
 body[data-cafe="true"] .rounded-2xl,
 body[data-cafe="true"] .rounded-xl,
 body[data-cafe="true"] section>div,
-body[data-cafe="true"] fieldset,
-body[data-cafe="true"] header {
-    background: rgba(10, 12, 16, 0.15) !important;
-    backdrop-filter: blur(24px) saturate(1.8) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(1.8) !important;
+body[data-cafe="true"] .bg-background-card {
+    /* 🧊 Lower alpha (0.05 - 0.08) is the secret to high-end glass */
+    background: rgba(255, 255, 255, 0.03) !important;
+    backdrop-filter: blur(20px) saturate(1.8) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.8) !important;
 
-    /* 💎 The Glowing Borders */
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    /* 💎 Thinner, more surgical borders */
+    border: 0.5px solid rgba(255, 255, 255, 0.12) !important;
     box-shadow:
-        0 0 15px 1px rgba(255, 255, 255, 0.08),
-        /* Outer Aura */
-        inset 0 0 20px 2px rgba(255, 255, 255, 0.05) !important;
-    /* Inner Refraction */
+        0 8px 32px 0 rgba(0, 0, 0, 0.37),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+
+    /* 📐 Fix weird corners/lines */
+    overflow: hidden;
 }
 
-/* Task Cards (Extra frosted) */
-body[data-cafe="true"] .rounded-2xl[class*="bg-"] {
-    background: rgba(12, 14, 18, 0.2) !important;
-    backdrop-filter: blur(28px) saturate(1.9) !important;
-    -webkit-backdrop-filter: blur(28px) saturate(1.9) !important;
-
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
-    box-shadow:
-        0 0 18px 1px rgba(255, 255, 255, 0.1),
-        inset 0 0 25px 2px rgba(255, 255, 255, 0.08) !important;
-}
-
-/* Sidebar Glow */
-body[data-cafe="true"] nav {
-    background: rgba(8, 10, 14, 0.15) !important;
-    backdrop-filter: blur(30px) saturate(1.5) !important;
-    -webkit-backdrop-filter: blur(30px) saturate(1.5) !important;
-
-    border-right: 1px solid rgba(255, 255, 255, 0.2) !important;
-    box-shadow:
-        3px 0 20px rgba(255, 255, 255, 0.08),
-        inset -3px 0 25px rgba(255, 255, 255, 0.05) !important;
-}
-
-/* Prevents UI bugs inside the sidebar */
-body[data-cafe="true"] nav * {
+/* 📊 Visualizer & High-Activity Areas (Extra Clear) */
+body[data-cafe="true"] .visualizer-container,
+body[data-cafe="true"] canvas {
+    background: transparent !important;
     backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+}
+
+/* 🖋️ Fix Text Labels being overridden */
+body[data-cafe="true"] h1,
+body[data-cafe="true"] h2,
+body[data-cafe="true"] p,
+body[data-cafe="true"] label {
+    color: #ffffff !important;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 /* =========================================
