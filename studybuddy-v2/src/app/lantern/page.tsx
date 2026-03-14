@@ -43,11 +43,13 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
 
     if (p.active_session_type === 'AI_TUTOR') {
         currentStatus = 'mastering';
-    } else if (p.is_in_flowstate) {
-        currentStatus = 'flowState';
     } else if (hostedRoom) {
         currentStatus = hostedRoom.status === 'DRAFT' ? 'drafting' :
             (hostedRoom.mode === 'cafe' ? 'cafe' : 'hosting');
+    } else if (p.status === 'joined') {
+        currentStatus = 'joined';
+    } else if (p.is_in_flowstate) {
+        currentStatus = 'flowState';
     } else {
         currentStatus = (p.status as any) || 'offline';
     }
