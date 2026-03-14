@@ -107,7 +107,9 @@ const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any,
         // If track hasn't changed, just adjust volume/play state
         if (currentSrcRef.current === targetSrc) {
             audio.volume = targetVol;
-            if (isActive && targetSrc && audio.paused) audio.play().catch(() => {});
+            if (targetSrc && audio.paused) {
+                audio.play().catch((e) => console.log("Audio play blocked, waiting for interaction", e));
+            }
             return;
         }
 
@@ -122,7 +124,7 @@ const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any,
                 currentSrcRef.current = targetSrc;
                 
                 // Start playback to new track and fade in
-                if (targetSrc && isActive) {
+                if (targetSrc) {
                     audio.play().catch(() => {});
                     fadeInterval = setInterval(() => {
                         if (audio.volume < targetVol - 0.05) {
@@ -701,13 +703,13 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             className="absolute inset-0"
                         >
                             <AtmosphereVisuals settings={settings} />
-                            <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px]" />
+                            <div className="absolute inset-0 bg-black/25 backdrop-blur-[1px]" />
                         </motion.div>
                     )}
                 </AnimatePresence>
 
                 {/* 🔊 HIDDEN AUDIO PLAYER & VISUALIZER ENGINE */}
-                <MediaEngine settings={settings} isActive={isActive} onAnalyserCreated={setAnalyser} />
+                <MediaEngine settings={settings} isActive={isActive || status === 'DRAFT'} onAnalyserCreated={setAnalyser} />
             </div>
 
             {/* 1. ARCHITECT SIDEBAR */}
@@ -919,7 +921,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     {/* 📊 VISUALIZER (Centered Architectural Layer) */}
                     {settings.showVisualizer && (
                         <div className="flex-1 flex items-center justify-center w-full pointer-events-none absolute inset-0 z-0">
-                            <Visualizer analyser={analyser} isActive={isActive} />
+                            <Visualizer analyser={analyser} isActive={isActive || status === 'DRAFT'} />
                         </div>
                     )}
 
@@ -955,21 +957,28 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     )}
 
                     {/* ACTIVE TIMER */}
-                    {status === 'ACTIVE' && (
-                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center z-20">
-                            <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--text-muted)] mb-2 block">{isBreak ? "Break" : `Cycle ${settings.currentCycle}`}</span>
-                            <div className="text-[14rem] md:text-[18rem] font-black tabular-nums leading-[0.8] tracking-tighter text-(--text-main) drop-shadow-[0_0_50px_rgba(255,255,255,0.1)] mb-4">
+                    {status === 'ACTIVE' && !settings.isGhostMode && (
+                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center z-20 group relative">
+                            <span className="text-[11px] font-black uppercase tracking-[0.4em] text-[var(--accent-teal)] mb-3 block opacity-60">
+                                {isBreak ? "☕ Recovery Phase" : `Cycle ${settings.currentCycle}`}
+                            </span>
+                            <div className="text-[8rem] md:text-[12rem] font-black tabular-nums leading-[0.75] tracking-tighter text-[var(--text-main)] drop-shadow-[0_0_30px_rgba(255,255,255,0.1)] mb-8">
                                 {Math.floor(secondsLeft / 60).toString().padStart(2, '0')}:{(secondsLeft % 60).toString().padStart(2, '0')}
                             </div>
-                            <button
+                            
+                            {/* Discreet Control: Minimalist and thin */}
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={() => setIsActive(!isActive)}
-                                className={`px-16 py-6 rounded-[32px] font-black text-2xl uppercase tracking-widest transition-all shadow-2xl border-2 ${isActive
-                                        ? 'bg-transparent border-[var(--accent-teal)] text-[var(--accent-teal)] hover:bg-[var(--accent-teal)] hover:text-black shadow-[0_0_30px_rgba(45,212,191,0.2)]'
-                                        : 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black hover:brightness-110 shadow-[0_0_40px_rgba(45,212,191,0.4)] scale-105'
-                                    }`}
+                                className={`px-10 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-[0.2em] transition-all border outline-none ${
+                                    isActive
+                                        ? 'bg-transparent border-[var(--text-muted)]/20 text-[var(--text-muted)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)]'
+                                        : 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black shadow-[0_0_25px_rgba(45,212,191,0.25)]'
+                                }`}
                             >
                                 {isActive ? "Pause Focus" : "Initiate Focus"}
-                            </button>
+                            </motion.button>
                         </motion.div>
                     )}
                 </div>
