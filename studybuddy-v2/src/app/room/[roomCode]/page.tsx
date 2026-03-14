@@ -115,8 +115,14 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
     // ⚡ Now this works because secondsLeft, isActive, etc. already exist!
     const timerStateRef = useRef({
-        secondsLeft, isActive, status, isBreak, currentCycle: settings.currentCycle, vibeAsset: settings.vibeAsset,
-        audioTrack: settings.audioTrack
+        secondsLeft, isActive, status, isBreak, 
+        currentCycle: settings.currentCycle, 
+        vibeAsset: settings.vibeAsset,
+        vibeCategory: settings.vibeCategory,
+        audioTrack: settings.audioTrack,
+        showVisualizer: settings.showVisualizer,
+        isGhostMode: settings.isGhostMode,
+        roomTheme: settings.roomTheme
     });
 
     useEffect(() => {
@@ -127,31 +133,51 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             isBreak,
             currentCycle: settings.currentCycle,
             vibeAsset: settings.vibeAsset,
-            audioTrack: settings.audioTrack
+            vibeCategory: settings.vibeCategory,
+            audioTrack: settings.audioTrack,
+            showVisualizer: settings.showVisualizer,
+            isGhostMode: settings.isGhostMode,
+            roomTheme: settings.roomTheme
         };
     }, [secondsLeft, isActive, status, isBreak, settings]);
 
-    const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any, isActive: boolean, onAnalyserCreated?: (analyser: AnalyserNode) => void }) => {
-        const audioRef = useRef<HTMLAudioElement>(null);
-        const audioContextRef = useRef<AudioContext | null>(null);
-        const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+    // ⚡ Global Resonance Handler (Ensure AudioContext resumes on click)
+    useEffect(() => {
+        const resumeAudio = () => {
+            const ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+            if (ctx && ctx.state === 'suspended') ctx.resume();
+        };
+        window.addEventListener('click', resumeAudio);
+        return () => window.removeEventListener('click', resumeAudio);
+    }, []);
 
-        // ⚡ Handle Volume & Playback Logic
-        useEffect(() => {
-            if (!audioRef.current) return;
+// --- STABLE AUDIO ENGINE (Outside to prevent re-creation) ---
+const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any, isActive: boolean, onAnalyserCreated?: (analyser: AnalyserNode) => void }) => {
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+    const analyzerRef = useRef<AnalyserNode | null>(null);
 
-            // Lower volume slightly when the timer is paused or in "Draft" mode
-            audioRef.current.volume = isActive ? 0.6 : 0.2;
+    // ⚡ Track changes to the audio source
+    useEffect(() => {
+        if (!audioRef.current) return;
+        
+        // Lower volume significantly when paused to keep it "atmosperic" without being loud
+        audioRef.current.volume = isActive ? 0.6 : 0.2;
 
-            if (isActive) {
-                audioRef.current.play().catch(() => console.log("User interaction required for audio"));
-            }
-        }, [isActive]);
+        if (isActive) {
+            audioRef.current.play().catch(() => {});
+        } else {
+            // Keep looping in background if requested, or pause
+            // For StudyBuddy, we keep it playing at low vol for "Atmosphere"
+        }
+    }, [isActive]);
 
-        // ⚡ Visualizer Connection
-        useEffect(() => {
-            if (!audioRef.current || !onAnalyserCreated || settings.audioTrack === 'None') return;
+    // ⚡ Robust WebAudio Graph
+    useEffect(() => {
+        if (!audioRef.current || !onAnalyserCreated || settings.audioTrack === 'None') return;
 
+        try {
             if (!audioContextRef.current) {
                 audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
             }
@@ -159,82 +185,82 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             const ctx = audioContextRef.current;
             if (ctx.state === 'suspended') ctx.resume();
 
+            // ⚡ createMediaElementSource can ONLY be called once per element
             if (!sourceRef.current) {
                 sourceRef.current = ctx.createMediaElementSource(audioRef.current);
-                const analyser = ctx.createAnalyser();
-                analyser.fftSize = 256;
-                sourceRef.current.connect(analyser);
-                analyser.connect(ctx.destination);
-                onAnalyserCreated(analyser);
+                analyzerRef.current = ctx.createAnalyser();
+                analyzerRef.current.fftSize = 256;
+                
+                sourceRef.current.connect(analyzerRef.current);
+                analyzerRef.current.connect(ctx.destination);
+                
+                onAnalyserCreated(analyzerRef.current);
             }
+        } catch (e) {
+            console.warn("WebAudio Node already connected or device error:", e);
+        }
+    }, [settings.audioTrack, onAnalyserCreated]);
 
-            return () => {
-                // We keep the context/source alive during track changes to prevent graph errors
-            };
-        }, [settings.audioTrack, onAnalyserCreated]);
+    if (settings.audioTrack === 'None') return null;
 
-        if (settings.audioTrack === 'None') return null;
+    const fileName = settings.audioTrack.toLowerCase().replace(/ /g, '_');
+    const audioPath = `/assets/audio/${fileName}.mp3`;
 
-        // ⚡ Construct the bulletproof file path
-        const fileName = settings.audioTrack.toLowerCase().replace(/ /g, '_');
-        const audioPath = `/assets/audio/${fileName}.mp3`;
+    return (
+        <audio
+            ref={audioRef}
+            src={audioPath}
+            crossOrigin="anonymous" 
+            autoPlay
+            loop
+            className="hidden"
+        />
+    );
+};
 
-        return (
-            <audio
-                ref={audioRef}
-                src={audioPath}
-                crossOrigin="anonymous"
-                autoPlay
-                loop
-                className="hidden"
-            />
-        );
-    };
+const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isActive: boolean }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isActive: boolean }) => {
-        const canvasRef = useRef<HTMLCanvasElement>(null);
+    useEffect(() => {
+        if (!analyser || !canvasRef.current) return;
 
-        useEffect(() => {
-            if (!analyser || !canvasRef.current) return;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d')!;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
 
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext('2d')!;
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
+        let animationId: number;
 
-            let animationId: number;
+        const draw = () => {
+            animationId = requestAnimationFrame(draw);
+            analyser.getByteFrequencyData(dataArray);
 
-            const draw = () => {
-                animationId = requestAnimationFrame(draw);
-                analyser.getByteFrequencyData(dataArray);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const barWidth = (canvas.width / bufferLength) * 2.5;
+            let x = 0;
 
-                const barWidth = (canvas.width / bufferLength) * 2.5;
-                let x = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] / 255) * (canvas.height / 2);
+                const opacity = isActive ? 0.8 : 0.2;
+                
+                // Teal Pulse
+                ctx.fillStyle = `rgba(45, 212, 191, ${opacity})`;
 
-                for (let i = 0; i < bufferLength; i++) {
-                    const barHeight = (dataArray[i] / 255) * (canvas.height / 2);
+                // Symmetry Draw
+                ctx.fillRect(x, canvas.height / 2 - barHeight, barWidth, barHeight);
+                ctx.fillRect(x, canvas.height / 2, barWidth, barHeight);
 
-                    // Fade out based on activity
-                    const opacity = isActive ? 0.8 : 0.2;
-                    ctx.fillStyle = `rgba(45, 212, 191, ${opacity})`;
+                x += barWidth + 1;
+            }
+        };
 
-                    // Upward bar
-                    ctx.fillRect(x, canvas.height / 2 - barHeight, barWidth, barHeight);
-                    // Downward mirrored bar
-                    ctx.fillRect(x, canvas.height / 2, barWidth, barHeight);
+        draw();
+        return () => cancelAnimationFrame(animationId);
+    }, [analyser, isActive]);
 
-                    x += barWidth + 1;
-                }
-            };
-
-            draw();
-            return () => cancelAnimationFrame(animationId);
-        }, [analyser, isActive]);
-
-        return <canvas ref={canvasRef} width={600} height={150} className="w-full max-w-2xl opacity-40 mix-blend-screen pointer-events-none" />;
-    };
+    return <canvas ref={canvasRef} width={600} height={150} className="w-full max-w-2xl opacity-40 mix-blend-screen pointer-events-none" />;
+};
 
     // 1. PAGE PROTECTION (Before Unload)
     useEffect(() => {
@@ -257,16 +283,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             if (!user) return router.push('/lantern');
             setCurrentUserId(user.id); // ⚡ Track ID for the "You" effect
 
-            // ⚡ FETCH AVATAR & NAME
-            // ⚡ FETCH AVATAR, NAME, and PREMIUM from both profiles & user_stats
-            const { data: profile } = await supabase.from('profiles').select('display_name, full_name, chum_avatar, is_premium').eq('id', user.id).single();
-            const { data: stats } = await supabase.from('user_stats').select('is_premium').eq('user_id', user.id).single();
-
-            const resolvedName = profile?.display_name || profile?.full_name || user.email?.split('@')[0] || "Chum";
-            const resolvedAvatar = profile?.chum_avatar || "👻";
-
-            setIsRoomPremium(profile?.is_premium || stats?.is_premium || false);
-
+            // 1. Fetch Room Data first to establish Host context
             let roomData = null;
             for (let i = 0; i < 3; i++) {
                 const { data } = await supabase.from('rooms').select('*').eq('room_code', roomCode).single();
@@ -279,6 +296,39 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             const isActuallyHost = roomData.host_id === user.id;
             setIsHost(isActuallyHost);
             setHostId(roomData.host_id);
+
+            // 2. ⚡ FETCH CURRENT USER DETAILS (For Presence)
+            const { data: myData } = await supabase
+                .from('profiles')
+                .select(`
+                    display_name, 
+                    full_name, 
+                    is_premium,
+                    user_stats ( is_premium ),
+                    chum_wardrobe ( base_emoji, hat_emoji )
+                `)
+                .eq('id', user.id)
+                .single();
+
+            const myProfile: any = myData;
+            const resolvedName = myProfile?.display_name || myProfile?.full_name || user.email?.split('@')[0] || "Chum";
+            
+            const myWardrobe = Array.isArray(myProfile?.chum_wardrobe) ? myProfile.chum_wardrobe[0] : myProfile?.chum_wardrobe;
+            const resolvedAvatar = myWardrobe ? `${myWardrobe.base_emoji || "👻"}${myWardrobe.hat_emoji || ""}` : "👻";
+
+            // 3. ⚡ FETCH HOST PREMIUM STATUS (For Room Capabilities)
+            if (isActuallyHost) {
+                setIsRoomPremium(myProfile?.is_premium || myProfile?.user_stats?.[0]?.is_premium || false);
+            } else {
+                const { data: hostProfile } = await supabase
+                    .from('profiles')
+                    .select('is_premium, user_stats(is_premium)')
+                    .eq('id', roomData.host_id)
+                    .single();
+                
+                const hp: any = hostProfile;
+                setIsRoomPremium(hp?.is_premium || hp?.user_stats?.[0]?.is_premium || false);
+            }
 
             if (isActuallyHost && roomData.status === 'DRAFT') {
                 setStatus('DRAFT');
@@ -337,7 +387,18 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                         setIsActive(payload.isActive);
                         setStatus(payload.status);
                         setIsBreak(payload.isBreak);
-                        setSettings(prev => ({ ...prev, currentCycle: payload.currentCycle }));
+                        
+                        // ⚡ SYNC ALL SETTINGS (Not just currentCycle)
+                        setSettings(prev => ({ 
+                            ...prev, 
+                            currentCycle: payload.currentCycle,
+                            vibeAsset: payload.vibeAsset,
+                            vibeCategory: payload.vibeCategory,
+                            audioTrack: payload.audioTrack,
+                            showVisualizer: payload.showVisualizer,
+                            isGhostMode: payload.isGhostMode,
+                            roomTheme: payload.roomTheme
+                        }));
                         setIsSyncing(false); // Remove loading modal!
                     }
                 })
