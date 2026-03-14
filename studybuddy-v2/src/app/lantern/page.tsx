@@ -127,6 +127,8 @@ export default function LanternNetPage() {
     const [mockUsers, setMockUsers] = useState<LanternUser[]>([]);
     const [debrisSize, setDebrisSize] = useState(0.4);
     const [debrisColor, setDebrisColor] = useState("#2dd4bf");
+    const [debrisCount, setDebrisCount] = useState(3000);
+    const [debrisSpread, setDebrisSpread] = useState(400);
 
     useEffect(() => {
         const checkDevStatus = async () => {
@@ -340,6 +342,20 @@ export default function LanternNetPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-bold">
+                                        <span>Debris Count</span>
+                                        <span className="font-mono text-(--accent-teal)">{debrisCount}</span>
+                                    </div>
+                                    <input type="range" min="1000" max="15000" step="1000" value={debrisCount} onChange={(e) => setDebrisCount(parseInt(e.target.value))} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center text-[10px] font-bold">
+                                        <span>Debris Spread</span>
+                                        <span className="font-mono text-(--accent-teal)">{debrisSpread}</span>
+                                    </div>
+                                    <input type="range" min="100" max="1000" step="50" value={debrisSpread} onChange={(e) => setDebrisSpread(parseInt(e.target.value))} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center text-[10px] font-bold">
                                         <span>Debris Color</span>
                                         <input type="color" value={debrisColor} onChange={(e) => setDebrisColor(e.target.value)} className="w-6 h-6 bg-transparent border-none cursor-pointer" />
                                     </div>
@@ -432,6 +448,8 @@ export default function LanternNetPage() {
                     isInitialLoading={isNetworkLoading} 
                     debrisSize={debrisSize}
                     debrisColor={debrisColor}
+                    debrisCount={debrisCount}
+                    debrisSpread={debrisSpread}
                 />
             </div>
 

@@ -47,8 +47,10 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
     users: LanternUser[], 
     isInitialLoading?: boolean,
     debrisSize?: number,
-    debrisColor?: string
-}>(function ThreeLanternNet({ users, isInitialLoading, debrisSize = 0.4, debrisColor = "#2dd4bf" }, ref) {
+    debrisColor?: string,
+    debrisCount?: number,
+    debrisSpread?: number
+}>(function ThreeLanternNet({ users, isInitialLoading, debrisSize = 0.4, debrisColor = "#2dd4bf", debrisCount = 3000, debrisSpread = 400 }, ref) {
     const [is3D, setIs3D] = useState(false);
     const [warpTarget, setWarpTarget] = useState<THREE.Vector3 | null>(null);
     const controlsRef = useRef<any>(null);
@@ -117,7 +119,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
 
             <Canvas>
                 <PerspectiveCamera makeDefault position={[0, 0, 120]} fov={30} />
-                <FloatingParticles size={debrisSize} color={debrisColor} />
+                <FloatingParticles size={debrisSize} color={debrisColor} count={debrisCount} spread={debrisSpread} />
                 <GlobalPulse />
                 {/* 👇 INCREASE AMBIENT LIGHT to 0.8 to illuminate the dust and mesh shells */}
                 <ambientLight intensity={1.5} />
@@ -145,7 +147,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                 <OrbitControls
                     ref={controlsRef}
                     enableRotate={is3D}
-                    enablePan={is3D} // 👈 Disable panning in 2D to prevent rubber banding
+                    enablePan={true} // 👈 Enabled everywhere to allow panning in 2D
                     enableZoom={true}
                     enableDamping={true}
                     dampingFactor={0.1} // 👈 Snappier feel
@@ -441,8 +443,14 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete }: any) {
         cam.fov = THREE.MathUtils.lerp(cam.fov, is3D ? 50 : 30, delta * 3);
         cam.updateProjectionMatrix();
 
-        if (isFreeCam && is3D) {
-            if (controlsRef.current) controlsRef.current.enabled = false;
+        // Break out of freecam immediately if a snipe is requested
+        if (isFreeCam && warpTarget) {
+            setIsFreeCam(false);
+            isCancelled.current = false;
+        }
+
+        if (isFreeCam && is3D && !warpTarget) {
+            if (controlsRef.current) controlsRef.current.enabled = true; // 👈 Let OrbitControls handle mouse pitch/yaw
             
             const speed = 60 * delta;
             const damp = Math.pow(0.005, delta); 
@@ -465,7 +473,7 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete }: any) {
             cam.position.add(velocity.current);
             // In freecam, OrbitControls target follows camera to keep it independent
             if (controlsRef.current) {
-                controlsRef.current.target.copy(cam.position).add(forward.multiplyScalar(10));
+                controlsRef.current.target.add(velocity.current); // 👈 Move target by same velocity to maintain look angle
                 controlsRef.current.update();
             }
         } else {
@@ -555,17 +563,16 @@ function GlobalPulse() {
     );
 }
 
-function FloatingParticles({ size, color }: { size: number, color: string }) {
+function FloatingParticles({ size, color, count, spread }: { size: number, color: string, count: number, spread: number }) {
     const ref = useRef<THREE.Points>(null);
 
-    // 1. Ensure we generate enough points 
-    const [sphere] = useState(() => {
-        const positions = new Float32Array(9000); // 👈 Increased for more "debris"
-        for (let i = 0; i < 9000; i++) {
-            positions[i] = (Math.random() - 0.5) * 400; // 👈 Wider field
+    const sphere = useMemo(() => {
+        const positions = new Float32Array(count * 3);
+        for (let i = 0; i < count * 3; i++) {
+            positions[i] = (Math.random() - 0.5) * spread; // 👈 Dynamic field
         }
         return positions;
-    });
+    }, [count, spread]);
 
     useFrame((state, delta) => {
         if (ref.current) {
