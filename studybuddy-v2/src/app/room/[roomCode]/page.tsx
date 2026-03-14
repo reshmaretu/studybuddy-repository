@@ -450,9 +450,12 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     if (s === 'SUBSCRIBED') {
                         const finalRoomTitle = roomData?.name || searchParams.get('title') || "New Sanctuary";
                         await channel.track({
-                            id: user.id, name: resolvedName, chumAvatar: resolvedAvatar, // 👈 Added Avatar
+                            id: user.id, 
+                            name: finalName, 
+                            chumAvatar: finalAvatar,
                             status: isActuallyHost ? (roomData?.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
-                            roomCode: roomCode, roomTitle: finalRoomTitle
+                            roomCode: roomCode, 
+                            roomTitle: finalRoomTitle
                         });
                         // ⚡ LATE JOINER DETECTED: Ask host for the time!
                         if (!isActuallyHost && roomData?.status === 'ACTIVE') {
@@ -471,9 +474,12 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     useEffect(() => {
         if (channelRef.current && currentUserId) {
             channelRef.current.track({
-                id: currentUserId, name: resolvedName, chumAvatar: resolvedAvatar,
-                status: isHost ? (status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
-                roomCode: roomCode, roomTitle: settings.name || "Sanctuary"
+                id: currentUserId, 
+                name: resolvedName, 
+                chumAvatar: resolvedAvatar,
+                status: isHost ? ((status === 'ACTIVE' || status === 'LAUNCHING') ? 'hosting' : 'drafting') : 'joined',
+                roomCode: roomCode, 
+                roomTitle: settings.name || "Sanctuary"
             });
         }
     }, [status, resolvedName, resolvedAvatar, isHost, roomCode, settings.name, currentUserId]);
@@ -513,14 +519,21 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         }
 
         // 3. 🛡️ BACKGROUND DB SYNC: Fire and forget. Don't block the UI!
-        const { error } = await supabase
-            .from('rooms')
-            .update({ status: 'ACTIVE' })
-            .eq('room_code', roomCode);
-
-        if (error) {
-            console.error("Architect Sync Error:", error.message);
-        }
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        await Promise.all([
+            supabase
+                .from('rooms')
+                .update({ status: 'ACTIVE' })
+                .eq('room_code', roomCode),
+            supabase
+                .from('profiles')
+                .update({ 
+                    status: 'hosting',
+                    is_in_flowstate: settings.mode === 'pomodoro' // Only flowstate if it's a focus protocol
+                })
+                .eq('id', user?.id)
+        ]);
     };
 
     const updateSettings = async (updates: Partial<typeof settings>) => {

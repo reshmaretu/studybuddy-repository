@@ -67,7 +67,7 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
         focusScore: stats ? (stats.focus_score || 0) : 0,
         isHosting: !!hostedRoom,
         roomCode: hostedRoom?.room_code,
-        roomTitle: hostedRoom?.name,
+        roomTitle: hostedRoom?.name || "Sanctuary",
         isPremium: p.is_premium || stats?.is_premium || false,
         chumLabel: wardrobe ? `${wardrobe.base_emoji || "👻"}${wardrobe.hat_emoji || ""}` : "👻 Ghost",
         gridX,
