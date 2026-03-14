@@ -77,6 +77,40 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
     };
 };
 
+const generateMockUser = (existingUsers: LanternUser[], id: string): LanternUser => {
+    const statuses: LanternUser['status'][] = ['idle', 'drafting', 'hosting', 'joined', 'flowState', 'cafe', 'mastering', 'offline'];
+    const status = statuses[Math.floor(Math.random() * statuses.length)];
+    const isHosting = status === 'hosting' || status === 'drafting';
+
+    let gridX = 6, gridY = 6;
+    let attempts = 0;
+    while(attempts < 100) {
+        gridX = Math.floor(Math.random() * 24) - 6; // Wide area
+        gridY = Math.floor(Math.random() * 24) - 6;
+        if (gridX === 6 && gridY === 6) { attempts++; continue; }
+        const clash = existingUsers.some(u => u.gridX === gridX && u.gridY === gridY);
+        if (!clash) break;
+        attempts++;
+    }
+
+    return {
+        id: `mock-${id}`,
+        name: `Bot ${id}`,
+        chumLabel: "🤖 Bot",
+        focusScore: Math.floor(Math.random() * 5000),
+        status,
+        hours: Math.floor(Math.random() * 500),
+        isPremium: Math.random() > 0.5,
+        isHosting,
+        roomCode: isHosting ? `MCK${id.substring(0,3)}` : undefined,
+        roomTitle: isHosting ? `Mock Sanctuary ${id}` : undefined,
+        gridX,
+        gridY,
+        jitterX: (Math.random() - 0.5) * 40,
+        jitterY: (Math.random() - 0.5) * 40,
+    };
+};
+
 export default function LanternNetPage() {
     const [isMounted, setIsMounted] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
@@ -87,6 +121,21 @@ export default function LanternNetPage() {
     const [isNetworkLoading, setIsNetworkLoading] = useState(true);
     const isFirstLoad = useRef(true);
     const lanternRef = useRef<LanternNetHandle>(null);
+
+    // --- DEV OVERLAY STATE ---
+    const [isDevOverlayOpen, setIsDevOverlayOpen] = useState(false);
+    const [mockUsers, setMockUsers] = useState<LanternUser[]>([]);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
+                e.preventDefault();
+                setIsDevOverlayOpen(p => !p);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     const [isHostModalOpen, setIsHostModalOpen] = useState(false);
     const [roomSettings, setRoomSettings] = useState({
@@ -212,7 +261,8 @@ export default function LanternNetPage() {
     };
 
     // SEARCH FILTER
-    const filteredNetwork = fullNetwork.filter(user =>
+    const combinedNetwork = [...fullNetwork, ...mockUsers];
+    const filteredNetwork = combinedNetwork.filter(user =>
         user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (user.roomCode && user.roomCode.toLowerCase().includes(searchQuery.toLowerCase()))
     );
@@ -221,7 +271,56 @@ export default function LanternNetPage() {
     if (!isMounted) return null;
 
     return (
-        <div className="flex flex-col lg:flex-row h-screen max-h-screen p-4 pb-8 lg:p-6 lg:pb-10 gap-6 bg-[var(--bg-dark)] overflow-hidden">
+        <div className="flex flex-col lg:flex-row h-screen max-h-screen p-4 pb-8 lg:p-6 lg:pb-10 gap-6 bg-[var(--bg-dark)] overflow-hidden relative">
+
+            {/* --- DEV OVERLAY --- */}
+            <AnimatePresence>
+                {isDevOverlayOpen && (
+                    <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+                        className="absolute top-20 left-1/2 -translate-x-1/2 z-999 bg-(--bg-card) border-2 border-red-500/50 p-6 rounded-3xl shadow-[0_0_50px_rgba(255,0,0,0.15)] w-80">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="font-black text-red-400 text-xs tracking-widest uppercase">Dev Console</h2>
+                            <button onClick={() => setIsDevOverlayOpen(false)} className="text-(--text-muted) hover:text-white"><X size={14}/></button>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center bg-(--bg-dark) px-4 py-2 rounded-xl">
+                                <span className="text-xs font-bold text-(--text-main)">Mock Users</span>
+                                <div className="flex gap-2 items-center">
+                                    <button onClick={() => setMockUsers(prev => prev.slice(0, Math.max(0, prev.length - 1)))} className="w-6 h-6 rounded bg-(--border-color) flex items-center justify-center font-bold text-xs">-</button>
+                                    <span className="text-xs font-mono">{mockUsers.length}</span>
+                                    <button onClick={() => setMockUsers(prev => [...prev, generateMockUser([...fullNetwork, ...prev], Math.random().toString(36).substring(2,6))])} className="w-6 h-6 rounded bg-(--border-color) flex items-center justify-center font-bold text-xs">+</button>
+                                </div>
+                            </div>
+                            <button onClick={() => {
+                                setMockUsers(prev => prev.map(u => generateMockUser([...fullNetwork, ...prev.filter(mu => mu.id !== u.id)], u.id.replace('mock-', ''))));
+                            }} className="w-full py-2 bg-(--bg-dark) border border-(--border-color) rounded-xl text-xs font-bold hover:bg-(--border-color) transition-colors">
+                                Randomize Mock Users
+                            </button>
+                            <button onClick={() => {
+                                setFullNetwork(prev => prev.map(u => {
+                                    if (u.id === 'me') return u; // Remain centered
+                                    // Generate mock state but keep their real ID/Name
+                                    const mix = generateMockUser([...prev, ...mockUsers], u.id);
+                                    return { 
+                                        ...u, 
+                                        gridX: mix.gridX, 
+                                        gridY: mix.gridY, 
+                                        status: mix.status, 
+                                        hours: mix.hours, 
+                                        jitterX: mix.jitterX, 
+                                        jitterY: mix.jitterY,
+                                        isHosting: mix.isHosting,
+                                        roomCode: mix.roomCode,
+                                        roomTitle: mix.roomTitle
+                                    };
+                                }));
+                            }} className="w-full py-2 bg-red-500/20 text-red-300 rounded-xl text-xs font-bold hover:bg-red-500/30 transition-colors">
+                                Randomize ALL (Local Override)
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* LEFT PANEL */}
             <div className="w-full lg:w-[340px] flex flex-col gap-6 h-full z-10 flex-shrink-0 min-h-0">
@@ -299,7 +398,7 @@ export default function LanternNetPage() {
 
             {/* RIGHT PANEL: THREE.JS MAP */}
             <div className="flex-1 h-full rounded-[40px] overflow-hidden border border-[var(--border-color)] shadow-xl relative min-h-0">
-                <ThreeLanternNet ref={lanternRef} users={filteredNetwork} isInitialLoading={isNetworkLoading} />
+                <ThreeLanternNet ref={lanternRef} users={combinedNetwork} isInitialLoading={isNetworkLoading} />
             </div>
 
             {/* THE STUDY ARCHITECT MODAL (Simplified Entrance) */}

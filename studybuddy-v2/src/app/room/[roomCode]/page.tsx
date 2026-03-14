@@ -103,7 +103,7 @@ const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any,
         if (!audio) return;
 
         const targetVol = isActive ? 0.6 : 0.2;
-        
+
         // If track hasn't changed, just adjust volume/play state
         if (currentSrcRef.current === targetSrc) {
             audio.volume = targetVol;
@@ -122,10 +122,10 @@ const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any,
                 audio.volume = 0;
                 audio.src = targetSrc;
                 currentSrcRef.current = targetSrc;
-                
+
                 // Start playback to new track and fade in
                 if (targetSrc) {
-                    audio.play().catch(() => {});
+                    audio.play().catch(() => { });
                     fadeInterval = setInterval(() => {
                         if (audio.volume < targetVol - 0.05) {
                             audio.volume += 0.05;
@@ -148,7 +148,7 @@ const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any,
             if (!audioContextRef.current) audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
             const ctx = audioContextRef.current;
             if (ctx.state === 'suspended') ctx.resume();
-            
+
             if (!sourceRef.current) {
                 sourceRef.current = ctx.createMediaElementSource(audioRef.current);
                 analyzerRef.current = ctx.createAnalyser();
@@ -174,13 +174,13 @@ const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isA
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
         let animationId: number;
-        
+
         const draw = () => {
             animationId = requestAnimationFrame(draw);
             analyser.getByteFrequencyData(dataArray);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            const barCount = 48; 
+
+            const barCount = 48;
             const gap = 6;
             const barWidth = (canvas.width - gap * barCount) / barCount;
             let x = gap / 2;
@@ -189,13 +189,13 @@ const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isA
                 // Focus slightly more on lower/mid frequencies
                 const index = Math.floor(i * (bufferLength * 0.7) / barCount);
                 const dataVal = dataArray[index] || 0;
-                
+
                 const barHeight = Math.max(4, (dataVal / 255) * (canvas.height / 1.5));
                 const opacity = isActive ? 0.9 : 0.2;
-                
+
                 ctx.save();
                 ctx.translate(x + barWidth / 2, canvas.height / 2);
-                
+
                 // Silky creamy white color that blends beautifully with the background theme
                 ctx.fillStyle = `rgba(255, 250, 240, ${opacity})`;
                 ctx.shadowBlur = isActive ? 24 : 8;
@@ -205,18 +205,18 @@ const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isA
                 ctx.beginPath();
                 ctx.roundRect(-barWidth / 2, -barHeight, barWidth, barHeight * 2, barWidth / 2);
                 ctx.fill();
-                
+
                 ctx.restore();
-                
+
                 x += barWidth + gap;
             }
         };
         draw();
         return () => cancelAnimationFrame(animationId);
     }, [analyser, isActive]);
-    
+
     // ⚡ mix-blend-overlay ensures the visualizer magically adopts the background's prominent color scheme
-    return <canvas ref={canvasRef} width={800} height={300} className="w-full max-w-4xl opacity-50 mix-blend-overlay pointer-events-none filter blur-[1px]" />;
+    return <canvas ref={canvasRef} width={600} height={200} className="w-full max-w-2xl h-[150px] opacity-50 mix-blend-overlay pointer-events-none filter blur-[1px]" />;
 };
 
 export default function StudyRoom({ params }: { params: Promise<{ roomCode: string }> }) {
@@ -703,7 +703,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             className="absolute inset-0"
                         >
                             <AtmosphereVisuals settings={settings} />
-                            <div className="absolute inset-0 bg-black/25 backdrop-blur-[1px]" />
+                            {/* Removed bg shadow overlay to make atmosphere completely clear! */}
+                            <div className="absolute inset-0 backdrop-blur-[1px]" />
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -965,17 +966,16 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             <div className="text-[8rem] md:text-[12rem] font-black tabular-nums leading-[0.75] tracking-tighter text-[var(--text-main)] drop-shadow-[0_0_30px_rgba(255,255,255,0.1)] mb-8">
                                 {Math.floor(secondsLeft / 60).toString().padStart(2, '0')}:{(secondsLeft % 60).toString().padStart(2, '0')}
                             </div>
-                            
+
                             {/* Discreet Control: Minimalist and thin */}
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => setIsActive(!isActive)}
-                                className={`px-10 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-[0.2em] transition-all border outline-none ${
-                                    isActive
+                                className={`px-10 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-[0.2em] transition-all border outline-none ${isActive
                                         ? 'bg-transparent border-[var(--text-muted)]/20 text-[var(--text-muted)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)]'
                                         : 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black shadow-[0_0_25px_rgba(45,212,191,0.25)]'
-                                }`}
+                                    }`}
                             >
                                 {isActive ? "Pause Focus" : "Initiate Focus"}
                             </motion.button>

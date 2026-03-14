@@ -378,7 +378,39 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
 function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete }: any) {
     const isTransitioning = useRef(false);
     const isCancelled = useRef(false);
+    
+    // Freecam states
+    const [isFreeCam, setIsFreeCam] = useState(false);
+    const velocity = useRef(new THREE.Vector3());
+    const keys = useRef<{ [key: string]: boolean }>({});
+    const dragData = useRef({ isDragging: false, prevX: 0, prevY: 0, yaw: 0, pitch: 0 });
+
     useEffect(() => { isTransitioning.current = true; if (controlsRef.current) controlsRef.current.enabled = false; }, [is3D, controlsRef]);
+
+    // Keyboard & Mouse Events for Freecam
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const key = e.key.toLowerCase();
+            keys.current[key] = true;
+            if (key === ' ' || key === 'c') {
+                setIsFreeCam(prev => !prev);
+                e.preventDefault();
+            }
+            if (warpTarget) {
+                isCancelled.current = true;
+                onWarpComplete();
+            }
+        };
+        const handleKeyUp = (e: KeyboardEvent) => { keys.current[e.key.toLowerCase()] = false; };
+        
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        
+        return () => {
+             window.removeEventListener('keydown', handleKeyDown);
+             window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, [warpTarget, onWarpComplete]);
 
     // Cancel warp on user zoom/scroll
     useEffect(() => {
@@ -399,26 +431,89 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete }: any) {
 
     useFrame((state, delta) => {
         const cam = state.camera as THREE.PerspectiveCamera;
-        const speed = delta * 3;
-        cam.fov = THREE.MathUtils.lerp(cam.fov, is3D ? 50 : 30, speed);
+        
+        // Always smoothly handle FOV transitions
+        cam.fov = THREE.MathUtils.lerp(cam.fov, is3D ? 50 : 30, delta * 3);
         cam.updateProjectionMatrix();
 
-        if (warpTarget && !isCancelled.current) {
-            const offset = new THREE.Vector3(0, 0, 40);
-            const targetPos = warpTarget.clone().add(offset);
-            cam.position.lerp(targetPos, speed);
-            controlsRef.current.target.lerp(warpTarget, speed);
+        if (isFreeCam && is3D) {
+            if (controlsRef.current) controlsRef.current.enabled = false;
+            
+            // Mouse Drag to Look (Handled by checking if user is dragging via pointer lock or simple drag tracking)
+            // For simplicity, we just use OrbitControls' own rotation but override position with WASD/EQ
+            // Wait, if OrbitControls is disabled, we would need to handle rotation manually.
+            // Let's re-enable OrbitControls for mouse interaction but we will manually pan its target.
+            if (controlsRef.current) controlsRef.current.enabled = true;
+            
+            const speed = 60 * delta;
+            const damp = Math.pow(0.005, delta); // Momentum!
+            const acc = new THREE.Vector3();
+            
+            // Get local axes
+            const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion).normalize();
+            const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion).normalize();
+            const up = new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion).normalize();
+
+            // Ignore up/down component for standard WASD walking, or use true 6DOF
+            if (keys.current['w']) acc.add(forward.multiplyScalar(speed));
+            if (keys.current['s']) acc.add(forward.multiplyScalar(-speed));
+            if (keys.current['a']) acc.add(right.multiplyScalar(-speed));
+            if (keys.current['d']) acc.add(right.multiplyScalar(speed));
+            if (keys.current['e']) acc.add(up.multiplyScalar(speed));
+            if (keys.current['q']) acc.add(up.multiplyScalar(-speed));
+
+            velocity.current.add(acc);
+            velocity.current.multiplyScalar(damp);
+
+            cam.position.add(velocity.current);
+            controlsRef.current.target.add(velocity.current);
             controlsRef.current.update();
-            if (cam.position.distanceTo(targetPos) < 1) onWarpComplete();
-        } else if (isTransitioning.current) {
-            const targetPos = is3D ? new THREE.Vector3(0, 0, 80) : new THREE.Vector3(0, 0, 120);
-            cam.position.lerp(targetPos, speed);
-            controlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), speed);
-            controlsRef.current.update();
-            if (cam.position.distanceTo(targetPos) < 1) { isTransitioning.current = false; controlsRef.current.enabled = true; }
+            
+        } else {
+            // Cinematic mode / Default mode
+            if (controlsRef.current && !isTransitioning.current) controlsRef.current.enabled = true;
+            velocity.current.set(0,0,0);
+            
+            const transSpeed = delta * 3;
+            if (warpTarget && !isCancelled.current) {
+                const offset = new THREE.Vector3(0, 0, 40);
+                const targetPos = warpTarget.clone().add(offset);
+                cam.position.lerp(targetPos, transSpeed);
+                controlsRef.current.target.lerp(warpTarget, transSpeed);
+                controlsRef.current.update();
+                if (cam.position.distanceTo(targetPos) < 1) onWarpComplete();
+            } else if (isTransitioning.current) {
+                const targetPos = is3D ? new THREE.Vector3(0, 0, 80) : new THREE.Vector3(0, 0, 120);
+                cam.position.lerp(targetPos, transSpeed);
+                controlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), transSpeed);
+                controlsRef.current.update();
+                if (cam.position.distanceTo(targetPos) < 1) { 
+                    isTransitioning.current = false; 
+                    if (controlsRef.current) controlsRef.current.enabled = true; 
+                }
+            } else if (!is3D && controlsRef.current) {
+                // Ensure target slowly drifts to center in 2D
+                controlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), transSpeed * 0.5);
+                controlsRef.current.update();
+            }
         }
     });
-    return null;
+    
+    return (
+        <Html className="pointer-events-none absolute bottom-4 left-4">
+            <AnimatePresence>
+                {isFreeCam && is3D && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
+                        className="bg-[var(--bg-dark)]/80 backdrop-blur-md px-4 py-2 rounded-xl border border-[var(--accent-teal)]/50 shadow-[0_0_15px_rgba(45,212,191,0.2)]">
+                        <p className="text-[10px] font-black uppercase text-[var(--accent-teal)] tracking-widest flex items-center gap-2">
+                           <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)] animate-pulse" /> Freecam Active
+                        </p>
+                        <p className="text-[8px] font-bold text-white/50 tracking-wide mt-1">WASD to Move • EQ for Elevation • Mouse to Look</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </Html>
+    );
 }
 
 function PulseWave() {
