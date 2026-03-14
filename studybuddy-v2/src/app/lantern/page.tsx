@@ -25,6 +25,16 @@ export interface LanternUser {
     jitterY: number;
 }
 
+const getStableRandom = (id: string, seed: string) => {
+    let hash = 0;
+    const str = id + seed;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+    }
+    return (Math.abs(hash) % 1000) / 1000;
+};
+
 const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: number): LanternUser => {
     const hostedRoom = rooms.find(r => r.host_id === p.id);
     const isMe = p.id === currentUserId;
@@ -34,10 +44,8 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
     if (p.active_session_type === 'AI_TUTOR') {
         currentStatus = 'mastering';
     } else if (p.is_in_flowstate) {
-        // ⚡ FIX: PresenceSync sends 'flowState', NOT 'flowstate'
         currentStatus = 'flowState';
     } else if (hostedRoom) {
-        // ⚡ FIX: Check the DB 'status' column to toggle between drafting and hosting
         currentStatus = hostedRoom.status === 'DRAFT' ? 'drafting' :
             (hostedRoom.mode === 'cafe' ? 'cafe' : 'hosting');
     } else {
@@ -46,6 +54,10 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
 
     const stats = Array.isArray(p.user_stats) ? p.user_stats[0] : p.user_stats;
     const wardrobe = Array.isArray(p.chum_wardrobe) ? p.chum_wardrobe[0] : p.chum_wardrobe;
+
+    // Stable Grid logic
+    const gridX = isMe ? 6 : Math.floor((getStableRandom(p.id, "x") * 100) % 12);
+    const gridY = isMe ? 6 : Math.floor((getStableRandom(p.id, "y") * 100) % 12);
 
     return {
         id: isMe ? 'me' : p.id,
@@ -58,11 +70,10 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
         roomTitle: hostedRoom?.name,
         isPremium: p.is_premium || stats?.is_premium || false,
         chumLabel: wardrobe ? `${wardrobe.base_emoji || "👻"}${wardrobe.hat_emoji || ""}` : "👻 Ghost",
-        // Grid logic based on index or position
-        gridX: isMe ? 6 : Math.floor(index / 5),
-        gridY: isMe ? 6 : index % 5,
-        jitterX: isMe ? 0 : (Math.random() - 0.5) * 40,
-        jitterY: isMe ? 0 : (Math.random() - 0.5) * 40,
+        gridX,
+        gridY,
+        jitterX: isMe ? 0 : (getStableRandom(p.id, "jitterX") - 0.5) * 40,
+        jitterY: isMe ? 0 : (getStableRandom(p.id, "jitterY") - 0.5) * 40,
     };
 };
 
@@ -74,6 +85,7 @@ export default function LanternNetPage() {
 
     const [fullNetwork, setFullNetwork] = useState<LanternUser[]>([]);
     const [isNetworkLoading, setIsNetworkLoading] = useState(true);
+    const isFirstLoad = useRef(true);
     const lanternRef = useRef<LanternNetHandle>(null);
 
     const [isHostModalOpen, setIsHostModalOpen] = useState(false);
@@ -97,7 +109,9 @@ export default function LanternNetPage() {
             if (!authUser || !isSubscribed) return;
             currentUserId = authUser.id;
 
-            setIsNetworkLoading(true);
+            if (isFirstLoad.current) {
+                setIsNetworkLoading(true);
+            }
             try {
                 const [profilesRes, roomsRes] = await Promise.all([
                     supabase.from('profiles').select(`
@@ -128,7 +142,10 @@ export default function LanternNetPage() {
             } catch (error) {
                 console.error("Failed to fetch network:", error);
             } finally {
-                if (isSubscribed) setIsNetworkLoading(false);
+                if (isSubscribed) {
+                    setIsNetworkLoading(false);
+                    isFirstLoad.current = false;
+                }
             }
         };
 
@@ -276,15 +293,7 @@ export default function LanternNetPage() {
 
             {/* RIGHT PANEL: THREE.JS MAP */}
             <div className="flex-1 h-full rounded-[40px] overflow-hidden border border-[var(--border-color)] shadow-xl relative min-h-0">
-                {isNetworkLoading && (
-                    <div className="absolute inset-0 bg-[var(--bg-dark)]/50 backdrop-blur-sm z-20 flex items-center justify-center">
-                        <div className="flex flex-col items-center gap-3">
-                            <div className="w-10 h-10 border-4 border-[var(--accent-teal)]/30 border-t-[var(--accent-teal)] rounded-full animate-spin" />
-                            <span className="text-[var(--text-muted)] font-black tracking-widest uppercase text-[10px]">Mapping the void...</span>
-                        </div>
-                    </div>
-                )}
-                <ThreeLanternNet ref={lanternRef} users={filteredNetwork} />
+                <ThreeLanternNet ref={lanternRef} users={filteredNetwork} isInitialLoading={isNetworkLoading} />
             </div>
 
             {/* THE STUDY ARCHITECT MODAL (Simplified Entrance) */}

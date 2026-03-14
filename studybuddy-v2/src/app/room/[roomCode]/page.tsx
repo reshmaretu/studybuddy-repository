@@ -23,6 +23,7 @@ const LIVE_BGS = ['Cyberpunk Alley (Pro)', 'Zen Waterfall (Pro)', 'Space Station
 const AUDIO_TRACKS = [
     { name: 'None', pro: false }, { name: 'White Noise', pro: false },
     { name: 'Brown Noise', pro: false }, { name: 'Lofi Beats 1', pro: false },
+    { name: 'Relaxing Rain', pro: false },
     { name: 'Deep Focus Ambient', pro: true }, { name: 'Binaural Alpha Waves', pro: true }
 ];
 
@@ -110,6 +111,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     // --- NEW SYNC STATES & REF (Must come AFTER settings and secondsLeft) ---
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
 
     // ⚡ Now this works because secondsLeft, isActive, etc. already exist!
     const timerStateRef = useRef({
@@ -129,8 +131,10 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         };
     }, [secondsLeft, isActive, status, isBreak, settings]);
 
-    const MediaEngine = ({ settings, isActive }: { settings: any, isActive: boolean }) => {
+    const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any, isActive: boolean, onAnalyserCreated?: (analyser: AnalyserNode) => void }) => {
         const audioRef = useRef<HTMLAudioElement>(null);
+        const audioContextRef = useRef<AudioContext | null>(null);
+        const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
 
         // ⚡ Handle Volume & Playback Logic
         useEffect(() => {
@@ -144,6 +148,31 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             }
         }, [isActive]);
 
+        // ⚡ Visualizer Connection
+        useEffect(() => {
+            if (!audioRef.current || !onAnalyserCreated || settings.audioTrack === 'None') return;
+
+            if (!audioContextRef.current) {
+                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+            }
+
+            const ctx = audioContextRef.current;
+            if (ctx.state === 'suspended') ctx.resume();
+
+            if (!sourceRef.current) {
+                sourceRef.current = ctx.createMediaElementSource(audioRef.current);
+                const analyser = ctx.createAnalyser();
+                analyser.fftSize = 256;
+                sourceRef.current.connect(analyser);
+                analyser.connect(ctx.destination);
+                onAnalyserCreated(analyser);
+            }
+
+            return () => {
+                // We keep the context/source alive during track changes to prevent graph errors
+            };
+        }, [settings.audioTrack, onAnalyserCreated]);
+
         if (settings.audioTrack === 'None') return null;
 
         // ⚡ Construct the bulletproof file path
@@ -154,11 +183,57 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             <audio
                 ref={audioRef}
                 src={audioPath}
+                crossOrigin="anonymous"
                 autoPlay
                 loop
                 className="hidden"
             />
         );
+    };
+
+    const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isActive: boolean }) => {
+        const canvasRef = useRef<HTMLCanvasElement>(null);
+
+        useEffect(() => {
+            if (!analyser || !canvasRef.current) return;
+
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d')!;
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            let animationId: number;
+
+            const draw = () => {
+                animationId = requestAnimationFrame(draw);
+                analyser.getByteFrequencyData(dataArray);
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                const barWidth = (canvas.width / bufferLength) * 2.5;
+                let x = 0;
+
+                for (let i = 0; i < bufferLength; i++) {
+                    const barHeight = (dataArray[i] / 255) * (canvas.height / 2);
+
+                    // Fade out based on activity
+                    const opacity = isActive ? 0.8 : 0.2;
+                    ctx.fillStyle = `rgba(45, 212, 191, ${opacity})`;
+
+                    // Upward bar
+                    ctx.fillRect(x, canvas.height / 2 - barHeight, barWidth, barHeight);
+                    // Downward mirrored bar
+                    ctx.fillRect(x, canvas.height / 2, barWidth, barHeight);
+
+                    x += barWidth + 1;
+                }
+            };
+
+            draw();
+            return () => cancelAnimationFrame(animationId);
+        }, [analyser, isActive]);
+
+        return <canvas ref={canvasRef} width={600} height={150} className="w-full max-w-2xl opacity-40 mix-blend-screen pointer-events-none" />;
     };
 
     // 1. PAGE PROTECTION (Before Unload)
@@ -183,11 +258,14 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             setCurrentUserId(user.id); // ⚡ Track ID for the "You" effect
 
             // ⚡ FETCH AVATAR & NAME
+            // ⚡ FETCH AVATAR, NAME, and PREMIUM from both profiles & user_stats
             const { data: profile } = await supabase.from('profiles').select('display_name, full_name, chum_avatar, is_premium').eq('id', user.id).single();
+            const { data: stats } = await supabase.from('user_stats').select('is_premium').eq('user_id', user.id).single();
+
             const resolvedName = profile?.display_name || profile?.full_name || user.email?.split('@')[0] || "Chum";
             const resolvedAvatar = profile?.chum_avatar || "👻";
 
-            setIsRoomPremium(profile?.is_premium || false);
+            setIsRoomPremium(profile?.is_premium || stats?.is_premium || false);
 
             let roomData = null;
             for (let i = 0; i < 3; i++) {
@@ -510,19 +588,29 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             transition={{ duration: 1 }}
                             className="absolute inset-0"
                         >
-                            <div
-                                className="w-full h-full bg-cover bg-center opacity-30 transition-all duration-1000"
-                                style={{ backgroundImage: settings.vibeAsset.includes('Void') ? 'none' : `url(/assets/bgs/${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.jpg)` }}
-                            />
+                            {settings.vibeCategory === 'Live Lo-Fi (Pro)' ? (
+                                <video
+                                    autoPlay loop muted playsInline
+                                    className="w-full h-full object-cover opacity-30 transition-all duration-1000"
+                                    src={`/assets/bgs/live/${settings.vibeAsset.replace(' (Pro)', '').toLowerCase().replace(/ /g, '_')}.mp4`}
+                                />
+                            ) : (
+                                <div
+                                    className="w-full h-full bg-cover bg-center opacity-30 transition-all duration-1000"
+                                    style={{
+                                        backgroundImage: settings.vibeAsset.includes('Void') 
+                                            ? 'none' 
+                                            : `url(/assets/bgs/${settings.vibeCategory === 'Static Lo-Fi' ? 'static/' : ''}${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.jpg)`
+                                    }}
+                                />
+                            )}
                             <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px]" />
                         </motion.div>
                     )}
                 </AnimatePresence>
 
-                {/* 🔊 HIDDEN AUDIO PLAYER */}
-                {settings.audioTrack !== 'None' && (
-                    <MediaEngine settings={settings} isActive={isActive} />
-                )}
+                {/* 🔊 HIDDEN AUDIO PLAYER & VISUALIZER ENGINE */}
+                <MediaEngine settings={settings} isActive={isActive} onAnalyserCreated={setAnalyser} />
             </div>
 
             {/* 1. ARCHITECT SIDEBAR */}
@@ -720,7 +808,14 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     </button>
                 </header>
 
-                <div className="flex-1 flex flex-col items-center justify-center z-10">
+                <div className="flex-1 flex flex-col items-center justify-center z-10 gap-8">
+                    {/* VISUALIZER (Centered in all phases) */}
+                    {settings.showVisualizer && (
+                        <div className="w-full flex justify-center mt-auto">
+                            <Visualizer analyser={analyser} isActive={isActive} />
+                        </div>
+                    )}
+
                     {/* JOINER WAIT SCREEN (Shows real-time blueprint updates) */}
                     {status === 'DRAFT' && !isHost && (
                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-black/40 backdrop-blur-md border border-[var(--border-color)] p-8 rounded-[32px] text-center max-w-md w-full shadow-2xl">

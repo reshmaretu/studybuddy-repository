@@ -43,7 +43,7 @@ export interface LanternNetHandle {
     warpToUser: (userId: string) => void;
 }
 
-const ThreeLanternNet = forwardRef<LanternNetHandle, { users: LanternUser[] }>(function ThreeLanternNet({ users }, ref) {
+const ThreeLanternNet = forwardRef<LanternNetHandle, { users: LanternUser[], isInitialLoading?: boolean }>(function ThreeLanternNet({ users, isInitialLoading }, ref) {
     const [is3D, setIs3D] = useState(false);
     const [warpTarget, setWarpTarget] = useState<THREE.Vector3 | null>(null);
     const controlsRef = useRef<any>(null);
@@ -101,6 +101,13 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, { users: LanternUser[] }>(f
                         className="w-24 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[var(--accent-teal)]"
                     />
                 </div>
+                {/* --- HUD LOADER --- */}
+                {isInitialLoading && (
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-[var(--bg-dark)]/60 backdrop-blur-md px-6 py-3 rounded-full border border-[var(--border-color)] animate-pulse shadow-xl">
+                        <div className="w-3 h-3 border-2 border-[var(--accent-teal)]/30 border-t-[var(--accent-teal)] rounded-full animate-spin" />
+                        <span className="text-[10px] font-black tracking-widest uppercase text-[var(--accent-teal)]">Syncing Void...</span>
+                    </div>
+                )}
             </div>
 
             <Canvas>
@@ -219,7 +226,9 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
         const statusKey = user.status as keyof typeof STATUS_CONFIG;
         const config = STATUS_CONFIG[statusKey] || STATUS_CONFIG.idle;
 
-        groupRef.current.position.set(xPos, yPos, THREE.MathUtils.lerp(groupRef.current.position.z, targetZ, delta * 5));
+        groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, xPos, delta * 3);
+        groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, yPos, delta * 3);
+        groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, targetZ, delta * 3);
 
         // 👇 FIXED: Removed the rogue '4' and added a Math.max to prevent total darkness
         const displayIntensity = Math.max(0.5, intensity);
