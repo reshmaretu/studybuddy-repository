@@ -298,36 +298,32 @@ const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isA
             setHostId(roomData.host_id);
 
             // 2. ⚡ FETCH CURRENT USER DETAILS (For Presence)
-            const { data: myData } = await supabase
-                .from('profiles')
-                .select(`
-                    display_name, 
-                    full_name, 
-                    is_premium,
-                    user_stats ( is_premium ),
-                    chum_wardrobe ( base_emoji, hat_emoji )
-                `)
-                .eq('id', user.id)
-                .single();
+            const [profileRes, statsRes, wardrobeRes] = await Promise.all([
+                supabase.from('profiles').select('display_name, full_name, is_premium').eq('id', user.id).single(),
+                supabase.from('user_stats').select('is_premium').eq('user_id', user.id).single(),
+                supabase.from('chum_wardrobe').select('base_emoji, hat_emoji').eq('user_id', user.id).single()
+            ]);
 
-            const myProfile: any = myData;
-            const resolvedName = myProfile?.display_name || myProfile?.full_name || user.email?.split('@')[0] || "Chum";
+            const myProfile: any = profileRes.data || {};
+            const myStats: any = statsRes.data || {};
+            const myWardrobe: any = wardrobeRes.data || {};
+
+            const resolvedName = (myProfile.display_name && myProfile.display_name.trim() !== '') ? myProfile.display_name 
+                               : (myProfile.full_name && myProfile.full_name.trim() !== '') ? myProfile.full_name 
+                               : user.email?.split('@')[0] || "Chum";
             
-            const myWardrobe = Array.isArray(myProfile?.chum_wardrobe) ? myProfile.chum_wardrobe[0] : myProfile?.chum_wardrobe;
-            const resolvedAvatar = myWardrobe ? `${myWardrobe.base_emoji || "👻"}${myWardrobe.hat_emoji || ""}` : "👻";
+            const resolvedAvatar = `${myWardrobe.base_emoji || "👻"}${myWardrobe.hat_emoji || ""}`;
 
             // 3. ⚡ FETCH HOST PREMIUM STATUS (For Room Capabilities)
             if (isActuallyHost) {
-                setIsRoomPremium(myProfile?.is_premium || myProfile?.user_stats?.[0]?.is_premium || false);
+                setIsRoomPremium(myProfile.is_premium || myStats.is_premium || false);
             } else {
-                const { data: hostProfile } = await supabase
-                    .from('profiles')
-                    .select('is_premium, user_stats(is_premium)')
-                    .eq('id', roomData.host_id)
-                    .single();
+                const [hostProfileRes, hostStatsRes] = await Promise.all([
+                    supabase.from('profiles').select('is_premium').eq('id', roomData.host_id).single(),
+                    supabase.from('user_stats').select('is_premium').eq('user_id', roomData.host_id).single()
+                ]);
                 
-                const hp: any = hostProfile;
-                setIsRoomPremium(hp?.is_premium || hp?.user_stats?.[0]?.is_premium || false);
+                setIsRoomPremium(hostProfileRes.data?.is_premium || hostStatsRes.data?.is_premium || false);
             }
 
             if (isActuallyHost && roomData.status === 'DRAFT') {

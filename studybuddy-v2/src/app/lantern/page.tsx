@@ -61,7 +61,7 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
 
     return {
         id: isMe ? 'me' : p.id,
-        name: p.display_name || p.full_name || "Anonymous",
+        name: (p.display_name && p.display_name.trim() !== "") ? p.display_name : (p.full_name && p.full_name.trim() !== "") ? p.full_name : "Anonymous",
         status: currentStatus,
         hours: stats ? Math.floor((stats.total_seconds_tracked || 0) / 3600) : 0,
         focusScore: stats ? (stats.focus_score || 0) : 0,
@@ -113,29 +113,35 @@ export default function LanternNetPage() {
                 setIsNetworkLoading(true);
             }
             try {
-                const [profilesRes, roomsRes] = await Promise.all([
-                    supabase.from('profiles').select(`
-                    id, display_name, full_name, status,
-                    is_in_flowstate, active_session_type, is_premium,
-                    user_stats ( focus_score, total_seconds_tracked, is_premium ),
-                    chum_wardrobe ( base_emoji, hat_emoji )
-                `),
-                    supabase.from('rooms').select('*')
+                const [profilesRes, roomsRes, statsRes, wardrobeRes] = await Promise.all([
+                    supabase.from('profiles').select('id, display_name, full_name, status, is_in_flowstate, active_session_type, is_premium'),
+                    supabase.from('rooms').select('*'),
+                    supabase.from('user_stats').select('user_id, focus_score, total_seconds_tracked, is_premium'),
+                    supabase.from('chum_wardrobe').select('user_id, base_emoji, hat_emoji')
                 ]);
 
                 if (profilesRes.data && isSubscribed) {
                     const rooms = roomsRes.data || [];
+                    const statsMap = new Map((statsRes.data || []).map(s => [s.user_id, s]));
+                    const wardrobeMap = new Map((wardrobeRes.data || []).map(w => [w.user_id, w]));
+
                     const users: LanternUser[] = profilesRes.data.map((p, index) => {
+                        const mergedProfile = {
+                            ...p,
+                            user_stats: statsMap.get(p.id) || null,
+                            chum_wardrobe: wardrobeMap.get(p.id) || null
+                        };
+
                         // If it's ME, we ignore the DB status and use the STORE status for local echo
                         if (p.id === currentUserId) {
                             return formatUser({
-                                ...p,
+                                ...mergedProfile,
                                 is_in_flowstate: activeMode === 'flowState',
                                 active_session_type: isTutorModeActive ? 'AI_TUTOR' : null,
                                 status: activeMode === 'none' ? 'idle' : activeMode
                             }, rooms, currentUserId, index);
                         }
-                        return formatUser(p, rooms, currentUserId, index);
+                        return formatUser(mergedProfile, rooms, currentUserId, index);
                     });
                     setFullNetwork(users);
                 }

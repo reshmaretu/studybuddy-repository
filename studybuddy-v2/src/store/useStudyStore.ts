@@ -219,10 +219,13 @@ export const useStudyStore = create<StudyState>()(
                     if (statsResponse.data) {
                         set({
                             focusScore: statsResponse.data.focus_score,
-                            totalSessions: statsResponse.data.total_sessions,
-                            isPremiumUser: statsResponse.data.is_premium || profileResponse.data?.is_premium || false
+                            totalSessions: statsResponse.data.total_sessions
                         });
                     }
+                    
+                    // Always try to set premium status even if one table is empty
+                    const isPremium = statsResponse.data?.is_premium || profileResponse.data?.is_premium || false;
+                    set({ isPremiumUser: isPremium });
 
                     if (wardrobeResponse.data) {
                         const cloudTheme = wardrobeResponse.data.active_theme;
