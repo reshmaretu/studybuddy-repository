@@ -44,17 +44,20 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
         currentStatus = (p.status as any) || 'offline';
     }
 
+    const stats = Array.isArray(p.user_stats) ? p.user_stats[0] : p.user_stats;
+    const wardrobe = Array.isArray(p.chum_wardrobe) ? p.chum_wardrobe[0] : p.chum_wardrobe;
+
     return {
         id: isMe ? 'me' : p.id,
         name: p.display_name || p.full_name || "Anonymous",
         status: currentStatus,
-        hours: p.total_hours || 0,
-        focusScore: p.focus_score || 0,
+        hours: stats ? Math.floor((stats.total_seconds_tracked || 0) / 3600) : 0,
+        focusScore: stats ? (stats.focus_score || 0) : 0,
         isHosting: !!hostedRoom,
         roomCode: hostedRoom?.room_code,
         roomTitle: hostedRoom?.name,
-        isPremium: p.is_premium || false,
-        chumLabel: p.chum_avatar || "👻 Ghost",
+        isPremium: p.is_premium || stats?.is_premium || false,
+        chumLabel: wardrobe ? `${wardrobe.base_emoji || "👻"}${wardrobe.hat_emoji || ""}` : "👻 Ghost",
         // Grid logic based on index or position
         gridX: isMe ? 6 : Math.floor(index / 5),
         gridY: isMe ? 6 : index % 5,
@@ -98,9 +101,10 @@ export default function LanternNetPage() {
             try {
                 const [profilesRes, roomsRes] = await Promise.all([
                     supabase.from('profiles').select(`
-                    id, display_name, full_name, total_hours, 
-                    chum_avatar, status, focus_score, is_premium,
-                    is_in_flowstate, active_session_type
+                    id, display_name, full_name, status,
+                    is_in_flowstate, active_session_type, is_premium,
+                    user_stats ( focus_score, total_seconds_tracked, is_premium ),
+                    chum_wardrobe ( base_emoji, hat_emoji )
                 `),
                     supabase.from('rooms').select('*')
                 ]);

@@ -190,10 +190,12 @@ export const useStudyStore = create<StudyState>()(
                 }
 
                 try {
-                    const [tasksResponse, shardsResponse, profileResponse] = await Promise.all([
+                    const [tasksResponse, shardsResponse, profileResponse, statsResponse, wardrobeResponse] = await Promise.all([
                         supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                        supabase.from('profiles').select('focus_score, total_sessions, is_premium, preferred_theme').eq('id', user.id).single()
+                        supabase.from('profiles').select('display_name, is_premium').eq('id', user.id).single(),
+                        supabase.from('user_stats').select('focus_score, total_sessions, is_premium').eq('user_id', user.id).single(),
+                        supabase.from('chum_wardrobe').select('active_theme').eq('user_id', user.id).single()
                     ]);
 
                     if (tasksResponse.data) {
@@ -214,18 +216,20 @@ export const useStudyStore = create<StudyState>()(
                         });
                     }
 
-                    if (profileResponse.data) {
-                        const cloudTheme = profileResponse.data.preferred_theme;
+                    if (statsResponse.data) {
+                        set({
+                            focusScore: statsResponse.data.focus_score,
+                            totalSessions: statsResponse.data.total_sessions,
+                            isPremiumUser: statsResponse.data.is_premium || profileResponse.data?.is_premium || false
+                        });
+                    }
+
+                    if (wardrobeResponse.data) {
+                        const cloudTheme = wardrobeResponse.data.active_theme;
                         if (cloudTheme) {
                             document.documentElement.setAttribute("data-theme", cloudTheme);
                             localStorage.setItem("appTheme", cloudTheme);
                         }
-
-                        set({
-                            focusScore: profileResponse.data.focus_score,
-                            totalSessions: profileResponse.data.total_sessions,
-                            isPremiumUser: profileResponse.data.is_premium
-                        });
                     }
                 } catch (error) {
                     console.error("Initialization failed:", error);
@@ -277,11 +281,11 @@ export const useStudyStore = create<StudyState>()(
                 if (!id.startsWith('temp-') && user) {
                     await Promise.all([
                         supabase.from('tasks').update({ is_completed: true }).eq('id', id),
-                        // ⚡ UPDATED: Writing to total_sessions
-                        supabase.from('profiles').update({
+                        // ⚡ UPDATED: Writing to user_stats instead of profiles
+                        supabase.from('user_stats').update({
                             focus_score: Math.min(100, get().focusScore),
                             total_sessions: get().totalSessions
-                        }).eq('id', user.id)
+                        }).eq('user_id', user.id)
                     ]);
                 }
             },
@@ -441,7 +445,7 @@ export const useStudyStore = create<StudyState>()(
                 const isPremiumTheme = ["sakura", "academia", "lofi", "nordic", "e-ink"].includes(themeId);
                 if (isPremiumTheme && !get().isPremiumUser) return;
 
-                await supabase.from('profiles').update({ preferred_theme: themeId }).eq('id', user.id);
+                await supabase.from('chum_wardrobe').update({ active_theme: themeId }).eq('user_id', user.id);
                 document.documentElement.setAttribute("data-theme", themeId);
                 localStorage.setItem("appTheme", themeId);
             }
