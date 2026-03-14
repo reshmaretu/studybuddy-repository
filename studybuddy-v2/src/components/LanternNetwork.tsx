@@ -43,7 +43,12 @@ export interface LanternNetHandle {
     warpToUser: (userId: string) => void;
 }
 
-const ThreeLanternNet = forwardRef<LanternNetHandle, { users: LanternUser[], isInitialLoading?: boolean }>(function ThreeLanternNet({ users, isInitialLoading }, ref) {
+const ThreeLanternNet = forwardRef<LanternNetHandle, { 
+    users: LanternUser[], 
+    isInitialLoading?: boolean,
+    debrisSize?: number,
+    debrisColor?: string
+}>(function ThreeLanternNet({ users, isInitialLoading, debrisSize = 0.4, debrisColor = "#2dd4bf" }, ref) {
     const [is3D, setIs3D] = useState(false);
     const [warpTarget, setWarpTarget] = useState<THREE.Vector3 | null>(null);
     const controlsRef = useRef<any>(null);
@@ -112,7 +117,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, { users: LanternUser[], isI
 
             <Canvas>
                 <PerspectiveCamera makeDefault position={[0, 0, 120]} fov={30} />
-                <FloatingParticles />
+                <FloatingParticles size={debrisSize} color={debrisColor} />
                 <GlobalPulse />
                 {/* 👇 INCREASE AMBIENT LIGHT to 0.8 to illuminate the dust and mesh shells */}
                 <ambientLight intensity={1.5} />
@@ -140,10 +145,10 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, { users: LanternUser[], isI
                 <OrbitControls
                     ref={controlsRef}
                     enableRotate={is3D}
-                    enablePan={true}
+                    enablePan={is3D} // 👈 Disable panning in 2D to prevent rubber banding
                     enableZoom={true}
                     enableDamping={true}
-                    dampingFactor={0.2}
+                    dampingFactor={0.1} // 👈 Snappier feel
                     makeDefault
                     mouseButtons={{
                         LEFT: is3D ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN,
@@ -439,22 +444,14 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete }: any) {
         if (isFreeCam && is3D) {
             if (controlsRef.current) controlsRef.current.enabled = false;
             
-            // Mouse Drag to Look (Handled by checking if user is dragging via pointer lock or simple drag tracking)
-            // For simplicity, we just use OrbitControls' own rotation but override position with WASD/EQ
-            // Wait, if OrbitControls is disabled, we would need to handle rotation manually.
-            // Let's re-enable OrbitControls for mouse interaction but we will manually pan its target.
-            if (controlsRef.current) controlsRef.current.enabled = true;
-            
             const speed = 60 * delta;
-            const damp = Math.pow(0.005, delta); // Momentum!
+            const damp = Math.pow(0.005, delta); 
             const acc = new THREE.Vector3();
             
-            // Get local axes
             const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion).normalize();
             const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion).normalize();
             const up = new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion).normalize();
 
-            // Ignore up/down component for standard WASD walking, or use true 6DOF
             if (keys.current['w']) acc.add(forward.multiplyScalar(speed));
             if (keys.current['s']) acc.add(forward.multiplyScalar(-speed));
             if (keys.current['a']) acc.add(right.multiplyScalar(-speed));
@@ -466,15 +463,17 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete }: any) {
             velocity.current.multiplyScalar(damp);
 
             cam.position.add(velocity.current);
-            controlsRef.current.target.add(velocity.current);
-            controlsRef.current.update();
-            
+            // In freecam, OrbitControls target follows camera to keep it independent
+            if (controlsRef.current) {
+                controlsRef.current.target.copy(cam.position).add(forward.multiplyScalar(10));
+                controlsRef.current.update();
+            }
         } else {
             // Cinematic mode / Default mode
             if (controlsRef.current && !isTransitioning.current) controlsRef.current.enabled = true;
             velocity.current.set(0,0,0);
             
-            const transSpeed = delta * 3;
+            const transSpeed = delta * 4; // 👈 Slightly faster transitions
             if (warpTarget && !isCancelled.current) {
                 const offset = new THREE.Vector3(0, 0, 40);
                 const targetPos = warpTarget.clone().add(offset);
@@ -483,18 +482,16 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete }: any) {
                 controlsRef.current.update();
                 if (cam.position.distanceTo(targetPos) < 1) onWarpComplete();
             } else if (isTransitioning.current) {
-                const targetPos = is3D ? new THREE.Vector3(0, 0, 80) : new THREE.Vector3(0, 0, 120);
+                const targetPos = is3D ? new THREE.Vector3(0, 10, 80) : new THREE.Vector3(0, 0, 120);
                 cam.position.lerp(targetPos, transSpeed);
                 controlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), transSpeed);
                 controlsRef.current.update();
                 if (cam.position.distanceTo(targetPos) < 1) { 
                     isTransitioning.current = false; 
-                    if (controlsRef.current) controlsRef.current.enabled = true; 
                 }
-            } else if (!is3D && controlsRef.current) {
-                // Ensure target slowly drifts to center in 2D
-                controlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), transSpeed * 0.5);
-                controlsRef.current.update();
+            } else if (!is3D && !warpTarget) {
+                // Remove forced centering drift in 2D so user can zoom/pan freely if they wanted
+                // But since we disabled Pan in 2D, it stays centered naturally
             }
         }
     });
@@ -558,14 +555,14 @@ function GlobalPulse() {
     );
 }
 
-function FloatingParticles() {
+function FloatingParticles({ size, color }: { size: number, color: string }) {
     const ref = useRef<THREE.Points>(null);
 
-    // 1. Ensure we generate enough points (2000 nodes * 3 coordinates = 6000)
+    // 1. Ensure we generate enough points 
     const [sphere] = useState(() => {
-        const positions = new Float32Array(6000);
-        for (let i = 0; i < 6000; i++) {
-            positions[i] = (Math.random() - 0.5) * 200; // Manual fallback if maath fails
+        const positions = new Float32Array(9000); // 👈 Increased for more "debris"
+        for (let i = 0; i < 9000; i++) {
+            positions[i] = (Math.random() - 0.5) * 400; // 👈 Wider field
         }
         return positions;
     });
@@ -581,11 +578,11 @@ function FloatingParticles() {
         <Points ref={ref} positions={sphere} stride={3} frustumCulled={false}>
             <PointMaterial
                 transparent
-                color="#2dd4bf"
-                size={0.4} // 👈 Increased size for visibility
+                color={color}
+                size={size} 
                 sizeAttenuation={true}
                 depthWrite={false}
-                opacity={0.4} // 👈 Increased opacity
+                opacity={0.4} 
                 blending={THREE.AdditiveBlending}
             />
         </Points>

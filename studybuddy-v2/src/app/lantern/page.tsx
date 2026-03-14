@@ -125,16 +125,27 @@ export default function LanternNetPage() {
     // --- DEV OVERLAY STATE ---
     const [isDevOverlayOpen, setIsDevOverlayOpen] = useState(false);
     const [mockUsers, setMockUsers] = useState<LanternUser[]>([]);
+    const [debrisSize, setDebrisSize] = useState(0.4);
+    const [debrisColor, setDebrisColor] = useState("#2dd4bf");
 
     useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
-                e.preventDefault();
-                setIsDevOverlayOpen(p => !p);
-            }
+        const checkDevStatus = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { data: profile } = await supabase.from('profiles').select('status').eq('id', user.id).single();
+            // Assuming 'dev' is a status or we check for a specific email/ID for security
+            const isDev = profile?.status === 'dev' || user.email?.endsWith('@admin.com') || user.id === 'YOUR_ID'; 
+            
+            const handleKeyDown = (e: KeyboardEvent) => {
+                if (isDev && e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
+                    e.preventDefault();
+                    setIsDevOverlayOpen(p => !p);
+                }
+            };
+            window.addEventListener('keydown', handleKeyDown);
+            return () => window.removeEventListener('keydown', handleKeyDown);
         };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        checkDevStatus();
     }, []);
 
     const [isHostModalOpen, setIsHostModalOpen] = useState(false);
@@ -317,6 +328,23 @@ export default function LanternNetPage() {
                             }} className="w-full py-2 bg-red-500/20 text-red-300 rounded-xl text-xs font-bold hover:bg-red-500/30 transition-colors">
                                 Randomize ALL (Local Override)
                             </button>
+
+                            <div className="pt-4 border-t border-(--border-color) space-y-3">
+                                <h3 className="text-[10px] font-black uppercase text-white/40 tracking-widest">Atmosphere</h3>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center text-[10px] font-bold">
+                                        <span>Debris Size</span>
+                                        <span className="font-mono text-(--accent-teal)">{debrisSize.toFixed(1)}</span>
+                                    </div>
+                                    <input type="range" min="0.1" max="2.0" step="0.1" value={debrisSize} onChange={(e) => setDebrisSize(parseFloat(e.target.value))} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center text-[10px] font-bold">
+                                        <span>Debris Color</span>
+                                        <input type="color" value={debrisColor} onChange={(e) => setDebrisColor(e.target.value)} className="w-6 h-6 bg-transparent border-none cursor-pointer" />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
                 )}
@@ -398,7 +426,13 @@ export default function LanternNetPage() {
 
             {/* RIGHT PANEL: THREE.JS MAP */}
             <div className="flex-1 h-full rounded-[40px] overflow-hidden border border-[var(--border-color)] shadow-xl relative min-h-0">
-                <ThreeLanternNet ref={lanternRef} users={combinedNetwork} isInitialLoading={isNetworkLoading} />
+                <ThreeLanternNet 
+                    ref={lanternRef} 
+                    users={combinedNetwork} 
+                    isInitialLoading={isNetworkLoading} 
+                    debrisSize={debrisSize}
+                    debrisColor={debrisColor}
+                />
             </div>
 
             {/* THE STUDY ARCHITECT MODAL (Simplified Entrance) */}
