@@ -10,22 +10,25 @@ export const metadata: Metadata = {
   description: "Your cozy productivity sanctuary.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }) {
   return (
-    <html lang="en" data-theme="deep-teal" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-    (function() {
-      const savedTheme = localStorage.getItem('appTheme') || 'deep-teal';
-      document.documentElement.setAttribute('data-theme', savedTheme);
-    })();
-  `}} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const theme = localStorage.getItem('appTheme') || 'deep-teal';
+                  document.documentElement.setAttribute('data-theme', theme);
+                } catch (e) {}
+              })()
+            `,
+          }}
+        />
       </head>
-      <body className={`${inter.className} bg-[var(--bg-dark)] text-[var(--text-main)]`}>
-        <AppLayoutWrapper>
-          {children}
-        </AppLayoutWrapper>
+      <body>
+        <AppLayoutWrapper>{children}</AppLayoutWrapper>
       </body>
     </html>
   );

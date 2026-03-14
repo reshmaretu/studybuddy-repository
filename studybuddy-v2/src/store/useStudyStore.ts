@@ -191,8 +191,7 @@ export const useStudyStore = create<StudyState>()(
                 const [tasksResponse, shardsResponse, profileResponse] = await Promise.all([
                     supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                     supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                    // ⚡ UPDATED: Fetching the correct consolidated columns
-                    supabase.from('profiles').select('focus_score, total_sessions, is_premium').eq('id', user.id).single()
+                    supabase.from('profiles').select('focus_score, total_sessions, is_premium, preferred_theme').eq('id', user.id).single()
                 ]);
 
                 if (tasksResponse.data) {
