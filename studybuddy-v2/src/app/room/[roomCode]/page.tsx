@@ -18,12 +18,12 @@ const ROOM_THEMES = [
     { id: 'nordic', name: 'Nordic Frost', premium: true },
     { id: 'e-ink', name: 'E-Ink (Obsidian)', premium: true },
 ];
-const STATIC_BGS = ['Cozy Library', 'Rainy Window', 'Night City', 'Coffee Shop'];
-const LIVE_BGS = ['Cyberpunk Alley (Pro)', 'Zen Waterfall (Pro)', 'Space Station (Pro)'];
+const STATIC_BGS = ['Cozy Library', 'Night City', 'Coffee Shop'];
+const LIVE_BGS = ['Rainy Window', 'Cyberpunk Alley', 'Zen Waterfall', 'Space Station'];
 const AUDIO_TRACKS = [
     { name: 'None', pro: false }, { name: 'White Noise', pro: false },
     { name: 'Brown Noise', pro: false }, { name: 'Lofi Beats 1', pro: false },
-    { name: 'Relaxing Rain', pro: false },
+    { name: 'Relaxing Rain', pro: false }, { name: 'Gentle Rain', pro: false },
     { name: 'Deep Focus Ambient', pro: true }, { name: 'Binaural Alpha Waves', pro: true }
 ];
 
@@ -80,8 +80,8 @@ const AtmosphereVisuals = ({ settings }: { settings: any }) => {
             />
         );
     }
-    const bgUrl = settings.vibeAsset.includes('Void') 
-        ? 'none' 
+    const bgUrl = settings.vibeAsset.includes('Void')
+        ? 'none'
         : `url(/assets/bgs/${settings.vibeCategory === 'Static Lo-Fi' ? 'static/' : ''}${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.jpg)`;
     return <div className="w-full h-full bg-cover bg-center opacity-30 transition-all duration-1000" style={{ backgroundImage: bgUrl }} />;
 };
@@ -94,7 +94,7 @@ const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any,
     useEffect(() => {
         if (!audioRef.current) return;
         audioRef.current.volume = isActive ? 0.6 : 0.2;
-        if (isActive) audioRef.current.play().catch(() => {});
+        if (isActive) audioRef.current.play().catch(() => { });
     }, [isActive]);
     useEffect(() => {
         if (!audioRef.current || !onAnalyserCreated || settings.audioTrack === 'None') return;
@@ -199,8 +199,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
     // ⚡ Now this works because secondsLeft, isActive, etc. already exist!
     const timerStateRef = useRef({
-        secondsLeft, isActive, status, isBreak, 
-        currentCycle: settings.currentCycle, 
+        secondsLeft, isActive, status, isBreak,
+        currentCycle: settings.currentCycle,
         vibeAsset: settings.vibeAsset,
         vibeCategory: settings.vibeCategory,
         audioTrack: settings.audioTrack,
@@ -283,11 +283,11 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             const myStats: any = statsRes.data || {};
             const myWardrobe: any = wardrobeRes.data || {};
 
-            const finalName = (myProfile.display_name && myProfile.display_name.trim() !== '') ? myProfile.display_name 
-                               : (myProfile.full_name && myProfile.full_name.trim() !== '') ? myProfile.full_name 
-                               : user.email?.split('@')[0] || "Chum";
+            const finalName = (myProfile.display_name && myProfile.display_name.trim() !== '') ? myProfile.display_name
+                : (myProfile.full_name && myProfile.full_name.trim() !== '') ? myProfile.full_name
+                    : user.email?.split('@')[0] || "Chum";
             const finalAvatar = `${myWardrobe.base_emoji || "👻"}${myWardrobe.hat_emoji || ""}`;
-            
+
             setResolvedName(finalName);
             setResolvedAvatar(finalAvatar);
 
@@ -299,7 +299,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     supabase.from('profiles').select('is_premium').eq('id', roomData.host_id).single(),
                     supabase.from('user_stats').select('is_premium').eq('user_id', roomData.host_id).single()
                 ]);
-                
+
                 setIsRoomPremium(hostProfileRes.data?.is_premium || hostStatsRes.data?.is_premium || false);
             }
 
@@ -360,10 +360,10 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                         setIsActive(payload.isActive);
                         setStatus(payload.status);
                         setIsBreak(payload.isBreak);
-                        
+
                         // ⚡ SYNC ALL SETTINGS (Not just currentCycle)
-                        setSettings(prev => ({ 
-                            ...prev, 
+                        setSettings(prev => ({
+                            ...prev,
                             currentCycle: payload.currentCycle,
                             vibeAsset: payload.vibeAsset,
                             vibeCategory: payload.vibeCategory,
