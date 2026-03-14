@@ -67,6 +67,88 @@ const CustomSelect = ({ options, value, onChange, disabled = false, isPremiumUse
     );
 };
 
+// --- REUSEABLE COMPONENTS ---
+const AtmosphereVisuals = ({ settings }: { settings: any }) => {
+    if (settings.vibeCategory === 'Live Lo-Fi (Pro)') {
+        const videoName = settings.vibeAsset.replace(' (Pro)', '').toLowerCase().replace(/ /g, '_');
+        return (
+            <video
+                key={videoName}
+                autoPlay loop muted playsInline
+                className="w-full h-full object-cover opacity-30 transition-all duration-1000"
+                src={`/assets/bgs/live/${videoName}.mp4`}
+            />
+        );
+    }
+    const bgUrl = settings.vibeAsset.includes('Void') 
+        ? 'none' 
+        : `url(/assets/bgs/${settings.vibeCategory === 'Static Lo-Fi' ? 'static/' : ''}${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.jpg)`;
+    return <div className="w-full h-full bg-cover bg-center opacity-30 transition-all duration-1000" style={{ backgroundImage: bgUrl }} />;
+};
+
+const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any, isActive: boolean, onAnalyserCreated?: (analyser: AnalyserNode) => void }) => {
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+    const analyzerRef = useRef<AnalyserNode | null>(null);
+    useEffect(() => {
+        if (!audioRef.current) return;
+        audioRef.current.volume = isActive ? 0.6 : 0.2;
+        if (isActive) audioRef.current.play().catch(() => {});
+    }, [isActive]);
+    useEffect(() => {
+        if (!audioRef.current || !onAnalyserCreated || settings.audioTrack === 'None') return;
+        try {
+            if (!audioContextRef.current) audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const ctx = audioContextRef.current;
+            if (ctx.state === 'suspended') ctx.resume();
+            if (!sourceRef.current) {
+                sourceRef.current = ctx.createMediaElementSource(audioRef.current);
+                analyzerRef.current = ctx.createAnalyser();
+                analyzerRef.current.fftSize = 256;
+                sourceRef.current.connect(analyzerRef.current);
+                analyzerRef.current.connect(ctx.destination);
+                onAnalyserCreated(analyzerRef.current);
+            }
+        } catch (e) {
+            console.warn("WebAudio Node error:", e);
+        }
+    }, [settings.audioTrack, onAnalyserCreated]);
+    if (settings.audioTrack === 'None') return null;
+    const fileName = settings.audioTrack.toLowerCase().replace(/ /g, '_');
+    return <audio ref={audioRef} src={`/assets/audio/${fileName}.mp3`} crossOrigin="anonymous" autoPlay loop className="hidden" />;
+};
+
+const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isActive: boolean }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    useEffect(() => {
+        if (!analyser || !canvasRef.current) return;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d')!;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        let animationId: number;
+        const draw = () => {
+            animationId = requestAnimationFrame(draw);
+            analyser.getByteFrequencyData(dataArray);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const barWidth = (canvas.width / bufferLength) * 2.5;
+            let x = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] / 255) * (canvas.height / 2);
+                const opacity = isActive ? 0.8 : 0.2;
+                ctx.fillStyle = `rgba(45, 212, 191, ${opacity})`;
+                ctx.fillRect(x, canvas.height / 2 - barHeight, barWidth, barHeight);
+                ctx.fillRect(x, canvas.height / 2, barWidth, barHeight);
+                x += barWidth + 1;
+            }
+        };
+        draw();
+        return () => cancelAnimationFrame(animationId);
+    }, [analyser, isActive]);
+    return <canvas ref={canvasRef} width={600} height={150} className="w-full max-w-2xl opacity-40 mix-blend-screen pointer-events-none" />;
+};
+
 export default function StudyRoom({ params }: { params: Promise<{ roomCode: string }> }) {
     const channelRef = useRef<any>(null);
     const { roomCode } = use(params);
@@ -82,6 +164,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     const [participants, setParticipants] = useState<any[]>([]);
     const [countdown, setCountdown] = useState(5);
     const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
+    const [resolvedName, setResolvedName] = useState("Chum");
+    const [resolvedAvatar, setResolvedAvatar] = useState("👻");
 
     // --- BROADCAST SETTINGS (Must come FIRST) ---
     const [settings, setSettings] = useState({
@@ -151,116 +235,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         return () => window.removeEventListener('click', resumeAudio);
     }, []);
 
-// --- STABLE AUDIO ENGINE (Outside to prevent re-creation) ---
-const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any, isActive: boolean, onAnalyserCreated?: (analyser: AnalyserNode) => void }) => {
-    const audioRef = useRef<HTMLAudioElement>(null);
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
-    const analyzerRef = useRef<AnalyserNode | null>(null);
 
-    // ⚡ Track changes to the audio source
-    useEffect(() => {
-        if (!audioRef.current) return;
-        
-        // Lower volume significantly when paused to keep it "atmosperic" without being loud
-        audioRef.current.volume = isActive ? 0.6 : 0.2;
-
-        if (isActive) {
-            audioRef.current.play().catch(() => {});
-        } else {
-            // Keep looping in background if requested, or pause
-            // For StudyBuddy, we keep it playing at low vol for "Atmosphere"
-        }
-    }, [isActive]);
-
-    // ⚡ Robust WebAudio Graph
-    useEffect(() => {
-        if (!audioRef.current || !onAnalyserCreated || settings.audioTrack === 'None') return;
-
-        try {
-            if (!audioContextRef.current) {
-                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-            }
-
-            const ctx = audioContextRef.current;
-            if (ctx.state === 'suspended') ctx.resume();
-
-            // ⚡ createMediaElementSource can ONLY be called once per element
-            if (!sourceRef.current) {
-                sourceRef.current = ctx.createMediaElementSource(audioRef.current);
-                analyzerRef.current = ctx.createAnalyser();
-                analyzerRef.current.fftSize = 256;
-                
-                sourceRef.current.connect(analyzerRef.current);
-                analyzerRef.current.connect(ctx.destination);
-                
-                onAnalyserCreated(analyzerRef.current);
-            }
-        } catch (e) {
-            console.warn("WebAudio Node already connected or device error:", e);
-        }
-    }, [settings.audioTrack, onAnalyserCreated]);
-
-    if (settings.audioTrack === 'None') return null;
-
-    const fileName = settings.audioTrack.toLowerCase().replace(/ /g, '_');
-    const audioPath = `/assets/audio/${fileName}.mp3`;
-
-    return (
-        <audio
-            ref={audioRef}
-            src={audioPath}
-            crossOrigin="anonymous" 
-            autoPlay
-            loop
-            className="hidden"
-        />
-    );
-};
-
-const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isActive: boolean }) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-
-    useEffect(() => {
-        if (!analyser || !canvasRef.current) return;
-
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d')!;
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-
-        let animationId: number;
-
-        const draw = () => {
-            animationId = requestAnimationFrame(draw);
-            analyser.getByteFrequencyData(dataArray);
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            const barWidth = (canvas.width / bufferLength) * 2.5;
-            let x = 0;
-
-            for (let i = 0; i < bufferLength; i++) {
-                const barHeight = (dataArray[i] / 255) * (canvas.height / 2);
-                const opacity = isActive ? 0.8 : 0.2;
-                
-                // Teal Pulse
-                ctx.fillStyle = `rgba(45, 212, 191, ${opacity})`;
-
-                // Symmetry Draw
-                ctx.fillRect(x, canvas.height / 2 - barHeight, barWidth, barHeight);
-                ctx.fillRect(x, canvas.height / 2, barWidth, barHeight);
-
-                x += barWidth + 1;
-            }
-        };
-
-        draw();
-        return () => cancelAnimationFrame(animationId);
-    }, [analyser, isActive]);
-
-    return <canvas ref={canvasRef} width={600} height={150} className="w-full max-w-2xl opacity-40 mix-blend-screen pointer-events-none" />;
-};
 
     // 1. PAGE PROTECTION (Before Unload)
     useEffect(() => {
@@ -308,11 +283,13 @@ const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isA
             const myStats: any = statsRes.data || {};
             const myWardrobe: any = wardrobeRes.data || {};
 
-            const resolvedName = (myProfile.display_name && myProfile.display_name.trim() !== '') ? myProfile.display_name 
+            const finalName = (myProfile.display_name && myProfile.display_name.trim() !== '') ? myProfile.display_name 
                                : (myProfile.full_name && myProfile.full_name.trim() !== '') ? myProfile.full_name 
                                : user.email?.split('@')[0] || "Chum";
+            const finalAvatar = `${myWardrobe.base_emoji || "👻"}${myWardrobe.hat_emoji || ""}`;
             
-            const resolvedAvatar = `${myWardrobe.base_emoji || "👻"}${myWardrobe.hat_emoji || ""}`;
+            setResolvedName(finalName);
+            setResolvedAvatar(finalAvatar);
 
             // 3. ⚡ FETCH HOST PREMIUM STATUS (For Room Capabilities)
             if (isActuallyHost) {
@@ -406,7 +383,6 @@ const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isA
                             status: isActuallyHost ? (roomData?.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
                             roomCode: roomCode, roomTitle: finalRoomTitle
                         });
-
                         // ⚡ LATE JOINER DETECTED: Ask host for the time!
                         if (!isActuallyHost && roomData?.status === 'ACTIVE') {
                             setIsSyncing(true);
@@ -419,6 +395,17 @@ const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isA
         initRoom();
         return () => { if (activeChannel) supabase.removeChannel(activeChannel); };
     }, [roomCode]);
+
+    // ⚡ RE-TRACK PRESENCE ON STATUS CHANGE
+    useEffect(() => {
+        if (channelRef.current && currentUserId) {
+            channelRef.current.track({
+                id: currentUserId, name: resolvedName, chumAvatar: resolvedAvatar,
+                status: isHost ? (status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
+                roomCode: roomCode, roomTitle: settings.name || "Sanctuary"
+            });
+        }
+    }, [status, resolvedName, resolvedAvatar, isHost, roomCode, settings.name, currentUserId]);
 
     useEffect(() => {
         const handleUnload = () => {
@@ -630,7 +617,6 @@ const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isA
             {/* 🎥 ATMOSPHERE LAYER (Visual + Audio Sync) */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <AnimatePresence mode="wait">
-                    {/* ⚡ THE BLUEPRINT GRID: Shows only during Draft phase when no custom theme is picked */}
                     {status === 'DRAFT' && settings.vibeCategory === 'Theme Default' ? (
                         <motion.div
                             key="blueprint"
@@ -645,22 +631,7 @@ const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isA
                             transition={{ duration: 1 }}
                             className="absolute inset-0"
                         >
-                            {settings.vibeCategory === 'Live Lo-Fi (Pro)' ? (
-                                <video
-                                    autoPlay loop muted playsInline
-                                    className="w-full h-full object-cover opacity-30 transition-all duration-1000"
-                                    src={`/assets/bgs/live/${settings.vibeAsset.replace(' (Pro)', '').toLowerCase().replace(/ /g, '_')}.mp4`}
-                                />
-                            ) : (
-                                <div
-                                    className="w-full h-full bg-cover bg-center opacity-30 transition-all duration-1000"
-                                    style={{
-                                        backgroundImage: settings.vibeAsset.includes('Void') 
-                                            ? 'none' 
-                                            : `url(/assets/bgs/${settings.vibeCategory === 'Static Lo-Fi' ? 'static/' : ''}${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.jpg)`
-                                    }}
-                                />
-                            )}
+                            <AtmosphereVisuals settings={settings} />
                             <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px]" />
                         </motion.div>
                     )}
@@ -866,9 +837,9 @@ const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isA
                 </header>
 
                 <div className="flex-1 flex flex-col items-center justify-center z-10 gap-8">
-                    {/* VISUALIZER (Centered in all phases) */}
+                    {/* 📊 VISUALIZER (Centered Architectural Layer) */}
                     {settings.showVisualizer && (
-                        <div className="w-full flex justify-center mt-auto">
+                        <div className="flex-1 flex items-center justify-center w-full pointer-events-none absolute inset-0 z-0">
                             <Visualizer analyser={analyser} isActive={isActive} />
                         </div>
                     )}

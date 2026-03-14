@@ -220,6 +220,12 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
     const yPos = (user.gridY - 6) * 12 + (user.jitterY / 8);
     const targetZ = is3D ? (user.hours / 10) - 20 : 0;
 
+    useEffect(() => {
+        if (groupRef.current) {
+            groupRef.current.position.set(xPos, yPos, targetZ);
+        }
+    }, []);
+
     useFrame((state, delta) => {
         if (!meshRef.current || !materialRef.current || !spriteRef.current || !groupRef.current) return;
 
