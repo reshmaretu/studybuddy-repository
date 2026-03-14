@@ -191,8 +191,8 @@ export const useStudyStore = create<StudyState>()(
                 const [tasksResponse, shardsResponse, profileResponse] = await Promise.all([
                     supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                     supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                    // ⚡ FETCH PREMIUM STATUS HERE TOO
-                    supabase.from('profiles').select('focus_score, total_hours, is_premium').eq('id', user.id).single()
+                    // ⚡ UPDATED: Fetching the correct consolidated columns
+                    supabase.from('profiles').select('focus_score, total_sessions, is_premium').eq('id', user.id).single()
                 ]);
 
                 if (tasksResponse.data) {
@@ -216,8 +216,8 @@ export const useStudyStore = create<StudyState>()(
                 if (profileResponse.data) {
                     set({
                         focusScore: profileResponse.data.focus_score,
-                        totalSessions: profileResponse.data.total_hours,
-                        // 💎 This ensures the store is accurate immediately on load
+                        // ⚡ UPDATED: Mapping total_sessions instead of the old total_hours
+                        totalSessions: profileResponse.data.total_sessions,
                         isPremiumUser: profileResponse.data.is_premium
                     });
                 }
@@ -281,12 +281,14 @@ export const useStudyStore = create<StudyState>()(
                 set((state) => ({
                     tasks: state.tasks.map((t) => t.id === id ? { ...t, isCompleted: true } : t),
                     focusScore: Math.min(100, state.focusScore + 10),
+                    // ⚡ UPDATED: Incrementing the session count
                     totalSessions: state.totalSessions + 1
                 }));
 
                 if (!id.startsWith('temp-') && user) {
                     await Promise.all([
                         supabase.from('tasks').update({ is_completed: true }).eq('id', id),
+                        // ⚡ UPDATED: Writing to total_sessions
                         supabase.from('profiles').update({
                             focus_score: Math.min(100, get().focusScore),
                             total_sessions: get().totalSessions
