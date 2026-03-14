@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, use, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Timer, Info, LogOut, Users, Play, Pause, RotateCcw, Sparkles, Shield, Lock, Activity, ChevronDown, Check } from "lucide-react";
+import { Timer, Info, LogOut, Users, Play, Pause, RotateCcw, Sparkles, Shield, Lock, Activity, ChevronDown, Check, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useStudyStore } from "@/store/useStudyStore";
@@ -24,6 +24,7 @@ const AUDIO_TRACKS = [
     { name: 'None', pro: false }, { name: 'White Noise', pro: false },
     { name: 'Brown Noise', pro: false }, { name: 'Lofi Beats 1', pro: false },
     { name: 'Relaxing Rain', pro: false }, { name: 'Gentle Rain', pro: false },
+    { name: 'Test', pro: false }, { name: 'Light Rain', pro: false },
     { name: 'Deep Focus Ambient', pro: true }, { name: 'Binaural Alpha Waves', pro: true }
 ];
 
@@ -75,7 +76,7 @@ const AtmosphereVisuals = ({ settings }: { settings: any }) => {
             <video
                 key={videoName}
                 autoPlay loop muted playsInline
-                className="w-full h-full object-cover opacity-30 transition-all duration-1000"
+                className="w-full h-full object-cover opacity-70 transition-all duration-1000"
                 src={`/assets/bgs/live/${videoName}.mp4`}
             />
         );
@@ -83,7 +84,7 @@ const AtmosphereVisuals = ({ settings }: { settings: any }) => {
     const bgUrl = settings.vibeAsset.includes('Void')
         ? 'none'
         : `url(/assets/bgs/${settings.vibeCategory === 'Static Lo-Fi' ? 'static/' : ''}${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.jpg)`;
-    return <div className="w-full h-full bg-cover bg-center opacity-30 transition-all duration-1000" style={{ backgroundImage: bgUrl }} />;
+    return <div className="w-full h-full bg-cover bg-center opacity-70 transition-all duration-1000" style={{ backgroundImage: bgUrl }} />;
 };
 
 const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any, isActive: boolean, onAnalyserCreated?: (analyser: AnalyserNode) => void }) => {
@@ -91,17 +92,61 @@ const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any,
     const audioContextRef = useRef<AudioContext | null>(null);
     const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
     const analyzerRef = useRef<AnalyserNode | null>(null);
+
+    const fileName = settings.audioTrack === 'None' ? '' : settings.audioTrack.toLowerCase().replace(/ /g, '_');
+    const targetSrc = fileName ? `/assets/audio/${fileName}.ogg` : '';
+    const currentSrcRef = useRef(targetSrc);
+
+    // Fade and Play/Pause logic
     useEffect(() => {
-        if (!audioRef.current) return;
-        audioRef.current.volume = isActive ? 0.6 : 0.2;
-        if (isActive) audioRef.current.play().catch(() => { });
-    }, [isActive]);
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        const targetVol = isActive ? 0.6 : 0.2;
+        
+        // If track hasn't changed, just adjust volume/play state
+        if (currentSrcRef.current === targetSrc) {
+            audio.volume = targetVol;
+            if (isActive && targetSrc && audio.paused) audio.play().catch(() => {});
+            return;
+        }
+
+        // Track has changed, execute crossfade
+        let fadeInterval = setInterval(() => {
+            if (audio.volume > 0.05) {
+                audio.volume -= 0.05;
+            } else {
+                clearInterval(fadeInterval);
+                audio.volume = 0;
+                audio.src = targetSrc;
+                currentSrcRef.current = targetSrc;
+                
+                // Start playback to new track and fade in
+                if (targetSrc && isActive) {
+                    audio.play().catch(() => {});
+                    fadeInterval = setInterval(() => {
+                        if (audio.volume < targetVol - 0.05) {
+                            audio.volume += 0.05;
+                        } else {
+                            audio.volume = targetVol;
+                            clearInterval(fadeInterval);
+                        }
+                    }, 50);
+                }
+            }
+        }, 30);
+
+        return () => clearInterval(fadeInterval);
+    }, [targetSrc, isActive]);
+
+    // Setup WebAudio precisely ONCE so the visualizer never gets disconnected!
     useEffect(() => {
-        if (!audioRef.current || !onAnalyserCreated || settings.audioTrack === 'None') return;
+        if (!audioRef.current || !onAnalyserCreated) return;
         try {
             if (!audioContextRef.current) audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
             const ctx = audioContextRef.current;
             if (ctx.state === 'suspended') ctx.resume();
+            
             if (!sourceRef.current) {
                 sourceRef.current = ctx.createMediaElementSource(audioRef.current);
                 analyzerRef.current = ctx.createAnalyser();
@@ -113,10 +158,9 @@ const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any,
         } catch (e) {
             console.warn("WebAudio Node error:", e);
         }
-    }, [settings.audioTrack, onAnalyserCreated]);
-    if (settings.audioTrack === 'None') return null;
-    const fileName = settings.audioTrack.toLowerCase().replace(/ /g, '_');
-    return <audio ref={audioRef} src={`/assets/audio/${fileName}.mp3`} crossOrigin="anonymous" autoPlay loop className="hidden" />;
+    }, [onAnalyserCreated]);
+
+    return <audio ref={audioRef} crossOrigin="anonymous" loop className="hidden" />;
 };
 
 const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isActive: boolean }) => {
@@ -128,25 +172,49 @@ const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isA
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
         let animationId: number;
+        
         const draw = () => {
             animationId = requestAnimationFrame(draw);
             analyser.getByteFrequencyData(dataArray);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const barWidth = (canvas.width / bufferLength) * 2.5;
-            let x = 0;
-            for (let i = 0; i < bufferLength; i++) {
-                const barHeight = (dataArray[i] / 255) * (canvas.height / 2);
-                const opacity = isActive ? 0.8 : 0.2;
-                ctx.fillStyle = `rgba(45, 212, 191, ${opacity})`;
-                ctx.fillRect(x, canvas.height / 2 - barHeight, barWidth, barHeight);
-                ctx.fillRect(x, canvas.height / 2, barWidth, barHeight);
-                x += barWidth + 1;
+            
+            const barCount = 48; 
+            const gap = 6;
+            const barWidth = (canvas.width - gap * barCount) / barCount;
+            let x = gap / 2;
+
+            for (let i = 0; i < barCount; i++) {
+                // Focus slightly more on lower/mid frequencies
+                const index = Math.floor(i * (bufferLength * 0.7) / barCount);
+                const dataVal = dataArray[index] || 0;
+                
+                const barHeight = Math.max(4, (dataVal / 255) * (canvas.height / 1.5));
+                const opacity = isActive ? 0.9 : 0.2;
+                
+                ctx.save();
+                ctx.translate(x + barWidth / 2, canvas.height / 2);
+                
+                // Silky creamy white color that blends beautifully with the background theme
+                ctx.fillStyle = `rgba(255, 250, 240, ${opacity})`;
+                ctx.shadowBlur = isActive ? 24 : 8;
+                ctx.shadowColor = `rgba(255, 255, 255, ${opacity * 0.5})`;
+
+                // Render mirrored full rounded capsule
+                ctx.beginPath();
+                ctx.roundRect(-barWidth / 2, -barHeight, barWidth, barHeight * 2, barWidth / 2);
+                ctx.fill();
+                
+                ctx.restore();
+                
+                x += barWidth + gap;
             }
         };
         draw();
         return () => cancelAnimationFrame(animationId);
     }, [analyser, isActive]);
-    return <canvas ref={canvasRef} width={600} height={150} className="w-full max-w-2xl opacity-40 mix-blend-screen pointer-events-none" />;
+    
+    // ⚡ mix-blend-overlay ensures the visualizer magically adopts the background's prominent color scheme
+    return <canvas ref={canvasRef} width={800} height={300} className="w-full max-w-4xl opacity-50 mix-blend-overlay pointer-events-none filter blur-[1px]" />;
 };
 
 export default function StudyRoom({ params }: { params: Promise<{ roomCode: string }> }) {
@@ -166,6 +234,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
     const [resolvedName, setResolvedName] = useState("Chum");
     const [resolvedAvatar, setResolvedAvatar] = useState("👻");
+    const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
 
     // --- BROADCAST SETTINGS (Must come FIRST) ---
     const [settings, setSettings] = useState({
@@ -616,7 +685,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
             {/* 🎥 ATMOSPHERE LAYER (Visual + Audio Sync) */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                <AnimatePresence mode="wait">
+                <AnimatePresence>
                     {status === 'DRAFT' && settings.vibeCategory === 'Theme Default' ? (
                         <motion.div
                             key="blueprint"
@@ -626,9 +695,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                         />
                     ) : (
                         <motion.div
-                            key="visual-theme"
+                            key={`visual-theme-${settings.vibeAsset}`}
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            transition={{ duration: 1 }}
+                            transition={{ duration: 1.5 }}
                             className="absolute inset-0"
                         >
                             <AtmosphereVisuals settings={settings} />
@@ -825,18 +894,28 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             {/* 2. MAIN AREA */}
             <main className="flex-1 min-w-0 relative flex flex-col p-8 z-10">
                 <header className="flex justify-between items-center z-20">
-                    <div>
-                        <h1 className="text-2xl font-black tracking-tight text-[var(--text-main)]">{settings.name} <span className="text-[var(--text-muted)] font-mono text-sm ml-2">#{roomCode}</span></h1>
-                        <p className={`text-[10px] font-black uppercase tracking-[0.2em] mt-1 ${isBreak ? 'text-[var(--text-muted)]' : 'text-[var(--accent-teal)]'}`}>
-                            {status === 'DRAFT' ? "Blueprint Phase" : isBreak ? "☕ Recovery Phase" : "⚡ Focus Protocol Active"}
-                        </p>
+                    <div className="flex items-center gap-4">
+                        {isSidebarMinimized && (
+                            <button
+                                onClick={() => setIsSidebarMinimized(false)}
+                                className="p-2 bg-[var(--bg-sidebar)]/50 rounded-xl text-[var(--accent-teal)] hover:bg-[var(--accent-teal)]/10 transition-all border border-[var(--border-color)]"
+                            >
+                                <Users size={18} />
+                            </button>
+                        )}
+                        <div>
+                            <h1 className="text-2xl font-black tracking-tight text-[var(--text-main)]">{settings.name} <span className="text-[var(--text-muted)] font-mono text-sm ml-2">#{roomCode}</span></h1>
+                            <p className={`text-[10px] font-black uppercase tracking-[0.2em] mt-1 ${isBreak ? 'text-[var(--text-muted)]' : 'text-[var(--accent-teal)]'}`}>
+                                {status === 'DRAFT' ? "Blueprint Phase" : isBreak ? "☕ Recovery Phase" : "⚡ Focus Protocol Active"}
+                            </p>
+                        </div>
                     </div>
-                    <button onClick={() => setShowAbandonConfirm(true)} className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] hover:text-red-400 transition-colors bg-[var(--bg-sidebar)]/50 px-4 py-2 rounded-xl">
+                    <button onClick={() => setShowAbandonConfirm(true)} className="flex items-center gap-2 text-xs font-bold text-(--text-muted) hover:text-red-400 transition-colors bg-(--bg-sidebar)/50 px-4 py-2 rounded-xl border border-(--border-color)">
                         <LogOut size={14} /> Leave
                     </button>
                 </header>
 
-                <div className="flex-1 flex flex-col items-center justify-center z-10 gap-8">
+                <div className={`flex-1 flex flex-col items-center z-10 gap-8 ${settings.showVisualizer ? 'justify-end pb-12' : 'justify-center'}`}>
                     {/* 📊 VISUALIZER (Centered Architectural Layer) */}
                     {settings.showVisualizer && (
                         <div className="flex-1 flex items-center justify-center w-full pointer-events-none absolute inset-0 z-0">
@@ -877,13 +956,19 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
                     {/* ACTIVE TIMER */}
                     {status === 'ACTIVE' && (
-                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
+                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center z-20">
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--text-muted)] mb-2 block">{isBreak ? "Break" : `Cycle ${settings.currentCycle}`}</span>
-                            <div className="text-[14rem] md:text-[18rem] font-black tabular-nums leading-none tracking-tighter text-[var(--text-main)]">
+                            <div className="text-[14rem] md:text-[18rem] font-black tabular-nums leading-[0.8] tracking-tighter text-(--text-main) drop-shadow-[0_0_50px_rgba(255,255,255,0.1)] mb-4">
                                 {Math.floor(secondsLeft / 60).toString().padStart(2, '0')}:{(secondsLeft % 60).toString().padStart(2, '0')}
                             </div>
-                            <button onClick={() => setIsActive(!isActive)} className="px-12 py-5 bg-[var(--accent-teal)] text-black rounded-[24px] font-black text-xl hover:scale-105 transition-all">
-                                {isActive ? "Pause" : "Initiate"}
+                            <button
+                                onClick={() => setIsActive(!isActive)}
+                                className={`px-16 py-6 rounded-[32px] font-black text-2xl uppercase tracking-widest transition-all shadow-2xl border-2 ${isActive
+                                        ? 'bg-transparent border-[var(--accent-teal)] text-[var(--accent-teal)] hover:bg-[var(--accent-teal)] hover:text-black shadow-[0_0_30px_rgba(45,212,191,0.2)]'
+                                        : 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black hover:brightness-110 shadow-[0_0_40px_rgba(45,212,191,0.4)] scale-105'
+                                    }`}
+                            >
+                                {isActive ? "Pause Focus" : "Initiate Focus"}
                             </button>
                         </motion.div>
                     )}
@@ -906,60 +991,70 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         className="absolute inset-0 z-[200] bg-[var(--bg-dark)]/90 backdrop-blur-md flex items-center justify-center"
                     >
-                        <div className="bg-[var(--bg-card)] p-10 rounded-[32px] border border-[var(--border-color)] text-center animate-pulse shadow-2xl">
-                            <Timer className="w-12 h-12 text-[var(--accent-teal)] mx-auto mb-4" />
-                            <h3 className="text-[var(--text-main)] font-black text-xl uppercase tracking-widest">Synchronizing Timeline</h3>
-                            <p className="text-[var(--text-muted)] text-xs mt-2 font-bold uppercase">Fetching active cycle from Architect...</p>
+                        <div className="bg-(--bg-card) p-10 rounded-[32px] border border-(--border-color) text-center animate-pulse shadow-2xl">
+                            <Timer className="w-12 h-12 text-(--accent-teal) mx-auto mb-4" />
+                            <h3 className="text-(--text-main) font-black text-xl uppercase tracking-widest">Synchronizing Timeline</h3>
+                            <p className="text-(--text-muted) text-xs mt-2 font-bold uppercase">Fetching active cycle from Architect...</p>
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
             {/* 3. RIGHT PRESENCE SIDEBAR */}
-            <aside className="w-72 flex-shrink-0 border-l border-[var(--border-color)] z-20 hidden lg:flex flex-col bg-black/20 p-8">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-6 flex items-center gap-2">
-                    <Users size={14} /> Presence ({participants.length})
-                </h3>
-                <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar">
-                    {participants.map(p => {
-                        const isMe = p.id === currentUserId;
-                        const isRoomHost = p.id === hostId;
+            {!isSidebarMinimized && (
+                <aside className="w-72 flex-shrink-0 border-l border-[var(--border-color)] z-20 hidden lg:flex flex-col bg-black/20 p-8">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
+                            <Users size={14} /> Presence ({participants.length})
+                        </h3>
+                        <button
+                            onClick={() => setIsSidebarMinimized(true)}
+                            className="p-1 hover:text-[var(--accent-teal)] transition-colors text-[var(--text-muted)]"
+                        >
+                            <ChevronRight size={16} />
+                        </button>
+                    </div>
+                    <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar">
+                        {participants.map(p => {
+                            const isMe = p.id === currentUserId;
+                            const isRoomHost = p.id === hostId;
 
-                        // ⚡ Extract ONLY the emoji (e.g., "👻" from "👻 Ghost")
-                        const avatarEmoji = p.chumAvatar ? p.chumAvatar.split(' ')[0] : '👻';
+                            // ⚡ Extract ONLY the emoji (e.g., "👻" from "👻 Ghost")
+                            const avatarEmoji = p.chumAvatar ? p.chumAvatar.split(' ')[0] : '👻';
 
-                        return (
-                            <div key={p.id} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${isMe ? 'bg-[var(--bg-sidebar)] border-[var(--text-muted)]/40 shadow-[0_0_15px_rgba(255,255,255,0.1)]'
-                                : isRoomHost ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/30' : 'bg-[var(--bg-sidebar)]/50 border-[var(--border-color)]'
-                                }`}
-                            >
-                                {/* ⚡ Avatar Circle: Forced 40x40px, no shrinking, no overflowing */}
-                                <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg overflow-hidden ${isRoomHost ? 'bg-[var(--accent-teal)]/20' : 'bg-[var(--bg-sidebar)]'
-                                    }`}>
-                                    {isRoomHost ? '👑' : avatarEmoji}
-                                </div>
-
-                                {/* ⚡ Text Container: Flex-col, min-w-0 prevents breaking parent width */}
-                                <div className="flex flex-col min-w-0 flex-1">
-                                    <div className="flex items-center gap-2 overflow-hidden">
-                                        <span className="text-sm font-bold text-[var(--text-main)] truncate">
-                                            {p.name || "Anonymous"}
-                                        </span>
-                                        {isMe && (
-                                            <span className="shrink-0 text-[8px] font-black uppercase tracking-widest text-[var(--text-main)]/70 bg-[var(--bg-sidebar)] px-1.5 py-0.5 rounded-md">
-                                                You
-                                            </span>
-                                        )}
+                            return (
+                                <div key={p.id} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${isMe ? 'bg-[var(--bg-sidebar)] border-[var(--text-muted)]/40 shadow-[0_0_15px_rgba(255,255,255,0.1)]'
+                                    : isRoomHost ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/30' : 'bg-[var(--bg-sidebar)]/50 border-[var(--border-color)]'
+                                    }`}
+                                >
+                                    {/* ⚡ Avatar Circle: Forced 40x40px, no shrinking, no overflowing */}
+                                    <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg overflow-hidden ${isRoomHost ? 'bg-[var(--accent-teal)]/20' : 'bg-[var(--bg-sidebar)]'
+                                        }`}>
+                                        {isRoomHost ? '👑' : avatarEmoji}
                                     </div>
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-[var(--accent-teal)] mt-0.5 truncate">
-                                        {isBreak ? "Resting" : "Focusing"}
-                                    </p>
+
+                                    {/* ⚡ Text Container: Flex-col, min-w-0 prevents breaking parent width */}
+                                    <div className="flex flex-col min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                            <span className="text-sm font-bold text-[var(--text-main)] truncate">
+                                                {p.name || "Anonymous"}
+                                            </span>
+                                            {isMe && (
+                                                <span className="shrink-0 text-[8px] font-black uppercase tracking-widest text-[var(--text-main)]/70 bg-[var(--bg-sidebar)] px-1.5 py-0.5 rounded-md">
+                                                    You
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-[var(--accent-teal)] mt-0.5 truncate">
+                                            {isBreak ? "Resting" : "Focusing"}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </aside>
+                            );
+                        })}
+                    </div>
+                </aside>
+            )}
 
             {/* 4. LEGACY LOG MODAL */}
             <AnimatePresence>
