@@ -69,8 +69,8 @@ export default function LanternNetPage() {
     const { totalSessions, isPremiumUser, activeMode, isTutorModeActive } = useStudyStore();
     const router = useRouter();
 
-    // The single source of truth for the entire map
     const [fullNetwork, setFullNetwork] = useState<LanternUser[]>([]);
+    const [isNetworkLoading, setIsNetworkLoading] = useState(true);
     const lanternRef = useRef<LanternNetHandle>(null);
 
     const [isHostModalOpen, setIsHostModalOpen] = useState(false);
@@ -94,30 +94,37 @@ export default function LanternNetPage() {
             if (!authUser || !isSubscribed) return;
             currentUserId = authUser.id;
 
-            const [profilesRes, roomsRes] = await Promise.all([
-                supabase.from('profiles').select(`
-                id, display_name, full_name, total_hours, 
-                chum_avatar, status, focus_score, is_premium,
-                is_in_flowstate, active_session_type
-            `),
-                supabase.from('rooms').select('*')
-            ]);
+            setIsNetworkLoading(true);
+            try {
+                const [profilesRes, roomsRes] = await Promise.all([
+                    supabase.from('profiles').select(`
+                    id, display_name, full_name, total_hours, 
+                    chum_avatar, status, focus_score, is_premium,
+                    is_in_flowstate, active_session_type
+                `),
+                    supabase.from('rooms').select('*')
+                ]);
 
-            if (profilesRes.data && isSubscribed) {
-                const rooms = roomsRes.data || [];
-                const users: LanternUser[] = profilesRes.data.map((p, index) => {
-                    // If it's ME, we ignore the DB status and use the STORE status for local echo
-                    if (p.id === currentUserId) {
-                        return formatUser({
-                            ...p,
-                            is_in_flowstate: activeMode === 'flowState',
-                            active_session_type: isTutorModeActive ? 'AI_TUTOR' : null,
-                            status: activeMode === 'none' ? 'idle' : activeMode
-                        }, rooms, currentUserId, index);
-                    }
-                    return formatUser(p, rooms, currentUserId, index);
-                });
-                setFullNetwork(users);
+                if (profilesRes.data && isSubscribed) {
+                    const rooms = roomsRes.data || [];
+                    const users: LanternUser[] = profilesRes.data.map((p, index) => {
+                        // If it's ME, we ignore the DB status and use the STORE status for local echo
+                        if (p.id === currentUserId) {
+                            return formatUser({
+                                ...p,
+                                is_in_flowstate: activeMode === 'flowState',
+                                active_session_type: isTutorModeActive ? 'AI_TUTOR' : null,
+                                status: activeMode === 'none' ? 'idle' : activeMode
+                            }, rooms, currentUserId, index);
+                        }
+                        return formatUser(p, rooms, currentUserId, index);
+                    });
+                    setFullNetwork(users);
+                }
+            } catch (error) {
+                console.error("Failed to fetch network:", error);
+            } finally {
+                if (isSubscribed) setIsNetworkLoading(false);
             }
         };
 
@@ -222,38 +229,57 @@ export default function LanternNetPage() {
                         <Trophy size={18} className="text-[var(--accent-yellow)]" /> Hall of Focus
                     </h3>
                     <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                        {filteredNetwork.sort((a, b) => b.hours - a.hours).map((user, index) => (
-                            <div
-                                key={user.id}
-                                className={`group/row flex items-center gap-3 p-3 rounded-2xl border transition-all ${user.id === 'me' ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/20' : 'bg-transparent border-transparent hover:border-[var(--border-color)] hover:bg-[var(--bg-dark)]'}`}
-                            >
-                                <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-[var(--accent-yellow)]' : 'text-[var(--text-muted)]'}`}>
-                                    {index + 1}
-                                </span>
-                                <div className="flex-1 flex flex-col">
-                                    <span className="text-sm font-black text-[var(--text-main)]">{user.name}</span>
-                                    {/* 👇 FIXED: Removed the redundant Flowstate status here to keep UI clean */}
+                        {isNetworkLoading ? (
+                            Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-[var(--bg-dark)]/30 border border-transparent animate-pulse">
+                                    <div className="w-5 h-4 bg-[var(--border-color)] rounded" />
+                                    <div className="flex-1 space-y-2">
+                                        <div className="h-4 bg-[var(--border-color)] rounded w-24" />
+                                    </div>
+                                    <div className="w-10 h-6 bg-[var(--border-color)] rounded-lg" />
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => lanternRef.current?.warpToUser(user.id)}
-                                        className="opacity-0 group-hover/row:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-[var(--accent-teal)]/10 text-[var(--text-muted)] hover:text-[var(--accent-teal)]"
-                                        title="Locate on map"
-                                    >
-                                        <Crosshair size={14} />
-                                    </button>
-                                    <span className="text-xs font-black text-[var(--text-muted)] bg-[var(--bg-dark)] px-2 py-1 rounded-lg">
-                                        {user.hours}h
+                            ))
+                        ) : (
+                            filteredNetwork.sort((a, b) => b.hours - a.hours).map((user, index) => (
+                                <div
+                                    key={user.id}
+                                    className={`group/row flex items-center gap-3 p-3 rounded-2xl border transition-all ${user.id === 'me' ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/20' : 'bg-transparent border-transparent hover:border-[var(--border-color)] hover:bg-[var(--bg-dark)]'}`}
+                                >
+                                    <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-[var(--accent-yellow)]' : 'text-[var(--text-muted)]'}`}>
+                                        {index + 1}
                                     </span>
+                                    <div className="flex-1 flex flex-col">
+                                        <span className="text-sm font-black text-[var(--text-main)]">{user.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => lanternRef.current?.warpToUser(user.id)}
+                                            className="opacity-0 group-hover/row:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-[var(--accent-teal)]/10 text-[var(--text-muted)] hover:text-[var(--accent-teal)]"
+                                            title="Locate on map"
+                                        >
+                                            <Crosshair size={14} />
+                                        </button>
+                                        <span className="text-xs font-black text-[var(--text-muted)] bg-[var(--bg-dark)] px-2 py-1 rounded-lg">
+                                            {user.hours}h
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
             </div>
 
             {/* RIGHT PANEL: THREE.JS MAP */}
             <div className="flex-1 h-full rounded-[40px] overflow-hidden border border-[var(--border-color)] shadow-xl relative min-h-0">
+                {isNetworkLoading && (
+                    <div className="absolute inset-0 bg-[var(--bg-dark)]/50 backdrop-blur-sm z-20 flex items-center justify-center">
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="w-10 h-10 border-4 border-[var(--accent-teal)]/30 border-t-[var(--accent-teal)] rounded-full animate-spin" />
+                            <span className="text-[var(--text-muted)] font-black tracking-widest uppercase text-[10px]">Mapping the void...</span>
+                        </div>
+                    </div>
+                )}
                 <ThreeLanternNet ref={lanternRef} users={filteredNetwork} />
             </div>
 

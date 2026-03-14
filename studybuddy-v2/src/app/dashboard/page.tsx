@@ -38,7 +38,8 @@ export default function Dashboard() {
 
     const {
         tasks, focusScore, dailyStreak, totalSessions,
-        timeLeft, isRunning, toggleTimer, resetTimer, decrementTimer, completeTask
+        timeLeft, isRunning, toggleTimer, resetTimer, decrementTimer, completeTask,
+        isInitialized
     } = useStudyStore();
 
     // Safety filter to ensure we only try to render valid tasks
@@ -164,27 +165,39 @@ export default function Dashboard() {
                 {/* TOP ROW: Score, Reset, Timer */}
                 <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex items-center justify-between shadow-sm relative overflow-hidden">
-                        <div className="relative w-28 h-20 flex flex-col items-center justify-end">
-                            <svg viewBox="0 0 100 50" className="absolute top-0 w-full h-full overflow-visible">
-                                <path d="M 10 45 A 35 35 0 0 1 90 45" stroke="var(--border-color)" strokeWidth="10" fill="none" strokeLinecap="round" />
-                                <path d="M 10 45 A 35 35 0 0 1 90 45" stroke="var(--accent-teal)" strokeWidth="10" fill="none" strokeLinecap="round" strokeDasharray="110" strokeDashoffset={scoreOffset} style={{ filter: 'drop-shadow(0px 0px 8px var(--accent-teal))', transition: 'stroke-dashoffset 1s ease-out' }} />
-                            </svg>
-                            <div className="flex flex-col items-center z-10 mb-[-5px]">
-                                <span className="text-3xl font-bold text-[var(--text-main)] leading-none">{focusScore}</span>
-                                <span className="text-[9px] text-[var(--text-muted)] font-bold tracking-widest uppercase mt-1">Focus Score</span>
+                        {!isInitialized ? (
+                            <div className="w-full h-full flex items-center gap-4 animate-pulse">
+                                <div className="w-24 h-24 rounded-full border-4 border-[var(--border-color)]" />
+                                <div className="flex-1 space-y-3">
+                                    <div className="h-4 bg-[var(--border-color)] rounded w-1/2" />
+                                    <div className="h-8 bg-[var(--border-color)] rounded w-full" />
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex flex-col items-center gap-3 w-36">
-                            <div className="flex items-center gap-1.5 text-[var(--text-main)] font-bold text-sm">
-                                <Flame size={16} className="text-[var(--accent-cyan)]" /> {totalSessions} Sessions
-                            </div>
-                            <button
-                                onClick={() => useStudyStore.getState().openFocusModal()}
-                                className="w-full py-2.5 rounded-lg bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] font-bold hover:bg-[var(--accent-teal)] hover:text-[#0b1211] transition-all text-sm border border-[var(--accent-teal)]/30 flex items-center justify-center gap-2 shadow-sm"
-                            >
-                                <Pin size={16} /> Focus
-                            </button>
-                        </div>
+                        ) : (
+                            <>
+                                <div className="relative w-28 h-20 flex flex-col items-center justify-end">
+                                    <svg viewBox="0 0 100 50" className="absolute top-0 w-full h-full overflow-visible">
+                                        <path d="M 10 45 A 35 35 0 0 1 90 45" stroke="var(--border-color)" strokeWidth="10" fill="none" strokeLinecap="round" />
+                                        <path d="M 10 45 A 35 35 0 0 1 90 45" stroke="var(--accent-teal)" strokeWidth="10" fill="none" strokeLinecap="round" strokeDasharray="110" strokeDashoffset={scoreOffset} style={{ filter: 'drop-shadow(0px 0px 8px var(--accent-teal))', transition: 'stroke-dashoffset 1s ease-out' }} />
+                                    </svg>
+                                    <div className="flex flex-col items-center z-10 mb-[-5px]">
+                                        <span className="text-3xl font-bold text-[var(--text-main)] leading-none">{focusScore}</span>
+                                        <span className="text-[9px] text-[var(--text-muted)] font-bold tracking-widest uppercase mt-1">Focus Score</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-center gap-3 w-36">
+                                    <div className="flex items-center gap-1.5 text-[var(--text-main)] font-bold text-sm">
+                                        <Flame size={16} className="text-[var(--accent-cyan)]" /> {totalSessions} Sessions
+                                    </div>
+                                    <button
+                                        onClick={() => useStudyStore.getState().openFocusModal()}
+                                        className="w-full py-2.5 rounded-lg bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] font-bold hover:bg-[var(--accent-teal)] hover:text-[#0b1211] transition-all text-sm border border-[var(--accent-teal)]/30 flex items-center justify-center gap-2 shadow-sm"
+                                    >
+                                        <Pin size={16} /> Focus
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer group relative overflow-hidden">
@@ -273,16 +286,31 @@ export default function Dashboard() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
 
                         <AnimatePresence>
-                            {activeTasks.slice(0, 3).map((task) => (
-                                <TaskCard key={task.id} task={task} />
-                            ))}
-                        </AnimatePresence>
+                            {!isInitialized ? (
+                                Array.from({ length: 3 }).map((_, i) => (
+                                    <div key={i} className="h-32 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl animate-pulse p-4 flex flex-col gap-3">
+                                        <div className="h-4 bg-[var(--border-color)] rounded w-3/4" />
+                                        <div className="h-3 bg-[var(--border-color)] rounded w-1/2" />
+                                        <div className="mt-auto flex gap-2">
+                                            <div className="h-6 w-12 bg-[var(--border-color)] rounded" />
+                                            <div className="h-6 w-12 bg-[var(--border-color)] rounded" />
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <>
+                                    {activeTasks.slice(0, 3).map((task) => (
+                                        <TaskCard key={task.id} task={task} />
+                                    ))}
 
-                        {Array.from({ length: Math.max(0, 3 - activeTasks.length) }).map((_, i) => (
-                            <div key={`empty-${i}`} className="h-32 border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-sm font-bold tracking-wide">
-                                + Open Slot
-                            </div>
-                        ))}
+                                    {Array.from({ length: Math.max(0, 3 - activeTasks.length) }).map((_, i) => (
+                                        <div key={`empty-${i}`} className="h-32 border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-sm font-bold tracking-wide">
+                                            + Open Slot
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+                        </AnimatePresence>
 
                         <div className="h-32 border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex flex-col items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--accent-teal)]">
                             <span className="text-xl mb-1">✨</span>
@@ -308,10 +336,19 @@ export default function Dashboard() {
                             </div>
                         </div>
                         <div className="flex flex-col items-center justify-center text-center py-4">
-                            <CheckCircle2 size={24} className={completedTasks.length > 0 ? "text-[var(--accent-teal)] mb-2" : "text-[var(--border-color)] mb-2"} />
-                            <p className="text-[var(--text-muted)] text-sm">
-                                {completedTasks.length > 0 ? `You crushed ${completedTasks.length} quests!` : "No completed quests yet"}
-                            </p>
+                            {!isInitialized ? (
+                                <div className="flex flex-col items-center gap-2 animate-pulse w-full">
+                                    <div className="w-6 h-6 rounded-full bg-[var(--border-color)]" />
+                                    <div className="h-3 bg-[var(--border-color)] rounded w-1/3" />
+                                </div>
+                            ) : (
+                                <>
+                                    <CheckCircle2 size={24} className={completedTasks.length > 0 ? "text-[var(--accent-teal)] mb-2" : "text-[var(--border-color)] mb-2"} />
+                                    <p className="text-[var(--text-muted)] text-sm">
+                                        {completedTasks.length > 0 ? `You crushed ${completedTasks.length} quests!` : "No completed quests yet"}
+                                    </p>
+                                </>
+                            )}
                         </div>
                     </div>
                 </section>

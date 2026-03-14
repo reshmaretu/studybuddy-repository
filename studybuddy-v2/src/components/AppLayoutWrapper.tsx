@@ -14,19 +14,30 @@ import MindDumpPad from "./MindDumpPad";
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const isInitialized = useStudyStore((state) => state.isInitialized);
+    const initializeData = useStudyStore((state) => state.initializeData);
     const [isMounted, setIsMounted] = useState(false);
 
     // 🛡️ Ensure the component is mounted on the client
     useEffect(() => {
         setIsMounted(true);
-    }, []);
+        if (!isInitialized) {
+            initializeData();
+        }
+    }, [isInitialized, initializeData]);
 
     const isRoomPage = pathname.startsWith("/room/");
     const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/register" || isRoomPage;
 
     // 🕰️ Loading State: Prevent the "Default Theme" flash
     if (!isMounted || (!isPublicPage && !isInitialized)) {
-        return <div className="fixed inset-0 bg-[#0b1211] z-[9999]" />; // Match your base theme color
+        return (
+            <div className="fixed inset-0 bg-[#0b1211] z-[9999] flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-[var(--accent-teal)]/30 border-t-[var(--accent-teal)] rounded-full animate-spin" />
+                    <span className="text-[var(--text-muted)] font-black tracking-[0.2em] uppercase text-[10px]">Initializing Sanctuary...</span>
+                </div>
+            </div>
+        );
     }
 
     if (isPublicPage) {

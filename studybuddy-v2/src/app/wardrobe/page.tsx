@@ -9,12 +9,18 @@ export default function WardrobePage() {
     const [activeTheme, setActiveTheme] = useState("deep-teal");
     const [shakeTarget, setShakeTarget] = useState<string | null>(null);
     const { isPremiumUser, checkPremiumStatus } = useStudyStore();
+    const [isSyncing, setIsSyncing] = useState(true);
 
     useEffect(() => {
-        const savedTheme = localStorage.getItem("appTheme") || "deep-teal";
-        setActiveTheme(savedTheme);
-        checkPremiumStatus(); // Ensure store is synced with Supabase
-    }, []);
+        const initWardrobe = async () => {
+            setIsSyncing(true);
+            const savedTheme = localStorage.getItem("appTheme") || "deep-teal";
+            setActiveTheme(savedTheme);
+            await checkPremiumStatus(); // Ensure store is synced with Supabase
+            setIsSyncing(false);
+        };
+        initWardrobe();
+    }, [checkPremiumStatus]);
 
     const handleThemeChange = (themeId: string, isPremium: boolean) => {
         if (isPremium && !isPremiumUser) {
@@ -104,19 +110,28 @@ export default function WardrobePage() {
                         <div>
                             <div className="flex items-center gap-2 mb-4">
                                 <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Premium Collection</label>
-                                {!isPremiumUser && <Sparkles size={12} className="text-[var(--accent-yellow)]" />}
+                                {!isPremiumUser && !isSyncing && <Sparkles size={12} className="text-[var(--accent-yellow)]" />}
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {premiumThemes.map((theme) => (
-                                    <ThemeButton
-                                        key={theme.id}
-                                        theme={theme}
-                                        isActive={activeTheme === theme.id}
-                                        isLocked={!isPremiumUser}
-                                        isShaking={shakeTarget === theme.id}
-                                        onClick={() => handleThemeChange(theme.id, true)}
-                                    />
-                                ))}
+                                {isSyncing ? (
+                                    Array.from({ length: 4 }).map((_, i) => (
+                                        <div key={i} className="h-[68px] rounded-2xl bg-[var(--bg-sidebar)]/30 border border-transparent animate-pulse flex items-center p-4">
+                                            <div className="w-8 h-8 rounded-full bg-[var(--border-color)] mr-3" />
+                                            <div className="h-4 bg-[var(--border-color)] rounded w-24" />
+                                        </div>
+                                    ))
+                                ) : (
+                                    premiumThemes.map((theme) => (
+                                        <ThemeButton
+                                            key={theme.id}
+                                            theme={theme}
+                                            isActive={activeTheme === theme.id}
+                                            isLocked={!isPremiumUser}
+                                            isShaking={shakeTarget === theme.id}
+                                            onClick={() => handleThemeChange(theme.id, true)}
+                                        />
+                                    ))
+                                )}
                             </div>
                         </div>
                     </div>
