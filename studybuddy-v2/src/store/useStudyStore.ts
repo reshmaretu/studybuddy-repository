@@ -121,10 +121,7 @@ interface StudyState {
 export const useStudyStore = create<StudyState>()(
     persist(
         (set, get) => ({
-            // 🌐 CLOUD SYNC STATE
             isInitialized: false,
-
-            // 💎 PREMIUM STATE & CHECKER
             isPremiumUser: false,
             checkPremiumStatus: async () => {
                 try {
@@ -186,62 +183,55 @@ export const useStudyStore = create<StudyState>()(
             // ==========================================
             initializeData: async () => {
                 const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
 
-                const [tasksResponse, shardsResponse, profileResponse] = await Promise.all([
-                    supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                    supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                    supabase.from('profiles').select('focus_score, total_sessions, is_premium, preferred_theme').eq('id', user.id).single()
-                ]);
-
-                if (tasksResponse.data) {
-                    set({
-                        tasks: tasksResponse.data.map(t => ({
-                            id: t.id, title: t.title, description: t.description,
-                            load: t.load, deadline: t.deadline, isCompleted: t.is_completed, isPinned: t.is_pinned
-                        }))
-                    });
-                }
-
-                if (shardsResponse.data) {
-                    set({
-                        shards: shardsResponse.data.map(s => ({
-                            id: s.id, title: s.title, content: s.content,
-                            mastery: s.mastery, isMastered: s.is_mastered, createdAt: s.created_at
-                        }))
-                    });
-                }
-
-                if (profileResponse.data) {
-                    set({
-                        focusScore: profileResponse.data.focus_score,
-                        // ⚡ UPDATED: Mapping total_sessions instead of the old total_hours
-                        totalSessions: profileResponse.data.total_sessions,
-                        isPremiumUser: profileResponse.data.is_premium
-                    });
-                }
-
-                set({ isInitialized: true });
-            },
-
-            updateUserTheme: async (themeId: string) => {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
-
-                // Only allow update if it's a free theme OR user is premium
-                const isPremiumTheme = ["sakura", "academia", "lofi", "nordic", "e-ink"].includes(themeId);
-
-                if (isPremiumTheme && !get().isPremiumUser) {
-                    console.error("Access Denied: Premium Theme restricted.");
+                if (!user) {
+                    set({ isInitialized: true });
                     return;
                 }
 
-                // Update DB
-                await supabase.from('profiles').update({ preferred_theme: themeId }).eq('id', user.id);
+                try {
+                    const [tasksResponse, shardsResponse, profileResponse] = await Promise.all([
+                        supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+                        supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+                        supabase.from('profiles').select('focus_score, total_sessions, is_premium, preferred_theme').eq('id', user.id).single()
+                    ]);
 
-                // Update UI
-                document.documentElement.setAttribute("data-theme", themeId);
-                localStorage.setItem("appTheme", themeId);
+                    if (tasksResponse.data) {
+                        set({
+                            tasks: tasksResponse.data.map(t => ({
+                                id: t.id, title: t.title, description: t.description,
+                                load: t.load, deadline: t.deadline, isCompleted: t.is_completed, isPinned: t.is_pinned
+                            }))
+                        });
+                    }
+
+                    if (shardsResponse.data) {
+                        set({
+                            shards: shardsResponse.data.map(s => ({
+                                id: s.id, title: s.title, content: s.content,
+                                mastery: s.mastery, isMastered: s.is_mastered, createdAt: s.created_at
+                            }))
+                        });
+                    }
+
+                    if (profileResponse.data) {
+                        const cloudTheme = profileResponse.data.preferred_theme;
+                        if (cloudTheme) {
+                            document.documentElement.setAttribute("data-theme", cloudTheme);
+                            localStorage.setItem("appTheme", cloudTheme);
+                        }
+
+                        set({
+                            focusScore: profileResponse.data.focus_score,
+                            totalSessions: profileResponse.data.total_sessions,
+                            isPremiumUser: profileResponse.data.is_premium
+                        });
+                    }
+                } catch (error) {
+                    console.error("Initialization failed:", error);
+                } finally {
+                    set({ isInitialized: true });
+                }
             },
 
             // ==========================================
@@ -360,25 +350,34 @@ export const useStudyStore = create<StudyState>()(
                 await supabase.from('shards').delete().eq('id', id);
             },
 
-            // ==========================================
-            // 🕒 LOCAL UI ACTIONS (Unchanged)
-            // ==========================================
+            // --- 🕒 LOCAL UI ACTIONS ---
             toggleTimer: () => set((state) => ({ isRunning: !state.isRunning })),
             resetTimer: () => set((state) => ({ timeLeft: state.pomodoroFocus * 60, isRunning: false })),
             decrementTimer: () => set((state) => ({ timeLeft: Math.max(0, state.timeLeft - 1) })),
+
             openFocusModal: (taskId) => set({ isFocusModalOpen: true, focusTaskId: taskId || null }),
             closeFocusModal: () => set({ isFocusModalOpen: false, focusTaskId: null }),
+
             startMode: (mode, taskId) => set((state) => ({
                 activeMode: mode, activeTaskId: taskId, isFocusModalOpen: false,
                 timeLeft: state.pomodoroFocus * 60, isRunning: true
             })),
+
             exitMode: () => set({ activeMode: 'none', activeTaskId: null, isRunning: false }),
+
             updatePomodoroSettings: (settings) => set((state) => ({ ...state, ...settings })),
 
+            // --- 🤖 TUTOR ACTIONS ---
             startTutorMode: (shardId, type) => set((state) => ({
                 isTutorModeActive: true, activeShardId: shardId, tutorChatHistory: [],
-                tutorSessionState: { questionIndex: 0, isSessionComplete: false, preferredType: type || state.tutorSessionState.preferredType || 'mixed', totalMasteryGained: 0 }
+                tutorSessionState: {
+                    questionIndex: 0,
+                    isSessionComplete: false,
+                    preferredType: type || state.tutorSessionState.preferredType || 'mixed',
+                    totalMasteryGained: 0
+                }
             })),
+
             exitTutorMode: () => set({ isTutorModeActive: false, activeShardId: null, tutorChatHistory: [] }),
 
             completeTutorSession: (masteryGained) => set((state) => {
@@ -391,7 +390,7 @@ export const useStudyStore = create<StudyState>()(
                     shardTitle: activeShard.title,
                     date: new Date().toISOString(),
                     history: state.tutorChatHistory,
-                    masteryGained // This will now be the full +24 you pass in from ChumWidget
+                    masteryGained
                 };
 
                 return {
@@ -399,7 +398,7 @@ export const useStudyStore = create<StudyState>()(
                     tutorSessionState: {
                         ...state.tutorSessionState,
                         isSessionComplete: true,
-                        totalMasteryGained: 0 // 👈 CRITICAL: Reset the counter for the next session!
+                        totalMasteryGained: 0
                     }
                 };
             }),
@@ -427,16 +426,28 @@ export const useStudyStore = create<StudyState>()(
                 return { shards: newShards };
             }),
 
+            // --- ⚙️ SETTINGS & AI ---
             setNormalChatHistory: (history) => set((state) => ({ normalChatHistory: typeof history === 'function' ? history(state.normalChatHistory) : history })),
             setTutorChatHistory: (history) => set((state) => ({ tutorChatHistory: typeof history === 'function' ? history(state.tutorChatHistory) : history })),
             updateTutorSessionState: (update) => set((state) => ({ tutorSessionState: { ...state.tutorSessionState, ...update } })),
             setAITier: (tier) => set({ aiTier: tier }),
             updateAIKeys: (keys) => set((state) => ({ aiKeys: { ...state.aiKeys, ...keys } })),
-            setOllamaUrl: (url) => set({ ollamaUrl: url })
+            setOllamaUrl: (url) => set({ ollamaUrl: url }),
+
+            // --- 🧥 COSMETICS ---
+            updateUserTheme: async (themeId: string) => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+                const isPremiumTheme = ["sakura", "academia", "lofi", "nordic", "e-ink"].includes(themeId);
+                if (isPremiumTheme && !get().isPremiumUser) return;
+
+                await supabase.from('profiles').update({ preferred_theme: themeId }).eq('id', user.id);
+                document.documentElement.setAttribute("data-theme", themeId);
+                localStorage.setItem("appTheme", themeId);
+            }
         }),
         {
             name: 'studybuddy-storage',
-            // Only save these settings to local storage so they don't overwrite the cloud data on refresh!
             partialize: (state) => ({
                 aiKeys: state.aiKeys,
                 aiTier: state.aiTier,
