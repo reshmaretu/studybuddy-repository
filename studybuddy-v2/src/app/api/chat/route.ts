@@ -5,8 +5,18 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
     try {
-        const { messages, user_id, openrouter_key, gemini_key } = await req.json();
-        const geminiKey = gemini_key || process.env.GEMINI_AI_API_KEY;
+        const { messages, user_id, openrouter_key, groq_key, gemini_key } = await req.json();
+        
+        // 🗝️ Centralized Key Logic
+        const orKey = (openrouter_key?.trim() || process.env.OPENROUTER_AI_API_KEY)?.trim();
+        const groqKey = (groq_key?.trim() || process.env.GROQ_AI_API_KEY)?.trim();
+        const geminiKey = (gemini_key?.trim() || process.env.GEMINI_AI_API_KEY)?.trim();
+
+        // Debug Logs (Server Side)
+        console.log("--- Neural Link Debug ---");
+        console.log("OR Key Source:", openrouter_key ? "User Provided" : (process.env.OPENROUTER_AI_API_KEY ? "System ENV" : "MISSING"));
+        console.log("Groq Key Source:", groq_key ? "User Provided" : (process.env.GROQ_AI_API_KEY ? "System ENV" : "MISSING"));
+        console.log("Gemini Key Source:", gemini_key ? "User Provided" : (process.env.GEMINI_AI_API_KEY ? "System ENV" : "MISSING"));
 
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -80,7 +90,6 @@ export async function POST(req: Request) {
 
         // 1. PRIMARY: OpenRouter
         try {
-            const orKey = openrouter_key || process.env.OPENROUTER_AI_API_KEY;
             if (orKey) {
                 const models = [
                     "meta-llama/llama-3.1-8b-instruct:free",
@@ -129,7 +138,6 @@ export async function POST(req: Request) {
 
         // 2. SECONDARY: Groq
         try {
-            const groqKey = openrouter_key || process.env.GROQ_AI_API_KEY;
             if (groqKey) {
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",

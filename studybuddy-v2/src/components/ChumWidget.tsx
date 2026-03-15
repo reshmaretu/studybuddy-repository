@@ -160,6 +160,7 @@ export default function ChumWidget() {
                         messages: messagesPayload,
                         user_id: session?.user?.id,
                         openrouter_key: aiKeys.openrouter,
+                        groq_key: aiKeys.groq,
                         gemini_key: aiKeys.gemini
                     })
                 });
