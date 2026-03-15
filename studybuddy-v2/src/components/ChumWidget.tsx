@@ -22,7 +22,8 @@ export default function ChumWidget() {
         activeMode, exitMode, isTutorModeActive, activeShardId, exitTutorMode,
         shards, updateShardMastery, aiTier, setAITier, aiKeys, updateAIKeys, ollamaUrl, setOllamaUrl,
         normalChatHistory, tutorChatHistory, setNormalChatHistory, setTutorChatHistory,
-        tutorSessionState, updateTutorSessionState, completeTutorSession, pastTutorSessions, addTask, toggleMindDump
+        tutorSessionState, updateTutorSessionState, completeTutorSession, pastTutorSessions, addTask, toggleMindDump,
+        showNodeBadge, setShowNodeBadge
     } = useStudyStore();
 
     const currentHistory = isTutorModeActive ? tutorChatHistory : normalChatHistory;
@@ -91,11 +92,14 @@ export default function ChumWidget() {
         let systemPrompt = "";
         if (isTutorModeActive && activeShard) {
             const totalContent = `Base Notes: ${activeShard.content}`;
-            const shardHistory = pastTutorSessions.filter(s => s.shardId === activeShard.id).slice(-3);
+            const shardHistory = pastTutorSessions.filter(s => s.shardId === activeShard.id).slice(-1);
             const historySummary = shardHistory.map(s => {
-                // Extract the past conversation to give the AI concrete context
-                const pastQA = s.history.map(m => `${m.role.toUpperCase()}: ${m.text.replace(/\n/g, ' ')}`).join('\n');
-                return `--- Session on ${new Date(s.date).toLocaleDateString()} ---\n${pastQA}`;
+                // Highly optimized: Only extract Chum's shortened questions to save massive amounts of tokens
+                const pastQA = s.history
+                    .filter(m => m.role === 'chum' && m.text.includes('?'))
+                    .map(m => `- ${m.text.substring(0, 100).replace(/\n/g, ' ')}...`)
+                    .join('\n');
+                return `--- Last Session ---\n${pastQA}`;
             }).join("\n\n") || "No previous sessions recorded.";
 
             systemPrompt = `You are Chum, a cozy lo-fi tutor AI. 
@@ -133,6 +137,7 @@ export default function ChumWidget() {
         }
 
         let aiResponse = "";
+        let usedNode = "";
         try {
             if (aiTier === 'offline') throw new Error("Offline mode");
 
@@ -167,6 +172,7 @@ export default function ChumWidget() {
                 const data = await res.json();
                 if (!res.ok || data.error) throw new Error("Cloud failed");
                 aiResponse = data.response;
+                usedNode = data.node || "Cloud Node";
             } else {
                 // Force triggering the local/Ollama logic in the catch block if not cloud
                 throw new Error("Local mode active");
@@ -176,7 +182,6 @@ export default function ChumWidget() {
                 aiResponse = "I'm currently resting in offline mode. Let's study together again when you're back online!";
             } else {
                 try {
-                    // 🏠 Fix for Local: Transform history for Ollama's schema
                     const historyToUse = [...(isTutorModeActive ? tutorChatHistory : normalChatHistory), { role: 'user', text: messageText }].map(msg => ({
                         role: msg.role === 'chum' ? 'assistant' : 'user',
                         content: (msg as any).text || (msg as any).content
@@ -193,6 +198,7 @@ export default function ChumWidget() {
                     });
                     const data = await res.json();
                     aiResponse = data.message.content;
+                    usedNode = "Local Hive (Ollama)";
                 } catch (e) {
                     aiResponse = "Neural link failed. If using Ollama, ensure it is running and CORS is allowed (set OLLAMA_ORIGINS=\"*\" in env vars). Check your Ollama server and network connection.";
                 }
@@ -200,7 +206,7 @@ export default function ChumWidget() {
         }
 
         setIsTyping(false);
-        const finalHistory: ChatMessage[] = [...newHistory, { role: 'chum' as const, text: aiResponse }];
+        const finalHistory: ChatMessage[] = [...newHistory, { role: 'chum' as const, text: aiResponse, node: usedNode }];
         setCurrentHistory(finalHistory);
 
         if (isTutorModeActive && activeShard && !forcePrimer) {
@@ -305,6 +311,14 @@ export default function ChumWidget() {
                                             <input type="text" value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)} className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
                                         </div>
                                     )}
+                                    <div className="flex items-center justify-between bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-3">
+                                        <span className="text-xs font-bold text-[var(--text-main)]">Show Model Badge</span>
+                                        <div onClick={() => setShowNodeBadge(!showNodeBadge)} className="flex items-center gap-2 cursor-pointer group">
+                                            <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors duration-300 ${showNodeBadge ? 'bg-[var(--accent-teal)]' : 'bg-[var(--bg-sidebar)] border border-[var(--border-color)]'}`}>
+                                                <div className={`w-3 h-3 rounded-full shadow-sm transition-transform duration-300 ${showNodeBadge ? 'translate-x-4 bg-[#0b1211]' : 'translate-x-0 bg-[var(--text-muted)]'}`} />
+                                            </div>
+                                        </div>
+                                    </div>
                                     <button onClick={() => setShowSettings(false)} className="mt-auto w-full py-2 bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-lg text-xs font-bold text-[var(--text-main)] hover:border-[var(--accent-teal)] transition-colors">Save & Close</button>
                                 </div>
 
@@ -376,6 +390,13 @@ export default function ChumWidget() {
                                             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} flex-col`}>
                                                 <div className={`p-3 text-sm rounded-xl max-w-[85%] shadow-sm whitespace-pre-wrap ${msg.role === 'user' ? 'bg-[var(--accent-teal)]/20 border border-[var(--accent-teal)]/30 text-[var(--text-main)] rounded-tr-none' : 'bg-[var(--bg-dark)] border border-[var(--border-color)] text-[var(--text-muted)] rounded-tl-none'}`}>
                                                     {msg.text}
+
+                                                    {msg.node && msg.role === 'chum' && showNodeBadge && (
+                                                        <div className="mt-2 pt-2 border-t border-[var(--border-color)]/30 flex items-center gap-1.5 opacity-50 select-none">
+                                                            <Cpu size={10} className="text-[var(--accent-teal)]" />
+                                                            <span className="text-[9px] font-mono tracking-tighter uppercase">{msg.node}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 {showExitConfirm && i === currentHistory.length - 1 && msg.role === 'chum' && msg.text.includes("leave") && (
                                                     <div className="flex gap-2 mt-2 ml-1">
@@ -461,6 +482,13 @@ export default function ChumWidget() {
                                                 {msg.text.split('\n\n').map((paragraph, pIdx) => (
                                                     <p key={pIdx} className="m-0">{paragraph}</p>
                                                 ))}
+
+                                                {msg.node && msg.role === 'chum' && showNodeBadge && (
+                                                    <div className="mt-2 pt-2 border-t border-[var(--border-color)]/30 flex items-center gap-1.5 opacity-40 select-none">
+                                                        <Cpu size={10} className="text-[var(--accent-teal)]" />
+                                                        <span className="text-[9px] font-mono tracking-tighter uppercase">{msg.node}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))

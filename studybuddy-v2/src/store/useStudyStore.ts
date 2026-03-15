@@ -18,6 +18,7 @@ export interface Task {
 export interface ChatMessage {
     role: 'user' | 'chum';
     text: string;
+    node?: string;
 }
 
 export interface TutorSession {
@@ -110,6 +111,8 @@ interface StudyState {
     setAITier: (tier: 'cloud' | 'local' | 'offline') => void;
     updateAIKeys: (keys: Partial<StudyState['aiKeys']>) => void;
     setOllamaUrl: (url: string) => void;
+    showNodeBadge: boolean;
+    setShowNodeBadge: (val: boolean) => void;
 
     // 💎 PREMIUM STATE
     isPremiumUser: boolean;
@@ -178,6 +181,8 @@ export const useStudyStore = create<StudyState>()(
             aiTier: 'cloud',
             aiKeys: { groq: '', gemini: '', openrouter: '' },
             ollamaUrl: 'http://localhost:11434',
+            showNodeBadge: true,
+            setShowNodeBadge: (showNodeBadge) => set({ showNodeBadge }),
 
             // ==========================================
             // 🌐 CLOUD FETCHING
