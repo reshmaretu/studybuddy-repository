@@ -92,7 +92,11 @@ export default function ChumWidget() {
         if (isTutorModeActive && activeShard) {
             const totalContent = `Base Notes: ${activeShard.content}`;
             const shardHistory = pastTutorSessions.filter(s => s.shardId === activeShard.id).slice(-3);
-            const historySummary = shardHistory.map(s => `- Session on ${s.date}: Completed questions.`).join("\n") || "No previous sessions for this shard.";
+            const historySummary = shardHistory.map(s => {
+                // Extract the past conversation to give the AI concrete context
+                const pastQA = s.history.map(m => `${m.role.toUpperCase()}: ${m.text.replace(/\n/g, ' ')}`).join('\n');
+                return `--- Session on ${new Date(s.date).toLocaleDateString()} ---\n${pastQA}`;
+            }).join("\n\n") || "No previous sessions recorded.";
 
             systemPrompt = `You are Chum, a cozy lo-fi tutor AI. 
             FIRST PERSON. NO QUOTATIONS. COZY. STRICT RULE: NEVER USE QUOTATION MARKS.
