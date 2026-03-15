@@ -5,9 +5,11 @@ import Image from 'next/image'; // Next.js optimized image component
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useStudyStore } from '@/store/useStudyStore';
 
 export default function Login() {
     const router = useRouter();
+    const resetStore = useStudyStore((state) => state.reset);
     const [email, setEmail] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const [message, setMessage] = useState<{ text: string; show: boolean }>({ text: '', show: false });
@@ -23,8 +25,8 @@ export default function Login() {
             setMessage({ text: "Invalid email or password.", show: true });
             setLoading(false);
         } else {
-            // Note: In Next.js, you might want to use the useRouter hook from 'next/navigation' 
-            // instead of window.location.href for faster, client-side routing.
+            // 🔒 SECURITY: Wipe previous session state before entering the sanctuary
+            resetStore();
             router.push("/dashboard");
         }
     };

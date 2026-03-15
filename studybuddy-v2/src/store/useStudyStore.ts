@@ -116,6 +116,7 @@ interface StudyState {
     checkPremiumStatus: () => Promise<void>;
 
     updateUserTheme: (themeId: string) => Promise<void>;
+    reset: () => void;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -193,9 +194,9 @@ export const useStudyStore = create<StudyState>()(
                     const [tasksResponse, shardsResponse, profileResponse, statsResponse, wardrobeResponse] = await Promise.all([
                         supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                        supabase.from('profiles').select('display_name, is_premium').eq('id', user.id).single(),
-                        supabase.from('user_stats').select('focus_score, total_sessions, is_premium').eq('user_id', user.id).single(),
-                        supabase.from('chum_wardrobe').select('active_theme').eq('user_id', user.id).single()
+                        supabase.from('profiles').select('display_name, full_name, is_premium').eq('id', user.id).maybeSingle(),
+                        supabase.from('user_stats').select('focus_score, total_sessions, total_seconds_tracked').eq('user_id', user.id).maybeSingle(),
+                        supabase.from('chum_wardrobe').select('active_theme').eq('user_id', user.id).maybeSingle()
                     ]);
 
                     if (tasksResponse.data) {
@@ -216,24 +217,16 @@ export const useStudyStore = create<StudyState>()(
                         });
                     }
 
-                    if (statsResponse.data) {
-                        set({
-                            focusScore: statsResponse.data.focus_score,
-                            totalSessions: statsResponse.data.total_sessions
-                        });
-                    }
-                    
-                    // Always try to set premium status even if one table is empty
-                    const isPremium = statsResponse.data?.is_premium || profileResponse.data?.is_premium || false;
-                    set({ isPremiumUser: isPremium });
+                    set({
+                        focusScore: statsResponse.data?.focus_score ?? 100,
+                        totalSessions: statsResponse.data?.total_sessions ?? 0,
+                        isPremiumUser: profileResponse.data?.is_premium || false
+                    });
 
-                    if (wardrobeResponse.data) {
-                        const cloudTheme = wardrobeResponse.data.active_theme;
-                        if (cloudTheme) {
-                            document.documentElement.setAttribute("data-theme", cloudTheme);
-                            localStorage.setItem("appTheme", cloudTheme);
-                        }
-                    }
+                    const activeTheme = wardrobeResponse.data?.active_theme || 'default';
+                    document.documentElement.setAttribute("data-theme", activeTheme);
+                    localStorage.setItem("appTheme", activeTheme);
+
                 } catch (error) {
                     console.error("Initialization failed:", error);
                 } finally {
@@ -451,7 +444,22 @@ export const useStudyStore = create<StudyState>()(
                 await supabase.from('chum_wardrobe').update({ active_theme: themeId }).eq('user_id', user.id);
                 document.documentElement.setAttribute("data-theme", themeId);
                 localStorage.setItem("appTheme", themeId);
-            }
+            },
+
+            reset: () => set({
+                isInitialized: false,
+                tasks: [],
+                shards: [],
+                focusScore: 100,
+                totalSessions: 0,
+                activeMode: 'none',
+                activeTaskId: null,
+                focusTaskId: null,
+                isPremiumUser: false,
+                normalChatHistory: [{ role: 'chum', text: "Ready to study." }],
+                tutorChatHistory: [],
+                pastTutorSessions: []
+            })
         }),
         {
             name: 'studybuddy-storage',

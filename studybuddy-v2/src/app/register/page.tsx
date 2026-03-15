@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 export default function Register() {
+    const router = useRouter();
     const [formData, setFormData] = useState({
         fName: '',
         lName: '',
@@ -25,7 +26,7 @@ export default function Register() {
         }
 
         setLoading(true);
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
             email: formData.email,
             password: formData.password,
             options: {
@@ -41,7 +42,12 @@ export default function Register() {
         if (error) {
             setMessage({ text: error.message, show: true, type: 'error' });
         } else {
-            setMessage({ text: "Success! Check your email.", show: true, type: 'success' });
+            setMessage({ text: "Success! Redirecting to login...", show: true, type: 'success' });
+            
+            // 🚀 The Database Trigger handles profile/stats creation automatically now!
+            setTimeout(() => {
+                router.push('/login');
+            }, 3000);
         }
         setLoading(false);
     };

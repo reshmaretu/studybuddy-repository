@@ -45,13 +45,19 @@ export default function ZenCanvas() {
 
                 const { data, error } = await supabase
                     .from('whiteboards')
-                    .select('snapshot_data')
+                    .select('snapshot_data, user_id')
                     .eq('user_id', user.id)
                     .single();
 
                 if (error && error.code !== 'PGRST116') throw error; // PGRST116 means no data found
 
                 if (data?.snapshot_data) {
+                    // 🔒 SECURITY CHECK: If RLS is weak, ensure this data actually belongs to us
+                    if ((data as any).user_id && (data as any).user_id !== user.id) {
+                        console.error("Critical: Retreived canvas data for wrong user!");
+                        return;
+                    }
+
                     // v1.29.0 specific method to load the document
                     app.loadDocument(data.snapshot_data);
                     toast.success("Welcome back to your Sanctuary.");
@@ -64,6 +70,14 @@ export default function ZenCanvas() {
 
         loadFromCloud();
     }, [app]);
+
+    // ⚡ Reactive ID for Tldraw Persistence (Prevents LocalStorage leakage between profiles)
+    const [canvasId, setCanvasId] = useState("studybuddy-zen-canvas-guest");
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data }) => {
+            if (data?.user) setCanvasId(`studybuddy-zen-canvas-${data.user.id}`);
+        });
+    }, []);
 
     const handleSave = async () => {
         // ⚡ THE FIX: Ensure we aren't just checking 'app', 
@@ -135,7 +149,7 @@ export default function ZenCanvas() {
             </div>
 
             <TldrawComponent
-                id="studybuddy-zen-canvas-v1"
+                id={canvasId}
                 showMenu={false}
                 onMount={(appInstance: any) => setApp(appInstance)}
             />

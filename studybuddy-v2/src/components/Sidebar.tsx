@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useStudyStore } from "@/store/useStudyStore";
+import { supabase } from "@/lib/supabase";
 import {
     LayoutGrid, Sprout, Palette, Coffee, Waves, Calendar,
     BookOpen, BarChart3, Shirt, Settings, LogOut, Radio
@@ -90,10 +91,17 @@ export default function Sidebar() {
                         <div className="w-[64px] flex-shrink-0 flex items-center justify-center"><Settings size={20} /></div>
                         <span className="font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">Account</span>
                     </Link>
-                    <Link href="/login" className="flex items-center h-12 mx-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-colors overflow-hidden whitespace-nowrap">
+                    <button 
+                        onClick={async () => {
+                            await supabase.auth.signOut();
+                            useStudyStore.getState().reset();
+                            window.location.href = "/login";
+                        }}
+                        className="flex w-full items-center h-12 mx-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-colors overflow-hidden whitespace-nowrap"
+                    >
                         <div className="w-[64px] flex-shrink-0 flex items-center justify-center"><LogOut size={20} /></div>
-                        <span className="font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">Account</span>
-                    </Link>
+                        <span className="font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">Logout</span>
+                    </button>
                 </div>
 
             </div>
