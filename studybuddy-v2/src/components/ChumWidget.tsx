@@ -134,6 +134,8 @@ export default function ChumWidget() {
 
         let aiResponse = "";
         try {
+            if (aiTier === 'offline') throw new Error("Offline mode");
+
             const { data: { session } } = await supabase.auth.getSession();
             const activeHistory = isTutorModeActive ? tutorChatHistory : normalChatHistory;
             const historyToSend = activeHistory.map(msg => ({
@@ -141,49 +143,58 @@ export default function ChumWidget() {
                 content: msg.text
             }));
 
-            const messagesPayload = [
-                { role: "system", content: systemPrompt },
-                ...historyToSend,
-                { role: "user", content: messageText }
-            ];
+            if (aiTier === 'cloud') {
+                const messagesPayload = [
+                    { role: "system", content: systemPrompt },
+                    ...historyToSend,
+                    { role: "user", content: messageText }
+                ];
 
-            const res = await fetch("/api/chat", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${session?.access_token}`
-                },
-                body: JSON.stringify({
-                    messages: messagesPayload,
-                    user_id: session?.user?.id,
-                    openrouter_key: aiKeys.openrouter,
-                    gemini_key: aiKeys.gemini
-                })
-            });
-            const data = await res.json();
-            if (!res.ok || data.error) throw new Error("Cloud failed");
-            aiResponse = data.response;
-        } catch (err) {
-            try {
-                // 🏠 Fix for Local: Transform history for Ollama's schema
-                const localHistory = newHistory.slice(-5).map(msg => ({
-                    role: msg.role === 'chum' ? 'assistant' : 'user',
-                    content: msg.text
-                }));
-
-                const res = await fetch(`${ollamaUrl}/api/chat`, {
+                const res = await fetch("/api/chat", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        model: "llama3.2:1b", 
-                        messages: [{ role: "system", content: systemPrompt }, ...localHistory], 
-                        stream: false 
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${session?.access_token}`
+                    },
+                    body: JSON.stringify({
+                        messages: messagesPayload,
+                        user_id: session?.user?.id,
+                        openrouter_key: aiKeys.openrouter,
+                        gemini_key: aiKeys.gemini
                     })
                 });
                 const data = await res.json();
-                aiResponse = data.message.content;
-            } catch (e) {
-                aiResponse = "Neural link failed. If using Ollama, ensure it is running and CORS is allowed (set OLLAMA_ORIGINS=\"*\" in env vars). Check your Ollama server and network connection.";
+                if (!res.ok || data.error) throw new Error("Cloud failed");
+                aiResponse = data.response;
+            } else {
+                // Force triggering the local/Ollama logic in the catch block if not cloud
+                throw new Error("Local mode active");
+            }
+        } catch (err) {
+            if (aiTier === 'offline') {
+                aiResponse = "I'm currently resting in offline mode. Let's study together again when you're back online!";
+            } else {
+                try {
+                    // 🏠 Fix for Local: Transform history for Ollama's schema
+                    const historyToUse = [...(isTutorModeActive ? tutorChatHistory : normalChatHistory), { role: 'user', text: messageText }].map(msg => ({
+                        role: msg.role === 'chum' ? 'assistant' : 'user',
+                        content: (msg as any).text || (msg as any).content
+                    }));
+
+                    const res = await fetch(`${ollamaUrl}/api/chat`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ 
+                            model: "llama3.2:1b", 
+                            messages: [{ role: "system", content: systemPrompt }, ...historyToUse], 
+                            stream: false 
+                        })
+                    });
+                    const data = await res.json();
+                    aiResponse = data.message.content;
+                } catch (e) {
+                    aiResponse = "Neural link failed. If using Ollama, ensure it is running and CORS is allowed (set OLLAMA_ORIGINS=\"*\" in env vars). Check your Ollama server and network connection.";
+                }
             }
         }
 
