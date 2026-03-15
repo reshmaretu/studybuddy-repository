@@ -155,7 +155,9 @@ export default function ChumWidget() {
                 },
                 body: JSON.stringify({
                     messages: messagesPayload,
-                    user_id: session?.user?.id
+                    user_id: session?.user?.id,
+                    openrouter_key: aiKeys.openrouter,
+                    gemini_key: aiKeys.gemini
                 })
             });
             const data = await res.json();
@@ -171,7 +173,7 @@ export default function ChumWidget() {
                 const data = await res.json();
                 aiResponse = data.message.content;
             } catch (e) {
-                aiResponse = "I'm having trouble connecting to my brain. Let's try again in a moment.";
+                aiResponse = "Neural link failed. If using Ollama, ensure it is running and CORS is allowed (set OLLAMA_ORIGINS=\"*\" in env vars). Check your Ollama server and network connection.";
             }
         }
 
@@ -270,6 +272,7 @@ export default function ChumWidget() {
                                     </div>
                                     {aiTier === 'cloud' && (
                                         <div className="flex flex-col gap-3">
+                                            <input type="password" placeholder="OpenRouter API Key (Optional)" value={aiKeys.openrouter} onChange={e => updateAIKeys({ openrouter: e.target.value })} className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
                                             <input type="password" placeholder="Groq API Key" value={aiKeys.groq} onChange={e => updateAIKeys({ groq: e.target.value })} className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
                                             <input type="password" placeholder="Gemini API Key" value={aiKeys.gemini} onChange={e => updateAIKeys({ gemini: e.target.value })} className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
                                         </div>

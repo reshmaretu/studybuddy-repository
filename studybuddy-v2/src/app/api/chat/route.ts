@@ -5,8 +5,8 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
     try {
-        const { messages, user_id } = await req.json();
-        const geminiKey = process.env.GEMINI_AI_API_KEY;
+        const { messages, user_id, openrouter_key, gemini_key } = await req.json();
+        const geminiKey = gemini_key || process.env.GEMINI_AI_API_KEY;
 
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
 
         // 1. PRIMARY: OpenRouter
         try {
-            const orKey = process.env.OPENROUTER_AI_API_KEY;
+            const orKey = openrouter_key || process.env.OPENROUTER_AI_API_KEY;
             if (orKey) {
                 const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                     method: "POST",
