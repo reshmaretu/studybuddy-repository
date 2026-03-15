@@ -85,33 +85,39 @@ export async function POST(req: Request) {
         try {
             const orKey = openrouter_key || process.env.OPENROUTER_AI_API_KEY;
             if (orKey) {
-                // We'll try Llama 3.1 8B first as it's often more reliable on the free tier than Gemma
                 const models = ["meta-llama/llama-3.1-8b-instruct:free", "google/gemma-2-9b-it:free"];
                 
                 for (const model of models) {
-                    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                        method: "POST",
-                        headers: {
-                            "Authorization": `Bearer ${orKey}`,
-                            "Content-Type": "application/json",
-                            "HTTP-Referer": "https://studybuddy-v2.vercel.app",
-                            "X-Title": "StudyBuddy"
-                        },
-                        body: JSON.stringify({
-                            model: model,
-                            messages: formattedMessages
-                        })
-                    });
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-                    if (res.ok) {
-                        const data = await res.json();
-                        return NextResponse.json({
-                            response: data.choices[0].message.content,
-                            node: `OpenRouter (${model.split('/')[1].split(':')[0]})`
+                        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                            method: "POST",
+                            headers: {
+                                "Authorization": `Bearer ${orKey}`,
+                                "Content-Type": "application/json",
+                                "HTTP-Referer": "https://studybuddy-v2.vercel.app",
+                                "X-Title": "StudyBuddy"
+                            },
+                            body: JSON.stringify({
+                                model: model,
+                                messages: formattedMessages
+                            }),
+                            signal: controller.signal
                         });
-                    } else {
-                        const errorData = await res.json().catch(() => ({}));
-                        console.warn(`OpenRouter model ${model} failed:`, errorData);
+
+                        clearTimeout(timeoutId);
+
+                        if (res.ok) {
+                            const data = await res.json();
+                            return NextResponse.json({
+                                response: data.choices[0].message.content,
+                                node: `OpenRouter (${model.split('/')[1].split(':')[0]})`
+                            });
+                        }
+                    } catch (abortErr: any) {
+                        console.warn(`OpenRouter model ${model} timed out or failed. Trying next...`);
                     }
                 }
             }
