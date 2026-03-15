@@ -119,7 +119,7 @@ export async function POST(req: Request) {
 
         // 2. SECONDARY: Groq
         try {
-            const groqKey = process.env.GROQ_AI_API_KEY;
+            const groqKey = openrouter_key || process.env.GROQ_AI_API_KEY;
             if (groqKey) {
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
@@ -135,7 +135,12 @@ export async function POST(req: Request) {
                         response: data.choices[0].message.content,
                         node: "Groq (Llama 3.3)"
                     });
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    console.warn("Groq API error:", err);
                 }
+            } else {
+                console.warn("Groq skipped: No API key provided.");
             }
         } catch (e: any) { console.warn("Groq failed:", e.message); }
 
