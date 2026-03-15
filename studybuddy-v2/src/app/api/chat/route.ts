@@ -180,7 +180,15 @@ export async function POST(req: Request) {
             }
         } catch (e: any) { console.warn("Gemini failed:", e.message); }
 
-        throw new Error("Critical: All AI nodes are currently unreachable.");
+        const errorMsg = `Critical: All AI nodes are currently unreachable. 
+        Possible reasons:
+        1. All API keys (OpenRouter/Groq/Gemini) are missing or invalid.
+        2. Providers are currently overloaded.
+        3. Search threshold is too strict.
+        
+        Check your Settings (gear icon) and ensure at least one cloud key is saved!`;
+        
+        throw new Error(errorMsg);
 
     } catch (error: any) {
         console.error("Chat API Error:", error.message);
