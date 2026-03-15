@@ -165,10 +165,20 @@ export default function ChumWidget() {
             aiResponse = data.response;
         } catch (err) {
             try {
+                // 🏠 Fix for Local: Transform history for Ollama's schema
+                const localHistory = newHistory.slice(-5).map(msg => ({
+                    role: msg.role === 'chum' ? 'assistant' : 'user',
+                    content: msg.text
+                }));
+
                 const res = await fetch(`${ollamaUrl}/api/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ model: "llama3.2:1b", messages: [{ role: "system", content: systemPrompt }, ...newHistory.slice(-5)], stream: false })
+                    body: JSON.stringify({ 
+                        model: "llama3.2:1b", 
+                        messages: [{ role: "system", content: systemPrompt }, ...localHistory], 
+                        stream: false 
+                    })
                 });
                 const data = await res.json();
                 aiResponse = data.message.content;
