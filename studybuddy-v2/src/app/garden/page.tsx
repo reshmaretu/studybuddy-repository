@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStudyStore, TaskLoad, Task } from "@/store/useStudyStore";
-import { Plus, Search, Sprout, CheckCircle2, Trash2 } from "lucide-react";
+import { Plus, Search, Sprout, CheckCircle2, Trash2, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay } from "@dnd-kit/core";
+import { toast } from "sonner";
 import TaskCard from "@/components/TaskCard";
+import MorningPlanningModal from "@/components/MorningPlanningModal";
+import UnDoneModal from "@/components/UnDoneModal";
 
 function DropZoneContainer({ id, title, subtitle, children, isEmpty, emptyText }: any) {
     const { isOver, setNodeRef } = useDroppable({ id });
@@ -35,10 +38,40 @@ function DropZoneContainer({ id, title, subtitle, children, isEmpty, emptyText }
 }
 
 export default function CrystalGarden() {
-    const { tasks, addTask, completeTask, deleteTask } = useStudyStore();
+    const { tasks, addTask, completeTask, deleteTask, activeFramework, lastPlannedDate, isInitialized } = useStudyStore();
     const [searchQuery, setSearchQuery] = useState("");
     const [isAdding, setIsAdding] = useState(false);
     const [activeDragTask, setActiveDragTask] = useState<Task | null>(null);
+    const [showMorningModal, setShowMorningModal] = useState(false);
+    const [showUnDoneModal, setShowUnDoneModal] = useState(false);
+
+    // 4:00 AM Reset Logic
+    useEffect(() => {
+        if (!isInitialized) return;
+        
+        const now = new Date();
+        const today4AM = new Date();
+        today4AM.setHours(4, 0, 0, 0);
+
+        if (now.getHours() < 4) {
+            today4AM.setDate(today4AM.getDate() - 1);
+        }
+
+        const needsPlanning = !lastPlannedDate || new Date(lastPlannedDate) < today4AM;
+        if (needsPlanning) setShowMorningModal(true);
+        else setShowMorningModal(false);
+    }, [isInitialized, lastPlannedDate]);
+
+    // 9:00 PM Nudge
+    useEffect(() => {
+        const checkTime = setInterval(() => {
+            const now = new Date();
+            if (now.getHours() === 21 && now.getMinutes() === 0) {
+                 toast('🌙 Hey Chum, it\'s 9 PM. Time to Wrap Up the day?', { duration: 10000 });
+            }
+        }, 60000); 
+        return () => clearInterval(checkTime);
+    }, []);
 
     // Form States
     const [newTask, setNewTask] = useState({ title: "", description: "", load: "medium" as TaskLoad, deadline: "" });
@@ -91,7 +124,12 @@ export default function CrystalGarden() {
 
     return (
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="max-w-[1200px] mx-auto pb-12 space-y-8">
+            <div className="max-w-[1200px] mx-auto pb-12 space-y-8 relative">
+
+                <AnimatePresence>
+                    {showMorningModal && <MorningPlanningModal />}
+                    {showUnDoneModal && <UnDoneModal onClose={() => setShowUnDoneModal(false)} />}
+                </AnimatePresence>
 
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                     <div>
@@ -101,15 +139,23 @@ export default function CrystalGarden() {
                         <p className="text-[var(--text-muted)] mt-1">Cultivate and manage your active quests.</p>
                     </div>
 
-                    <div className="flex gap-3 w-full md:w-auto">
-                        <div className="relative flex-1 md:w-64">
+                    <div className="flex gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
+                        <div className="relative flex-1 md:w-48 flex-shrink-0">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
                             <input
-                                type="text" placeholder="Search quests..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                                type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                                 className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl pl-10 pr-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] transition-colors"
                             />
                         </div>
-                        <button onClick={() => setIsAdding(!isAdding)} className="bg-[var(--accent-teal)] text-[#0b1211] px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 hover:brightness-110 shadow-[0_0_10px_rgba(20,184,166,0.2)]">
+                        {activeFramework && (
+                            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] px-4 py-2 rounded-xl text-sm font-bold text-[var(--accent-teal)] flex flex-shrink-0 items-center justify-center whitespace-nowrap hidden sm:flex">
+                                Active: {activeFramework === 'eisenhower' ? 'Eisenhower' : activeFramework === '1-3-5' ? '1-3-5 Rule' : 'Ivy Lee'} ▾
+                            </div>
+                        )}
+                        <button onClick={() => setShowUnDoneModal(true)} className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-main)] hover:text-[var(--accent-teal)] hover:border-[var(--accent-teal)] transition-colors flex items-center justify-center whitespace-nowrap gap-2 flex-shrink-0">
+                             <Moon size={16}/> Wrap Up
+                        </button>
+                        <button onClick={() => setIsAdding(!isAdding)} className="bg-[var(--accent-teal)] text-[#0b1211] px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 hover:brightness-110 shadow-[0_0_10px_rgba(20,184,166,0.2)] flex-shrink-0">
                             <Plus size={16} /> Plant Quest
                         </button>
                     </div>

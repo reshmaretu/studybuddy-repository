@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import AppLayoutWrapper from "@/components/AppLayoutWrapper";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,6 +32,11 @@ export default function RootLayout({
       <body className={`${inter.className} bg-[var(--bg-dark)] text-[var(--text-main)]`}>
         <AppLayoutWrapper>
           {children}
+          <Toaster position="bottom-center" toastOptions={{ 
+              className: 'bg-[var(--bg-card)] border border-[var(--accent-teal)] text-[var(--text-main)]',
+              style: { fontFamily: 'inherit' }
+            }} 
+          />
         </AppLayoutWrapper>
       </body>
     </html>

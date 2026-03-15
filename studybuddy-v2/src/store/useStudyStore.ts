@@ -13,6 +13,11 @@ export interface Task {
     deadline?: string;
     isCompleted: boolean;
     isPinned?: boolean;
+    urgency?: boolean;
+    importance?: boolean;
+    isFrog?: boolean;
+    eisenhowerQuadrant?: number;
+    ivyRank?: number;
 }
 
 export interface ChatMessage {
@@ -118,6 +123,12 @@ interface StudyState {
     isPremiumUser: boolean;
     checkPremiumStatus: () => Promise<void>;
 
+    // 🗓️ PLANNING & PRIORITIZATION
+    activeFramework: string | null;
+    lastPlannedDate: string | null;
+    setActiveFramework: (framework: string | null) => Promise<void>;
+    setLastPlannedDate: (date: string | null) => Promise<void>;
+
     updateUserTheme: (themeId: string) => Promise<void>;
     reset: () => void;
 }
@@ -184,6 +195,21 @@ export const useStudyStore = create<StudyState>()(
             showNodeBadge: true,
             setShowNodeBadge: (showNodeBadge) => set({ showNodeBadge }),
 
+            activeFramework: null,
+            lastPlannedDate: null,
+
+            setActiveFramework: async (framework) => {
+                set({ activeFramework: framework });
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) await supabase.from('profiles').update({ active_framework: framework }).eq('id', user.id);
+            },
+            
+            setLastPlannedDate: async (date) => {
+                set({ lastPlannedDate: date });
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) await supabase.from('profiles').update({ last_planned_date: date }).eq('id', user.id);
+            },
+
             // ==========================================
             // 🌐 CLOUD FETCHING
             // ==========================================
@@ -199,7 +225,7 @@ export const useStudyStore = create<StudyState>()(
                     const [tasksResponse, shardsResponse, profileResponse, statsResponse, wardrobeResponse, sessionsResponse] = await Promise.all([
                         supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                        supabase.from('profiles').select('display_name, full_name, is_premium').eq('id', user.id).maybeSingle(),
+                        supabase.from('profiles').select('display_name, full_name, is_premium, active_framework, last_planned_date').eq('id', user.id).maybeSingle(),
                         supabase.from('user_stats').select('focus_score, total_sessions, total_seconds_tracked').eq('user_id', user.id).maybeSingle(),
                         supabase.from('chum_wardrobe').select('active_theme').eq('user_id', user.id).maybeSingle(),
                         supabase.from('ai_sessions').select('*, shards(title)').eq('user_id', user.id).order('created_at', { ascending: false })
@@ -209,7 +235,9 @@ export const useStudyStore = create<StudyState>()(
                         set({
                             tasks: tasksResponse.data.map(t => ({
                                 id: t.id, title: t.title, description: t.description,
-                                load: t.load, deadline: t.deadline, isCompleted: t.is_completed, isPinned: t.is_pinned
+                                load: t.load, deadline: t.deadline, isCompleted: t.is_completed, isPinned: t.is_pinned,
+                                urgency: t.urgency, importance: t.importance, isFrog: t.is_frog,
+                                eisenhowerQuadrant: t.eisenhower_quadrant, ivyRank: t.ivy_rank
                             }))
                         });
                     }
@@ -239,7 +267,9 @@ export const useStudyStore = create<StudyState>()(
                     set({
                         focusScore: statsResponse.data?.focus_score ?? 100,
                         totalSessions: statsResponse.data?.total_sessions ?? 0,
-                        isPremiumUser: profileResponse.data?.is_premium || false
+                        isPremiumUser: profileResponse.data?.is_premium || false,
+                        activeFramework: profileResponse.data?.active_framework || null,
+                        lastPlannedDate: profileResponse.data?.last_planned_date || null
                     });
 
                     const activeTheme = wardrobeResponse.data?.active_theme || 'default';
@@ -279,6 +309,9 @@ export const useStudyStore = create<StudyState>()(
                     const dbUpdates: any = { ...updates };
                     if (updates.isCompleted !== undefined) { dbUpdates.is_completed = updates.isCompleted; delete dbUpdates.isCompleted; }
                     if (updates.isPinned !== undefined) { dbUpdates.is_pinned = updates.isPinned; delete dbUpdates.isPinned; }
+                    if (updates.isFrog !== undefined) { dbUpdates.is_frog = updates.isFrog; delete dbUpdates.isFrog; }
+                    if (updates.eisenhowerQuadrant !== undefined) { dbUpdates.eisenhower_quadrant = updates.eisenhowerQuadrant; delete dbUpdates.eisenhowerQuadrant; }
+                    if (updates.ivyRank !== undefined) { dbUpdates.ivy_rank = updates.ivyRank; delete dbUpdates.ivyRank; }
                     await supabase.from('tasks').update(dbUpdates).eq('id', id);
                 }
             },
