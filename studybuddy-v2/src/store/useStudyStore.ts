@@ -102,8 +102,8 @@ interface StudyState {
     updatePomodoroSettings: (settings: Partial<StudyState>) => void;
     startTutorMode: (shardId: string, type?: StudyState['tutorSessionState']['preferredType']) => void;
     exitTutorMode: () => void;
-    completeTutorSession: (masteryGained: number) => void;
-    updateShardMastery: (id: string, amount: number) => void;
+    completeTutorSession: (masteryGained: number) => Promise<void>;
+    updateShardMastery: (id: string, amount: number) => Promise<void>;
     setNormalChatHistory: (history: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => void;
     setTutorChatHistory: (history: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => void;
     updateTutorSessionState: (state: Partial<StudyState['tutorSessionState']>) => void;
@@ -191,12 +191,13 @@ export const useStudyStore = create<StudyState>()(
                 }
 
                 try {
-                    const [tasksResponse, shardsResponse, profileResponse, statsResponse, wardrobeResponse] = await Promise.all([
+                    const [tasksResponse, shardsResponse, profileResponse, statsResponse, wardrobeResponse, sessionsResponse] = await Promise.all([
                         supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('profiles').select('display_name, full_name, is_premium').eq('id', user.id).maybeSingle(),
                         supabase.from('user_stats').select('focus_score, total_sessions, total_seconds_tracked').eq('user_id', user.id).maybeSingle(),
-                        supabase.from('chum_wardrobe').select('active_theme').eq('user_id', user.id).maybeSingle()
+                        supabase.from('chum_wardrobe').select('active_theme').eq('user_id', user.id).maybeSingle(),
+                        supabase.from('ai_sessions').select('*, shards(title)').eq('user_id', user.id).order('created_at', { ascending: false })
                     ]);
 
                     if (tasksResponse.data) {
@@ -213,6 +214,19 @@ export const useStudyStore = create<StudyState>()(
                             shards: shardsResponse.data.map(s => ({
                                 id: s.id, title: s.title, content: s.content,
                                 mastery: s.mastery, isMastered: s.is_mastered, createdAt: s.created_at
+                            }))
+                        });
+                    }
+
+                    if (sessionsResponse.data) {
+                        set({
+                            pastTutorSessions: sessionsResponse.data.map((s: any) => ({
+                                id: s.id,
+                                shardId: s.shard_id,
+                                shardTitle: s.shards?.title || "Unknown Shard",
+                                date: s.created_at,
+                                history: s.chat_history,
+                                masteryGained: s.mastery_gained
                             }))
                         });
                     }
@@ -380,51 +394,88 @@ export const useStudyStore = create<StudyState>()(
 
             exitTutorMode: () => set({ isTutorModeActive: false, activeShardId: null, tutorChatHistory: [] }),
 
-            completeTutorSession: (masteryGained) => set((state) => {
-                const activeShard = state.shards.find(s => s.id === state.activeShardId);
-                if (!activeShard) return state;
+            completeTutorSession: async (masteryGained) => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const activeShard = get().shards.find(s => s.id === get().activeShardId);
+                if (!activeShard) return;
 
                 const newSession: TutorSession = {
                     id: Date.now().toString(),
                     shardId: activeShard.id,
                     shardTitle: activeShard.title,
                     date: new Date().toISOString(),
-                    history: state.tutorChatHistory,
+                    history: get().tutorChatHistory,
                     masteryGained
                 };
 
-                return {
+                set((state) => ({
                     pastTutorSessions: [newSession, ...state.pastTutorSessions],
                     tutorSessionState: {
                         ...state.tutorSessionState,
                         isSessionComplete: true,
                         totalMasteryGained: 0
                     }
-                };
-            }),
+                }));
 
-            updateShardMastery: (id, amount) => set((state) => {
-                let masteredShard: Shard | null = null;
-                const newShards = state.shards.map(shard => {
-                    if (shard.id !== id) return shard;
-                    const newMastery = Math.min(100, shard.mastery + amount);
-                    const isNowMastered = newMastery >= 100;
-                    const updatedShard = { ...shard, mastery: newMastery, isMastered: isNowMastered };
-                    if (isNowMastered && !shard.isMastered) masteredShard = updatedShard;
-                    return updatedShard;
+                await supabase.from('ai_sessions').insert([{
+                    user_id: user.id,
+                    shard_id: activeShard.id,
+                    chat_history: get().tutorChatHistory,
+                    mastery_gained: masteryGained
+                }]);
+            },
+
+            updateShardMastery: async (id, amount) => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                let masteredShardRef: Shard | null = null;
+                let updatedShardRef: Shard | null = null;
+
+                set((state) => {
+                    const newShards = state.shards.map(shard => {
+                        if (shard.id !== id) return shard;
+                        const newMastery = Math.min(100, shard.mastery + amount);
+                        const isNowMastered = newMastery >= 100;
+                        const updatedShard = { ...shard, mastery: newMastery, isMastered: isNowMastered };
+                        updatedShardRef = updatedShard;
+                        if (isNowMastered && !shard.isMastered) masteredShardRef = updatedShard;
+                        return updatedShard;
+                    });
+
+                    if (masteredShardRef) {
+                        const clonedTask: Task = {
+                            id: `mastery-${Date.now()}`,
+                            title: `Mastered: ${(masteredShardRef as Shard).title}`,
+                            description: "Forged and mastered in the Hall of Mastery.",
+                            load: 'heavy', isCompleted: true, isPinned: true
+                        };
+                        return { shards: newShards, tasks: [clonedTask, ...state.tasks] };
+                    }
+                    return { shards: newShards };
                 });
 
-                if (masteredShard) {
-                    const clonedTask: Task = {
-                        id: `mastery-${Date.now()}`,
-                        title: `Mastered: ${(masteredShard as Shard).title}`,
-                        description: "Forged and mastered in the Hall of Mastery.",
-                        load: 'heavy', isCompleted: true, isPinned: true
-                    };
-                    return { shards: newShards, tasks: [clonedTask, ...state.tasks] };
+                if (updatedShardRef) {
+                    await supabase.from('shards').update({
+                        mastery: (updatedShardRef as Shard).mastery,
+                        is_mastered: (updatedShardRef as Shard).isMastered,
+                        last_mastered_date: new Date().toISOString()
+                    }).eq('id', id);
                 }
-                return { shards: newShards };
-            }),
+
+                if (masteredShardRef) {
+                    await supabase.from('tasks').insert([{
+                        user_id: user.id,
+                        title: `Mastered: ${(masteredShardRef as Shard).title}`,
+                        description: "Forged and mastered in the Hall of Mastery.",
+                        load: 'heavy',
+                        is_completed: true,
+                        is_pinned: true
+                    }]);
+                }
+            },
 
             // --- ⚙️ SETTINGS & AI ---
             setNormalChatHistory: (history) => set((state) => ({ normalChatHistory: typeof history === 'function' ? history(state.normalChatHistory) : history })),
