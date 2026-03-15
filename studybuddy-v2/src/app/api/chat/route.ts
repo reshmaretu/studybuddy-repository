@@ -93,15 +93,13 @@ export async function POST(req: Request) {
             if (orKey) {
                 const models = [
                     "meta-llama/llama-3.1-8b-instruct:free",
-                    "google/gemma-2-9b-it:free",
-                    "mistralai/mistral-7b-instruct:free",
-                    "qwen/qwen-2-7b-instruct:free"
+                    "google/gemma-2-9b-it:free"
                 ];
                 
                 for (const model of models) {
                     try {
                         const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 15000); 
+                        const timeoutId = setTimeout(() => controller.abort(), 8000); 
 
                         const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                             method: "POST",

@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StudyBuddy · Performance Insights</title>
+    <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('appTheme') || 'default');</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="home.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -187,6 +188,14 @@
                     </svg></div>
                 <span class="nav-text">Crystal Garden</span>
             </a>
+            <a href="canvas.html" class="nav-item" id="navCanvas">
+                <div class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg></div>
+                <span class="nav-text">Zen Canvas</span>
+            </a>
+            <a href="tavern.html" class="nav-item" id="navTavern">
+                <div class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg></div>
+                <span class="nav-text"> The Study Cafe</span>
+            </a>
             <a href="#" class="nav-item" id="sidebarFlowStateBtn">
                 <div class="nav-icon"><svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none"
                         stroke-width="2">
@@ -223,6 +232,16 @@
                     </svg></div>
                 <span class="nav-text">Insights</span>
             </a>
+            <a href="wardrobe.html" class="nav-item" id="navWardrobe">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <path
+                            d="M20.38 3.46L16 2a8.59 8.59 0 0 1-4 1 8.59 8.59 0 0 1-4-1l-4.38 1.46A2 2 0 0 0 2 5.36V20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V5.36a2 2 0 0 0-1.62-1.9z">
+                        </path>
+                        <path d="M8 2v3"></path>
+                        <path d="M16 2v3"></path>
+                    </svg></div>
+                <span class="nav-text">Wardrobe</span>
+            </a>
             <div style="margin-top: 30px;"></div>
             <a href="account.html" class="nav-item" id="navAccount">
                 <div class="nav-icon"><svg viewBox="0 0 24 24">
@@ -236,7 +255,7 @@
 
     <main class="main-content">
         <header class="header" style="margin-bottom: 30px;">
-            <h1>📈 Performance Insights</h1>
+            <h1><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg> Performance Insights</h1>
         </header>
 
         <div class="stitch-card"
@@ -298,7 +317,7 @@
                 </div>
             </div>
             <div class="stitch-card">
-                <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 1.5rem;">🔥
+                <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 1.5rem;"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 2c0 0-5 6.5-5 11a5 5 0 0 0 10 0c0-4.5-5-11-5-11z"/></svg>
                     Average Focus Score by Hour</h3>
                 <div style="height: 250px;"><canvas id="focusBarChart"></canvas></div>
                 <p style="text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 15px;">When is
@@ -307,7 +326,7 @@
         </div>
 
         <div class="stitch-card" style="margin-bottom: 3rem;">
-            <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 1.5rem;">🧠 Focus
+            <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 1.5rem;"> Focus
                 Score History (Last 7 Days)</h3>
             <div style="height: 250px;"><canvas id="historyLineChart"></canvas></div>
         </div>
@@ -316,7 +335,7 @@
             style="position: relative; overflow: hidden; border-radius: 16px; border: 1px solid var(--border-color); background: var(--bg-card); padding: 30px; margin-bottom: 3rem;">
             <header style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
                 <h2 style="display: flex; align-items: center; gap: 10px; color: var(--text-main);">
-                    <span style="color: var(--accent-yellow); font-size: 1.5rem;">⭐</span> Premium Analytics
+                    <span style="color: var(--accent-yellow); font-size: 1.5rem;"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></span> Premium Analytics
                 </h2>
                 <div id="premiumBadgeIndicator"
                     style="padding: 6px 16px; background: rgba(128,128,128,0.1); border: 1px solid var(--border-color); border-radius: 20px; color: var(--text-muted); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
@@ -331,7 +350,7 @@
                     <div class="stitch-card" style="background: rgba(0,0,0,0.05);">
                         <div
                             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                            <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main);">🔥 Burnout Matrix
+                            <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main);"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 2c0 0-5 6.5-5 11a5 5 0 0 0 10 0c0-4.5-5-11-5-11z"/></svg> Burnout Matrix
                             </h3>
                             <span id="burnoutWarningBadge"
                                 style="font-size: 0.7rem; font-weight: 600; color: #f87171; background: rgba(248, 113, 113, 0.1); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(248, 113, 113, 0.2); display: none;">Warning:
@@ -385,7 +404,7 @@
                                 </div>
                             </div>
                             <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
-                                <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main);">🌊 Flow Score
+                                <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main);"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none"><path d="M22 12c-2.66 0-4.33-1.33-5.33-3-1-1.67-2.67-3-5.33-3-2.67 0-4.34 1.33-5.34 3-1 1.67-2.66 3-5.33 3H2z"/></svg> Flow Score
                                 </h3>
 
                                 <div
@@ -437,7 +456,7 @@
                         <div style="position: relative; margin-top: 10px; margin-bottom: 20px;">
                             <div id="archIcon"
                                 style="width: 90px; height: 90px; border-radius: 50%; background: rgba(49, 46, 129, 0.8); border: 2px solid #818cf8; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; box-shadow: 0 0 25px rgba(129, 140, 248, 0.4);">
-                                🌙</div>
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4C12.92 3.04 12.46 3 12 3z"/></svg></div>
                             <div id="archLevel"
                                 style="position: absolute; bottom: -8px; right: -8px; background: #4f46e5; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--bg-card); letter-spacing: 1px;">
                                 LVL 1</div>
@@ -474,7 +493,7 @@
                     <div class="stitch-card" style="background: rgba(0,0,0,0.05);">
                         <div
                             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                            <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main);">📏 Estimation
+                            <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main);"> Estimation
                                 Accuracy</h3>
                             <div style="display: flex; gap: 15px; font-size: 0.75rem; color: var(--text-muted);">
                                 <span style="display: flex; align-items: center; gap: 5px;">
@@ -530,7 +549,7 @@
                     onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                     <div
                         style="width: 70px; height: 70px; border-radius: 50%; background: rgba(250, 204, 21, 0.1); color: var(--accent-yellow); font-size: 2rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; border: 2px solid var(--accent-yellow); box-shadow: 0 0 20px rgba(250, 204, 21, 0.3);">
-                        🔒
+                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                     </div>
                     <h2 style="color: var(--text-main); font-size: 1.8rem; font-weight: 700; margin-bottom: 10px;">
                         Unlock Your Full Potential</h2>
@@ -540,7 +559,7 @@
                     </p>
                     <button onclick="window.location.href='account.html'"
                         style="background: linear-gradient(45deg, #facc15, #f59e0b); color: #000; border: none; padding: 15px 40px; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; box-shadow: 0 5px 25px rgba(250, 204, 21, 0.4); display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 auto; transition: 0.2s;">
-                        ✨ Upgrade Now
+                         Upgrade Now
                     </button>
                     <p
                         style="color: var(--text-muted); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-top: 20px;">
@@ -557,7 +576,7 @@
                 style="flex: 1; max-width: 420px; margin: 0; display: flex; flex-direction: column; border-color: var(--accent-cyan);">
                 <h2
                     style="color: var(--accent-cyan); display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
-                    👻 Enter FlowState</h2>
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2c-4.97 0-9 4.03-9 9v11a1 1 0 0 0 1.5.86l2.5-1.5 2.5 1.5a1 1 0 0 0 1 0l2.5-1.5 2.5 1.5a1 1 0 0 0 1.5-.86V11c0-4.97-4.03-9-9-9zm-3 8a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm6 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm-3 5.5c-1.38 0-2.5-1.12-2.5-2.5h5c0 1.38-1.12 2.5-2.5 2.5z" /></svg> Enter FlowState</h2>
 
                 <p
                     style="color: var(--accent-yellow); font-size: 0.8rem; margin-bottom: 20px; display: flex; align-items: center; gap: 5px;">
@@ -566,13 +585,13 @@
                 </p>
                 <div class="modal-form" style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
                     <div class="form-group" style="margin: 0;">
-                        <label>Target Quest</label>
-                        <div id="fsDropZone" class="fs-dropzone">✨ Free Focus (No Quest)</div>
+                        <label>Target Chapter</label>
+                        <div id="fsDropZone" class="fs-dropzone"> Free Focus (No Quest)</div>
                     </div>
                     <div id="contractRow"
                         style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); transition: 0.3s;">
                         <div>
-                            <div style="color: #fff; font-weight: 600; font-size: 0.95rem;">📜 Contract Mode</div>
+                            <div style="color: #fff; font-weight: 600; font-size: 0.95rem;"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Contract Mode</div>
                         </div>
                         <label class="switch"><input type="checkbox" id="contractModeToggle"><span
                                 class="slider"></span></label>
@@ -581,7 +600,7 @@
                     <div id="ghostModeRow"
                         style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); transition: 0.3s;">
                         <div>
-                            <div style="color: #fff; font-weight: 600; font-size: 0.95rem;" id="ghostModeLabel">👻 Ghost
+                            <div style="color: #fff; font-weight: 600; font-size: 0.95rem;" id="ghostModeLabel"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2c-4.97 0-9 4.03-9 9v11a1 1 0 0 0 1.5.86l2.5-1.5 2.5 1.5a1 1 0 0 0 1 0l2.5-1.5 2.5 1.5a1 1 0 0 0 1.5-.86V11c0-4.97-4.03-9-9-9zm-3 8a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm6 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm-3 5.5c-1.38 0-2.5-1.12-2.5-2.5h5c0 1.38-1.12 2.5-2.5 2.5z" /></svg> Ghost
                                 Mode</div>
                             <div style="color: var(--text-muted); font-size: 0.8rem;">Focus on flow, not the clock.
                             </div>
@@ -613,11 +632,11 @@
                     <h3 style="color: #fff; font-size: 1rem; margin: 0;">Chum</h3><span
                         style="color: var(--accent-cyan); font-size: 0.75rem;">Online (Local AI)</span>
                 </div><button id="closeChumBtn"
-                    style="background:none; border:none; color:#fff; cursor:pointer; margin-left:auto; font-size: 1.2rem;">✖</button>
+                    style="background:none; border:none; color:#fff; cursor:pointer; margin-left:auto; font-size: 1.2rem;"></button>
             </div>
             <div class="chum-messages" id="chumMessages"></div>
             <div class="chum-input-area"><input type="text" id="chumInput" placeholder="Ask Chum for advice..."
-                    autocomplete="off"><button id="sendChumBtn">➤</button></div>
+                    autocomplete="off"><button id="sendChumBtn"></button></div>
         </div>
         <div class="chum-avatar-btn" id="chumAvatarBtn"><img src="logo.png" alt="Chum">
             <div class="chum-badge" id="chumBadge" style="display:none;">!</div>
@@ -728,21 +747,21 @@
 
             if (icon && title) {
                 if (peakHour >= 20 || peakHour <= 4) {
-                    icon.innerText = "🌙"; title.innerText = "The Midnight Scholar"; time.innerText = `Peak: ${peakHour > 12 ? peakHour - 12 : peakHour || 12} ${peakHour >= 12 ? 'PM' : 'AM'}`;
+                    icon.innerText = "<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4C12.92 3.04 12.46 3 12 3z"/></svg>"; title.innerText = "The Midnight Scholar"; time.innerText = `Peak: ${peakHour > 12 ? peakHour - 12 : peakHour || 12} ${peakHour >= 12 ? 'PM' : 'AM'}`;
                     if (bTitle) bTitle.innerText = "Night Owl Buff";
                     if (bDesc) bDesc.innerText = "+20% Focus Efficiency after 8 PM";
                     if (dTitle) dTitle.innerText = "Morning Fog";
                     if (dDesc) dDesc.innerText = "-10% Recall before 9 AM";
                 }
                 else if (peakHour >= 5 && peakHour <= 10) {
-                    icon.innerText = "🌅"; title.innerText = "The Early Bird"; time.innerText = `Peak: ${peakHour} AM`;
+                    icon.innerText = "<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>"; title.innerText = "The Early Bird"; time.innerText = `Peak: ${peakHour} AM`;
                     if (bTitle) bTitle.innerText = "Dawn Chorus Buff";
                     if (bDesc) bDesc.innerText = "+20% Energy before 9 AM";
                     if (dTitle) dTitle.innerText = "Evening Crash";
                     if (dDesc) dDesc.innerText = "-15% Stamina after 8 PM";
                 }
                 else {
-                    icon.innerText = "⚡"; title.innerText = "The Sprint Assassin"; time.innerText = `Peak: ${peakHour > 12 ? peakHour - 12 : peakHour || 12} ${peakHour >= 12 ? 'PM' : 'AM'}`;
+                    icon.innerText = "<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>"; title.innerText = "The Sprint Assassin"; time.innerText = `Peak: ${peakHour > 12 ? peakHour - 12 : peakHour || 12} ${peakHour >= 12 ? 'PM' : 'AM'}`;
                     if (bTitle) bTitle.innerText = "Hyper-Focus Buff";
                     if (bDesc) bDesc.innerText = "+15% speed on Heavy tasks";
                     if (dTitle) dTitle.innerText = "Marathon Fatigue";
@@ -780,7 +799,7 @@
         }
 
         function renderInsights() {
-            // ✨ FIX: Reset AI insight text so runChumBurnoutAnalysis always fires on re-render
+            //  FIX: Reset AI insight text so runChumBurnoutAnalysis always fires on re-render
             const aiInsightEl = document.getElementById('aiInsightText');
             if (aiInsightEl) {
                 aiInsightEl.innerHTML = `Reading your brainwaves... <span class="typing-indicator" style="display:inline-block; width:8px; height:8px; background:var(--accent-teal); border-radius:50%; animation:pulse 1s infinite;"></span>`;
@@ -1023,7 +1042,7 @@
                 let heavyRatio = totalCompleted > 0 ? (heavyCount / totalCompleted) : 0;
                 let burnoutWarning = "";
 
-                // ✨ CHECK PREMIUM STATUS
+                //  CHECK PREMIUM STATUS
                 const isPremium = localStorage.getItem('isPremium') === 'true';
 
                 if (heavyRatio >= 0.7 && totalCompleted >= 3) {
@@ -1031,7 +1050,7 @@
                         // PREMIUM USER: Give them the full, high-value burnout warning.
                         burnoutWarning = " CRITICAL ALERT: I am doing over 70% heavy tasks. My Pie Chart is dangerously red. You MUST firmly warn me about impending burnout and tell me to do some light tasks.";
                         if (typeof showToast === 'function') {
-                            setTimeout(() => showToast("Hoot! 🚨 Look at that Pie Chart. You are doing too many heavy tasks. Balance it out or you'll burnout!"), 1000);
+                            setTimeout(() => showToast("Hoot!  Look at that Pie Chart. You are doing too many heavy tasks. Balance it out or you'll burnout!"), 1000);
                         }
                     } else {
                         // FREE USER: Tease the premium feature!
@@ -1042,7 +1061,7 @@
                 const prompt = `You are Chum, a chill, friendly study buddy. My current stats: I studied for ${hoursStr} hours, my focus score is ${score}/100, and I completed ${heavyCount} heavy, ${mediumCount} medium, and ${lightCount} quests. ${burnoutWarning} Give me exactly 2 short, laid-back, and highly specific sentences of advice based on these numbers. Talk directly to me using "you" and "your". Do not use quotes.`;
 
                 try {
-                    // ✨ USE GLOBAL 3-TIER ROUTER: Cloud (Gemini) → Local (Ollama) → Fallback
+                    //  USE GLOBAL 3-TIER ROUTER: Cloud (Gemini) → Local (Ollama) → Fallback
                     const result = await routeAICall(null, [{ role: "user", content: prompt }]);
                     if (result.tier === 3) {
                         // Offline — show a sensible default instead of Chum's nap message

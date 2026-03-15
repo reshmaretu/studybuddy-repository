@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StudyBuddy · Calendar</title>
+    <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('appTheme') || 'default');</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="home.css" rel="stylesheet">
     <link href="calendar.css" rel="stylesheet">
@@ -39,6 +40,14 @@
                         <path d="M16 8h.01"></path>
                     </svg></div>
                 <span class="nav-text">Crystal Garden</span>
+            </a>
+            <a href="canvas.html" class="nav-item" id="navCanvas">
+                <div class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg></div>
+                <span class="nav-text">Zen Canvas</span>
+            </a>
+            <a href="tavern.html" class="nav-item" id="navTavern">
+                <div class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg></div>
+                <span class="nav-text"> The Study Cafe</span>
             </a>
             <a href="#" class="nav-item" id="sidebarFlowStateBtn">
                 <div class="nav-icon">
@@ -77,6 +86,16 @@
                     </svg></div>
                 <span class="nav-text">Insights</span>
             </a>
+            <a href="wardrobe.html" class="nav-item" id="navWardrobe">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <path
+                            d="M20.38 3.46L16 2a8.59 8.59 0 0 1-4 1 8.59 8.59 0 0 1-4-1l-4.38 1.46A2 2 0 0 0 2 5.36V20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V5.36a2 2 0 0 0-1.62-1.9z">
+                        </path>
+                        <path d="M8 2v3"></path>
+                        <path d="M16 2v3"></path>
+                    </svg></div>
+                <span class="nav-text">Wardrobe</span>
+            </a>
 
             <div style="margin-top: 30px;"></div>
 
@@ -108,13 +127,13 @@
         <div class="calendar-container">
             <!-- Header -->
             <div class="calendar-header">
-                <h1>📅 Calendar</h1>
+                <h1> Calendar</h1>
                 <div class="month-nav">
                     <button onclick="changeMonth(-1)">←</button>
                     <span id="currentMonthYear">March 2026</span>
                     <button onclick="changeMonth(1)">→</button>
                 </div>
-                <button class="today-btn" onclick="goToToday()">📍 Today</button>
+                <button class="today-btn" onclick="goToToday()"> Today</button>
             </div>
 
             <!-- Weekdays -->
@@ -137,7 +156,7 @@
                 ondrop="this.classList.remove('drag-over-pool'); calDrop(event)">
                 <div class="pool-header">
                     <h2>
-                        <span>📋</span> Unscheduled Quests
+                        <span></span> Unscheduled Ideas
                     </h2>
                     <button class="add-task-btn" onclick="openModal()">+ New Quest</button>
                 </div>
@@ -149,16 +168,16 @@
 
     <div class="modal" id="taskModal">
         <div class="modal-content">
-            <h2>✨ Summon New Quest</h2>
+            <h2>  Pen a New Chapter</h2>
             <div class="modal-form">
                 <input type="text" id="taskInput" placeholder="Enter quest name..." maxlength="30">
 
                 <div class="form-group" style="margin-top: 10px;">
                     <label>Quest Load</label>
                     <div class="type-selector" id="calendarTypeSelector">
-                        <button class="type-option" data-type="heavy">🏋️ HEAVY</button>
-                        <button class="type-option active" data-type="medium">📖 MEDIUM</button>
-                        <button class="type-option" data-type="light">☁️ LIGHT</button>
+                        <button class="type-option" data-type="heavy"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none"><path d="M22 12c-2.66 0-4.33-1.33-5.33-3-1-1.67-2.67-3-5.33-3-2.67 0-4.34 1.33-5.34 3-1 1.67-2.66 3-5.33 3H2z"/></svg> Deep Dive</button>
+                        <button class="type-option active" data-type="medium"> Steady</button>
+                        <button class="type-option" data-type="light"> Breezy</button>
                     </div>
                 </div>
 
@@ -179,21 +198,21 @@
                     <span style="color: var(--accent-cyan); font-size: 0.75rem;">Online (Local AI)</span>
                 </div>
                 <button id="closeChumBtn"
-                    style="background:none; border:none; color:#fff; cursor:pointer; margin-left:auto; font-size: 1.2rem;">✖</button>
+                    style="background:none; border:none; color:#fff; cursor:pointer; margin-left:auto; font-size: 1.2rem;"></button>
             </div>
             <div class="chum-messages" id="chumMessages">
-                <div class="chum-msg chum">I'm Chum. Ready to crush some quests?</div>
+                <div class="chum-msg chum">I'm Chum. The world is loud out there. Let's make some quiet progress.</div>
             </div>
 
             <div style="padding: 0 12px;">
                 <button id="chumAddTaskBtn"
-                    style="background: var(--accent-teal); color: #000; border: none; border-radius: 12px; padding: 6px 12px; font-size: 0.85rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin-bottom: 8px; width: 100%; box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);">✨
-                    Summon New Quest</button>
+                    style="background: var(--accent-teal); color: #000; border: none; border-radius: 12px; padding: 6px 12px; font-size: 0.85rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin-bottom: 8px; width: 100%; box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);">
+                     Pen a New Chapter</button>
             </div>
 
             <div class="chum-input-area">
                 <input type="text" id="chumInput" placeholder="Ask Chum for advice..." autocomplete="off">
-                <button id="sendChumBtn">➤</button>
+                <button id="sendChumBtn"></button>
             </div>
         </div>
 
@@ -212,13 +231,13 @@
                 style="flex: 1; max-width: 420px; margin: 0; display: flex; flex-direction: column; border-color: var(--accent-cyan);">
                 <h2
                     style="color: var(--accent-cyan); display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
-                    👻 Enter FlowState</h2>
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2c-4.97 0-9 4.03-9 9v11a1 1 0 0 0 1.5.86l2.5-1.5 2.5 1.5a1 1 0 0 0 1 0l2.5-1.5 2.5 1.5a1 1 0 0 0 1.5-.86V11c0-4.97-4.03-9-9-9zm-3 8a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm6 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm-3 5.5c-1.38 0-2.5-1.12-2.5-2.5h5c0 1.38-1.12 2.5-2.5 2.5z" /></svg> Enter FlowState</h2>
 
                 <div class="modal-form" style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
                     <div class="form-group" style="margin: 0;">
-                        <label>Target Quest</label>
+                        <label>Target Chapter</label>
                         <div id="fsDropZone" class="fs-dropzone">
-                            ✨ Free Focus (No Quest)
+                             Free Focus (No Quest)
                         </div>
                         <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: 5px;">
                             Click to clear and return to Free Focus</div>
@@ -227,7 +246,7 @@
                     <div id="contractRow"
                         style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); transition: 0.3s;">
                         <div>
-                            <div style="color: #fff; font-weight: 600; font-size: 0.95rem;">📜 Contract Mode</div>
+                            <div style="color: #fff; font-weight: 600; font-size: 0.95rem;"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Contract Mode</div>
                             <div style="color: var(--text-muted); font-size: 0.8rem;">Lock unbroken session.</div>
                         </div>
                         <label class="switch"><input type="checkbox" id="contractModeToggle"><span
@@ -247,7 +266,7 @@
 
                     <div id="contractLockedMessage"
                         style="display: none; text-align: center; padding: 15px; border: 1px dashed var(--accent-cyan); border-radius: 8px; color: var(--accent-cyan);">
-                        <div style="font-size: 1.5rem;">🔒</div>
+                        <div style="font-size: 1.5rem;"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
                         <div id="contractTimeDisplay" style="font-weight: bold;">60 Minutes</div>
                     </div>
 
@@ -267,7 +286,7 @@
 
     <div class="modal" id="pomodoroAlertModal">
         <div class="modal-content" style="text-align: center; max-width: 350px;">
-            <h2 id="pomodoroAlertTitle">✨ Time's Up!</h2>
+            <h2 id="pomodoroAlertTitle"> Time's Up!</h2>
             <p id="pomodoroAlertMessage" style="color: var(--text-muted); margin: 15px 0 25px;">Ready?</p>
             <button class="modal-btn save-btn" id="pomodoroAlertBtn" style="width: 100%;">Yes, Start</button>
         </div>
@@ -279,7 +298,7 @@
         let currentYear = currentDate.getFullYear();
         let currentMonth = currentDate.getMonth();
 
-        // ⚠️ DELETED 'tasks', 'completedTasks', 'draggedTask', and 'saveToLocalStorage' 
+        // ️ DELETED 'tasks', 'completedTasks', 'draggedTask', and 'saveToLocalStorage' 
         // because home.js already creates them for us!
 
         // ==================== CALENDAR FUNCTIONS ====================
@@ -382,7 +401,7 @@
             popover.className = 'day-popover';
             popover.id = 'calDayPopover';
             popover.innerHTML = `
-                <div class="day-popover-title">📅 ${dateStr}</div>
+                <div class="day-popover-title"> ${dateStr}</div>
                 ${dayTasks.map(task => `
                     <div class="calendar-task ${loadClass(task.type)}"
                          draggable="true"
@@ -422,7 +441,7 @@
             if (activePopover) { activePopover.remove(); activePopover = null; }
         }
 
-        // ✨ When dragging FROM popover: make it transparent so you can see and drop behind it
+        //  When dragging FROM popover: make it transparent so you can see and drop behind it
         document.addEventListener('dragstart', () => {
             if (isDraggingFromPopover && activePopover) {
                 activePopover.classList.add('dragging-active');
@@ -485,7 +504,7 @@
                 tasks[idx].deadline = null;
                 saveToLocalStorage();
                 setTimeout(renderCalendar, 0);
-                showToast(`📋 <strong>"${calDraggedTask.name}"</strong> moved to pool.`);
+                showToast(` <strong>"${calDraggedTask.name}"</strong> moved to pool.`);
             }
             calDraggedTask = null;
         });
@@ -515,7 +534,7 @@
             const unscheduledTasks = tasks.filter(t => !t.deadline && !t.completed);
 
             if (unscheduledTasks.length === 0) {
-                pool.innerHTML = '<div style="color: var(--text-muted); width: 100%; text-align: center; padding: 20px;">✨ No unscheduled quests. Summon some!</div>';
+                pool.innerHTML = '<div style="color: var(--text-muted); width: 100%; text-align: center; padding: 20px;"> No unscheduled quests. Summon some!</div>';
                 return;
             }
 
@@ -648,7 +667,7 @@
             saveToLocalStorage();
             renderCalendar();
             closeModal();
-            showToast(`✨ Quest "${name}" added to pool`);
+            showToast(` Quest "${name}" added to pool`);
 
             if (typeof interactWithChum === 'function') {
                 interactWithChum(`The user just summoned a new ${load} quest called '${name}' directly into their calendar's unscheduled pool. Tell them it's ready to be placed on a date!`, true);

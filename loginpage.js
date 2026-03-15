@@ -1,39 +1,105 @@
+import { supabase, showMessage } from './supabase-client.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.querySelector('form');
+    const emailInput = document.querySelector('input[type="email"]');
     const passwordInput = document.querySelector('input[type="password"]');
-    const togglePassword = document.querySelector('.toggle-password');
+    const loginBtn = document.querySelector('.login-btn');
 
-    // 1. Show/Hide Password Toggle
-    if (togglePassword) {
-        togglePassword.addEventListener('click', () => {
-            // Check current type and flip it
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            
-            // Change the icon/text based on state
-            togglePassword.textContent = type === 'password' ? '👁️' : '🙈';
-        });
+    let msgDiv = document.querySelector('#loginMessage');
+    if (!msgDiv) {
+        msgDiv = document.createElement('div');
+        msgDiv.id = 'loginMessage';
+        msgDiv.className = 'messageDiv';
+        msgDiv.style.display = 'none';
+        loginForm.insertBefore(msgDiv, loginForm.firstChild);
     }
 
-    // 2. Handle Form Submission
-    loginForm.addEventListener('submit', (e) => {
-        e.preventDefault(); // Stop page from refreshing
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-        const email = document.querySelector('input[type="text"]').value;
+        const email = emailInput.value.trim();
         const password = passwordInput.value;
 
-        // Visual feedback for the user
-        const loginBtn = document.querySelector('.login-btn');
-        loginBtn.textContent = "Logging in...";
-        loginBtn.style.opacity = "0.7";
+        if (!email || !password) {
+            showMessage("Please enter both email and password.", "loginMessage", true);
+            return;
+        }
 
-        // Simulated API Call
-        console.log("Attempting login with:", { email, password });
+        try {
+            loginBtn.textContent = "Logging in...";
+            loginBtn.disabled = true;
+            loginBtn.style.opacity = "0.7";
 
-        setTimeout(() => {
-            alert(`Welcome back, ${email}!`);
+            // 1. Authenticate with Supabase
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
+
+            if (error) throw error;
+
+            showMessage("Login successful! Fetching your cloud data...", "loginMessage", false);
+
+            // 2. THE CLOUD PULL: Fetch data and load it into the browser
+            await pullCloudData(data.user.id);
+
+            // 3. Enter the App
+            setTimeout(() => {
+                window.location.href = "index.html";
+            }, 1000);
+
+        } catch (error) {
+            console.error("Login error:", error.message);
+
+            // Check if Supabase blocked them specifically because of the unverified email
+            if (error.message.includes("Email not confirmed")) {
+                showMessage("Your email is unverified! Please check your inbox for the confirmation link.", "loginMessage", true);
+            } else {
+                showMessage("Invalid email or password.", "loginMessage", true);
+            }
+
+        } finally {
             loginBtn.textContent = "Login";
+            loginBtn.disabled = false;
             loginBtn.style.opacity = "1";
-        }, 1500);
+        }
+        // --- Helper Function to Pull Data ---
+        async function pullCloudData(userId) {
+            // A. Pull User Stats
+            const { data: stats } = await supabase.from('user_stats').select('*').eq('user_id', userId).single();
+            if (stats) {
+                localStorage.setItem('focusScore', stats.focus_score);
+                localStorage.setItem('totalSessions', stats.total_sessions);
+                localStorage.setItem('dailyStreak', stats.daily_streak);
+                localStorage.setItem('totalSecondsTracked', stats.total_seconds_tracked);
+            }
+
+            // B. Pull Active Quests
+            const { data: activeTasks } = await supabase.from('tasks').select('*').eq('user_id', userId).eq('is_completed', false);
+            if (activeTasks && activeTasks.length > 0) {
+                // Reformat to match the Vanilla JS structure
+                const formattedTasks = activeTasks.map(t => ({
+                    id: t.id,
+                    name: t.name,
+                    type: t.type,
+                    deadline: t.deadline,
+                    completed: false
+                }));
+                localStorage.setItem('tasks', JSON.stringify(formattedTasks));
+            }
+
+            // C. Pull Knowledge Shards
+            const { data: shards } = await supabase.from('knowledge_shards').select('*').eq('user_id', userId);
+            if (shards && shards.length > 0) {
+                const formattedShards = shards.map(s => ({
+                    id: s.id,
+                    title: s.title,
+                    content: s.content,
+                    masteryScore: s.mastery_score
+                }));
+                localStorage.setItem('knowledgeShards', JSON.stringify(formattedShards));
+            }
+        }
     });
 });

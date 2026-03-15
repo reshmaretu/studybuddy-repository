@@ -483,6 +483,21 @@ window.endTutorMode = function () {
                 chatClosureMsg = "🛑 Session ended without completing any questions. Your mastery remains the same.";
             }
 
+            // ✨ PHASE 4: SAVE TUTOR CHAT HISTORY
+            try {
+                // Filter out system config and initial greeting to just keep the meat of the conversation
+                const filteredHistory = chumChatHistory.filter(msg => msg.role !== 'system' && !msg.content.includes("I'm your designated tutor"));
+                if (filteredHistory.length > 0) {
+                    if (!shards[idx].tutorLogs) shards[idx].tutorLogs = [];
+                    shards[idx].tutorLogs.push({
+                        date: new Date().toISOString(),
+                        messages: filteredHistory
+                    });
+                }
+            } catch (e) {
+                console.error("Failed to save tutor history", e);
+            }
+
             localStorage.setItem('knowledgeShards', JSON.stringify(shards));
         }
     }
@@ -813,6 +828,34 @@ window.finalizeQuestCompletion = function (stressLevel) {
     showToast(`Logged "${task.name}" with ${stressLevel} stress!`);
     interactWithChum(`The user just completed a quest and rated the mental stress as ${stressLevel}. Acknowledge this and give brief advice based on that stress level!`, true);
 
+    logDailyActivity();
+
+    // Log Late Night Actions (11:30 PM to 5 AM)
+    const h = new Date().getHours();
+    if ((h === 23 && new Date().getMinutes() >= 30) || (h >= 0 && h < 5)) {
+        localStorage.setItem('lastLateNightAction', Date.now().toString());
+    }
+
+    // The Sanctuary Tracker
+    let consecutiveHeavy = parseInt(sessionStorage.getItem('consecutiveHeavy') || '0');
+    if (task.type === 'heavy') consecutiveHeavy++; else consecutiveHeavy = 0;
+    sessionStorage.setItem('consecutiveHeavy', consecutiveHeavy);
+
+    if (stressLevel === 'High' || consecutiveHeavy >= 3) {
+        setTimeout(() => {
+            const modal = document.getElementById('brainResetModal');
+            if (modal) {
+                modal.querySelector('h2').textContent = "🏕️ The Sanctuary";
+                modal.querySelector('p').innerHTML = "Burnout detected. Your stress is high. <strong style='color:#f87171;'>This is a mandatory 2-minute reset.</strong>";
+                const cancelBtn = modal.querySelector('.cancel-btn');
+                if (cancelBtn) cancelBtn.style.display = 'none';
+                modal.querySelector('.save-btn').textContent = "Accept Rest";
+                modal.classList.add('active');
+                sessionStorage.setItem('consecutiveHeavy', '0');
+            }
+        }, 1500);
+    }
+
     pendingCompletionTaskIndex = -1;
     draggedTask = null;
 };
@@ -1134,6 +1177,14 @@ function startTimer() {
 
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
+
+            // Log Daily Activity & Checks Check
+            if (typeof logDailyActivity === 'function') logDailyActivity();
+            const curH = new Date().getHours();
+            if ((curH === 23 && new Date().getMinutes() >= 30) || (curH >= 0 && curH < 5)) {
+                localStorage.setItem('lastLateNightAction', Date.now().toString());
+            }
+
             isRunning = false;
             playIcon.style.display = 'block';
             pauseIcon.style.display = 'none';
@@ -1298,6 +1349,13 @@ document.getElementById('cancelTimerSettings')?.addEventListener('click', () => 
 // Syncs all score displays
 // Syncs the 0-100 Gas Gauge score display
 function updateFocusScore(change) {
+    if (change > 0) {
+        let multiplier = 1.0;
+        if (sessionStorage.getItem('morningDewActive') === 'true') multiplier += 0.5; // +50%
+        if (sessionStorage.getItem('teaBuffActive') === 'true') multiplier += 0.1;    // +10%
+
+        change = Math.round(change * multiplier);
+    }
     focusScore += change;
 
     // Hard cap the health bar between 0 and 100
@@ -1449,6 +1507,94 @@ document.getElementById('devAddSession')?.addEventListener('click', () => {
 const addTaskModal = document.getElementById('addTaskModal');
 const addTaskFloatBtn = document.getElementById('addTaskFloatBtn');
 
+// ✨ AI TASK SLICER (PHASE 1)
+function injectAISlicerButtons() {
+    [addTaskModal, document.getElementById('taskModal')].forEach(modal => {
+        if (!modal) return;
+        const btnContainer = modal.querySelector('.modal-buttons');
+        if (!btnContainer || btnContainer.querySelector('#aiSliceBtn')) return;
+
+        const sliceBtn = document.createElement('button');
+        sliceBtn.className = 'modal-btn';
+        sliceBtn.id = 'aiSliceBtn';
+        sliceBtn.style.cssText = 'background:var(--accent-yellow); color:#000; flex: 1;';
+        sliceBtn.innerHTML = '✨ Untangle with Chum';
+
+        sliceBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const isPremium = localStorage.getItem('isPremium') === 'true';
+
+            if (!isPremium) {
+                showToast("🔒 Upgrade to StudyBuddy+ to unlock AI Task Slicing!");
+                return;
+            }
+
+            // Figure out which input has the text
+            const taskInput = modal.querySelector('#taskNameInput') || modal.querySelector('#taskInput');
+            const taskName = taskInput ? taskInput.value.trim() : '';
+
+            if (!taskName) {
+                showToast("Please enter a task name first!");
+                return;
+            }
+
+            const originalText = sliceBtn.innerHTML;
+            sliceBtn.innerHTML = '⏳ Slicing...';
+            sliceBtn.disabled = true;
+
+            try {
+                const prompt = `You are an AI task slicer. Break the task "${taskName}" into 3 smaller, actionable, sequential sub-tasks. Return ONLY a valid JSON array of strings. Example: ["Outline thesis", "Find 3 sources", "Draft intro"]. Do not use markdown blocks.`;
+                const response = await routeAICall(prompt, [], false);
+
+                let subTasks = [];
+                try {
+                    // Try parsing the direct string response, stripping any markdown if AI ignores instructions
+                    let cleanRes = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+                    subTasks = JSON.parse(cleanRes);
+                } catch (err) {
+                    console.error("AI Slicer failed to return valid JSON", err);
+                    showToast("AI got confused. Please try again.");
+                    return;
+                }
+
+                if (Array.isArray(subTasks) && subTasks.length > 0) {
+                    const today = new Date().toISOString().split('T')[0];
+                    subTasks.forEach(st => {
+                        tasks.push({
+                            id: 'task_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                            name: st,
+                            type: 'medium',
+                            deadline: today,
+                            completed: false,
+                            subTasks: []
+                        });
+                    });
+
+                    saveToLocalStorage();
+
+                    if (typeof renderActiveQuests === 'function') renderActiveQuests();
+                    if (typeof renderCalendar === 'function') renderCalendar(); // if on calendar page
+                    if (typeof renderUnscheduledQuests === 'function') renderUnscheduledQuests();
+
+                    modal.classList.remove('active');
+                    if (taskInput) taskInput.value = '';
+                    showToast("✨ Chapter untangled!");
+                }
+            } catch (err) {
+                showToast("Connection failed. Try again.");
+            } finally {
+                sliceBtn.innerHTML = originalText;
+                sliceBtn.disabled = false;
+            }
+        });
+
+        // Insert at the beginning
+        btnContainer.insertBefore(sliceBtn, btnContainer.firstChild);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', injectAISlicerButtons);
+
 // Connect the pill inside Chum to the Add Task Modal
 document.getElementById('chumAddTaskBtn')?.addEventListener('click', () => {
     const today = new Date().toISOString().split('T')[0];
@@ -1495,7 +1641,7 @@ document.getElementById('saveTaskBtn')?.addEventListener('click', () => {
         return;
     }
 
-    showToast(`✨ Quest "${name}" added!`);
+    showToast(`✨ Chapter "${name}" penned!`);
     // CHUM REACTION:
     interactWithChum(`The user just added a new ${load} difficulty quest called "${name}". Give them a quick word of encouragement!`, true);
 
@@ -1515,7 +1661,7 @@ document.getElementById('saveTaskBtn')?.addEventListener('click', () => {
     // Close modal and clean up
     document.getElementById('addTaskModal').classList.remove('active');
     document.getElementById('taskNameInput').value = '';
-    showToast(`✨ Quest "${name}" added!`);
+    showToast(`✨ Chapter "${name}" penned!`);
 });
 
 // Close modal when clicking outside
@@ -1535,6 +1681,18 @@ document.getElementById('navGarden')?.addEventListener('click', (e) => {
     e.preventDefault();
     saveToLocalStorage(); // Save before navigating
     window.location.href = 'crystal-garden.html';
+});
+
+document.getElementById('navCanvas')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+    window.location.href = 'canvas.html';
+});
+
+document.getElementById('navTavern')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+    window.location.href = 'tavern.html';
 });
 
 document.getElementById('navCalendar')?.addEventListener('click', (e) => {
@@ -1562,8 +1720,34 @@ document.getElementById('navSettings')?.addEventListener('click', (e) => {
 
 document.getElementById('navLogout')?.addEventListener('click', (e) => {
     e.preventDefault();
-    if (confirm('Are you sure you want to logout?')) {
-        // Clear any user data if needed
+
+    // 1. Check if they have local data worth saving
+    const localTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+    const localShards = JSON.parse(localStorage.getItem('knowledgeShards') || '[]');
+    const hasData = localTasks.length > 0 || localShards.length > 0;
+
+    // 2. Check if they are actually logged into Supabase
+    // (Supabase auto-saves a token in localStorage starting with 'sb-' and ending with '-auth-token')
+    let isCloudSynced = false;
+    for (let i = 0; i < localStorage.length; i++) {
+        if (localStorage.key(i).startsWith('sb-') && localStorage.key(i).endsWith('-auth-token')) {
+            isCloudSynced = true;
+            break;
+        }
+    }
+
+    // 3. The Warning Logic
+    let warningMessage = "Are you sure you want to logout?";
+
+    if (!isCloudSynced && hasData) {
+        warningMessage = "⚠️ CRITICAL WARNING ⚠️\n\nYou are operating as a Guest. You have unsynced local data! \n\nIf you log out now, your quests and shards will be PERMANENTLY DELETED.\n\nPlease go to Account -> Cloud Sync first.\n\nAre you absolutely sure you want to log out and delete your data?";
+    }
+
+    if (confirm(warningMessage)) {
+        // Nuke local memory
+        localStorage.clear();
+        sessionStorage.clear();
+        // Redirect
         window.location.href = 'loginpage.html';
     }
 });
@@ -2303,7 +2487,7 @@ async function interactWithChum(userText, isSystemEvent = false) {
             const containsQuestion = cleanedMsg.includes('?');
             const isFinalTurn = (_tutorQuestionsAnswered === TUTOR_MAX_QUESTIONS - 1);
 
-            // ✨ FIX: Force increment if it's the final turn, even if there's no question mark
+            // ✨ FIX: Force increment if it's the final turn, even if there's no question mark (Phase 0)
             if (!isRephrase && (containsQuestion || isFinalTurn)) {
                 _tutorQuestionsAnswered++;
             }
@@ -2321,7 +2505,7 @@ async function interactWithChum(userText, isSystemEvent = false) {
             }
 
             if (_tutorQuestionsAnswered >= TUTOR_MAX_QUESTIONS) {
-                // ✨ FIX: Lock input while wrapping up to prevent rogue messages
+                // ✨ FIX: Lock input while wrapping up to prevent rogue messages (Phase 0)
                 const chatInput = document.getElementById('chumInput');
                 const sendBtn = document.getElementById('sendChumBtn');
                 if (chatInput) chatInput.disabled = true;
@@ -2529,6 +2713,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 2. Theme Selection Logic
+    // ✨ GLOBAL THEME CONTROLLER
+    window.setAppTheme = function (themeId) {
+        currentTheme = themeId;
+        localStorage.setItem('appTheme', themeId);
+        document.documentElement.setAttribute('data-theme', themeId);
+
+        // Broadcast an event in case Canvas or Charts need to redraw with new colors
+        window.dispatchEvent(new Event('themeChanged'));
+    };
+
     document.querySelectorAll('.theme-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const themeId = e.currentTarget.getAttribute('data-theme-id');
@@ -2541,9 +2735,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Apply Theme
-            currentTheme = themeId;
-            localStorage.setItem('appTheme', themeId);
-            document.documentElement.setAttribute('data-theme', themeId);
+            window.setAppTheme(themeId);
 
             // Visual highlight of selected button
             document.querySelectorAll('.theme-btn').forEach(b => b.style.borderColor = 'var(--border-color)');
@@ -2571,6 +2763,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('paymentLoading').style.display = 'none';
 
             unlockPremiumFeatures();
+            if (typeof renderCustomChum === 'function') renderCustomChum();
             showToast("🎉 Payment Successful! Welcome to StudyBuddy+!");
 
             if (typeof interactWithChum === 'function') {
@@ -2638,3 +2831,398 @@ window.checkAIAvailability = async function () {
 
     return false;
 };
+
+// ==================== THE WARDROBE (PHASE 3) ====================
+window.renderCustomChum = function () {
+    const savedStyle = JSON.parse(localStorage.getItem('chumStyle') || '{"base":"👻","hat":""}');
+    const wrapperHTML = `
+        <div class="custom-chum-wrapper btn-sm">
+            <span class="chum-base">${savedStyle.base}</span>
+            ${savedStyle.hat ? `<span class="chum-hat">${savedStyle.hat}</span>` : ''}
+        </div>`;
+
+    // 1. Update the Focus Pet Card
+    const cardEmoji = document.getElementById('petEmoji');
+    if (cardEmoji) {
+        cardEmoji.innerHTML = `
+            <div class="custom-chum-wrapper preview-lg">
+                <span class="chum-base">${savedStyle.base}</span>
+                ${savedStyle.hat ? `<span class="chum-hat">${savedStyle.hat}</span>` : ''}
+            </div>`;
+    }
+
+    // 2. Update the floating Chat Avatar button (if it exists)
+    const avatarBtn = document.getElementById('chumAvatarBtn') || document.getElementById('flowChumAvatarBtn');
+    if (avatarBtn) {
+        avatarBtn.innerHTML = wrapperHTML;
+    }
+};
+
+function initWardrobe() {
+    // 1. Inject HTML Model into body
+    if (!document.getElementById('chumWardrobeModal')) {
+        const modalHTML = `
+        <div class="modal" id="chumWardrobeModal">
+            <div class="modal-content" style="max-width: 500px; text-align: center;">
+                <h2 style="color: var(--accent-yellow); margin-bottom: 20px;">✨ The Wardrobe</h2>
+                
+                <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 20px; padding: 30px; margin-bottom: 25px;">
+                    <div id="wardrobePreview" class="custom-chum-wrapper preview-lg">
+                        <span class="chum-base">👻</span>
+                    </div>
+                </div>
+
+                <div style="text-align: left; margin-bottom: 20px;">
+                    <h3 style="font-size: 1rem; color: var(--text-muted); margin-bottom: 10px;">Companions</h3>
+                    <div class="wardrobe-scroll-container" id="wardrobeBaseList">
+                        <div class="wardrobe-item active" data-type="base" data-emoji="👻">👻</div>
+                        <div class="wardrobe-item premium" data-type="base" data-emoji="🤖">🤖</div>
+                        <div class="wardrobe-item premium" data-type="base" data-emoji="🧙‍♂️">🧙‍♂️</div>
+                        <div class="wardrobe-item premium" data-type="base" data-emoji="🦉">🦉</div>
+                        <div class="wardrobe-item premium" data-type="base" data-emoji="🐉">🐉</div>
+                    </div>
+                </div>
+
+                <div style="text-align: left; margin-bottom: 25px;">
+                    <h3 style="font-size: 1rem; color: var(--text-muted); margin-bottom: 10px;">Hats & Accessories</h3>
+                    <div class="wardrobe-scroll-container" id="wardrobeHatList">
+                        <div class="wardrobe-item active" data-type="hat" data-emoji="">🚫</div>
+                        <div class="wardrobe-item premium" data-type="hat" data-emoji="🎩">🎩</div>
+                        <div class="wardrobe-item premium" data-type="hat" data-emoji="👑">👑</div>
+                        <div class="wardrobe-item premium" data-type="hat" data-emoji="🎓">🎓</div>
+                        <div class="wardrobe-item premium" data-type="hat" data-emoji="🎀">🎀</div>
+                        <div class="wardrobe-item premium" data-type="hat" data-emoji="🌸">🌸</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 15px;">
+                    <button class="modal-btn cancel-btn" id="cancelWardrobeBtn" style="flex: 1;">Cancel</button>
+                    <button class="modal-btn save-btn" id="saveWardrobeBtn" style="flex: 1; background: var(--accent-yellow); color: #000;">Equip Style</button>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+
+    const modal = document.getElementById('chumWardrobeModal');
+    const isPremium = localStorage.getItem('isPremium') === 'true';
+    let tempStyle = JSON.parse(localStorage.getItem('chumStyle') || '{"base":"👻","hat":""}');
+
+    function updatePreview() {
+        document.getElementById('wardrobePreview').innerHTML = `
+            <span class="chum-base">${tempStyle.base}</span>
+            ${tempStyle.hat ? `<span class="chum-hat">${tempStyle.hat}</span>` : ''}
+        `;
+    }
+
+    // Attach logic to items
+    modal.querySelectorAll('.wardrobe-item').forEach(item => {
+        // Enforce locks
+        if (item.classList.contains('premium') && !isPremium) {
+            item.classList.add('premium-locked');
+        } else {
+            item.classList.remove('premium-locked');
+        }
+
+        // Set initial active state based on storage
+        const type = item.dataset.type;
+        const emoji = item.dataset.emoji;
+        if (tempStyle[type] === emoji) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+
+        // Click handler
+        // Clone and replace to prevent duplicate listeners if initWardrobe is called multiple times
+        const newItem = item.cloneNode(true);
+        item.parentNode.replaceChild(newItem, item);
+
+        newItem.addEventListener('click', () => {
+            if (newItem.classList.contains('premium-locked')) {
+                showToast('🔒 Upgrade to StudyBuddy+ to unlock premium cosmetics!');
+                newItem.classList.add('shake');
+                setTimeout(() => newItem.classList.remove('shake'), 500);
+                return;
+            }
+
+            // Remove active from siblings
+            newItem.parentNode.querySelectorAll('.wardrobe-item').forEach(sib => sib.classList.remove('active'));
+            newItem.classList.add('active');
+
+            // Update temp state & preview
+            tempStyle[newItem.dataset.type] = newItem.dataset.emoji;
+            updatePreview();
+        });
+    });
+
+    // Wire up buttons
+    document.getElementById('cancelWardrobeBtn').onclick = () => {
+        modal.classList.remove('active');
+        // Reset tempStyle back to saved state next time it opens
+        tempStyle = JSON.parse(localStorage.getItem('chumStyle') || '{"base":"👻","hat":""}');
+    };
+
+    document.getElementById('saveWardrobeBtn').onclick = () => {
+        localStorage.setItem('chumStyle', JSON.stringify(tempStyle));
+        window.renderCustomChum(); // Live update
+        modal.classList.remove('active');
+        showToast('✨ Wardrobe updated!');
+    };
+
+    // Wire up trigger
+    const triggerCard = document.getElementById('focusPetCard');
+    if (triggerCard) {
+        triggerCard.style.cursor = 'pointer';
+        // Clear previous listeners securely
+        const newTrigger = triggerCard.cloneNode(true);
+        triggerCard.parentNode.replaceChild(newTrigger, triggerCard);
+
+        newTrigger.addEventListener('click', () => {
+            tempStyle = JSON.parse(localStorage.getItem('chumStyle') || '{"base":"👻","hat":""}');
+            updatePreview();
+
+            // Re-sync active highlights based on loaded tempStyle
+            modal.querySelectorAll('.wardrobe-item').forEach(i => {
+                if (tempStyle[i.dataset.type] === i.dataset.emoji) i.classList.add('active');
+                else i.classList.remove('active');
+            });
+
+            modal.classList.add('active');
+        });
+    }
+
+    updatePreview();
+}
+
+// ==================== DAILY STREAK TRACKING ====================
+function logDailyActivity() {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const lastSessionDate = localStorage.getItem('lastSessionDate');
+    let dailyStreak = parseInt(localStorage.getItem('dailyStreak') || '0');
+
+    if (lastSessionDate !== todayStr) {
+        if (lastSessionDate) {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            if (lastSessionDate === yesterdayStr) {
+                dailyStreak++;
+            } else {
+                dailyStreak = 1;
+            }
+        } else {
+            dailyStreak = 1;
+        }
+
+        localStorage.setItem('dailyStreak', dailyStreak);
+        localStorage.setItem('lastSessionDate', todayStr);
+    }
+
+    // UI Update if Dashboard Streak exists
+    const dashStreak = document.getElementById('dashboardStreak');
+    if (dashStreak && dailyStreak > 0) {
+        dashStreak.textContent = `🔥 ${dailyStreak} Day Streak`;
+    }
+}
+
+// ==================== THE DREAMSCAPE EVALUATOR (TIMED BUFFS & LOCKS) ====================
+function evaluateDreamscape() {
+    const d = new Date();
+    const h = d.getHours();
+    const isPremium = localStorage.getItem('isPremium') === 'true';
+
+    // 1. Morning Dew (5 AM - 12 PM)
+    const morningDewBadge = document.getElementById('morningDewBadge');
+    if (h >= 5 && h < 12) {
+        sessionStorage.setItem('morningDewActive', 'true');
+        if (morningDewBadge) {
+            morningDewBadge.classList.add('active');
+            morningDewBadge.style.display = 'inline-flex';
+        }
+    } else {
+        sessionStorage.setItem('morningDewActive', 'false');
+        if (morningDewBadge) {
+            morningDewBadge.classList.remove('active');
+            morningDewBadge.style.display = 'none';
+        }
+    }
+
+    // 2. Sunset Debrief & Locks (8 PM - 5 AM)
+    const activeTasksCount = tasks.filter(t => !t.completed).length;
+    const isNight = h >= 20 || h < 5;
+
+    const btnAddQuest = document.getElementById('chumAddTaskBtn');
+    if (btnAddQuest) {
+        if (isNight && activeTasksCount > 0) {
+            btnAddQuest.classList.add('sleep-locked');
+            btnAddQuest.title = "It's late. Finish your current quests or rest before adding new ones.";
+        } else {
+            btnAddQuest.classList.remove('sleep-locked');
+            btnAddQuest.title = "";
+        }
+    }
+
+    // 3. Premium Wind-Down (11 PM - 5 AM)
+    if (isPremium && (h >= 23 || h < 5)) {
+        document.body.classList.add('wind-down-active');
+    } else {
+        document.body.classList.remove('wind-down-active');
+    }
+}
+
+setInterval(evaluateDreamscape, 60000);
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Inject morning dew badge automatically
+    const clockContainer = document.querySelector('.current-date')?.parentNode;
+    if (clockContainer && !document.getElementById('morningDewBadge')) {
+        const badge = document.createElement('span');
+        badge.id = 'morningDewBadge';
+        badge.innerHTML = '✨ Morning Dew Active';
+        clockContainer.appendChild(badge);
+    }
+
+    evaluateDreamscape();
+
+    // Check missing daily streak
+    const lastSessionDate = localStorage.getItem('lastSessionDate');
+    if (lastSessionDate) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        if (lastSessionDate !== todayStr && lastSessionDate !== yesterdayStr) {
+            localStorage.setItem('dailyStreak', '0');
+        }
+    }
+
+    // Medication listener
+    const medBtn = document.getElementById('startMeditationBtn');
+    if (medBtn && !window._medBtnWired) {
+        window._medBtnWired = true;
+        medBtn.addEventListener('click', () => {
+            const modal = document.getElementById('brainResetModal');
+            const countdownEl = document.getElementById('meditationCountdown');
+            const circle = document.getElementById('meditationCircle');
+
+            let timeLeft = 120; // 2 minutes
+            medBtn.style.display = 'none';
+            if (circle) circle.style.transform = 'scale(1.2)';
+
+            const meditationInterval = setInterval(() => {
+                timeLeft--;
+                const m = Math.floor(timeLeft / 60);
+                const s = timeLeft % 60;
+                if (countdownEl) countdownEl.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+
+                if (circle) {
+                    if (timeLeft % 8 === 0) circle.style.transform = 'scale(1.2)';
+                    if ((timeLeft - 4) % 8 === 0) circle.style.transform = 'scale(0.8)';
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(meditationInterval);
+                    if (modal) modal.classList.remove('active');
+
+                    let visits = parseInt(localStorage.getItem('sanctuaryVisits') || '0') + 1;
+                    localStorage.setItem('sanctuaryVisits', visits);
+                    if (typeof logDailyActivity === 'function') logDailyActivity();
+
+                    const streakEl = document.getElementById('dashboardStreak');
+                    if (streakEl) streakEl.classList.add('glow-pulse');
+
+                    const brainCard = document.getElementById('brainResetQuick');
+                    if (brainCard) {
+                        brainCard.style.borderColor = 'var(--border-color)';
+                        brainCard.style.boxShadow = 'none';
+                        brainCard.style.transform = 'scale(1)';
+                    }
+
+                    const elList = [
+                        { id: 'brainResetBadge', style: 'opacity', val: '0' },
+                        { id: 'brainResetGlow', style: 'opacity', val: '0' },
+                        { id: 'brainSvg', style: 'stroke', val: 'var(--accent-teal)' },
+                        { id: 'brainTitleText', style: 'color', val: 'var(--text-main)' }
+                    ];
+                    elList.forEach(item => {
+                        const el = document.getElementById(item.id);
+                        if (el) el.style[item.style] = item.val;
+                    });
+
+                    const subText = document.getElementById('brainSubText');
+                    if (subText) subText.textContent = "Clear your mental cache";
+
+                    showToast('✨ Mind Palace Cleared! Sanctuary Visits: ' + visits);
+                }
+            }, 1000);
+
+            window.closeMeditation = function () {
+                clearInterval(meditationInterval);
+                if (modal) modal.classList.remove('active');
+                medBtn.style.display = 'block';
+                if (countdownEl) countdownEl.textContent = '02:00';
+                if (circle) circle.style.transform = 'scale(1)';
+            };
+        });
+    }
+
+    // --- TEA KETTLE LOGIC ---
+    const habitItems = document.querySelectorAll('.habit-item');
+    const teaLiquid = document.getElementById('teaLiquid');
+    const teaSteam = document.getElementById('teaSteam');
+    const teaBuffMsg = document.getElementById('teaBuffMsg');
+
+    if (habitItems.length > 0) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const savedHabitDate = localStorage.getItem('habitDate');
+        let habitState = JSON.parse(localStorage.getItem('dailyHabits') || '[false, false, false]');
+
+        // Reset at midnight
+        if (savedHabitDate !== todayStr) {
+            habitState = [false, false, false];
+            localStorage.setItem('habitDate', todayStr);
+            localStorage.setItem('dailyHabits', JSON.stringify(habitState));
+        }
+
+        function updateTeaUI() {
+            if (!teaLiquid) return;
+            const completedCount = habitState.filter(Boolean).length;
+            const total = habitItems.length;
+            const percentage = (completedCount / total) * 100;
+
+            teaLiquid.style.height = `${percentage}%`;
+
+            habitItems.forEach((item, idx) => {
+                if (habitState[idx]) item.classList.add('done');
+                else item.classList.remove('done');
+            });
+
+            if (percentage === 100) {
+                teaSteam.classList.add('steaming');
+                if (teaBuffMsg) teaBuffMsg.style.display = 'block';
+                sessionStorage.setItem('teaBuffActive', 'true');
+            } else {
+                teaSteam.classList.remove('steaming');
+                if (teaBuffMsg) teaBuffMsg.style.display = 'none';
+                sessionStorage.setItem('teaBuffActive', 'false');
+            }
+        }
+
+        habitItems.forEach((item, idx) => {
+            item.addEventListener('click', () => {
+                habitState[idx] = !habitState[idx];
+                localStorage.setItem('dailyHabits', JSON.stringify(habitState));
+                updateTeaUI();
+                if (habitState[idx]) showToast("Habit checked! The tea is brewing.");
+            });
+        });
+
+        updateTeaUI();
+    }
+
+    initWardrobe();
+    window.renderCustomChum();
+});

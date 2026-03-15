@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StudyBuddy · The Archive</title>
+    <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('appTheme') || 'default');</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="home.css" rel="stylesheet">
     <!-- pdf.js for PDF extraction -->
@@ -213,7 +214,7 @@
         }
 
         .shard-train-btn.premium-locked::after {
-            content: ' 🔒';
+            content: ' <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>';
         }
 
         /* Empty state */
@@ -349,6 +350,14 @@
                     </svg></div>
                 <span class="nav-text">Crystal Garden</span>
             </a>
+            <a href="canvas.html" class="nav-item" id="navCanvas">
+                <div class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg></div>
+                <span class="nav-text">Zen Canvas</span>
+            </a>
+            <a href="tavern.html" class="nav-item" id="navTavern">
+                <div class="nav-icon"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg></div>
+                <span class="nav-text"> The Study Cafe</span>
+            </a>
             <a href="#" class="nav-item" id="sidebarFlowStateBtn">
                 <div class="nav-icon">
                     <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2">
@@ -386,6 +395,16 @@
                     </svg></div>
                 <span class="nav-text">Insights</span>
             </a>
+            <a href="wardrobe.html" class="nav-item" id="navWardrobe">
+                <div class="nav-icon"><svg viewBox="0 0 24 24">
+                        <path
+                            d="M20.38 3.46L16 2a8.59 8.59 0 0 1-4 1 8.59 8.59 0 0 1-4-1l-4.38 1.46A2 2 0 0 0 2 5.36V20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V5.36a2 2 0 0 0-1.62-1.9z">
+                        </path>
+                        <path d="M8 2v3"></path>
+                        <path d="M16 2v3"></path>
+                    </svg></div>
+                <span class="nav-text">Wardrobe</span>
+            </a>
 
             <div style="margin-top: 30px;"></div>
 
@@ -415,12 +434,12 @@
 
     <main class="main-content">
         <header class="header">
-            <h1>📚 The Archive</h1>
+            <h1> The Archive</h1>
         </header>
 
         <!-- Hero -->
         <div class="archive-hero">
-            <div class="archive-hero-icon">🔮</div>
+            <div class="archive-hero-icon"></div>
             <div>
                 <h1>Your Interactive Spellbook of Knowledge</h1>
                 <p>Forge Knowledge Shards from your study notes, then challenge Chum to quiz you with Socratic
@@ -429,7 +448,7 @@
         </div>
 
         <!-- Forge Button -->
-        <button class="forge-btn" id="forgeShardBtn">✨ Forge New Shard</button>
+        <button class="forge-btn" id="forgeShardBtn"> Forge New Shard</button>
 
         <!-- Shard Grid -->
         <div id="archiveGrid"></div>
@@ -449,14 +468,14 @@
                         AI)</span>
                 </div>
                 <button id="closeChumBtn"
-                    style="background:none; border:none; color:#fff; cursor:pointer; margin-left:auto; font-size: 1.2rem;">✖</button>
+                    style="background:none; border:none; color:#fff; cursor:pointer; margin-left:auto; font-size: 1.2rem;"></button>
             </div>
             <div class="chum-messages" id="chumMessages">
-                <div class="chum-msg chum">I'm Chum. Ready to crush some quests?</div>
+                <div class="chum-msg chum">I'm Chum. The world is loud out there. Let's make some quiet progress.</div>
             </div>
             <div class="chum-input-area">
                 <input type="text" id="chumInput" placeholder="Ask Chum for advice..." autocomplete="off">
-                <button id="sendChumBtn">➤</button>
+                <button id="sendChumBtn"></button>
             </div>
         </div>
         <div class="chum-avatar-btn" id="chumAvatarBtn">
@@ -473,18 +492,18 @@
                 style="flex: 1; max-width: 420px; margin: 0; display: flex; flex-direction: column; border-color: var(--accent-cyan);">
                 <h2
                     style="color: var(--accent-cyan); display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
-                    👻 Enter FlowState</h2>
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2c-4.97 0-9 4.03-9 9v11a1 1 0 0 0 1.5.86l2.5-1.5 2.5 1.5a1 1 0 0 0 1 0l2.5-1.5 2.5 1.5a1 1 0 0 0 1.5-.86V11c0-4.97-4.03-9-9-9zm-3 8a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm6 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm-3 5.5c-1.38 0-2.5-1.12-2.5-2.5h5c0 1.38-1.12 2.5-2.5 2.5z" /></svg> Enter FlowState</h2>
                 <div class="modal-form" style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
                     <div class="form-group" style="margin: 0;">
-                        <label>Target Quest</label>
-                        <div id="fsDropZone" class="fs-dropzone">✨ Free Focus (No Quest)</div>
+                        <label>Target Chapter</label>
+                        <div id="fsDropZone" class="fs-dropzone"> Free Focus (No Quest)</div>
                         <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: 5px;">
                             Click to clear and return to Free Focus</div>
                     </div>
                     <div id="contractRow"
                         style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); transition: 0.3s;">
                         <div>
-                            <div style="color: #fff; font-weight: 600; font-size: 0.95rem;">📜 Contract Mode</div>
+                            <div style="color: #fff; font-weight: 600; font-size: 0.95rem;"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Contract Mode</div>
                             <div style="color: var(--text-muted); font-size: 0.8rem;">Lock unbroken session.</div>
                         </div>
                         <label class="switch"><input type="checkbox" id="contractModeToggle"><span
@@ -502,14 +521,14 @@
                     </div>
                     <div id="contractLockedMessage"
                         style="display: none; text-align: center; padding: 15px; border: 1px dashed var(--accent-cyan); border-radius: 8px; color: var(--accent-cyan);">
-                        <div style="font-size: 1.5rem;">🔒</div>
+                        <div style="font-size: 1.5rem;"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
                         <div id="contractTimeDisplay" style="font-weight: bold;">60 Minutes</div>
                     </div>
                     <!-- Ghost Mode Row -->
                     <div id="ghostModeRow"
                         style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); transition: 0.3s;">
                         <div>
-                            <div style="color: #fff; font-weight: 600; font-size: 0.95rem;" id="ghostModeLabel">👻 Ghost
+                            <div style="color: #fff; font-weight: 600; font-size: 0.95rem;" id="ghostModeLabel"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2c-4.97 0-9 4.03-9 9v11a1 1 0 0 0 1.5.86l2.5-1.5 2.5 1.5a1 1 0 0 0 1 0l2.5-1.5 2.5 1.5a1 1 0 0 0 1.5-.86V11c0-4.97-4.03-9-9-9zm-3 8a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm6 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm-3 5.5c-1.38 0-2.5-1.12-2.5-2.5h5c0 1.38-1.12 2.5-2.5 2.5z" /></svg> Ghost
                                 Mode</div>
                             <div style="color: var(--text-muted); font-size: 0.8rem;">Focus on flow, not the clock.
                             </div>
@@ -537,10 +556,22 @@
         </div>
     </div>
 
+    <!--  PHASE 4: History Modal -->
+    <div class="modal" id="archiveHistoryModal">
+        <div class="modal-content" style="max-width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
+            <h2 style="color: var(--accent-cyan); margin-bottom: 20px;"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Tutor History</h2>
+            <div id="historyLogsContainer"
+                style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;">
+                <!-- Logs injected here -->
+            </div>
+            <button class="modal-btn cancel-btn" id="closeHistoryBtn" style="width: 100%;">Close</button>
+        </div>
+    </div>
+
     <!-- Forge New Shard Modal -->
     <div class="modal" id="forgeModal">
         <div class="modal-content" style="max-width: 560px;">
-            <h2>✨ Forge New Shard</h2>
+            <h2> Forge New Shard</h2>
             <div class="modal-form">
                 <div class="form-group">
                     <label>Shard Title</label>
@@ -557,12 +588,12 @@
                             docx)</span></label>
                     <div class="file-drop-zone" id="fileDropZone">
                         <input type="file" id="shardFileInput" accept=".txt,.pdf,.doc,.docx">
-                        📄 Drop a file here or click to browse
+                         Drop a file here or click to browse
                     </div>
                     <div class="file-status" id="fileStatus"></div>
                 </div>
                 <div class="modal-buttons">
-                    <button class="modal-btn save-btn" id="saveShardBtn">🔮 Save Shard</button>
+                    <button class="modal-btn save-btn" id="saveShardBtn"> Save Shard</button>
                     <button class="modal-btn cancel-btn" id="cancelForgeBtn">Cancel</button>
                 </div>
             </div>
@@ -587,7 +618,7 @@
             if (shards.length === 0) {
                 grid.innerHTML = `
                     <div class="archive-empty">
-                        <div class="empty-icon">📖</div>
+                        <div class="empty-icon"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></div>
                         <p>No Knowledge Shards yet.<br>Forge your first one to begin active recall training.</p>
                     </div>`;
                 return;
@@ -598,7 +629,7 @@
                 const masteryPct = Math.min(100, mastery);
                 const isMastered = mastery >= 100;
                 let trainClass = isPremium ? 'shard-train-btn' : 'shard-train-btn premium-locked';
-                let trainText = '🧠 Train';
+                let trainText = ' Train';
                 let trainOnClick = `onclick="handleTrainClick('${shard.id}', this)"`;
 
                 let masteryContent = `
@@ -609,9 +640,9 @@
                         <div class="shard-mastery-fill" style="width: ${masteryPct}%"></div>
                     </div>`;
 
-                // ✨ MASTERY PAYOFF & SPACED REPETITION
+                //  MASTERY PAYOFF & SPACED REPETITION
                 if (isMastered) {
-                    masteryContent = `<div class="mastery-badge">💎 MAX MASTERY</div>`;
+                    masteryContent = `<div class="mastery-badge"> MAX MASTERY</div>`;
 
                     if (shard.lastMasteredDate) {
                         const daysPassed = Math.floor((Date.now() - shard.lastMasteredDate) / (1000 * 60 * 60 * 24));
@@ -619,7 +650,7 @@
 
                         // Cooldown Active
                         if (daysLeft > 0) {
-                            trainText = `🧠 Resting (${daysLeft}d)`;
+                            trainText = ` Resting (${daysLeft}d)`;
                             trainClass += ' resting';
                             trainOnClick = ''; // Disable click
                         } else {
@@ -635,9 +666,10 @@
                         <div class="shard-snippet">${shard.content}</div>
                         ${masteryContent}
                         <div class="shard-actions">
-                            <button class="shard-read-btn" onclick="readShard('${shard.id}')">📖 Read</button>
+                            <button class="shard-read-btn" onclick="readShard('${shard.id}')"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg> Read</button>
+                            <button class="shard-read-btn" style="border-color: var(--accent-yellow); color: var(--accent-yellow);" onclick="viewTutorHistory('${shard.id}')"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> History</button>
                             <button class="${trainClass}" ${trainOnClick}>${trainText}</button>
-                            <button class="shard-delete-btn" onclick="deleteShard('${shard.id}')">✕</button>
+                            <button class="shard-delete-btn" onclick="deleteShard('${shard.id}')"></button>
                         </div>
                     </div>`;
             }).join('');
@@ -650,7 +682,7 @@
                     btn.classList.add('shake');
                     btn.addEventListener('animationend', () => btn.classList.remove('shake'), { once: true });
                 }
-                showToast('🔒 Upgrade to StudyBuddy+ to unlock the AI Tutor!');
+                showToast('<svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Upgrade to StudyBuddy+ to unlock the AI Tutor!');
                 return;
             }
             if (typeof isTutorMode !== 'undefined' && isTutorMode) {
@@ -659,15 +691,15 @@
             }
 
             // UI Loading State
-            const originalText = btn ? btn.innerHTML : '🧠 Train';
+            const originalText = btn ? btn.innerHTML : ' Train';
             if (btn) {
                 btn.disabled = true;
                 btn.style.opacity = '0.5';
                 btn.style.cursor = 'not-allowed';
-                btn.innerHTML = '📡 Connecting...';
+                btn.innerHTML = ' Connecting...';
             }
 
-            // ✨ PRE-FLIGHT CHECK
+            //  PRE-FLIGHT CHECK
             const isAIAwake = await window.checkAIAvailability();
 
             if (!isAIAwake) {
@@ -677,12 +709,12 @@
                     btn.style.cursor = 'pointer';
                     btn.innerHTML = originalText;
                 }
-                showToast('⚠️ Tutor Mode is offline! Connect to the internet or start your local Ollama app.');
+                showToast('️ Tutor Mode is offline! Connect to the internet or start your local Ollama app.');
                 return;
             }
 
             // AI is awake, start the session!
-            if (btn) btn.innerHTML = '🧠 Training...';
+            if (btn) btn.innerHTML = ' Training...';
             startTutorMode(shardId);
         }
 
@@ -706,6 +738,65 @@
             });
         }
 
+        // ==================== PHASE 4: VIEW HISTORY ====================
+        window.viewTutorHistory = function (shardId) {
+            const shards = getShards();
+            const shard = shards.find(s => s.id === shardId);
+            if (!shard) return;
+
+            const logsContainer = document.getElementById('historyLogsContainer');
+            logsContainer.innerHTML = '';
+
+            if (!shard.tutorLogs || shard.tutorLogs.length === 0) {
+                logsContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); margin-top: 40px;">No tutor history available for this shard yet. Train with Chum to generate logs!</div>`;
+            } else {
+                // Reverse so newest is at the top
+                const reversedLogs = [...shard.tutorLogs].reverse();
+
+                let html = '';
+                reversedLogs.forEach((log, index) => {
+                    const dateObj = new Date(log.date);
+                    const formattedDate = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    html += `
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px;">
+                        <div style="color: var(--accent-cyan); font-weight: bold; font-size: 0.85rem; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                            Session: ${formattedDate}
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                    `;
+
+                    log.messages.forEach(msg => {
+                        const isChum = msg.role === 'assistant';
+                        const bubbleStyle = isChum
+                            ? 'background: var(--bg-card); border: 1px solid var(--accent-teal); color: var(--text-main); align-self: flex-start;'
+                            : 'background: var(--accent-teal); color: #000; border: none; align-self: flex-end;';
+
+                        // Parse markdown for formatting
+                        let content = msg.content;
+                        if (typeof marked !== 'undefined') {
+                            content = marked.parse(content);
+                        }
+
+                        html += `
+                            <div style="max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 0.85rem; line-height: 1.4; ${bubbleStyle}">
+                                ${content}
+                            </div>
+                        `;
+                    });
+
+                    html += `</div></div>`;
+                });
+                logsContainer.innerHTML = html;
+            }
+
+            document.getElementById('archiveHistoryModal').classList.add('active');
+        };
+
+        document.getElementById('closeHistoryBtn')?.addEventListener('click', () => {
+            document.getElementById('archiveHistoryModal').classList.remove('active');
+        });
+
         // ==================== FORGE MODAL ====================
         document.getElementById('forgeShardBtn').addEventListener('click', () => {
             document.getElementById('forgeModal').classList.add('active');
@@ -728,7 +819,7 @@
             document.getElementById('forgeModal').classList.remove('active');
             document.getElementById('shardTitleInput').value = '';
             document.getElementById('shardContentInput').value = '';
-            showToast(`📚 Shard "${title}" forged!`);
+            showToast(` Shard "${title}" forged!`);
         });
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -823,7 +914,7 @@
                 const ta = document.getElementById('shardContentInput');
                 const clean = text.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
                 ta.value = ta.value ? ta.value + '\n\n' + clean : clean;
-                setStatus(`✔ "${filename}" imported (${clean.length.toLocaleString()} chars)`);
+                setStatus(` "${filename}" imported (${clean.length.toLocaleString()} chars)`);
                 // Auto-fill title if empty
                 const titleInput = document.getElementById('shardTitleInput');
                 if (!titleInput.value) titleInput.value = filename.replace(/\.[^.]+$/, '');

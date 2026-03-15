@@ -1,6 +1,8 @@
 /* ===== CALENDAR SPECIFIC STYLES ===== */
 .calendar-main {
     padding: 14px 24px;
+    padding-bottom: 60px;
+    /* ✨ Forces space at the bottom so the pool doesn't touch the floor */
     overflow-y: auto;
 }
 
@@ -90,7 +92,8 @@
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
+    grid-auto-rows: minmax(13vh, 1fr);
+    gap: 12px;
     margin-bottom: 14px;
 }
 
@@ -98,7 +101,7 @@
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 12px;
-    min-height: 85px;
+    height: 100%;
     padding: 7px 8px;
     position: relative;
     transition: border-color 0.2s;
@@ -249,6 +252,8 @@
     border-radius: 24px;
     padding: 22px;
     margin-top: 20px;
+    margin-bottom: 40px;
+    /* Added breathing room at the bottom */
     transition: border-color 0.2s, background 0.2s;
 }
 
