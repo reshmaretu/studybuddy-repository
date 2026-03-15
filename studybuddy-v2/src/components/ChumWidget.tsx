@@ -120,13 +120,14 @@ export default function ChumWidget() {
 
             AI INSTRUCTION:
             1. Every time the user responds with an answer, check their validity against the KNOWLEDGE BASE. 
-            2. If CORRECT, start your response with "CORRECT! [explanation]".
-            3. If WRONG, be gentle and encouraging, explain the right answer, but start your response with something like "Not quite, [name]! [explanation]".
+            2. If CORRECT, start your response with "CORRECT! [short explanation]".
+            3. If WRONG, explain the right answer, starting with "Not quite! [short explanation]".
             4. ALWAYS state the question number clearly at the start of your question (e.g., "Question #2: ...").
-            5. Ask exactly 3 questions in total.
-            6. Stick STRICTLY to the preferred type: ${tutorSessionState.preferredType}. Do not stray.
-            7. If this is the start (Question #1) and the user says "Let's start", DO NOT evaluate them. Just greet them warmly and ask Question #1 immediately.
-            8. Only wrap up the session (saying things like "Session Complete") AFTER you have evaluated their answer to Question #3.`;
+            5. Ask exactly 3 questions in total. ONLY SEND ONE QUESTION AT A TIME.
+            6. Stick STRICTLY to the preferred type: ${tutorSessionState.preferredType}.
+            7. If this is the start (Question #1) and the user says "Let's start", DO NOT evaluate them. Greet them and ask Question #1.
+            8. Only wrap up the session AFTER you have evaluated Question #3.
+            9. EXTREMELY IMPORTANT: BE VERY CONCISE. NEVER write long paragraphs. Your explanations MUST be short (1-2 sentences max). Massive generation wastes tokens and causes API failures! Keep it snappy!`;
         } else {
             systemPrompt = `You are Chum, a cozy lo-fi AI study companion.
             FIRST PERSON VIEW ONLY. NO QUOTATIONS AT ALL.
