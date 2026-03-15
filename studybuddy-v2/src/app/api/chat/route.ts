@@ -35,24 +35,19 @@ export async function POST(req: Request) {
         // ==========================================
         let contextSnippet = "";
 
-        if (user_id) {
+        if (user_id && geminiKey) {
             try {
                 const latestUserMessage = messages[messages.length - 1].content;
-
-                // 1. Dynamic Import SDK (Notice TaskType is gone!)
                 const { GoogleGenerativeAI } = await import("@google/generative-ai");
-                const genAI = new GoogleGenerativeAI(geminiKey!);
+                const genAI = new GoogleGenerativeAI(geminiKey);
 
-                // 2. THE MAGIC COMBO: 'embedding-001' on 'v1'
                 const embeddingModel = genAI.getGenerativeModel({
                     model: "gemini-embedding-001"
                 });
 
-                // 3. Generate Embedding (Simple string bypasses TypeScript errors)
-                const result = await embeddingModel.embedContent(latestUserMessage); // 👈 Much simpler!
+                const result = await embeddingModel.embedContent(latestUserMessage);
                 const query_embedding = result.embedding.values;
 
-                // 4. Search Supabase with the vector
                 const { data: matchedShards, error } = await supabase.rpc('match_shards', {
                     query_embedding,
                     match_threshold: 0.4,
@@ -68,6 +63,8 @@ export async function POST(req: Request) {
             } catch (e: any) {
                 console.warn("RAG failed, proceeding without context.", e.message);
             }
+        } else if (user_id && !geminiKey) {
+            console.warn("RAG skipped: No Gemini Key provided for embeddings.");
         }
 
         const formattedMessages = messages.map((m: any) => {
@@ -85,12 +82,17 @@ export async function POST(req: Request) {
         try {
             const orKey = openrouter_key || process.env.OPENROUTER_AI_API_KEY;
             if (orKey) {
-                const models = ["meta-llama/llama-3.1-8b-instruct:free", "google/gemma-2-9b-it:free"];
+                const models = [
+                    "meta-llama/llama-3.1-8b-instruct:free",
+                    "google/gemma-2-9b-it:free",
+                    "mistralai/mistral-7b-instruct:free",
+                    "qwen/qwen-2-7b-instruct:free"
+                ];
                 
                 for (const model of models) {
                     try {
                         const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+                        const timeoutId = setTimeout(() => controller.abort(), 15000); 
 
                         const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                             method: "POST",
@@ -111,13 +113,15 @@ export async function POST(req: Request) {
 
                         if (res.ok) {
                             const data = await res.json();
-                            return NextResponse.json({
-                                response: data.choices[0].message.content,
-                                node: `OpenRouter (${model.split('/')[1].split(':')[0]})`
-                            });
+                            if (data.choices?.[0]?.message?.content) {
+                                return NextResponse.json({
+                                    response: data.choices[0].message.content,
+                                    node: `OpenRouter (${model.split('/')[1].split(':')[0]})`
+                                });
+                            }
                         }
                     } catch (abortErr: any) {
-                        console.warn(`OpenRouter model ${model} timed out or failed. Trying next...`);
+                        console.warn(`OpenRouter model ${model} failed or timed out. Trying next...`);
                     }
                 }
             }
