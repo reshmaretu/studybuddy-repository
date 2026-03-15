@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://*.tldraw.com https://cdn.tldraw.com https://grainy-gradients.vercel.app; font-src 'self' data: https://*.tldraw.com; worker-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.tldraw.com https://cdn.tldraw.com; object-src 'none';"
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://*.tldraw.com https://cdn.tldraw.com https://grainy-gradients.vercel.app; font-src 'self' data: https://*.tldraw.com; worker-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.tldraw.com https://cdn.tldraw.com http://localhost:11434 http://127.0.0.1:11434 https://openrouter.ai https://api.groq.com https://generativelanguage.googleapis.com; object-src 'none';"
           },
         ],
       },
