@@ -10,6 +10,7 @@ import FocusModal from "./FocusModal";
 import FlowStateOverlay from "./FlowStateOverlay";
 import StudyCafeOverlay from "./StudyCafeOverlay";
 import MindDumpPad from "./MindDumpPad";
+import DevOverlay from "./DevOverlay";
 
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -41,7 +42,12 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
     }
 
     if (isPublicPage) {
-        return <div className="w-full bg-[var(--bg-dark)]">{children}</div>;
+        return (
+            <div className="w-full bg-[var(--bg-dark)]">
+                {children}
+                <DevOverlay />
+            </div>
+        );
     }
 
     return (
@@ -57,6 +63,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
                 <FlowStateOverlay />
                 <StudyCafeOverlay />
                 <MindDumpPad />
+                <DevOverlay />
             </div>
         </>
     );

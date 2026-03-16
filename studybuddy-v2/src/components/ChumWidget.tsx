@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, CheckCircle2, Edit3, LogOut, Plus, BrainCircuit, Network, Cpu, WifiOff, Settings, History } from "lucide-react";
-import { useStudyStore, ChatMessage, TutorSession, TutorSessionState, Shard, TaskLoad } from "@/store/useStudyStore";
+import { useStudyStore, ChatMessage, TutorSession, Shard, TaskLoad } from "@/store/useStudyStore";
 import { supabase } from '@/lib/supabase';
 
 export default function ChumWidget() {
@@ -17,6 +17,8 @@ export default function ChumWidget() {
     const chatEndRef = useRef<HTMLDivElement>(null);
     const [showQuickArchive, setShowQuickArchive] = useState(false);
     const [readingShard, setReadingShard] = useState<Shard | null>(null);
+    const [showBubble, setShowBubble] = useState(false);
+    const bubbleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const {
         activeMode, exitMode, isTutorModeActive, activeShardId, exitTutorMode,
@@ -94,7 +96,6 @@ export default function ChumWidget() {
             const totalContent = `Base Notes: ${activeShard.content}`;
             const shardHistory = pastTutorSessions.filter(s => s.shardId === activeShard.id).slice(-1);
             const historySummary = shardHistory.map(s => {
-                // Highly optimized: Only extract Chum's shortened questions to save massive amounts of tokens
                 const pastQA = s.history
                     .filter(m => m.role === 'chum' && m.text.includes('?'))
                     .map(m => `- ${m.text.substring(0, 100).replace(/\n/g, ' ')}...`)
@@ -175,7 +176,6 @@ export default function ChumWidget() {
                 aiResponse = data.response;
                 usedNode = data.node || "Cloud Node";
             } else {
-                // Force triggering the local/Ollama logic in the catch block if not cloud
                 throw new Error("Local mode active");
             }
         } catch (err) {
@@ -253,6 +253,17 @@ export default function ChumWidget() {
         }
     }, [isTutorModeActive]);
 
+    useEffect(() => {
+        const lastMsg = currentHistory[currentHistory.length - 1];
+        if (lastMsg?.role === 'chum' && !isOpen) {
+            setShowBubble(true);
+            if (bubbleTimeoutRef.current) clearTimeout(bubbleTimeoutRef.current);
+            bubbleTimeoutRef.current = setTimeout(() => setShowBubble(false), 8000);
+        } else if (isOpen) {
+            setShowBubble(false);
+        }
+    }, [currentHistory, isOpen]);
+
     let themeColor = "var(--accent-teal)";
     let title = "Chum";
     if (isFlowState) themeColor = "var(--text-muted)";
@@ -262,115 +273,113 @@ export default function ChumWidget() {
 
     return (
         <>
-            {/* 1. THE CHAT WIDGET (Draggable) */}
             <motion.div drag dragMomentum={false} style={{ zIndex: 100000 }} className="fixed bottom-8 right-8 flex flex-col items-end cursor-grab active:cursor-grabbing">
                 <AnimatePresence>
                     {isOpen && (
-                        <motion.div initial={{ opacity: 0, y: 20, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.8 }} className="mb-4 w-80 sm:w-96 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-2xl overflow-hidden cursor-default flex flex-col" style={{ height: '480px' }} onPointerDown={(e) => e.stopPropagation()}>
+                        <motion.div initial={{ opacity: 0, y: 20, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.8 }} className="mb-4 w-80 sm:w-96 bg-(--bg-card) border border-(--border-color) rounded-2xl shadow-2xl overflow-hidden cursor-default flex flex-col" style={{ height: '480px' }} onPointerDown={(e) => e.stopPropagation()}>
 
                             {/* Header */}
-                            <div className="bg-[var(--bg-sidebar)] border-b border-[var(--border-color)] p-3 flex justify-between items-center relative overflow-hidden">
+                            <div className="bg-(--bg-sidebar) border-b border-(--border-color) p-3 flex justify-between items-center relative overflow-hidden">
                                 <div className="flex items-center gap-3 relative z-10">
                                     <div className="w-8 h-8 rounded-full flex items-center justify-center border" style={{ backgroundColor: `color-mix(in srgb, ${themeColor} 15%, transparent)`, borderColor: `color-mix(in srgb, ${themeColor} 40%, transparent)` }}>
                                         {isTutorModeActive ? <BrainCircuit size={16} color={themeColor} /> : <span className="text-lg">👻</span>}
                                     </div>
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2">
-                                            <span className="font-bold text-[var(--text-main)] text-sm">{title}</span>
+                                            <span className="font-bold text-(--text-main) text-sm">{title}</span>
                                         </div>
                                         {!isFlowState && (
-                                            <span className="text-[9px] text-[var(--text-muted)] flex items-center gap-1 mt-0.5 cursor-pointer hover:text-[var(--accent-teal)]" onClick={() => setShowSettings(!showSettings)}>
+                                            <span className="text-[9px] text-(--text-muted) flex items-center gap-1 mt-0.5 cursor-pointer hover:text-(--accent-teal)" onClick={() => setShowSettings(!showSettings)}>
                                                 <AITierIcon size={10} /> {aiTier.toUpperCase()} NODE <Settings size={10} className="ml-1" />
                                             </span>
                                         )}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 relative z-10">
-                                    <button onClick={() => setIsOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"><X size={16} /></button>
+                                    <button onClick={() => setIsOpen(false)} className="text-(--text-muted) hover:text-(--text-main) transition-colors"><X size={16} /></button>
                                 </div>
                             </div>
 
-                            {/* Settings / Quick Archive / Chat Logic */}
                             {showSettings && !isFlowState ? (
-                                <div className="flex-1 p-4 bg-[var(--bg-dark)] overflow-y-auto custom-scrollbar flex flex-col gap-4">
-                                    <h3 className="text-sm font-bold text-[var(--text-main)] mb-2">Neural Link Settings</h3>
-                                    <div className="flex bg-[var(--bg-sidebar)] p-1 rounded-lg border border-[var(--border-color)]">
+                                <div className="flex-1 p-4 bg-(--bg-dark) overflow-y-auto custom-scrollbar flex flex-col gap-4">
+                                    <h3 className="text-sm font-bold text-(--text-main) mb-2">Neural Link Settings</h3>
+                                    <div className="flex bg-(--bg-sidebar) p-1 rounded-lg border border-(--border-color)">
                                         {(['cloud', 'local', 'offline'] as const).map(tier => (
-                                            <button key={tier} onClick={() => setAITier(tier)} className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors ${aiTier === tier ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>{tier}</button>
+                                            <button key={tier} onClick={() => setAITier(tier)} className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors ${aiTier === tier ? 'bg-(--accent-teal) text-[#0b1211]' : 'text-(--text-muted) hover:text-(--text-main)'}`}>{tier}</button>
                                         ))}
                                     </div>
                                     {aiTier === 'cloud' && (
                                         <div className="flex flex-col gap-3">
-                                            <input type="password" placeholder="OpenRouter API Key (Optional)" value={aiKeys.openrouter} onChange={e => updateAIKeys({ openrouter: e.target.value })} className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
-                                            <input type="password" placeholder="Groq API Key" value={aiKeys.groq} onChange={e => updateAIKeys({ groq: e.target.value })} className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
-                                            <input type="password" placeholder="Gemini API Key" value={aiKeys.gemini} onChange={e => updateAIKeys({ gemini: e.target.value })} className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
+                                            <input type="password" placeholder="OpenRouter API Key" value={aiKeys.openrouter} onChange={e => updateAIKeys({ openrouter: e.target.value })} className="w-full bg-(--bg-card) border border-(--border-color) rounded-lg px-4 py-2 text-xs text-(--text-main) outline-none focus:border-(--accent-teal)" />
+                                            <input type="password" placeholder="Groq API Key" value={aiKeys.groq} onChange={e => updateAIKeys({ groq: e.target.value })} className="w-full bg-(--bg-card) border border-(--border-color) rounded-lg px-4 py-2 text-xs text-(--text-main) outline-none focus:border-(--accent-teal)" />
+                                            <input type="password" placeholder="Gemini API Key" value={aiKeys.gemini} onChange={e => updateAIKeys({ gemini: e.target.value })} className="w-full bg-(--bg-card) border border-(--border-color) rounded-lg px-4 py-2 text-xs text-(--text-main) outline-none focus:border-(--accent-teal)" />
                                         </div>
                                     )}
                                     {aiTier === 'local' && (
                                         <div className="flex flex-col gap-3">
-                                            <label className="text-xs text-[var(--text-muted)] font-bold">Ollama Endpoint URL</label>
-                                            <input type="text" value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)} className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
+                                            <label className="text-xs text-(--text-muted) font-bold">Ollama Endpoint URL</label>
+                                            <input type="text" value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)} className="w-full bg-(--bg-card) border border-(--border-color) rounded-lg px-4 py-2 text-xs text-(--text-main) outline-none focus:border-(--accent-teal)" />
                                         </div>
                                     )}
-                                    <div className="flex items-center justify-between bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-3">
-                                        <span className="text-xs font-bold text-[var(--text-main)]">Show Model Badge</span>
+                                    <div className="flex items-center justify-between bg-(--bg-card) border border-(--border-color) rounded-lg p-3">
+                                        <span className="text-xs font-bold text-(--text-main)">Show Model Badge</span>
                                         <div onClick={() => setShowNodeBadge(!showNodeBadge)} className="flex items-center gap-2 cursor-pointer group">
-                                            <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors duration-300 ${showNodeBadge ? 'bg-[var(--accent-teal)]' : 'bg-[var(--bg-sidebar)] border border-[var(--border-color)]'}`}>
-                                                <div className={`w-3 h-3 rounded-full shadow-sm transition-transform duration-300 ${showNodeBadge ? 'translate-x-4 bg-[#0b1211]' : 'translate-x-0 bg-[var(--text-muted)]'}`} />
+                                            <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors duration-300 ${showNodeBadge ? 'bg-(--accent-teal)' : 'bg-(--bg-sidebar) border border-(--border-color)'}`}>
+                                                <div className={`w-3 h-3 rounded-full shadow-sm transition-transform duration-300 ${showNodeBadge ? 'translate-x-4 bg-[#0b1211]' : 'translate-x-0 bg-(--text-muted)'}`} />
                                             </div>
                                         </div>
                                     </div>
-                                    <button onClick={() => setShowSettings(false)} className="mt-auto w-full py-2 bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-lg text-xs font-bold text-[var(--text-main)] hover:border-[var(--accent-teal)] transition-colors">Save & Close</button>
+                                    <button onClick={() => setShowSettings(false)} className="mt-auto w-full py-2 bg-(--bg-sidebar) border border-(--border-color) rounded-lg text-xs font-bold text-(--text-main) hover:border-(--accent-teal) transition-colors">Save & Close</button>
                                 </div>
 
                             ) : showQuickArchive ? (
-                                <div className="flex-1 p-4 bg-[var(--bg-dark)] overflow-y-auto custom-scrollbar flex flex-col gap-3">
+                                <div className="flex-1 p-4 bg-(--bg-dark) overflow-y-auto custom-scrollbar flex flex-col gap-3">
                                     <div className="flex justify-between items-center mb-2">
-                                        <h3 className="text-sm font-bold text-[var(--text-main)]">
+                                        <h3 className="text-sm font-bold text-(--text-main)">
                                             {readingShard ? "Reading Note" : "Quick Archive"}
                                         </h3>
                                         {readingShard && (
-                                            <button onClick={() => setReadingShard(null)} className="text-xs text-[var(--accent-teal)] hover:underline">Back</button>
+                                            <button onClick={() => setReadingShard(null)} className="text-xs text-(--accent-teal) hover:underline">Back</button>
                                         )}
                                     </div>
                                     {readingShard ? (
-                                        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-4 text-xs text-[var(--text-main)] leading-relaxed whitespace-pre-wrap shadow-inner">
-                                            <h4 className="font-bold mb-3 text-sm border-b border-[var(--border-color)] pb-2">{readingShard.title}</h4>
+                                        <div className="bg-(--bg-card) border border-(--border-color) rounded-xl p-4 text-xs text-(--text-main) leading-relaxed whitespace-pre-wrap shadow-inner">
+                                            <h4 className="font-bold mb-3 text-sm border-b border-(--border-color) pb-2">{readingShard.title}</h4>
                                             {readingShard.content || "No text content available."}
                                         </div>
                                     ) : shards.length === 0 ? (
-                                        <p className="text-xs text-[var(--text-muted)] italic text-center mt-10">No shards forged yet.</p>
+                                        <p className="text-xs text-(--text-muted) italic text-center mt-10">No shards forged yet.</p>
                                     ) : (
                                         shards.map(shard => (
-                                            <div key={shard.id} onClick={() => setReadingShard(shard)} className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-3 flex justify-between items-center shadow-sm cursor-pointer hover:border-[var(--accent-teal)] transition-colors">
-                                                <span className="text-[11px] font-bold text-[var(--text-main)] truncate max-w-[200px]">{shard.title}</span>
-                                                <span className="text-[9px] text-[var(--accent-teal)] font-bold">{shard.mastery}%</span>
+                                            <div key={shard.id} onClick={() => setReadingShard(shard)} className="bg-(--bg-card) border border-(--border-color) rounded-xl p-3 flex justify-between items-center shadow-sm cursor-pointer hover:border-(--accent-teal) transition-colors">
+                                                <span className="text-[11px] font-bold text-(--text-main) truncate max-w-[200px]">{shard.title}</span>
+                                                <span className="text-[9px] text-(--accent-teal) font-bold">{shard.mastery}%</span>
                                             </div>
                                         ))
                                     )}
-                                    <button onClick={() => { setShowQuickArchive(false); setReadingShard(null); }} className="mt-auto w-full py-2 bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-lg text-xs font-bold text-[var(--text-main)] hover:border-[var(--accent-teal)] transition-colors">Back to Chat</button>
+                                    <button onClick={() => { setShowQuickArchive(false); setReadingShard(null); }} className="mt-auto w-full py-2 bg-(--bg-sidebar) border border-(--border-color) rounded-lg text-xs font-bold text-(--text-main) hover:border-(--accent-teal) transition-colors">Back to Chat</button>
                                 </div>
 
                             ) : showSessions && !isFlowState ? (
-                                <div className="flex-1 p-4 bg-[var(--bg-dark)] overflow-y-auto custom-scrollbar flex flex-col gap-3">
-                                    <h3 className="text-sm font-bold text-[var(--text-main)] mb-2">Neural Archives</h3>
+                                <div className="flex-1 p-4 bg-(--bg-dark) overflow-y-auto custom-scrollbar flex flex-col gap-3">
+                                    <h3 className="text-sm font-bold text-(--text-main) mb-2">Neural Archives</h3>
                                     {pastTutorSessions.length === 0 ? (
-                                        <p className="text-xs text-[var(--text-muted)] italic text-center mt-10">No past sessions recorded.</p>
+                                        <p className="text-xs text-(--text-muted) italic text-center mt-10">No past sessions recorded.</p>
                                     ) : (
                                         pastTutorSessions.map(session => (
-                                            <div key={session.id} className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-3 flex flex-col gap-2 shadow-sm">
+                                            <div key={session.id} className="bg-(--bg-card) border border-(--border-color) rounded-xl p-3 flex flex-col gap-2 shadow-sm">
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-[10px] font-bold text-[var(--text-main)]">{session.shardTitle}</span>
-                                                    <span className="text-[9px] text-[var(--text-muted)]">{new Date(session.date).toLocaleDateString()}</span>
+                                                    <span className="text-[10px] font-bold text-(--text-main)">{session.shardTitle}</span>
+                                                    <span className="text-[9px] text-(--text-muted)">{new Date(session.date).toLocaleDateString()}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-[9px] text-[var(--accent-teal)] font-bold">+{session.masteryGained}% Mastery</span>
-                                                    <button onClick={() => { setViewingLog(session); }} className="text-[9px] bg-[var(--bg-sidebar)] px-2 py-1 rounded border border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)]">View Logs</button>
+                                                    <span className="text-[9px] text-(--accent-teal) font-bold">+{session.masteryGained}% Mastery</span>
+                                                    <button onClick={() => { setViewingLog(session); }} className="text-[9px] bg-(--bg-sidebar) px-2 py-1 rounded border border-(--border-color) text-(--text-muted) hover:text-(--text-main)">View Logs</button>
                                                 </div>
                                             </div>
                                         ))
                                     )}
-                                    <button onClick={() => setShowSessions(false)} className="mt-auto w-full py-2 bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-lg text-xs font-bold text-[var(--text-main)] hover:border-[var(--accent-teal)]">Back to Link</button>
+                                    <button onClick={() => setShowSessions(false)} className="mt-auto w-full py-2 bg-(--bg-sidebar) border border-(--border-color) rounded-lg text-xs font-bold text-(--text-main) hover:border-(--accent-teal)">Back to Link</button>
                                 </div>
 
                             ) : (
@@ -378,23 +387,23 @@ export default function ChumWidget() {
                                     <div className="flex-1 overflow-y-auto p-4 custom-scrollbar flex flex-col gap-4">
                                         {isTutorModeActive && (
                                             <div className="sticky top-0 z-20 flex justify-center py-2 pointer-events-none">
-                                                <div className="bg-[var(--bg-card)]/80 backdrop-blur-md border border-[var(--accent-yellow)]/20 px-4 py-1.5 rounded-full shadow-lg flex items-center gap-3">
-                                                    <div className="h-1.5 w-24 bg-[var(--bg-dark)] rounded-full overflow-hidden">
-                                                        <div className="h-full bg-[var(--accent-yellow)] transition-all duration-500" style={{ width: `${activeShard?.mastery}%` }} />
+                                                <div className="bg-(--bg-card)/80 backdrop-blur-md border border-(--accent-yellow)/20 px-4 py-1.5 rounded-full shadow-lg flex items-center gap-3">
+                                                    <div className="h-1.5 w-24 bg-(--bg-dark) rounded-full overflow-hidden">
+                                                        <div className="h-full bg-(--accent-yellow) transition-all duration-500" style={{ width: `${activeShard?.mastery}%` }} />
                                                     </div>
-                                                    <span className="text-[10px] font-bold text-[var(--accent-yellow)] uppercase tracking-wider">{activeShard?.mastery}% Mastery</span>
+                                                    <span className="text-[10px] font-bold text-(--accent-yellow) uppercase tracking-wider">{activeShard?.mastery}% Mastery</span>
                                                 </div>
                                             </div>
                                         )}
 
                                         {currentHistory.map((msg, i) => (
                                             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} flex-col`}>
-                                                <div className={`p-3 text-sm rounded-xl max-w-[85%] shadow-sm whitespace-pre-wrap ${msg.role === 'user' ? 'bg-[var(--accent-teal)]/20 border border-[var(--accent-teal)]/30 text-[var(--text-main)] rounded-tr-none' : 'bg-[var(--bg-dark)] border border-[var(--border-color)] text-[var(--text-muted)] rounded-tl-none'}`}>
+                                                <div className={`p-3 text-sm rounded-xl max-w-[85%] shadow-sm whitespace-pre-wrap ${msg.role === 'user' ? 'bg-(--accent-teal)/20 border border-(--accent-teal)/30 text-(--text-main) rounded-tr-none' : 'bg-(--bg-dark) border border-(--border-color) text-(--text-muted) rounded-tl-none'}`}>
                                                     {msg.text}
 
                                                     {msg.node && msg.role === 'chum' && showNodeBadge && (
-                                                        <div className="mt-2 pt-2 border-t border-[var(--border-color)]/30 flex items-center gap-1.5 opacity-50 select-none">
-                                                            <Cpu size={10} className="text-[var(--accent-teal)]" />
+                                                        <div className="mt-2 pt-2 border-t border-(--border-color)/30 flex items-center gap-1.5 opacity-50 select-none">
+                                                            <Cpu size={10} className="text-(--accent-teal)" />
                                                             <span className="text-[9px] font-mono tracking-tighter uppercase">{msg.node}</span>
                                                         </div>
                                                     )}
@@ -402,38 +411,38 @@ export default function ChumWidget() {
                                                 {showExitConfirm && i === currentHistory.length - 1 && msg.role === 'chum' && msg.text.includes("leave") && (
                                                     <div className="flex gap-2 mt-2 ml-1">
                                                         <button onClick={() => { exitMode(); setShowExitConfirm(false); }} className="text-[10px] font-bold bg-red-400/10 text-red-400 px-3 py-1.5 rounded border border-red-400/20 hover:bg-red-400 hover:text-white transition-all">Yes, Leave</button>
-                                                        <button onClick={() => setShowExitConfirm(false)} className="text-[10px] font-bold bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] px-3 py-1.5 rounded border border-[var(--accent-teal)]/20 hover:bg-[var(--accent-teal)] hover:text-black transition-all">Stay</button>
+                                                        <button onClick={() => setShowExitConfirm(false)} className="text-[10px] font-bold bg-(--accent-teal)/10 text-(--accent-teal) px-3 py-1.5 rounded border border-(--accent-teal)/20 hover:bg-(--accent-teal) hover:text-black transition-all">Stay</button>
                                                     </div>
                                                 )}
                                             </div>
                                         ))}
-                                        {isTyping && <div className="text-xs text-[var(--text-muted)] animate-pulse">Chum is thinking...</div>}
+                                        {isTyping && <div className="text-xs text-(--text-muted) animate-pulse">Chum is thinking...</div>}
                                         <div ref={chatEndRef} />
                                     </div>
 
                                     {/* QUICK ACTIONS */}
-                                    <div className="px-3 py-2 border-t border-[var(--border-color)] bg-[var(--bg-sidebar)]/50 flex flex-wrap gap-2">
+                                    <div className="px-3 py-2 border-t border-(--border-color) bg-(--bg-sidebar)/50 flex flex-wrap gap-2">
                                         {isTutorModeActive ? (
                                             <button onClick={exitTutorMode} className="text-[10px] font-bold text-red-400 px-3 py-1.5 rounded-lg border border-red-400/20 hover:bg-red-400/10 transition-colors flex items-center gap-1.5">
                                                 <LogOut size={12} /> Abort Training
                                             </button>
                                         ) : isFlowState ? (
                                             <>
-                                                <button onClick={() => setShowQuickArchive(true)} className="text-[10px] font-bold text-[var(--text-muted)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] hover:text-[var(--text-main)] flex items-center gap-1.5"><CheckCircle2 size={12} /> Quick Archive</button>
-                                                <button onClick={toggleMindDump} className="text-[10px] font-bold text-[var(--text-muted)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] hover:text-[var(--text-main)] flex items-center gap-1.5"><Edit3 size={12} /> Mind-dump pad</button>
+                                                <button onClick={() => setShowQuickArchive(true)} className="text-[10px] font-bold text-(--text-muted) px-3 py-1.5 rounded-lg border border-(--border-color) hover:text-(--text-main) flex items-center gap-1.5"><CheckCircle2 size={12} /> Quick Archive</button>
+                                                <button onClick={toggleMindDump} className="text-[10px] font-bold text-(--text-muted) px-3 py-1.5 rounded-lg border border-(--border-color) hover:text-(--text-main) flex items-center gap-1.5"><Edit3 size={12} /> Mind-dump pad</button>
                                                 <button onClick={() => setShowExitConfirm(true)} className="text-[10px] font-bold text-red-400 px-3 py-1.5 rounded-lg border border-red-400/20 hover:bg-red-400/10 transition-colors flex items-center gap-1.5"><LogOut size={12} /> Leave</button>
                                             </>
                                         ) : (
                                             <>
-                                                <button onClick={() => setShowTaskForm(true)} className="text-[10px] font-bold text-[var(--accent-teal)] px-3 py-1.5 rounded-lg border border-[var(--accent-teal)]/20 hover:bg-[var(--accent-teal)]/10 flex items-center gap-1.5"><Plus size={12} /> Pen a Chapter</button>
-                                                <button onClick={() => setShowQuickArchive(true)} className="text-[10px] font-bold text-[var(--text-muted)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] hover:text-[var(--text-main)] flex items-center gap-1.5"><CheckCircle2 size={12} /> Quick Archive</button>
-                                                <button onClick={() => setShowSessions(true)} className="text-[10px] font-bold text-[var(--text-muted)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] hover:text-[var(--text-main)] flex items-center gap-1.5 ml-auto"><History size={12} /> Neural Archives</button>
+                                                <button onClick={() => setShowTaskForm(true)} className="text-[10px] font-bold text-(--accent-teal) px-3 py-1.5 rounded-lg border border-(--accent-teal)/20 hover:bg-(--accent-teal)/10 flex items-center gap-1.5"><Plus size={12} /> Pen a Chapter</button>
+                                                <button onClick={() => setShowQuickArchive(true)} className="text-[10px] font-bold text-(--text-muted) px-3 py-1.5 rounded-lg border border-(--border-color) hover:text-(--text-main) flex items-center gap-1.5"><CheckCircle2 size={12} /> Quick Archive</button>
+                                                <button onClick={() => setShowSessions(true)} className="text-[10px] font-bold text-(--text-muted) px-3 py-1.5 rounded-lg border border-(--border-color) hover:text-(--text-main) flex items-center gap-1.5 ml-auto"><History size={12} /> Neural Archives</button>
                                             </>
                                         )}
                                     </div>
 
-                                    <form onSubmit={handleSendMessage} className="p-3 border-t border-[var(--border-color)] bg-[var(--bg-sidebar)] flex gap-2">
-                                        <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} disabled={isTyping} placeholder={isTutorModeActive ? (tutorSessionState.isSessionComplete ? "Type anything to finish..." : "Answer here...") : isFlowState ? "Speak to Chum or ask to leave..." : "Message Chum..."} className="flex-1 bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] transition-colors placeholder:text-[var(--text-muted)]/50 disabled:opacity-50" />
+                                    <form onSubmit={handleSendMessage} className="p-3 border-t border-(--border-color) bg-(--bg-sidebar) flex gap-2">
+                                        <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} disabled={isTyping} placeholder={isTutorModeActive ? (tutorSessionState.isSessionComplete ? "Type anything to finish..." : "Answer here...") : isFlowState ? "Speak to Chum or ask to leave..." : "Message Chum..."} className="flex-1 bg-(--bg-dark) border border-(--border-color) rounded-xl px-3 py-2 text-sm text-(--text-main) outline-none focus:border-(--accent-teal) transition-colors placeholder:text-(--text-muted)/50 disabled:opacity-50" />
                                         <button type="submit" disabled={!inputText.trim() || isTyping} className="rounded-xl w-10 flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed" style={{ backgroundColor: `color-mix(in srgb, ${themeColor} 15%, transparent)`, color: themeColor, border: `1px solid color-mix(in srgb, ${themeColor} 30%, transparent)` }}><Send size={16} /></button>
                                     </form>
                                 </>
@@ -441,52 +450,76 @@ export default function ChumWidget() {
                         </motion.div>
                     )}
                 </AnimatePresence>
+                
+                {/* 🗣️ CHUM FLOATING BUBBLE */}
+                <AnimatePresence>
+                    {showBubble && !isOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.5, y: 10, x: -20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
+                            exit={{ opacity: 0, scale: 0.5, y: 10, x: -20 }}
+                            onClick={() => setIsOpen(true)}
+                            className="absolute bottom-20 right-4 mr-4 bg-(--bg-card) border border-(--border-color) p-4 rounded-3xl shadow-xl max-w-[240px] cursor-pointer hover:border-(--accent-teal) transition-colors group origin-bottom-right"
+                        >
+                            <div className="absolute bottom-[-8px] right-6 w-4 h-4 bg-(--bg-card) border-r border-b border-(--border-color) rotate-45" />
+                            <p className="text-xs text-(--text-main) leading-relaxed line-clamp-3">
+                                {currentHistory[currentHistory.length - 1]?.text}
+                            </p>
+                            <div className="mt-2 flex items-center justify-between">
+                                <span className="text-[9px] font-black uppercase tracking-widest text-(--accent-teal) animate-pulse">New Message</span>
+                                <span className="text-[9px] text-(--text-muted) group-hover:text-(--text-main) flex items-center gap-1 transition-colors">
+                                    Click to open <Plus size={8} />
+                                </span>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-                <motion.button onClick={() => setIsOpen(!isOpen)} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="w-16 h-16 rounded-full bg-[var(--bg-card)] border-2 border-[var(--border-color)] shadow-xl flex items-center justify-center relative hover:border-[var(--accent-teal)] transition-colors">
+                <motion.button onClick={() => setIsOpen(!isOpen)} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="w-16 h-16 rounded-full bg-(--bg-card) border-2 border-(--border-color) shadow-xl flex items-center justify-center relative hover:border-(--accent-teal) transition-colors">
                     <div className="absolute inset-0 rounded-full blur-md -z-10" style={{ backgroundColor: `color-mix(in srgb, ${themeColor} 15%, transparent)` }}></div>
                     {isTutorModeActive ? <BrainCircuit size={28} color={themeColor} /> : <span className="text-3xl drop-shadow-md">👻</span>}
                 </motion.button>
             </motion.div>
 
-            {/* 2. LOG VIEWER MODAL (Moved OUTSIDE the drag container!) */}
+            {/* 2. LOG VIEWER MODAL */}
             <AnimatePresence>
                 {viewingLog && (
-                    <div className="fixed inset-0 z-[100005] flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-100005 flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setViewingLog(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
-                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-3xl w-full max-w-lg max-h-[80vh] overflow-hidden relative z-10 shadow-2xl flex flex-col cursor-default" onPointerDown={(e) => e.stopPropagation()}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-(--bg-sidebar) border border-(--border-color) rounded-3xl w-full max-w-lg max-h-[80vh] overflow-hidden relative z-10 shadow-2xl flex flex-col cursor-default" onPointerDown={(e) => e.stopPropagation()}>
 
-                            <div className="p-4 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--bg-card)]">
+                            <div className="p-4 border-b border-(--border-color) flex justify-between items-center bg-(--bg-card)">
                                 <div>
-                                    <h2 className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
-                                        <History size={14} className="text-[var(--accent-teal)]" />
+                                    <h2 className="text-sm font-bold text-(--text-main) flex items-center gap-2">
+                                        <History size={14} className="text-(--accent-teal)" />
                                         {viewingLog.shardTitle}
                                     </h2>
-                                    <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                                    <span className="text-[10px] text-(--text-muted) font-mono">
                                         {new Date(viewingLog.date).toLocaleString()} • +{viewingLog.masteryGained}% Mastery
                                     </span>
                                 </div>
-                                <button onClick={() => setViewingLog(null)} className="p-1.5 rounded-md hover:bg-[var(--bg-dark)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">
+                                <button onClick={() => setViewingLog(null)} className="p-1.5 rounded-md hover:bg-(--bg-dark) text-(--text-muted) hover:text-(--text-main) transition-colors">
                                     <X size={16} />
                                 </button>
                             </div>
 
-                            <div className="p-4 overflow-y-auto custom-scrollbar flex-1 space-y-4 bg-[var(--bg-dark)]">
+                            <div className="p-4 overflow-y-auto custom-scrollbar flex-1 space-y-4 bg-(--bg-dark)">
                                 {viewingLog.history.length === 0 ? (
-                                    <p className="text-center text-[var(--text-muted)] italic text-xs">No conversation recorded.</p>
+                                    <p className="text-center text-(--text-muted) italic text-xs">No conversation recorded.</p>
                                 ) : (
                                     viewingLog.history.map((msg, idx) => (
                                         <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                             <div className={`max-w-[90%] rounded-2xl p-4 text-xs leading-relaxed shadow-sm flex flex-col gap-2 ${msg.role === 'user'
-                                                ? 'bg-[var(--accent-teal)]/20 border border-[var(--accent-teal)]/30 text-[var(--text-main)] rounded-tr-none'
-                                                : 'bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-main)] rounded-tl-none'
+                                                ? 'bg-(--accent-teal)/20 border border-(--accent-teal)/30 text-(--text-main) rounded-tr-none'
+                                                : 'bg-(--bg-card) border border-(--border-color) text-(--text-main) rounded-tl-none'
                                                 }`}>
                                                 {msg.text.split('\n\n').map((paragraph, pIdx) => (
                                                     <p key={pIdx} className="m-0">{paragraph}</p>
                                                 ))}
 
                                                 {msg.node && msg.role === 'chum' && showNodeBadge && (
-                                                    <div className="mt-2 pt-2 border-t border-[var(--border-color)]/30 flex items-center gap-1.5 opacity-40 select-none">
-                                                        <Cpu size={10} className="text-[var(--accent-teal)]" />
+                                                    <div className="mt-2 pt-2 border-t border-(--border-color)/30 flex items-center gap-1.5 opacity-40 select-none">
+                                                        <Cpu size={10} className="text-(--accent-teal)" />
                                                         <span className="text-[9px] font-mono tracking-tighter uppercase">{msg.node}</span>
                                                     </div>
                                                 )}
@@ -500,43 +533,43 @@ export default function ChumWidget() {
                 )}
             </AnimatePresence>
 
-            {/* 3. TASK FORM MODAL (Moved OUTSIDE the drag container!) */}
+            {/* 3. TASK FORM MODAL */}
             <AnimatePresence>
                 {showTaskForm && (
-                    <div className="fixed inset-0 z-[100005] flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-100005 flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowTaskForm(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
-                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-3xl w-full max-w-sm relative z-10 shadow-2xl flex flex-col overflow-hidden" onPointerDown={(e) => e.stopPropagation()}>
-                            <div className="p-4 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--bg-card)]">
-                                <h2 className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2"><Plus size={14} className="text-[var(--accent-teal)]" /> Pen a Chapter</h2>
-                                <button onClick={() => setShowTaskForm(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)]"><X size={16} /></button>
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-(--bg-sidebar) border border-(--border-color) rounded-3xl w-full max-w-sm relative z-10 shadow-2xl flex flex-col overflow-hidden" onPointerDown={(e) => e.stopPropagation()}>
+                            <div className="p-4 border-b border-(--border-color) flex justify-between items-center bg-(--bg-card)">
+                                <h2 className="text-sm font-bold text-(--text-main) flex items-center gap-2"><Plus size={14} className="text-(--accent-teal)" /> Pen a Chapter</h2>
+                                <button onClick={() => setShowTaskForm(false)} className="text-(--text-muted) hover:text-(--text-main)"><X size={16} /></button>
                             </div>
                             <div className="p-4 flex flex-col gap-3">
-                                <input autoFocus type="text" placeholder="Quest Title" value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
-                                <textarea placeholder="Optional description..." value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] resize-none h-16 custom-scrollbar" />
+                                <input autoFocus type="text" placeholder="Quest Title" value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} className="w-full bg-(--bg-dark) border border-(--border-color) rounded-lg px-3 py-2 text-sm text-(--text-main) outline-none focus:border-(--accent-teal)" />
+                                <textarea placeholder="Optional description..." value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} className="w-full bg-(--bg-dark) border border-(--border-color) rounded-lg px-3 py-2 text-xs text-(--text-main) outline-none focus:border-(--accent-teal) resize-none h-16 custom-scrollbar" />
 
                                 <div className="flex gap-2">
                                     {(['light', 'medium', 'heavy'] as const).map(load => (
-                                        <button key={load} onClick={() => setNewTask({ ...newTask, load })} className={`flex-1 py-1.5 rounded-md border text-xs font-bold uppercase ${newTask.load === load ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'bg-[var(--bg-dark)] border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>
+                                        <button key={load} onClick={() => setNewTask({ ...newTask, load })} className={`flex-1 py-1.5 rounded-md border text-xs font-bold uppercase ${newTask.load === load ? 'bg-(--accent-teal)/20 border-(--accent-teal) text-(--accent-teal)' : 'bg-(--bg-dark) border-(--border-color) text-(--text-muted) hover:text-(--text-main)'}`}>
                                             {load}
                                         </button>
                                     ))}
                                 </div>
 
-                                <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg p-3 flex flex-col gap-2">
+                                <div className="bg-(--bg-dark) border border-(--border-color) rounded-lg p-3 flex flex-col gap-2">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Best Before</span>
+                                        <span className="text-xs font-bold text-(--text-muted) uppercase tracking-wider">Best Before</span>
                                         <div onClick={() => handleToggleSchedule(!isScheduled)} className="flex items-center gap-2 cursor-pointer group">
-                                            <span className={`text-xs font-bold transition-colors ${isScheduled ? 'text-[var(--accent-teal)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>
+                                            <span className={`text-xs font-bold transition-colors ${isScheduled ? 'text-(--accent-teal)' : 'text-(--text-muted) group-hover:text-gray-400'}`}>
                                                 {isScheduled ? 'Scheduled' : 'Unscheduled'}
                                             </span>
-                                            <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors duration-300 ${isScheduled ? 'bg-[var(--accent-teal)]' : 'bg-[var(--bg-sidebar)] border border-[var(--border-color)]'}`}>
-                                                <div className={`w-3 h-3 rounded-full shadow-sm transition-transform duration-300 ${isScheduled ? 'translate-x-4 bg-[#0b1211]' : 'translate-x-0 bg-[var(--text-muted)]'}`} />
+                                            <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors duration-300 ${isScheduled ? 'bg-(--accent-teal)' : 'bg-(--bg-sidebar) border border-(--border-color)'}`}>
+                                                <div className={`w-3 h-3 rounded-full shadow-sm transition-transform duration-300 ${isScheduled ? 'translate-x-4 bg-[#0b1211]' : 'translate-x-0 bg-(--text-muted)'}`} />
                                             </div>
                                         </div>
                                     </div>
                                     <AnimatePresence>
                                         {isScheduled && (
-                                            <motion.input initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} type="datetime-local" value={newTask.deadline || ""} onChange={(e) => setNewTask({ ...newTask, deadline: e.target.value })} className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md px-3 py-1.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] mt-1" />
+                                            <motion.input initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} type="datetime-local" value={newTask.deadline || ""} onChange={(e) => setNewTask({ ...newTask, deadline: e.target.value })} className="w-full bg-(--bg-card) border border-(--border-color) rounded-md px-3 py-1.5 text-xs text-(--text-main) outline-none focus:border-(--accent-teal) mt-1" />
                                         )}
                                     </AnimatePresence>
                                 </div>
@@ -549,7 +582,7 @@ export default function ChumWidget() {
                                         setIsScheduled(false);
                                         setShowTaskForm(false);
                                     }}
-                                    className="mt-2 w-full py-2.5 bg-[var(--accent-teal)] text-[#0b1211] rounded-lg text-xs font-bold transition-all disabled:opacity-50 hover:bg-teal-400"
+                                    className="mt-2 w-full py-2.5 bg-(--accent-teal) text-[#0b1211] rounded-lg text-xs font-bold transition-all disabled:opacity-50 hover:bg-teal-400"
                                 >
                                     Plant Seed
                                 </button>

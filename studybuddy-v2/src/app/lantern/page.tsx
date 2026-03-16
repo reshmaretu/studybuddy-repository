@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Search, Trophy, Radio, Plus, X, Waves, Coffee, Sparkles, Clock, Timer, Lock, Crosshair } from "lucide-react";
+import { Search, Trophy, Radio, Plus, X, Crosshair } from "lucide-react";
 import ThreeLanternNet, { LanternNetHandle } from "@/components/LanternNetwork";
 import { useStudyStore } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,7 +18,7 @@ export interface LanternUser {
     roomCode?: string;
     roomTitle?: string;
     isPremium: boolean;
-    isHosting: boolean; // 👈 Add this back
+    isHosting: boolean;
     gridX: number;
     gridY: number;
     jitterX: number;
@@ -69,7 +69,7 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
         focusScore: stats ? (stats.focus_score || 0) : 0,
         isHosting: !!hostedRoom,
         roomCode: hostedRoom?.room_code,
-        roomTitle: hostedRoom?.name || "Sanctuary",
+        roomTitle: (hostedRoom?.name && hostedRoom.name !== "undefined") ? hostedRoom.name : "Sanctuary",
         isPremium: p.is_premium || stats?.is_premium || false,
         chumLabel: wardrobe ? `${wardrobe.base_emoji || "👻"}${wardrobe.hat_emoji || ""}` : "👻 Ghost",
         gridX,
@@ -79,44 +79,10 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
     };
 };
 
-const generateMockUser = (existingUsers: LanternUser[], id: string): LanternUser => {
-    const statuses: LanternUser['status'][] = ['idle', 'drafting', 'hosting', 'joined', 'flowState', 'cafe', 'mastering', 'offline'];
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-    const isHosting = status === 'hosting' || status === 'drafting';
-
-    let gridX = 6, gridY = 6;
-    let attempts = 0;
-    while(attempts < 100) {
-        gridX = Math.floor(Math.random() * 24) - 6; // Wide area
-        gridY = Math.floor(Math.random() * 24) - 6;
-        if (gridX === 6 && gridY === 6) { attempts++; continue; }
-        const clash = existingUsers.some(u => u.gridX === gridX && u.gridY === gridY);
-        if (!clash) break;
-        attempts++;
-    }
-
-    return {
-        id: `mock-${id}`,
-        name: `Bot ${id}`,
-        chumLabel: "🤖 Bot",
-        focusScore: Math.floor(Math.random() * 5000),
-        status,
-        hours: Math.floor(Math.random() * 500),
-        isPremium: Math.random() > 0.5,
-        isHosting,
-        roomCode: isHosting ? `MCK${id.substring(0,3)}` : undefined,
-        roomTitle: isHosting ? `Mock Sanctuary ${id}` : undefined,
-        gridX,
-        gridY,
-        jitterX: (Math.random() - 0.5) * 40,
-        jitterY: (Math.random() - 0.5) * 40,
-    };
-};
-
 export default function LanternNetPage() {
     const [isMounted, setIsMounted] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const { totalSessions, isPremiumUser, activeMode, isTutorModeActive } = useStudyStore();
+    const { totalSessions, activeMode, isTutorModeActive, isDev, devOverlayEnabled, debrisSize, debrisColor, debrisCount, debrisSpread, setDebris, mockUsers, setMockUsers } = useStudyStore();
     const router = useRouter();
 
     const [fullNetwork, setFullNetwork] = useState<LanternUser[]>([]);
@@ -124,33 +90,52 @@ export default function LanternNetPage() {
     const isFirstLoad = useRef(true);
     const lanternRef = useRef<LanternNetHandle>(null);
 
-    // --- DEV OVERLAY STATE ---
     const [isDevOverlayOpen, setIsDevOverlayOpen] = useState(false);
-    const [mockUsers, setMockUsers] = useState<LanternUser[]>([]);
-    const [debrisSize, setDebrisSize] = useState(0.4);
-    const [debrisColor, setDebrisColor] = useState("#2dd4bf");
-    const [debrisCount, setDebrisCount] = useState(3000);
-    const [debrisSpread, setDebrisSpread] = useState(400);
 
     useEffect(() => {
-        const checkDevStatus = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-            const { data: profile } = await supabase.from('profiles').select('status').eq('id', user.id).single();
-            // Assuming 'dev' is a status or we check for a specific email/ID for security
-            const isDev = profile?.status === 'dev' || user.email?.endsWith('@admin.com') || user.id === 'YOUR_ID'; 
-            
-            const handleKeyDown = (e: KeyboardEvent) => {
-                if (isDev && e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
-                    e.preventDefault();
-                    setIsDevOverlayOpen(p => !p);
-                }
-            };
-            window.addEventListener('keydown', handleKeyDown);
-            return () => window.removeEventListener('keydown', handleKeyDown);
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (isDev && devOverlayEnabled && e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
+                e.preventDefault();
+                setIsDevOverlayOpen(p => !p);
+            }
         };
-        checkDevStatus();
-    }, []);
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isDev, devOverlayEnabled]);
+
+    const generateMockUser = (existingUsers: LanternUser[], id: string): LanternUser => {
+        const statuses: LanternUser['status'][] = ['idle', 'drafting', 'hosting', 'joined', 'flowState', 'cafe', 'mastering', 'offline'];
+        const status = statuses[Math.floor(Math.random() * statuses.length)];
+        const isHosting = status === 'hosting' || status === 'drafting';
+    
+        let gridX = 6, gridY = 6;
+        let attempts = 0;
+        while(attempts < 100) {
+            gridX = Math.floor(Math.random() * 24) - 6;
+            gridY = Math.floor(Math.random() * 24) - 6;
+            if (gridX === 6 && gridY === 6) { attempts++; continue; }
+            const clash = existingUsers.some(u => u.gridX === gridX && u.gridY === gridY);
+            if (!clash) break;
+            attempts++;
+        }
+    
+        return {
+            id: `mock-${id}`,
+            name: `Bot ${id}`,
+            chumLabel: "🤖 Bot",
+            focusScore: Math.floor(Math.random() * 5000),
+            status,
+            hours: Math.floor(Math.random() * 500),
+            isPremium: Math.random() > 0.5,
+            isHosting,
+            roomCode: isHosting ? `MCK${id.substring(0,3)}` : undefined,
+            roomTitle: isHosting ? `Mock Sanctuary ${id}` : undefined,
+            gridX,
+            gridY,
+            jitterX: (Math.random() - 0.5) * 40,
+            jitterY: (Math.random() - 0.5) * 40,
+        };
+    };
 
     const [isHostModalOpen, setIsHostModalOpen] = useState(false);
     const [roomSettings, setRoomSettings] = useState({
@@ -196,7 +181,6 @@ export default function LanternNetPage() {
                             chum_wardrobe: wardrobeMap.get(p.id) || null
                         };
 
-                        // If it's ME, we ignore the DB status and use the STORE status for local echo
                         if (p.id === currentUserId) {
                             return formatUser({
                                 ...mergedProfile,
@@ -225,8 +209,6 @@ export default function LanternNetPage() {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
                 if (isSubscribed) fetchNetwork();
             })
-            // ⚡ THE FIX: Replace the complex payload mapping with a clean fetch.
-            // This ensures the roomCode is NEVER wiped out by an empty array when a profile updates.
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => {
                 if (isSubscribed) fetchNetwork();
             })
@@ -237,6 +219,7 @@ export default function LanternNetPage() {
             supabase.removeChannel(channel);
         };
     }, [totalSessions, activeMode, isTutorModeActive]);
+
     const handleBroadcast = async () => {
         if (isSubmitting) return;
         setIsSubmitting(true);
@@ -254,7 +237,7 @@ export default function LanternNetPage() {
         const { error } = await supabase.from('rooms').insert({
             room_code: roomCode,
             host_id: user.id,
-            name: roomSettings.title, // 👈 The title is inserted here
+            name: roomSettings.title,
             status: 'DRAFT',
             work_duration: roomSettings.workDuration,
             break_duration: roomSettings.breakDuration,
@@ -265,8 +248,6 @@ export default function LanternNetPage() {
         });
 
         if (!error) {
-            // ⚡ FIX: Pass the title in the URL so StudyRoom.tsx can grab it instantly!
-            // This ensures the channel.track payload never sends 'undefined'
             router.push(`/room/${roomCode}?title=${encodeURIComponent(roomSettings.title)}`);
         } else {
             console.error("Insert Error:", error.message);
@@ -275,7 +256,6 @@ export default function LanternNetPage() {
         }
     };
 
-    // SEARCH FILTER
     const combinedNetwork = [...fullNetwork, ...mockUsers];
     const filteredNetwork = combinedNetwork.filter(user =>
         user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -286,9 +266,8 @@ export default function LanternNetPage() {
     if (!isMounted) return null;
 
     return (
-        <div className="flex flex-col lg:flex-row h-screen max-h-screen p-4 pb-8 lg:p-6 lg:pb-10 gap-6 bg-[var(--bg-dark)] overflow-hidden relative">
+        <div className="flex flex-col lg:flex-row h-screen max-h-screen p-4 pb-8 lg:p-6 lg:pb-10 gap-6 bg-(--bg-dark) overflow-hidden relative">
 
-            {/* --- DEV OVERLAY --- */}
             <AnimatePresence>
                 {isDevOverlayOpen && (
                     <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
@@ -301,65 +280,44 @@ export default function LanternNetPage() {
                             <div className="flex justify-between items-center bg-(--bg-dark) px-4 py-2 rounded-xl">
                                 <span className="text-xs font-bold text-(--text-main)">Mock Users</span>
                                 <div className="flex gap-2 items-center">
-                                    <button onClick={() => setMockUsers(prev => prev.slice(0, Math.max(0, prev.length - 1)))} className="w-6 h-6 rounded bg-(--border-color) flex items-center justify-center font-bold text-xs">-</button>
+                                    <button onClick={() => setMockUsers(mockUsers.slice(0, Math.max(0, mockUsers.length - 1)))} className="w-6 h-6 rounded bg-(--border-color) flex items-center justify-center font-bold text-xs">-</button>
                                     <span className="text-xs font-mono">{mockUsers.length}</span>
-                                    <button onClick={() => setMockUsers(prev => [...prev, generateMockUser([...fullNetwork, ...prev], Math.random().toString(36).substring(2,6))])} className="w-6 h-6 rounded bg-(--border-color) flex items-center justify-center font-bold text-xs">+</button>
+                                    <button onClick={() => setMockUsers([...mockUsers, generateMockUser(combinedNetwork, Math.random().toString(36).substring(2,6))])} className="w-6 h-6 rounded bg-(--border-color) flex items-center justify-center font-bold text-xs">+</button>
                                 </div>
                             </div>
                             <button onClick={() => {
-                                setMockUsers(prev => prev.map(u => generateMockUser([...fullNetwork, ...prev.filter(mu => mu.id !== u.id)], u.id.replace('mock-', ''))));
+                                setMockUsers(mockUsers.map(u => generateMockUser(combinedNetwork.filter(m => m.id !== u.id), u.id.replace('mock-', ''))));
                             }} className="w-full py-2 bg-(--bg-dark) border border-(--border-color) rounded-xl text-xs font-bold hover:bg-(--border-color) transition-colors">
                                 Randomize Mock Users
                             </button>
-                            <button onClick={() => {
-                                setFullNetwork(prev => prev.map(u => {
-                                    if (u.id === 'me') return u; // Remain centered
-                                    // Generate mock state but keep their real ID/Name
-                                    const mix = generateMockUser([...prev, ...mockUsers], u.id);
-                                    return { 
-                                        ...u, 
-                                        gridX: mix.gridX, 
-                                        gridY: mix.gridY, 
-                                        status: mix.status, 
-                                        hours: mix.hours, 
-                                        jitterX: mix.jitterX, 
-                                        jitterY: mix.jitterY,
-                                        isHosting: mix.isHosting,
-                                        roomCode: mix.roomCode,
-                                        roomTitle: mix.roomTitle
-                                    };
-                                }));
-                            }} className="w-full py-2 bg-red-500/20 text-red-300 rounded-xl text-xs font-bold hover:bg-red-500/30 transition-colors">
-                                Randomize ALL (Local Override)
-                            </button>
-
+                            
                             <div className="pt-4 border-t border-(--border-color) space-y-3">
-                                <h3 className="text-[10px] font-black uppercase text-white/40 tracking-widest">Atmosphere</h3>
+                                <h3 className="text-[10px] font-black uppercase text-white/40 tracking-widest">Environment Controls</h3>
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-bold">
-                                        <span>Debris Size</span>
-                                        <span className="font-mono text-(--accent-teal)">{debrisSize.toFixed(1)}</span>
+                                        <span>Size</span>
+                                        <span className="font-mono text-red-400">{debrisSize.toFixed(1)}</span>
                                     </div>
-                                    <input type="range" min="0.1" max="2.0" step="0.1" value={debrisSize} onChange={(e) => setDebrisSize(parseFloat(e.target.value))} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
+                                    <input type="range" min="0.1" max="2" step="0.1" value={debrisSize} onChange={(e) => setDebris({ size: parseFloat(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-500" />
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-bold">
-                                        <span>Debris Count</span>
-                                        <span className="font-mono text-(--accent-teal)">{debrisCount}</span>
+                                        <span>Count</span>
+                                        <span className="font-mono text-red-400">{debrisCount}</span>
                                     </div>
-                                    <input type="range" min="1000" max="15000" step="1000" value={debrisCount} onChange={(e) => setDebrisCount(parseInt(e.target.value))} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
+                                    <input type="range" min="1000" max="15000" step="1000" value={debrisCount} onChange={(e) => setDebris({ count: parseInt(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-500" />
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-bold">
-                                        <span>Debris Spread</span>
-                                        <span className="font-mono text-(--accent-teal)">{debrisSpread}</span>
+                                        <span>Spread</span>
+                                        <span className="font-mono text-red-400">{debrisSpread}</span>
                                     </div>
-                                    <input type="range" min="100" max="1000" step="50" value={debrisSpread} onChange={(e) => setDebrisSpread(parseInt(e.target.value))} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
+                                    <input type="range" min="100" max="1000" step="50" value={debrisSpread} onChange={(e) => setDebris({ spread: parseInt(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-500" />
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-bold">
-                                        <span>Debris Color</span>
-                                        <input type="color" value={debrisColor} onChange={(e) => setDebrisColor(e.target.value)} className="w-6 h-6 bg-transparent border-none cursor-pointer" />
+                                        <span>Color</span>
+                                        <input type="color" value={debrisColor} onChange={(e) => setDebris({ color: e.target.value })} className="w-6 h-6 bg-transparent border-none cursor-pointer" />
                                     </div>
                                 </div>
                             </div>
@@ -368,70 +326,67 @@ export default function LanternNetPage() {
                 )}
             </AnimatePresence>
 
-            {/* LEFT PANEL */}
-            <div className="w-full lg:w-[340px] flex flex-col gap-6 h-full z-10 flex-shrink-0 min-h-0">
-                {/* Control Hub */}
-                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-[32px] shadow-sm flex flex-col gap-5">
-                    <h1 className="text-2xl font-black text-[var(--text-main)] flex items-center gap-2">
-                        <Radio size={24} className="text-[var(--accent-teal)]" /> Lantern Net
+            <div className="w-full lg:w-[340px] flex flex-col gap-6 h-full z-10 shrink-0 min-h-0">
+                <div className="bg-(--bg-card) border border-(--border-color) p-6 rounded-[32px] shadow-sm flex flex-col gap-5">
+                    <h1 className="text-2xl font-black text-(--text-main) flex items-center gap-2">
+                        <Radio size={24} className="text-(--accent-teal)" /> Lantern Net
                     </h1>
 
                     <div className="relative">
-                        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-(--text-muted)" />
                         <input
                             type="text"
                             placeholder="Search the void or room code..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] transition-colors"
+                            className="flex-1 bg-(--bg-dark) border border-(--border-color) rounded-2xl pl-4 pr-12 py-3.5 text-sm font-bold text-(--text-main) outline-none focus:border-(--accent-teal) transition-all resize-none custom-scrollbar"
                         />
                     </div>
 
                     <button
                         onClick={() => setIsHostModalOpen(true)}
-                        className="w-full py-3.5 bg-[var(--accent-teal)] text-black rounded-2xl font-black text-sm shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                        className="w-full py-3.5 bg-(--accent-teal) text-black rounded-2xl font-black text-sm shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
                         <Plus size={18} /> Host Room
                     </button>
                 </div>
 
-                {/* HALL OF FOCUS */}
-                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[32px] p-6 flex-1 flex flex-col min-h-0 shadow-sm">
-                    <h3 className="text-sm font-black text-[var(--text-main)] flex items-center gap-2 mb-4 pb-4 border-b border-[var(--border-color)] uppercase tracking-wide">
-                        <Trophy size={18} className="text-[var(--accent-yellow)]" /> Hall of Focus
+                <div className="bg-(--bg-card) border border-(--border-color) rounded-[32px] p-6 flex-1 flex flex-col min-h-0 shadow-sm">
+                    <h3 className="text-sm font-black text-(--text-main) flex items-center gap-2 mb-4 pb-4 border-b border-(--border-color) uppercase tracking-wide">
+                        <Trophy size={18} className="text-(--accent-yellow)" /> Hall of Focus
                     </h3>
                     <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
                         {isNetworkLoading ? (
                             Array.from({ length: 5 }).map((_, i) => (
-                                <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-[var(--bg-dark)]/30 border border-transparent animate-pulse">
-                                    <div className="w-5 h-4 bg-[var(--border-color)] rounded" />
+                                <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-(--bg-dark)/30 border border-transparent animate-pulse">
+                                    <div className="w-5 h-4 bg-(--border-color) rounded" />
                                     <div className="flex-1 space-y-2">
-                                        <div className="h-4 bg-[var(--border-color)] rounded w-24" />
+                                        <div className="h-4 bg-(--border-color) rounded w-24" />
                                     </div>
-                                    <div className="w-10 h-6 bg-[var(--border-color)] rounded-lg" />
+                                    <div className="w-10 h-6 bg-(--border-color) rounded-lg" />
                                 </div>
                             ))
                         ) : (
                             filteredNetwork.sort((a, b) => b.hours - a.hours).map((user, index) => (
                                 <div
                                     key={user.id}
-                                    className={`group/row flex items-center gap-3 p-3 rounded-2xl border transition-all ${user.id === 'me' ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/20' : 'bg-transparent border-transparent hover:border-[var(--border-color)] hover:bg-[var(--bg-dark)]'}`}
+                                    className={`group/row flex items-center gap-3 p-3 rounded-2xl border transition-all ${user.id === 'me' ? 'bg-(--accent-teal)/10 border-(--accent-teal)/20' : 'bg-transparent border-transparent hover:border-(--border-color) hover:bg-(--bg-dark)'}`}
                                 >
-                                    <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-[var(--accent-yellow)]' : 'text-[var(--text-muted)]'}`}>
+                                    <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-(--accent-yellow)' : 'text-(--text-muted)'}`}>
                                         {index + 1}
                                     </span>
                                     <div className="flex-1 flex flex-col">
-                                        <span className="text-sm font-black text-[var(--text-main)]">{user.name}</span>
+                                        <span className="text-sm font-black text-(--text-main)">{user.name}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => lanternRef.current?.warpToUser(user.id)}
-                                            className="opacity-0 group-hover/row:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-[var(--accent-teal)]/10 text-[var(--text-muted)] hover:text-[var(--accent-teal)]"
+                                            className="opacity-0 group-hover/row:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-(--accent-teal)/10 text-(--text-muted) hover:text-(--accent-teal)"
                                             title="Locate on map"
                                         >
                                             <Crosshair size={14} />
                                         </button>
-                                        <span className="text-xs font-black text-[var(--text-muted)] bg-[var(--bg-dark)] px-2 py-1 rounded-lg">
+                                        <span className="text-xs font-black text-(--text-muted) bg-(--bg-dark) px-2 py-1 rounded-lg">
                                             {user.hours}h
                                         </span>
                                     </div>
@@ -442,8 +397,7 @@ export default function LanternNetPage() {
                 </div>
             </div>
 
-            {/* RIGHT PANEL: THREE.JS MAP */}
-            <div className="flex-1 h-full rounded-[40px] overflow-hidden border border-[var(--border-color)] shadow-xl relative min-h-0">
+            <div className="flex-1 h-full rounded-[40px] overflow-hidden border border-(--border-color) shadow-xl relative min-h-0">
                 <ThreeLanternNet 
                     ref={lanternRef} 
                     users={combinedNetwork} 
@@ -454,131 +408,6 @@ export default function LanternNetPage() {
                     debrisSpread={debrisSpread}
                 />
             </div>
-
-            {/* THE STUDY ARCHITECT MODAL (Simplified Entrance) */}
-            <AnimatePresence>
-                {isHostModalOpen && (
-                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            onClick={() => setIsHostModalOpen(false)}
-                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                        />
-
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[40px] w-full max-w-4xl overflow-hidden relative z-10 shadow-2xl flex flex-col md:flex-row min-h-[400px]"
-                        >
-                            {/* LEFT: Standard Settings */}
-                            <div className="flex-[1.5] p-8 lg:p-10 flex flex-col justify-between">
-                                <div>
-                                    <h2 className="text-[28px] font-black text-[var(--text-main)] flex items-center gap-3 mb-10 tracking-tight">
-                                        <Radio className="text-[var(--accent-teal)]" size={28} /> Host Room
-                                    </h2>
-
-                                    <div className="space-y-8">
-                                        <div>
-                                            <label className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3 block">Room Title</label>
-                                            <input
-                                                type="text"
-                                                value={roomSettings.title}
-                                                onChange={(e) => setRoomSettings({ ...roomSettings, title: e.target.value })}
-                                                className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl px-5 py-4 text-[var(--text-main)] font-bold outline-none focus:border-[var(--accent-teal)]/50 transition-all text-lg"
-                                                placeholder="e.g. Deep Work Session"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <button
-                                    onClick={handleBroadcast}
-                                    disabled={isSubmitting} // ⚡ Add this to prevent double-clicks
-                                    className={`mt-12 w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all ${isSubmitting
-                                        ? 'bg-[var(--text-muted)]/30 text-[var(--text-muted)] cursor-not-allowed'
-                                        : 'bg-[var(--accent-teal)] text-black hover:brightness-110 active:scale-95'
-                                        }`}
-                                >
-                                    {isSubmitting ? (
-                                        // ⚡ INSTANT FEEDBACK: Show a loading animation
-                                        <>
-                                            <motion.div
-                                                animate={{ rotate: 360 }}
-                                                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                                                className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full"
-                                            />
-                                            Forging Blueprint...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Radio size={18} /> Initialize Blueprint
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-
-                            {/* RIGHT: Premium Architect Panel */}
-                            <div className="flex-1 bg-[var(--bg-sidebar)] border-t md:border-t-0 md:border-l border-[var(--border-color)] p-8 lg:p-10 flex flex-col relative">
-                                <button
-                                    onClick={() => setIsHostModalOpen(false)}
-                                    className="absolute top-6 right-6 z-20 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors p-2 bg-[var(--bg-card)] rounded-full border border-[var(--border-color)]"
-                                >
-                                    <X size={16} />
-                                </button>
-
-                                <h3 className="text-sm font-black text-[var(--accent-yellow)] flex items-center gap-2 mb-10 uppercase tracking-widest">
-                                    <Sparkles size={16} /> Architect Pro
-                                </h3>
-
-                                <div className="space-y-8 flex-1">
-                                    {/* Capacity (Premium Locked) */}
-                                    <div className={`flex flex-col gap-3 ${!isPremiumUser ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
-                                        <span className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest flex justify-between">
-                                            Capacity {!isPremiumUser && <Lock size={12} />}
-                                        </span>
-                                        <select
-                                            value={roomSettings.capacity}
-                                            onChange={(e) => setRoomSettings({ ...roomSettings, capacity: Number(e.target.value) })}
-                                            className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-xl text-base font-bold text-[var(--text-main)] outline-none appearance-none cursor-pointer"
-                                        >
-                                            <option value={5}>5 Users (Free)</option>
-                                            <option value={15}>15 Users</option>
-                                            <option value={50}>50 Users</option>
-                                        </select>
-                                    </div>
-
-                                    {/* Privacy (Premium Locked) */}
-                                    <div className={`flex items-center justify-between pt-4 ${!isPremiumUser ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
-                                        <span className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest flex items-center gap-2">
-                                            Private Room {!isPremiumUser && <Lock size={12} />}
-                                        </span>
-                                        <button
-                                            onClick={() => setRoomSettings({ ...roomSettings, isLocked: !roomSettings.isLocked })}
-                                            className={`w-12 h-6 rounded-full relative transition-colors ${roomSettings.isLocked ? 'bg-[var(--accent-teal)]' : 'bg-[var(--bg-card)] border border-[var(--border-color)]'}`}
-                                        >
-                                            <motion.div layout className={`w-4 h-4 rounded-full bg-white absolute top-1 ${roomSettings.isLocked ? 'right-1' : 'left-1 bg-white/50'}`} />
-                                        </button>
-                                    </div>
-
-                                    {/* Password Input (Only shows if Private is toggled on) */}
-                                    <AnimatePresence>
-                                        {roomSettings.isLocked && isPremiumUser && (
-                                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                                                <input
-                                                    type="text" placeholder="Enter Room Password"
-                                                    onChange={(e) => setRoomSettings({ ...roomSettings, vibe: e.target.value })} // Map to your DB schema if needed
-                                                    className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-main)] text-sm font-bold outline-none mt-2"
-                                                />
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
         </div>
     );
 }

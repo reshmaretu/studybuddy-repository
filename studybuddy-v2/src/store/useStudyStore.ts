@@ -130,7 +130,23 @@ interface StudyState {
     setLastPlannedDate: (date: string | null) => Promise<void>;
 
     updateUserTheme: (themeId: string) => Promise<void>;
+    isDev: boolean;
+    setIsDev: (val: boolean) => Promise<void>;
+
+    // 🛠️ DEV TOOLS (Global)
+    debrisSize: number;
+    debrisColor: string;
+    debrisCount: number;
+    debrisSpread: number;
+    setDebris: (settings: Partial<{size: number, color: string, count: number, spread: number}>) => void;
+    devOverlayEnabled: boolean;
+    setDevOverlayEnabled: (val: boolean) => void;
+
     reset: () => void;
+    
+    // 🎭 MOCK USERS (Dev Only)
+    mockUsers: any[];
+    setMockUsers: (val: any[] | ((prev: any[]) => any[])) => void;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -197,6 +213,8 @@ export const useStudyStore = create<StudyState>()(
 
             activeFramework: null,
             lastPlannedDate: null,
+            isDev: false,
+            devOverlayEnabled: true,
 
             setActiveFramework: async (framework) => {
                 set({ activeFramework: framework });
@@ -209,6 +227,30 @@ export const useStudyStore = create<StudyState>()(
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) await supabase.from('profiles').update({ last_planned_date: date }).eq('id', user.id);
             },
+
+            setIsDev: async (val) => {
+                set({ isDev: val });
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) await supabase.from('profiles').update({ is_dev: val }).eq('id', user.id);
+            },
+
+            debrisSize: 0.4,
+            debrisColor: "#2dd4bf",
+            debrisCount: 3000,
+            debrisSpread: 400,
+            setDebris: (settings) => set((state) => ({
+                debrisSize: settings.size ?? state.debrisSize,
+                debrisColor: settings.color ?? state.debrisColor,
+                debrisCount: settings.count ?? state.debrisCount,
+                debrisSpread: settings.spread ?? state.debrisSpread
+            })),
+
+            setDevOverlayEnabled: (val) => set({ devOverlayEnabled: val }),
+
+            mockUsers: [],
+            setMockUsers: (val) => set((state) => ({ 
+                mockUsers: typeof val === 'function' ? val(state.mockUsers) : val 
+            })),
 
             // ==========================================
             // 🌐 CLOUD FETCHING
@@ -225,7 +267,7 @@ export const useStudyStore = create<StudyState>()(
                     const [tasksResponse, shardsResponse, profileResponse, statsResponse, wardrobeResponse, sessionsResponse] = await Promise.all([
                         supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                        supabase.from('profiles').select('display_name, full_name, is_premium, active_framework, last_planned_date').eq('id', user.id).maybeSingle(),
+                        supabase.from('profiles').select('display_name, full_name, is_premium, is_dev, active_framework, last_planned_date').eq('id', user.id).maybeSingle(),
                         supabase.from('user_stats').select('focus_score, total_sessions, total_seconds_tracked').eq('user_id', user.id).maybeSingle(),
                         supabase.from('chum_wardrobe').select('active_theme').eq('user_id', user.id).maybeSingle(),
                         supabase.from('ai_sessions').select('*, shards(title)').eq('user_id', user.id).order('created_at', { ascending: false })
@@ -268,6 +310,7 @@ export const useStudyStore = create<StudyState>()(
                         focusScore: statsResponse.data?.focus_score ?? 100,
                         totalSessions: statsResponse.data?.total_sessions ?? 0,
                         isPremiumUser: profileResponse.data?.is_premium || false,
+                        isDev: profileResponse.data?.is_dev || false,
                         activeFramework: profileResponse.data?.active_framework || null,
                         lastPlannedDate: profileResponse.data?.last_planned_date || null
                     });
@@ -559,7 +602,8 @@ export const useStudyStore = create<StudyState>()(
                 pomodoroFocus: state.pomodoroFocus,
                 pomodoroShortBreak: state.pomodoroShortBreak,
                 pomodoroLongBreak: state.pomodoroLongBreak,
-                pomodoroCycles: state.pomodoroCycles
+                pomodoroCycles: state.pomodoroCycles,
+                devOverlayEnabled: state.devOverlayEnabled
             })
         }
     )
