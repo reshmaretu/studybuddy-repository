@@ -117,6 +117,7 @@ interface StudyState {
 
     windSpeed: number;
     swayAmount: number;
+    setWindSettings: (settings: Partial<{ windSpeed: number; swayAmount: number }>) => void;
 
     flowerCount: number;
     swayEnabled: boolean;
