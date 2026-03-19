@@ -266,7 +266,13 @@ export default function StudyCafeOverlay() {
     const confirmExit = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         setShowExitConfirm(false);
-        document.body.removeAttribute("data-cafe");
+
+        // 🚨 THE PENALTY 🚨
+        const { timeLeft, modifyFocusScore } = useStudyStore.getState();
+        if (timeLeft > 0) {
+            modifyFocusScore(-10);
+            useStudyStore.getState().triggerChumToast("Focus broken. -10 Focus Score.", "warning");
+        }
 
         if (user) {
             await supabase.from('profiles')
@@ -274,8 +280,7 @@ export default function StudyCafeOverlay() {
                 .eq('id', user.id);
         }
 
-        useStudyStore.setState({ activeMode: 'none' });
-        exitMode();
+        useStudyStore.getState().exitMode();
     };
 
     // Set/cleanup body attribute for glassmorphism injection

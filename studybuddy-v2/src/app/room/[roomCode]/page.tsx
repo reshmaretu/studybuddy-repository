@@ -346,7 +346,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             // 2. ⚡ FETCH CURRENT USER DETAILS (For Presence)
             const [profileRes, statsRes, wardrobeRes] = await Promise.all([
                 supabase.from('profiles').select('display_name, full_name, is_premium').eq('id', user.id).single(),
-                supabase.from('user_stats').select('is_premium').eq('user_id', user.id).single(),
+                supabase.from('user_stats').select('focus_score').eq('user_id', user.id).single(), // Removed is_premium
                 supabase.from('chum_wardrobe').select('base_emoji, hat_emoji').eq('user_id', user.id).single()
             ]);
 
@@ -364,14 +364,13 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
             // 3. ⚡ FETCH HOST PREMIUM STATUS (For Room Capabilities)
             if (isActuallyHost) {
-                setIsRoomPremium(myProfile.is_premium || myStats.is_premium || false);
+                setIsRoomPremium(myProfile.is_premium || false);
             } else {
-                const [hostProfileRes, hostStatsRes] = await Promise.all([
-                    supabase.from('profiles').select('is_premium').eq('id', roomData.host_id).single(),
-                    supabase.from('user_stats').select('is_premium').eq('user_id', roomData.host_id).single()
+                const [hostProfileRes] = await Promise.all([
+                    supabase.from('profiles').select('is_premium').eq('id', roomData.host_id).single()
                 ]);
 
-                setIsRoomPremium(hostProfileRes.data?.is_premium || hostStatsRes.data?.is_premium || false);
+                setIsRoomPremium(hostProfileRes.data?.is_premium || false);
             }
 
             if (isActuallyHost && roomData.status === 'DRAFT') {
@@ -400,7 +399,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             }
 
             await supabase.from('profiles').update({
-                status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined'
+                status: isActuallyHost ? (roomData.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
+                joined_room_code: isActuallyHost ? null : roomCode
             }).eq('id', user.id);
 
             const channel = supabase.channel(`room:${roomCode}`, { config: { presence: { key: user.id } } });
@@ -583,7 +583,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             // 3. Signal Joiners & Destroy Room
             await channelRef.current.send({ type: 'broadcast', event: 'room_closed' });
             await supabase.from('rooms').delete().eq('room_code', roomCode);
-            await supabase.from('profiles').update({ status: 'idle' }).eq('id', user?.id);
+            await supabase.from('profiles').update({ status: 'idle', joined_room_code: null }).eq('id', user?.id);
         }
 
         if (channelRef.current) await supabase.removeChannel(channelRef.current);
@@ -775,12 +775,12 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                         {/* Focus Block */}
                                         <div>
                                             <div className="flex justify-between mb-3 text-[10px] font-bold text-[var(--text-muted)] uppercase"><span>Focus</span> <span className="text-[var(--accent-teal)]">{settings.workDuration}m</span></div>
-                                            <input type="range" min="15" max="90" value={settings.workDuration} onChange={(e) => updateSettings({ workDuration: Number(e.target.value) })} className="w-full accent-[var(--accent-teal)]" />
+                                            <input type="range" min="15" max="90" value={settings.workDuration} onChange={(e) => updateSettings({ workDuration: Number(e.target.value) })} className="w-full appearance-none bg-(--border-color) h-1.5 rounded-full accent-(--accent-teal)" />
                                         </div>
                                         {/* Short Break */}
                                         <div>
                                             <div className="flex justify-between mb-3 text-[10px] font-bold text-[var(--text-muted)] uppercase"><span>Short Break</span> <span className="text-[var(--accent-teal)]">{settings.breakDuration}m</span></div>
-                                            <input type="range" min="3" max="30" value={settings.breakDuration} onChange={(e) => updateSettings({ breakDuration: Number(e.target.value) })} className="w-full accent-[var(--accent-teal)]" />
+                                            <input type="range" min="3" max="30" value={settings.breakDuration} onChange={(e) => updateSettings({ breakDuration: Number(e.target.value) })} className="w-full appearance-none bg-(--border-color) h-1.5 rounded-full accent-(--accent-teal)" />
                                         </div>
                                         {/* Long Break */}
                                         <div>
@@ -788,12 +788,12 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                                 <span>Long Break <InfoTooltip text="Triggers automatically after your set number of focus cycles." /></span>
                                                 <span className="text-[var(--accent-teal)]">{settings.longBreakDuration}m</span>
                                             </div>
-                                            <input type="range" min="10" max="60" value={settings.longBreakDuration} onChange={(e) => updateSettings({ longBreakDuration: Number(e.target.value) })} className="w-full accent-[var(--accent-teal)]" />
+                                            <input type="range" min="10" max="60" value={settings.longBreakDuration} onChange={(e) => updateSettings({ longBreakDuration: Number(e.target.value) })} className="w-full appearance-none bg-(--border-color) h-1.5 rounded-full accent-(--accent-teal)" />
                                         </div>
                                         {/* Cycles */}
                                         <div>
                                             <div className="flex justify-between mb-3 text-[10px] font-bold text-[var(--text-muted)] uppercase"><span>Cycles</span> <span className="text-[var(--accent-teal)]">{settings.cyclesBeforeLongBreak}</span></div>
-                                            <input type="range" min="2" max="6" value={settings.cyclesBeforeLongBreak} onChange={(e) => updateSettings({ cyclesBeforeLongBreak: Number(e.target.value) })} className="w-full accent-[var(--accent-teal)]" />
+                                            <input type="range" min="2" max="6" value={settings.cyclesBeforeLongBreak} onChange={(e) => updateSettings({ cyclesBeforeLongBreak: Number(e.target.value) })} className="w-full appearance-none bg-(--border-color) h-1.5 rounded-full accent-(--accent-teal)" />
                                         </div>
                                     </div>
                                 )}
@@ -897,8 +897,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             </section>
                         </div>
 
-                        <div className="p-6 border-t border-[var(--border-color)] bg-black/40 space-y-3">
-                            <button onClick={handleInitializeSanctuary} className="w-full py-4 bg-[var(--accent-teal)] text-black rounded-2xl font-black uppercase text-xs hover:brightness-110 transition-all">Initialize Sanctuary</button>
+                        <div className="p-6 border-t border-(--border-color) bg-(--bg-sidebar)/90 space-y-3">
+                            <button onClick={handleInitializeSanctuary} className="w-full py-4 bg-[var(--accent-teal)] text-white rounded-2xl font-black uppercase text-xs hover:brightness-110 transition-all">Initialize Sanctuary</button>
                             <button onClick={() => setShowAbandonConfirm(true)} className="w-full py-3 text-[var(--text-muted)] text-[10px] font-bold uppercase hover:text-red-400 transition-colors">Abandon Blueprint</button>
                         </div>
                     </motion.aside>
@@ -941,7 +941,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
                     {/* JOINER WAIT SCREEN (Shows real-time blueprint updates) */}
                     {status === 'DRAFT' && !isHost && (
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-black/40 backdrop-blur-md border border-[var(--border-color)] p-8 rounded-[32px] text-center max-w-md w-full shadow-2xl">
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-(--bg-card)/90 backdrop-blur-md border border-(--border-color) p-8 rounded-[32px] text-center max-w-md w-full shadow-2xl">
                             <div className="w-12 h-12 border-4 border-[var(--accent-teal)]/20 border-t-[var(--accent-teal)] rounded-full animate-spin mx-auto mb-6" />
                             <h3 className="text-[var(--accent-teal)] font-black uppercase tracking-[0.2em] text-xs mb-2">Architect is Constructing</h3>
 
@@ -1024,7 +1024,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
             {/* 3. RIGHT PRESENCE SIDEBAR */}
             {!isSidebarMinimized && (
-                <aside className="w-72 flex-shrink-0 border-l border-[var(--border-color)] z-20 hidden lg:flex flex-col bg-black/20 p-8">
+                <aside className="w-72 flex-shrink-0 border-l border-(--border-color) z-20 hidden lg:flex flex-col bg-(--bg-sidebar)/90 p-8">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
                             <Users size={14} /> Presence ({participants.length})
@@ -1081,22 +1081,22 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             {/* 4. LEGACY LOG MODAL */}
             <AnimatePresence>
                 {showAbandonConfirm && (
-                    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/90 backdrop-blur-xl p-6">
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-(--bg-dark)/90 backdrop-blur-xl p-6">
                         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[var(--bg-card)] border border-[var(--accent-teal)]/20 p-10 rounded-[40px] max-w-md w-full text-center shadow-2xl relative overflow-hidden">
                             <h3 className="text-2xl font-black text-[var(--text-main)] mb-2">Harvest Mastery?</h3>
                             <p className="text-xs text-[var(--text-muted)] mb-8 uppercase tracking-widest font-black">Legacy Log Summary</p>
                             <div className="grid grid-cols-2 gap-4 mb-8">
-                                <div className="bg-[var(--bg-sidebar)]/50 p-4 rounded-3xl border border-[var(--border-color)]">
+                                <div className="bg-(--bg-sidebar)/90 p-4 rounded-3xl border border-(--border-color)">
                                     <span className="text-[10px] font-black text-[var(--accent-teal)] uppercase block mb-1">Session</span>
                                     <span className="text-xl font-black text-[var(--text-main)]">{Math.floor((isActive ? secondsLeft : 0) / 60)}m</span>
                                 </div>
-                                <div className="bg-[var(--bg-sidebar)]/50 p-4 rounded-3xl border border-[var(--border-color)]">
+                                <div className="bg-(--bg-sidebar)/90 p-4 rounded-3xl border border-(--border-color)">
                                     <span className="text-[10px] font-black text-[var(--accent-yellow)] uppercase block mb-1">Crystals</span>
                                     <span className="text-xl font-black text-[var(--text-main)]">{settings.currentCycle ? settings.currentCycle - 1 : 0}</span>
                                 </div>
                             </div>
                             <div className="flex flex-col gap-3">
-                                <button onClick={handleAbandon} className="w-full py-5 bg-[var(--accent-teal)] text-black rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:brightness-110 transition-all">Forge Legacy & Exit</button>
+                                <button onClick={handleAbandon} className="w-full py-5 bg-[var(--accent-teal)] text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:brightness-110 transition-all">Forge Legacy & Exit</button>
                                 <button onClick={() => setShowAbandonConfirm(false)} className="w-full py-4 text-[var(--text-muted)] text-[10px] font-black uppercase tracking-widest hover:text-[var(--text-main)] transition-colors">Continue Focusing</button>
                             </div>
                         </motion.div>

@@ -32,7 +32,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
     // 🕰️ Loading State: Prevent the "Default Theme" flash
     if (!isMounted || (!isPublicPage && !isInitialized)) {
         return (
-            <div className="fixed inset-0 bg-[#0b1211] z-[9999] flex items-center justify-center">
+            <div className="fixed inset-0 bg-(--bg-dark) z-[9999] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-12 h-12 border-4 border-[var(--accent-teal)]/30 border-t-[var(--accent-teal)] rounded-full animate-spin" />
                     <span className="text-[var(--text-muted)] font-black tracking-[0.2em] uppercase text-[10px]">Initializing Sanctuary...</span>

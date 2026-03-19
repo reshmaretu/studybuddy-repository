@@ -19,14 +19,17 @@ export default function ChumWidget() {
     const [readingShard, setReadingShard] = useState<Shard | null>(null);
     const [showBubble, setShowBubble] = useState(false);
     const bubbleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const [ephemeralMsg, setEphemeralMsg] = useState<{ text: React.ReactNode, type: string, id: number } | null>(null);
 
     const {
         activeMode, exitMode, isTutorModeActive, activeShardId, exitTutorMode,
         shards, updateShardMastery, aiTier, setAITier, aiKeys, updateAIKeys, ollamaUrl, setOllamaUrl,
         normalChatHistory, tutorChatHistory, setNormalChatHistory, setTutorChatHistory,
         tutorSessionState, updateTutorSessionState, completeTutorSession, pastTutorSessions, addTask, toggleMindDump,
-        showNodeBadge, setShowNodeBadge
+        showNodeBadge, setShowNodeBadge, chumToast
     } = useStudyStore();
+
+    const [widgetPos, setWidgetPos] = useState({ isLeft: false, isTop: false });
 
     const currentHistory = isTutorModeActive ? tutorChatHistory : normalChatHistory;
     const setCurrentHistory = isTutorModeActive ? setTutorChatHistory : setNormalChatHistory;
@@ -40,6 +43,41 @@ export default function ChumWidget() {
 
     useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [currentHistory, isOpen, showSettings, showSessions]);
     useEffect(() => { if (isTutorModeActive) setIsOpen(true); }, [isTutorModeActive]);
+
+    const historyLengthRef = useRef(currentHistory.length);
+
+
+    // 2. The Smart Message Listener
+    useEffect(() => {
+        // Only trigger if the history ACTUALLY got longer
+        const isNewMessage = currentHistory.length > historyLengthRef.current;
+        historyLengthRef.current = currentHistory.length;
+
+        const lastMsg = currentHistory[currentHistory.length - 1];
+
+        if (isNewMessage && lastMsg?.role === 'chum' && !isOpen) {
+            setShowBubble(true);
+            if (bubbleTimeoutRef.current) clearTimeout(bubbleTimeoutRef.current);
+            bubbleTimeoutRef.current = setTimeout(() => setShowBubble(false), 8000);
+        }
+    }, [currentHistory, isOpen]);
+
+    // 3. The Global Kill Switch
+    useEffect(() => {
+        if (isOpen) {
+            setShowBubble(false); // Always hide the floating hover bubble
+
+            // If a system toast fires WHILE the chat is open (or was pending), route it inside!
+            if (chumToast) {
+                setEphemeralMsg({
+                    text: chumToast.message,
+                    type: chumToast.type || 'info',
+                    id: Date.now()
+                });
+                useStudyStore.setState({ chumToast: undefined });
+            }
+        }
+    }, [isOpen, chumToast]); // Now listens to chumToast updates!
 
     const handleToggleSchedule = (checked: boolean) => {
         setIsScheduled(checked);
@@ -191,10 +229,10 @@ export default function ChumWidget() {
                     const res = await fetch(`${ollamaUrl}/api/chat`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ 
-                            model: "llama3.2:1b", 
-                            messages: [{ role: "system", content: systemPrompt }, ...historyToUse], 
-                            stream: false 
+                        body: JSON.stringify({
+                            model: "llama3.2:1b",
+                            messages: [{ role: "system", content: systemPrompt }, ...historyToUse],
+                            stream: false
                         })
                     });
                     const data = await res.json();
@@ -253,17 +291,6 @@ export default function ChumWidget() {
         }
     }, [isTutorModeActive]);
 
-    useEffect(() => {
-        const lastMsg = currentHistory[currentHistory.length - 1];
-        if (lastMsg?.role === 'chum' && !isOpen) {
-            setShowBubble(true);
-            if (bubbleTimeoutRef.current) clearTimeout(bubbleTimeoutRef.current);
-            bubbleTimeoutRef.current = setTimeout(() => setShowBubble(false), 8000);
-        } else if (isOpen) {
-            setShowBubble(false);
-        }
-    }, [currentHistory, isOpen]);
-
     let themeColor = "var(--accent-teal)";
     let title = "Chum";
     if (isFlowState) themeColor = "var(--text-muted)";
@@ -271,13 +298,46 @@ export default function ChumWidget() {
 
     const AITierIcon = aiTier === 'cloud' ? Network : aiTier === 'local' ? Cpu : WifiOff;
 
+    // --- SMART POSITIONING CALCULATIONS ---
+    // Pushes bubble slightly higher than center (bottom-24) or flips it down if at top (top-16)
+    const bubbleYPos = widgetPos.isTop ? 'top-[16px]' : 'bottom-[24px]';
+    const bubbleXPos = widgetPos.isLeft ? 'left-[76px]' : 'right-[76px]';
+
+    // Flips the Instagram tail corner based on exactly which quadrant it's in
+    const tailCorner = widgetPos.isTop
+        ? (widgetPos.isLeft ? 'rounded-tl-[4px] origin-top-left' : 'rounded-tr-[4px] origin-top-right')
+        : (widgetPos.isLeft ? 'rounded-bl-[4px] origin-bottom-left' : 'rounded-br-[4px] origin-bottom-right');
+
+    // Flips the Chatbox anchor so it drops down if dragged to the top of the screen
+    const chatboxYPos = widgetPos.isTop ? 'top-[80px]' : 'bottom-[80px]';
+    const chatboxOrigin = widgetPos.isTop
+        ? (widgetPos.isLeft ? 'left-0 origin-top-left' : 'right-0 origin-top-right')
+        : (widgetPos.isLeft ? 'left-0 origin-bottom-left' : 'right-0 origin-bottom-right');
+    // --------------------------------------
+
     return (
         <>
-            <motion.div drag dragMomentum={false} style={{ zIndex: 100000 }} className="fixed bottom-8 right-8 flex flex-col items-end cursor-grab active:cursor-grabbing">
+            <motion.div
+                drag
+                dragMomentum={false}
+                onDragEnd={(e, info) => setWidgetPos({
+                    isLeft: info.point.x < window.innerWidth / 2,
+                    isTop: info.point.y < window.innerHeight / 3 // Flips if in the top 33% of screen
+                })}
+                style={{ zIndex: 100000 }}
+                className="fixed bottom-8 right-8 flex flex-col items-end justify-end cursor-grab active:cursor-grabbing relative"
+            >
                 <AnimatePresence>
                     {isOpen && (
-                        <motion.div initial={{ opacity: 0, y: 20, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.8 }} className="mb-4 w-80 sm:w-96 bg-(--bg-card) border border-(--border-color) rounded-2xl shadow-2xl overflow-hidden cursor-default flex flex-col" style={{ height: '480px' }} onPointerDown={(e) => e.stopPropagation()}>
-
+                        <motion.div
+                            // 👇 Removed the 'y' translations that were throwing it off-screen!
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            className={`absolute ${chatboxYPos} ${chatboxOrigin} w-80 sm:w-96 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-2xl overflow-hidden cursor-default flex flex-col`}
+                            style={{ height: '480px' }}
+                            onPointerDown={(e) => e.stopPropagation()}
+                        >
                             {/* Header */}
                             <div className="bg-(--bg-sidebar) border-b border-(--border-color) p-3 flex justify-between items-center relative overflow-hidden">
                                 <div className="flex items-center gap-3 relative z-10">
@@ -305,7 +365,7 @@ export default function ChumWidget() {
                                     <h3 className="text-sm font-bold text-(--text-main) mb-2">Neural Link Settings</h3>
                                     <div className="flex bg-(--bg-sidebar) p-1 rounded-lg border border-(--border-color)">
                                         {(['cloud', 'local', 'offline'] as const).map(tier => (
-                                            <button key={tier} onClick={() => setAITier(tier)} className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors ${aiTier === tier ? 'bg-(--accent-teal) text-[#0b1211]' : 'text-(--text-muted) hover:text-(--text-main)'}`}>{tier}</button>
+                                            <button key={tier} onClick={() => setAITier(tier)} className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors ${aiTier === tier ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}>{tier}</button>
                                         ))}
                                     </div>
                                     {aiTier === 'cloud' && (
@@ -411,12 +471,58 @@ export default function ChumWidget() {
                                                 {showExitConfirm && i === currentHistory.length - 1 && msg.role === 'chum' && msg.text.includes("leave") && (
                                                     <div className="flex gap-2 mt-2 ml-1">
                                                         <button onClick={() => { exitMode(); setShowExitConfirm(false); }} className="text-[10px] font-bold bg-red-400/10 text-red-400 px-3 py-1.5 rounded border border-red-400/20 hover:bg-red-400 hover:text-white transition-all">Yes, Leave</button>
-                                                        <button onClick={() => setShowExitConfirm(false)} className="text-[10px] font-bold bg-(--accent-teal)/10 text-(--accent-teal) px-3 py-1.5 rounded border border-(--accent-teal)/20 hover:bg-(--accent-teal) hover:text-black transition-all">Stay</button>
+                                                        <button onClick={() => setShowExitConfirm(false)} className="text-[10px] font-bold bg-(--accent-teal)/10 text-(--accent-teal) px-3 py-1.5 rounded border border-(--accent-teal)/20 hover:bg-(--accent-teal) hover:text-white transition-all">Stay</button>
                                                     </div>
                                                 )}
                                             </div>
                                         ))}
-                                        {isTyping && <div className="text-xs text-(--text-muted) animate-pulse">Chum is thinking...</div>}
+                                        <AnimatePresence>
+                                            {ephemeralMsg && (
+                                                <motion.div
+                                                    key={ephemeralMsg.id}
+                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    // The Flashy Disappear: It scales up slightly, blurs, and fades out
+                                                    exit={{ opacity: 0, scale: 1.05, filter: "brightness(1.5) blur(4px)", transition: { duration: 0.3 } }}
+                                                    className="flex justify-start flex-col mt-2 overflow-hidden"
+                                                >
+                                                    <div className={`relative p-4 text-sm max-w-[85%] shadow-md whitespace-pre-wrap rounded-2xl rounded-tl-none overflow-hidden ${ephemeralMsg.type === 'warning'
+                                                        ? 'bg-red-500/10 border border-red-500/30 text-red-200'
+                                                        : 'bg-[var(--accent-teal)]/10 border border-[var(--accent-teal)]/30 text-[var(--accent-teal)]'
+                                                        }`}>
+
+                                                        <div className="flex items-center gap-1.5 mb-2 opacity-70">
+                                                            <span className="text-[10px] font-black uppercase tracking-wider">
+                                                                {ephemeralMsg.type === 'warning' ? '⚠️ System Alert' : '🔔 Chum Alert'}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* This allows ReactNode rendering so your bold burnout texts work perfectly */}
+                                                        <div className="leading-relaxed font-medium pb-2">
+                                                            {ephemeralMsg.text}
+                                                        </div>
+
+                                                        {/* The Decay Progress Bar Container */}
+                                                        <div className="absolute bottom-0 left-0 h-1.5 bg-black/20 w-full">
+                                                            {/* The Animated Bar */}
+                                                            <motion.div
+                                                                initial={{ width: "100%" }}
+                                                                animate={{ width: "0%" }}
+                                                                // Adjust this duration (in seconds) to make it stay longer/shorter
+                                                                transition={{ duration: 8, ease: "linear" }}
+                                                                // Triggers the flashy exit the exact millisecond the bar hits 0
+                                                                onAnimationComplete={() => setEphemeralMsg(null)}
+                                                                className={`h-full shadow-[0_0_10px_currentColor] ${ephemeralMsg.type === 'warning' ? 'bg-red-500 text-red-500' : 'bg-[var(--accent-teal)] text-[var(--accent-teal)]'
+                                                                    }`}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                        {/* 👆 END EPHEMERAL MESSAGE 👆 */}
+
+                                        {isTyping && <div className="text-xs text-[var(--text-muted)] animate-pulse">Chum is thinking...</div>}
                                         <div ref={chatEndRef} />
                                     </div>
 
@@ -450,26 +556,54 @@ export default function ChumWidget() {
                         </motion.div>
                     )}
                 </AnimatePresence>
-                
-                {/* 🗣️ CHUM FLOATING BUBBLE */}
+
+                {/* 🗣️ CHUM FLOATING BUBBLE (Now handles Chat AND System Toasts!) */}
                 <AnimatePresence>
-                    {showBubble && !isOpen && (
+                    {(showBubble || chumToast) && !isOpen && (
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.5, y: 10, x: -20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
-                            exit={{ opacity: 0, scale: 0.5, y: 10, x: -20 }}
-                            onClick={() => setIsOpen(true)}
-                            className="absolute bottom-20 right-4 mr-4 bg-(--bg-card) border border-(--border-color) p-4 rounded-3xl shadow-xl max-w-[240px] cursor-pointer hover:border-(--accent-teal) transition-colors group origin-bottom-right"
+                            // 👇 Safe scale animation that respects screen edges
+                            initial={{ opacity: 0, scale: 0.3 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ type: "spring", stiffness: 450, damping: 12 }}
+                            exit={{ opacity: 0, scale: 0, transition: { duration: 0.2 } }}
+                            onClick={() => {
+                                setIsOpen(true);
+                                // If it's a system toast, capture it as an ephemeral message!
+                                if (chumToast) {
+                                    setEphemeralMsg({
+                                        text: chumToast.message,
+                                        type: chumToast.type || 'info',
+                                        id: Date.now() // Unique ID to force re-renders if clicked multiple times
+                                    });
+                                }
+                            }}
+                            // 👇 Changed sizing to w-[320px] to make it longer!
+                            className={`absolute ${bubbleXPos} ${bubbleYPos} ${tailCorner} w-[320px] min-h-[80px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer transition-colors group z-50 pointer-events-auto flex flex-col justify-center ${chumToast?.type === 'warning' ? 'border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]' : 'border-[var(--border-color)] hover:border-[var(--accent-teal)]'}`}
                         >
-                            <div className="absolute bottom-[-8px] right-6 w-4 h-4 bg-(--bg-card) border-r border-b border-(--border-color) rotate-45" />
-                            <p className="text-xs text-(--text-main) leading-relaxed line-clamp-3">
-                                {currentHistory[currentHistory.length - 1]?.text}
-                            </p>
-                            <div className="mt-2 flex items-center justify-between">
-                                <span className="text-[9px] font-black uppercase tracking-widest text-(--accent-teal) animate-pulse">New Message</span>
-                                <span className="text-[9px] text-(--text-muted) group-hover:text-(--text-main) flex items-center gap-1 transition-colors">
-                                    Click to open <Plus size={8} />
-                                </span>
+                            <div className="relative">
+                                {chumToast ? (
+                                    <>
+                                        <p className={`text-[10px] font-black uppercase tracking-wider mb-1 ${chumToast.type === 'warning' ? 'text-red-400' : 'text-[var(--accent-teal)]'}`}>
+                                            {chumToast.type === 'warning' ? '⚠️ Burnout Warning' : 'Chum Says:'}
+                                        </p>
+                                        {/* 👇 Upgraded text-sm, added font-bold, and applied line-clamp-2 */}
+                                        <div className="text-sm text-[var(--text-main)] leading-relaxed font-bold">
+                                            {chumToast.message}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="text-sm text-[var(--text-main)] leading-relaxed font-bold line-clamp-2">
+                                            {currentHistory[currentHistory.length - 1]?.text}
+                                        </p>
+                                        <div className="mt-3 pt-3 border-t border-[var(--border-color)]/30 flex items-center justify-between">
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)] animate-pulse" />
+                                                <span className="text-[10px] font-black uppercase tracking-tighter text-[var(--accent-teal)]">Neural Link</span>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </motion.div>
                     )}
@@ -537,7 +671,7 @@ export default function ChumWidget() {
             <AnimatePresence>
                 {showTaskForm && (
                     <div className="fixed inset-0 z-100005 flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowTaskForm(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowTaskForm(false)} className="absolute inset-0 bg-(--bg-dark)/60 backdrop-blur-sm cursor-pointer" />
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-(--bg-sidebar) border border-(--border-color) rounded-3xl w-full max-w-sm relative z-10 shadow-2xl flex flex-col overflow-hidden" onPointerDown={(e) => e.stopPropagation()}>
                             <div className="p-4 border-b border-(--border-color) flex justify-between items-center bg-(--bg-card)">
                                 <h2 className="text-sm font-bold text-(--text-main) flex items-center gap-2"><Plus size={14} className="text-(--accent-teal)" /> Pen a Chapter</h2>
@@ -563,7 +697,7 @@ export default function ChumWidget() {
                                                 {isScheduled ? 'Scheduled' : 'Unscheduled'}
                                             </span>
                                             <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors duration-300 ${isScheduled ? 'bg-(--accent-teal)' : 'bg-(--bg-sidebar) border border-(--border-color)'}`}>
-                                                <div className={`w-3 h-3 rounded-full shadow-sm transition-transform duration-300 ${isScheduled ? 'translate-x-4 bg-[#0b1211]' : 'translate-x-0 bg-(--text-muted)'}`} />
+                                                <div className={`w-3 h-3 rounded-full shadow-sm transition-transform duration-300 ${isScheduled ? 'translate-x-4 bg-(--bg-dark)' : 'translate-x-0 bg-(--text-muted)'}`} />
                                             </div>
                                         </div>
                                     </div>
@@ -582,7 +716,7 @@ export default function ChumWidget() {
                                         setIsScheduled(false);
                                         setShowTaskForm(false);
                                     }}
-                                    className="mt-2 w-full py-2.5 bg-(--accent-teal) text-[#0b1211] rounded-lg text-xs font-bold transition-all disabled:opacity-50 hover:bg-teal-400"
+                                    className="mt-2 w-full py-2.5 bg-(--accent-teal) text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 hover:bg-teal-400"
                                 >
                                     Plant Seed
                                 </button>

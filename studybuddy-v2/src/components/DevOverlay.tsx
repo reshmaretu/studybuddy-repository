@@ -3,15 +3,19 @@
 import { useState, useEffect } from "react";
 import { useStudyStore } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Terminal, RefreshCw, ShieldAlert } from "lucide-react";
+import { X, Terminal, RefreshCw, ShieldAlert, Skull } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from '@/lib/supabase';
 
 export default function DevOverlay() {
-    const { 
-        isDev, devOverlayEnabled, setLastPlannedDate, 
-        debrisSize, debrisColor, debrisCount, debrisSpread, setDebris 
+    const {
+        isDev, devOverlayEnabled, setLastPlannedDate,
+        debrisSize, debrisColor, debrisCount, debrisSpread, setDebris,
+        windSpeed, swayAmount, setWindSettings, // <-- ADD THESE
+        triggerChumToast
     } = useStudyStore();
     const [isOpen, setIsOpen] = useState(false);
+    const [isNuking, setIsNuking] = useState(false);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -29,18 +33,60 @@ export default function DevOverlay() {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         yesterday.setHours(3, 59, 0, 0);
-        
+
         await setLastPlannedDate(yesterday.toISOString());
         toast.info("Dev: Morning reset forced. Refresh or change page to see modal.");
         setIsOpen(false);
     };
+
+    // --- THE DESTRUCTIVE DATABASE WIPE ---
+    const handleNukeData = async () => {
+        if (!window.confirm("CRITICAL WARNING: This will permanently wipe all your quests, shards, and neural history. Proceed?")) return;
+        if (!window.confirm("Are you absolutely sure? This cannot be undone.")) return;
+
+        setIsNuking(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (session?.user?.id) {
+                await Promise.all([
+                    supabase.from('tasks').delete().eq('user_id', session.user.id),
+                    supabase.from('shards').delete().eq('user_id', session.user.id),
+                    supabase.from('tutor_sessions').delete().eq('user_id', session.user.id)
+                ]);
+            }
+
+            // Flush local state
+            useStudyStore.setState({
+                tasks: [],
+                shards: [],
+                normalChatHistory: [],
+                tutorChatHistory: [],
+                pastTutorSessions: [],
+                activeShardId: null,
+            });
+
+            if (triggerChumToast) {
+                triggerChumToast("Neural link severed. All systems wiped and restarted.", "warning");
+            }
+            toast.success("Database nuked successfully.");
+            setIsOpen(false);
+        } catch (err) {
+            console.error("Failed to wipe database:", err);
+            toast.error("Nuke failed. Check console for details.");
+        } finally {
+            setIsNuking(false);
+        }
+    };
+
+
 
     if (!isDev) return null;
 
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-10000 flex items-start justify-center pt-20 pointer-events-none">
+                <div className="fixed inset-0 z-[10000] flex items-start justify-center pt-20 pointer-events-none">
                     <motion.div
                         initial={{ opacity: 0, y: -20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -65,7 +111,7 @@ export default function DevOverlay() {
                                 </div>
                                 <button
                                     onClick={forceMorningReset}
-                                    className="w-full py-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-xs font-bold hover:bg-red-500/20 transition-all flex items-center justify-center gap-2"
+                                    className="w-full py-3 bg-(--bg-sidebar) border border-(--border-color) text-(--text-main) rounded-xl text-xs font-bold hover:border-(--accent-teal) transition-all flex items-center justify-center gap-2"
                                 >
                                     <RefreshCw size={14} /> Force Morning Reset
                                 </button>
@@ -73,7 +119,22 @@ export default function DevOverlay() {
 
                             <div className="bg-(--bg-dark) border border-(--border-color) p-4 rounded-2xl space-y-4">
                                 <h3 className="text-[10px] font-black uppercase text-white/40 tracking-widest">Atmosphere (Lantern Net)</h3>
-                                
+                                {/* ... Your existing slider inputs remain identical ... */}
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center text-[10px] font-bold">
+                                        <span>Wind Speed</span>
+                                        <span className="font-mono text-(--accent-teal)">{windSpeed.toFixed(1)}</span>
+                                    </div>
+                                    <input type="range" min="0" max="10" step="0.1" value={windSpeed} onChange={(e) => setWindSettings({ windSpeed: parseFloat(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center text-[10px] font-bold">
+                                        <span>Wind Sway</span>
+                                        <span className="font-mono text-(--accent-teal)">{swayAmount.toFixed(2)}</span>
+                                    </div>
+                                    <input type="range" min="0" max="1.0" step="0.01" value={swayAmount} onChange={(e) => setWindSettings({ swayAmount: parseFloat(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
+                                </div>
+
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-bold">
                                         <span>Debris Size</span>
@@ -81,7 +142,6 @@ export default function DevOverlay() {
                                     </div>
                                     <input type="range" min="0.1" max="2.0" step="0.1" value={debrisSize} onChange={(e) => setDebris({ size: parseFloat(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
                                 </div>
-
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-bold">
                                         <span>Debris Count</span>
@@ -89,7 +149,6 @@ export default function DevOverlay() {
                                     </div>
                                     <input type="range" min="1000" max="15000" step="1000" value={debrisCount} onChange={(e) => setDebris({ count: parseInt(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
                                 </div>
-
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-bold">
                                         <span>Debris Spread</span>
@@ -97,7 +156,6 @@ export default function DevOverlay() {
                                     </div>
                                     <input type="range" min="100" max="1000" step="50" value={debrisSpread} onChange={(e) => setDebris({ spread: parseInt(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
                                 </div>
-
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-bold">
                                         <span>Debris Color</span>
@@ -105,7 +163,20 @@ export default function DevOverlay() {
                                     </div>
                                 </div>
                             </div>
-                            
+
+                            {/* DANGER ZONE */}
+                            <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-2xl flex flex-col gap-3">
+                                <h3 className="text-[10px] font-black uppercase text-red-400 tracking-widest">Danger Zone</h3>
+                                <button
+                                    onClick={handleNukeData}
+                                    disabled={isNuking}
+                                    className="w-full py-3 bg-red-500/20 border border-red-500/50 text-red-400 rounded-xl text-xs font-bold hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    {isNuking ? <RefreshCw className="animate-spin" size={14} /> : <Skull size={14} />}
+                                    {isNuking ? "Wiping Systems..." : "Nuke Database"}
+                                </button>
+                            </div>
+
                             <div className="p-3 bg-black/20 rounded-xl">
                                 <p className="text-[10px] text-(--text-muted) leading-relaxed italic text-center">
                                     "With great power comes great responsibility, Chum."

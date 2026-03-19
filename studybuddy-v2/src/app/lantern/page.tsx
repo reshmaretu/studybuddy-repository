@@ -17,6 +17,7 @@ export interface LanternUser {
     hours: number;
     roomCode?: string;
     roomTitle?: string;
+    roomDescription?: string;
     isPremium: boolean;
     isHosting: boolean;
     gridX: number;
@@ -37,6 +38,7 @@ const getStableRandom = (id: string, seed: string) => {
 
 const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: number): LanternUser => {
     const hostedRoom = rooms.find(r => r.host_id === p.id);
+    const joinedRoom = p.joined_room_code ? rooms.find(r => r.room_code === p.joined_room_code) : null;
     const isMe = p.id === currentUserId;
 
     let currentStatus: LanternUser['status'] = 'idle';
@@ -61,6 +63,8 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
     const gridX = isMe ? 6 : Math.floor((getStableRandom(p.id, "x") * 100) % 12);
     const gridY = isMe ? 6 : Math.floor((getStableRandom(p.id, "y") * 100) % 12);
 
+    const relevantRoom = hostedRoom || joinedRoom;
+
     return {
         id: isMe ? 'me' : p.id,
         name: (p.display_name && p.display_name.trim() !== "") ? p.display_name : (p.full_name && p.full_name.trim() !== "") ? p.full_name : "Anonymous",
@@ -68,9 +72,10 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
         hours: stats ? Math.floor((stats.total_seconds_tracked || 0) / 3600) : 0,
         focusScore: stats ? (stats.focus_score || 0) : 0,
         isHosting: !!hostedRoom,
-        roomCode: hostedRoom?.room_code,
-        roomTitle: (hostedRoom?.name && hostedRoom.name !== "undefined") ? hostedRoom.name : "Sanctuary",
-        isPremium: p.is_premium || stats?.is_premium || false,
+        roomCode: relevantRoom?.room_code,
+        roomTitle: (relevantRoom?.name && relevantRoom.name !== "undefined") ? relevantRoom.name : "Sanctuary",
+        roomDescription: (relevantRoom?.description && relevantRoom.description !== "undefined") ? relevantRoom.description : undefined,
+        isPremium: p.is_premium || false,
         chumLabel: wardrobe ? `${wardrobe.base_emoji || "👻"}${wardrobe.hat_emoji || ""}` : "👻 Ghost",
         gridX,
         gridY,
@@ -82,7 +87,7 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
 export default function LanternNetPage() {
     const [isMounted, setIsMounted] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const { totalSessions, activeMode, isTutorModeActive, isDev, devOverlayEnabled, debrisSize, debrisColor, debrisCount, debrisSpread, setDebris, mockUsers, setMockUsers } = useStudyStore();
+    const { totalSessions, activeMode, isTutorModeActive, isDev, devOverlayEnabled, debrisSize, debrisColor, debrisCount, debrisSpread, setDebris, mockUsers, setMockUsers, isPremiumUser } = useStudyStore();
     const router = useRouter();
 
     const [fullNetwork, setFullNetwork] = useState<LanternUser[]>([]);
@@ -91,6 +96,15 @@ export default function LanternNetPage() {
     const lanternRef = useRef<LanternNetHandle>(null);
 
     const [isDevOverlayOpen, setIsDevOverlayOpen] = useState(false);
+    const [appTheme, setAppTheme] = useState('deep-teal');
+
+    useEffect(() => {
+        const saved = localStorage.getItem('appTheme') || 'deep-teal';
+        setAppTheme(saved);
+        
+        // Ensure HTML tag is also synced (fallback for components relying on it)
+        document.documentElement.setAttribute('data-theme', saved);
+    }, []);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -138,12 +152,14 @@ export default function LanternNetPage() {
     };
 
     const [isHostModalOpen, setIsHostModalOpen] = useState(false);
+    const [isMaximized, setIsMaximized] = useState(false);
     const [roomSettings, setRoomSettings] = useState({
         title: "Deep Work Session",
+        description: "",
         mode: 'flowstate' as 'flowstate' | 'cafe',
-        capacity: 5,
+        capacity: 4,
         isLocked: false,
-        vibe: 'default',
+        password: "",
         workDuration: 25,
         breakDuration: 5
     });
@@ -154,20 +170,24 @@ export default function LanternNetPage() {
         let currentUserId: string | null = null;
 
         const fetchNetwork = async () => {
-            const { data: { user: authUser } } = await supabase.auth.getUser();
-            if (!authUser || !isSubscribed) return;
-            currentUserId = authUser.id;
+            const { data: authData } = await supabase.auth.getUser();
+            const user = authData?.user;
+            if (!user || !isSubscribed) return;
+            currentUserId = user.id;
 
             if (isFirstLoad.current) {
                 setIsNetworkLoading(true);
             }
             try {
-                const [profilesRes, roomsRes, statsRes, wardrobeRes] = await Promise.all([
+                // Fetch all data in parallel
+                const results = await Promise.all([
                     supabase.from('profiles').select('id, display_name, full_name, status, is_in_flowstate, active_session_type, is_premium'),
                     supabase.from('rooms').select('*'),
-                    supabase.from('user_stats').select('user_id, focus_score, total_seconds_tracked, is_premium'),
+                    supabase.from('user_stats').select('user_id, focus_score, total_seconds_tracked'),
                     supabase.from('chum_wardrobe').select('user_id, base_emoji, hat_emoji')
                 ]);
+
+                const [profilesRes, roomsRes, statsRes, wardrobeRes] = results;
 
                 if (profilesRes.data && isSubscribed) {
                     const rooms = roomsRes.data || [];
@@ -193,8 +213,8 @@ export default function LanternNetPage() {
                     });
                     setFullNetwork(users);
                 }
-            } catch (error) {
-                console.error("Failed to fetch network:", error);
+            } catch (err) {
+                console.error("Lantern Network Fetch Error:", err);
             } finally {
                 if (isSubscribed) {
                     setIsNetworkLoading(false);
@@ -238,13 +258,15 @@ export default function LanternNetPage() {
             room_code: roomCode,
             host_id: user.id,
             name: roomSettings.title,
+            description: roomSettings.description, // Added description
             status: 'DRAFT',
             work_duration: roomSettings.workDuration,
             break_duration: roomSettings.breakDuration,
             mode: roomSettings.mode,
             capacity: roomSettings.capacity,
             is_private: roomSettings.isLocked,
-            vibe: roomSettings.vibe || 'default'
+            password: roomSettings.isLocked ? roomSettings.password : null, // Added password
+            vibe: 'default'
         });
 
         if (!error) {
@@ -266,7 +288,7 @@ export default function LanternNetPage() {
     if (!isMounted) return null;
 
     return (
-        <div className="flex flex-col lg:flex-row h-screen max-h-screen p-4 pb-8 lg:p-6 lg:pb-10 gap-6 bg-(--bg-dark) overflow-hidden relative">
+        <div data-theme={appTheme} className="flex flex-col lg:flex-row h-screen max-h-screen p-4 pb-8 lg:p-6 lg:pb-10 gap-6 bg-(--bg-dark) overflow-hidden relative">
 
             <AnimatePresence>
                 {isDevOverlayOpen && (
@@ -326,82 +348,192 @@ export default function LanternNetPage() {
                 )}
             </AnimatePresence>
 
-            <div className="w-full lg:w-[340px] flex flex-col gap-6 h-full z-10 shrink-0 min-h-0">
-                <div className="bg-(--bg-card) border border-(--border-color) p-6 rounded-[32px] shadow-sm flex flex-col gap-5">
-                    <h1 className="text-2xl font-black text-(--text-main) flex items-center gap-2">
-                        <Radio size={24} className="text-(--accent-teal)" /> Lantern Net
-                    </h1>
+            <AnimatePresence>
+                {isHostModalOpen && (
+                    <div className="fixed inset-0 z-1000 flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+                            onClick={() => setIsHostModalOpen(false)} className="absolute inset-0 bg-black/70 backdrop-blur-sm cursor-pointer" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 40 }}
+                            className="bg-(--bg-card) border border-(--border-color) rounded-[40px] w-full max-w-4xl shadow-2xl relative z-10 overflow-hidden flex flex-col lg:flex-row h-auto max-h-[90vh]" onPointerDown={(e) => e.stopPropagation()}>
+                            
+                            {/* LEFT SIDE: Identity */}
+                            <div className="flex-1 p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-(--border-color) overflow-y-auto custom-scrollbar">
+                                <div className="flex justify-between items-center mb-8">
+                                    <h2 className="text-3xl font-black text-(--text-main) flex items-center gap-3">
+                                        <Plus className="text-(--accent-teal)" size={28} /> Host Room
+                                    </h2>
+                                    <button onClick={() => setIsHostModalOpen(false)} className="lg:hidden text-(--text-muted) hover:text-(--text-main) p-2 hover:bg-(--bg-dark) rounded-xl transition-all"><X size={20}/></button>
+                                </div>
 
-                    <div className="relative">
-                        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-(--text-muted)" />
-                        <input
-                            type="text"
-                            placeholder="Search the void or room code..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="flex-1 bg-(--bg-dark) border border-(--border-color) rounded-2xl pl-4 pr-12 py-3.5 text-sm font-bold text-(--text-main) outline-none focus:border-(--accent-teal) transition-all resize-none custom-scrollbar"
-                        />
+                                <div className="space-y-8">
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-(--text-muted) uppercase tracking-[0.2em] px-1">Room Blueprint Title</label>
+                                        <input autoFocus type="text" placeholder="e.g., Deep Focus Chamber" value={roomSettings.title} onChange={e => setRoomSettings({ ...roomSettings, title: e.target.value })} 
+                                            className="w-full bg-(--bg-dark) border border-(--border-color) rounded-2xl px-6 py-5 text-sm font-bold text-(--text-main) outline-none focus:border-(--accent-teal) transition-all placeholder:text-(--text-muted)/30" />
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-(--text-muted) uppercase tracking-[0.2em] px-1">Description (Optional)</label>
+                                        <textarea placeholder="Tell the network what you're working on..." rows={4} maxLength={30} value={roomSettings.description} onChange={e => setRoomSettings({ ...roomSettings, description: e.target.value })} 
+                                            className="w-full bg-(--bg-dark) border border-(--border-color) rounded-2xl px-6 py-5 text-sm font-bold text-(--text-main) outline-none focus:border-(--accent-teal) transition-all resize-none custom-scrollbar placeholder:text-(--text-muted)/30" />
+                                        <div className="flex justify-end px-1">
+                                            <span className={`text-[10px] font-bold ${roomSettings.description.length >= 30 ? 'text-red-500' : 'text-(--text-muted)'}`}>
+                                                {roomSettings.description.length}/30
+                                            </span>
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                            </div>
+
+                            {/* RIGHT SIDE: Parameters & Premium */}
+                            <div className="w-full lg:w-[420px] bg-(--bg-sidebar)/30 p-8 lg:p-12 flex flex-col justify-between overflow-y-auto custom-scrollbar">
+                                <div className="space-y-10">
+                                    <div className="hidden lg:flex justify-between items-center">
+                                        <span className="text-[10px] font-black text-(--text-muted) uppercase tracking-widest">Architect Controls</span>
+                                        <button onClick={() => setIsHostModalOpen(false)} className="text-(--text-muted) hover:text-(--text-main) p-2 hover:bg-(--bg-dark) rounded-xl transition-all"><X size={20}/></button>
+                                    </div>
+
+                                    {/* Capacity Slider */}
+                                    <div className={`space-y-4 group transition-all ${!isPremiumUser ? 'cursor-not-allowed' : ''}`}>
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[10px] font-black text-(--text-muted) uppercase tracking-widest flex items-center gap-2">
+                                                Room Capacity {!isPremiumUser && <span className="text-[8px] bg-(--accent-teal)/10 text-(--accent-teal) px-1.5 py-0.5 rounded-full">PREMIUM</span>}
+                                            </label>
+                                            <span className="text-xl font-black text-(--accent-teal)">{roomSettings.capacity}</span>
+                                        </div>
+                                        <div className={`relative px-1 ${!isPremiumUser ? 'pointer-events-none' : ''}`}>
+                                            <input type="range" min="2" max="12" step="1" value={roomSettings.capacity} onChange={e => setRoomSettings({ ...roomSettings, capacity: parseInt(e.target.value) })}
+                                                className={`w-full h-1.5 bg-(--border-color) rounded-full appearance-none cursor-pointer accent-(--accent-teal) ${!isPremiumUser ? 'grayscale opacity-40 animate-[shake_0.5s_infinite]' : ''}`} />
+                                            <div className="flex justify-between mt-2 px-0.5">
+                                                <span className="text-[9px] font-black text-(--text-muted)">MIN 2</span>
+                                                <span className="text-[9px] font-black text-(--text-muted)">MAX 12</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+
+                                    {/* Password Toggle & Input */}
+                                    <div className={`space-y-4 p-6 rounded-3xl bg-(--bg-dark)/50 border border-(--border-color) transition-all ${!isPremiumUser ? 'opacity-50' : ''}`}>
+                                        <div className="flex justify-between items-center">
+                                            <div className="space-y-1">
+                                                <span className="text-xs font-black text-(--text-main) flex items-center gap-2">
+                                                    Private Room {!isPremiumUser && <span className="text-[8px] bg-(--accent-teal)/10 text-(--accent-teal) px-1.5 py-0.5 rounded-full">PREMIUM</span>}
+                                                </span>
+                                                <span className="block text-[9px] text-(--text-muted) font-medium">Require room password</span>
+                                            </div>
+                                            <div onClick={() => isPremiumUser && setRoomSettings({ ...roomSettings, isLocked: !roomSettings.isLocked })} 
+                                                className={`w-10 h-5 rounded-full p-1 flex items-center transition-all duration-300 ${roomSettings.isLocked ? 'bg-(--accent-teal)' : 'bg-(--bg-card) border border-(--border-color)'} ${!isPremiumUser ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                                <div className={`w-3 h-3 rounded-full transition-transform duration-300 ${roomSettings.isLocked ? 'translate-x-5 bg-white' : 'translate-x-0 bg-(--text-muted)'}`} />
+                                            </div>
+                                        </div>
+
+                                        <AnimatePresence>
+                                            {roomSettings.isLocked && isPremiumUser && (
+                                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="pt-2">
+                                                    <input type="password" placeholder="Define room password" value={roomSettings.password} onChange={e => setRoomSettings({ ...roomSettings, password: e.target.value })} 
+                                                        className="w-full bg-(--bg-dark) border border-(--border-color) rounded-xl px-4 py-3 text-xs font-bold text-(--text-main) outline-none focus:border-(--accent-teal)" />
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
+
+                                <div className="pt-8">
+                                    <button onClick={handleBroadcast} disabled={isSubmitting || !roomSettings.title.trim() || (roomSettings.isLocked && !roomSettings.password)}
+                                        className="w-full py-5 bg-(--accent-teal) text-white rounded-2xl font-black text-sm shadow-[0_10px_30px_-10px_rgba(20,184,166,0.5)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
+                                        {isSubmitting ? "Initializing Blueprint..." : "Broadcast to Net"}
+                                    </button>
+                                    <p className="text-center text-[9px] text-(--text-muted) font-black uppercase tracking-widest mt-4">Safe connection established</p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {!isMaximized && (
+                <div className="w-full lg:w-[340px] flex flex-col gap-6 h-full z-10 shrink-0 min-h-0">
+                    <div className="bg-(--bg-card) border border-(--border-color) p-6 rounded-[32px] shadow-sm flex flex-col gap-5">
+                        <h1 className="text-2xl font-black text-(--text-main) flex items-center gap-2">
+                            <Radio size={24} className="text-(--accent-teal)" /> Lantern Net
+                        </h1>
+
+                        <div className="relative">
+                            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-(--text-muted)" />
+                            <input
+                                type="text"
+                                placeholder="Search the void or room code..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="flex-1 bg-(--bg-dark) border border-(--border-color) rounded-2xl pl-12 pr-12 py-3.5 text-sm font-bold text-(--text-main) outline-none focus:border-(--accent-teal) transition-all resize-none custom-scrollbar"
+                            />
+                        </div>
+
+                        <button
+                            onClick={() => setIsHostModalOpen(true)}
+                            className="w-full py-3.5 bg-(--accent-teal) text-white rounded-2xl font-black text-sm shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                        >
+                            <Plus size={18} /> Host Room
+                        </button>
                     </div>
 
-                    <button
-                        onClick={() => setIsHostModalOpen(true)}
-                        className="w-full py-3.5 bg-(--accent-teal) text-black rounded-2xl font-black text-sm shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
-                    >
-                        <Plus size={18} /> Host Room
-                    </button>
-                </div>
-
-                <div className="bg-(--bg-card) border border-(--border-color) rounded-[32px] p-6 flex-1 flex flex-col min-h-0 shadow-sm">
-                    <h3 className="text-sm font-black text-(--text-main) flex items-center gap-2 mb-4 pb-4 border-b border-(--border-color) uppercase tracking-wide">
-                        <Trophy size={18} className="text-(--accent-yellow)" /> Hall of Focus
-                    </h3>
-                    <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                        {isNetworkLoading ? (
-                            Array.from({ length: 5 }).map((_, i) => (
-                                <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-(--bg-dark)/30 border border-transparent animate-pulse">
-                                    <div className="w-5 h-4 bg-(--border-color) rounded" />
-                                    <div className="flex-1 space-y-2">
-                                        <div className="h-4 bg-(--border-color) rounded w-24" />
+                    <div className="bg-(--bg-card) border border-(--border-color) rounded-[32px] p-6 flex-1 flex flex-col min-h-0 shadow-sm">
+                        <h3 className="text-sm font-black text-(--text-main) flex items-center gap-2 mb-4 pb-4 border-b border-(--border-color) uppercase tracking-wide">
+                            <Trophy size={18} className="text-(--accent-yellow)" /> Hall of Focus
+                        </h3>
+                        <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                            {isNetworkLoading ? (
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-(--bg-dark)/30 border border-transparent animate-pulse">
+                                        <div className="w-5 h-4 bg-(--border-color) rounded" />
+                                        <div className="flex-1 space-y-2">
+                                            <div className="h-4 bg-(--border-color) rounded w-24" />
+                                        </div>
+                                        <div className="w-10 h-6 bg-(--border-color) rounded-lg" />
                                     </div>
-                                    <div className="w-10 h-6 bg-(--border-color) rounded-lg" />
-                                </div>
-                            ))
-                        ) : (
-                            filteredNetwork.sort((a, b) => b.hours - a.hours).map((user, index) => (
-                                <div
-                                    key={user.id}
-                                    className={`group/row flex items-center gap-3 p-3 rounded-2xl border transition-all ${user.id === 'me' ? 'bg-(--accent-teal)/10 border-(--accent-teal)/20' : 'bg-transparent border-transparent hover:border-(--border-color) hover:bg-(--bg-dark)'}`}
-                                >
-                                    <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-(--accent-yellow)' : 'text-(--text-muted)'}`}>
-                                        {index + 1}
-                                    </span>
-                                    <div className="flex-1 flex flex-col">
-                                        <span className="text-sm font-black text-(--text-main)">{user.name}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => lanternRef.current?.warpToUser(user.id)}
-                                            className="opacity-0 group-hover/row:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-(--accent-teal)/10 text-(--text-muted) hover:text-(--accent-teal)"
-                                            title="Locate on map"
-                                        >
-                                            <Crosshair size={14} />
-                                        </button>
-                                        <span className="text-xs font-black text-(--text-muted) bg-(--bg-dark) px-2 py-1 rounded-lg">
-                                            {user.hours}h
+                                ))
+                            ) : (
+                                filteredNetwork.sort((a, b) => b.hours - a.hours).map((user, index) => (
+                                    <div
+                                        key={user.id}
+                                        className={`group/row flex items-center gap-3 p-3 rounded-2xl border transition-all ${user.id === 'me' ? 'bg-(--accent-teal)/10 border-(--accent-teal)/20' : 'bg-transparent border-transparent hover:border-(--border-color) hover:bg-(--bg-dark)'}`}
+                                    >
+                                        <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-(--accent-yellow)' : 'text-(--text-muted)'}`}>
+                                            {index + 1}
                                         </span>
+                                        <div className="flex-1 flex flex-col">
+                                            <span className="text-sm font-black text-(--text-main)">{user.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => lanternRef.current?.warpToUser(user.id)}
+                                                className="opacity-0 group-hover/row:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-(--accent-teal)/10 text-(--text-muted) hover:text-(--accent-teal)"
+                                                title="Locate on map"
+                                            >
+                                                <Crosshair size={14} />
+                                            </button>
+                                            <span className="text-xs font-black text-(--text-muted) bg-(--bg-dark) px-2 py-1 rounded-lg">
+                                                {user.hours}h
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            ))
-                        )}
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             <div className="flex-1 h-full rounded-[40px] overflow-hidden border border-(--border-color) shadow-xl relative min-h-0">
                 <ThreeLanternNet 
                     ref={lanternRef} 
                     users={combinedNetwork} 
                     isInitialLoading={isNetworkLoading} 
+                    isMaximized={isMaximized}
+                    onToggleMaximize={() => setIsMaximized(!isMaximized)}
                     debrisSize={debrisSize}
                     debrisColor={debrisColor}
                     debrisCount={debrisCount}

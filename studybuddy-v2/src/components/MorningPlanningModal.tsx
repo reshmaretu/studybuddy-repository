@@ -29,11 +29,10 @@ export default function MorningPlanningModal() {
                     {/* Eisenhower Matrix */}
                     <button
                         onClick={() => setSelected('eisenhower')}
-                        className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
-                            selected === 'eisenhower' 
-                                ? 'border-(--accent-teal) bg-(--accent-teal)/10' 
-                                : 'border-(--border-color) bg-(--bg-dark) hover:border-(--text-muted)'
-                        }`}
+                        className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${selected === 'eisenhower'
+                            ? 'border-(--accent-teal) bg-(--accent-teal)/10'
+                            : 'border-(--border-color) bg-(--bg-dark) hover:border-(--text-muted)'
+                            }`}
                     >
                         <div className={`p-3 rounded-lg ${selected === 'eisenhower' ? 'bg-(--accent-teal) text-[#0b1211]' : 'bg-(--bg-sidebar) text-(--text-muted)'}`}>
                             <LayoutGrid size={24} />
@@ -47,11 +46,10 @@ export default function MorningPlanningModal() {
                     {/* 1-3-5 Rule */}
                     <button
                         onClick={() => setSelected('1-3-5')}
-                        className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
-                            selected === '1-3-5' 
-                                ? 'border-(--accent-teal) bg-(--accent-teal)/10' 
-                                : 'border-(--border-color) bg-(--bg-dark) hover:border-(--text-muted)'
-                        }`}
+                        className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${selected === '1-3-5'
+                            ? 'border-(--accent-teal) bg-(--accent-teal)/10'
+                            : 'border-(--border-color) bg-(--bg-dark) hover:border-(--text-muted)'
+                            }`}
                     >
                         <div className={`p-3 rounded-lg ${selected === '1-3-5' ? 'bg-(--accent-teal) text-[#0b1211]' : 'bg-(--bg-sidebar) text-(--text-muted)'}`}>
                             <List size={24} />
@@ -65,11 +63,10 @@ export default function MorningPlanningModal() {
                     {/* Ivy Lee Method */}
                     <button
                         onClick={() => setSelected('ivy')}
-                        className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
-                            selected === 'ivy' 
-                                ? 'border-(--accent-teal) bg-(--accent-teal)/10' 
-                                : 'border-(--border-color) bg-(--bg-dark) hover:border-(--text-muted)'
-                        }`}
+                        className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${selected === 'ivy'
+                            ? 'border-(--accent-teal) bg-(--accent-teal)/10'
+                            : 'border-(--border-color) bg-(--bg-dark) hover:border-(--text-muted)'
+                            }`}
                     >
                         <div className={`p-3 rounded-lg ${selected === 'ivy' ? 'bg-(--accent-teal) text-[#0b1211]' : 'bg-(--bg-sidebar) text-(--text-muted)'}`}>
                             <ListOrdered size={24} />
@@ -87,6 +84,16 @@ export default function MorningPlanningModal() {
                     className="w-full py-3 rounded-xl bg-(--accent-teal) text-[#0b1211] font-bold disabled:opacity-50 transition-opacity hover:opacity-90"
                 >
                     Start the Day
+                </button>
+
+                <button
+                    onClick={() => {
+                        setActiveFramework(null); // Explicitly disable frameworks
+                        setLastPlannedDate(new Date().toISOString());
+                    }}
+                    className="w-full mt-4 py-2 text-xs font-bold text-(--text-muted) hover:text-(--text-main) transition-colors"
+                >
+                    Continue with Standard List
                 </button>
             </motion.div>
         </div>

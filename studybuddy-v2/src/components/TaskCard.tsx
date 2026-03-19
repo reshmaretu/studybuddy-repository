@@ -3,193 +3,315 @@
 import { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { Task, TaskLoad, useStudyStore } from "@/store/useStudyStore";
-import { MoreHorizontal, Pin, Clock, Edit2, Trash2, X, Check, Zap } from "lucide-react";
+import { MoreHorizontal, Pin, Clock, Edit2, Trash2, X, Check, Zap, Lock, Eye, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function TaskCard({ task, isOverlay = false }: { task: Task, isOverlay?: boolean }) {
-    const { openFocusModal, deleteTask, updateTask } = useStudyStore();
+interface TaskCardProps {
+    task: Task;
+    isOverlay?: boolean;
+    locked?: boolean;
+    isMinimized?: boolean; // 🔥 NEW PROP FOR IVY LEE
+}
+
+export default function TaskCard({ task, isOverlay = false, locked = false, isMinimized = false }: TaskCardProps) {
+    const { openFocusModal, deleteTask, updateTask, tasks, triggerChumToast } = useStudyStore();
 
     // UI States
     const [showMenu, setShowMenu] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [showFrogReaction, setShowFrogReaction] = useState(false);
+    const [showFrogHover, setShowFrogHover] = useState(false);
+
+    // Modal States
+    const [showViewModal, setShowViewModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     // Edit States
     const [editTitle, setEditTitle] = useState(task.title);
+    const [editDescription, setEditDescription] = useState(task.description || "");
     const [editLoad, setEditLoad] = useState<TaskLoad>(task.load);
     const [editDeadline, setEditDeadline] = useState(task.deadline || "");
 
-    // Only allow dragging if we are NOT editing
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: task.id,
         data: { task },
-        disabled: isEditing || showMenu // Disable drag when interacting with menus/inputs
+        disabled: isEditing || showMenu || locked || task.isCompleted || showViewModal || showDeleteModal
     });
 
     const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
 
     const loadColors = {
-        light: "text-(--accent-teal) border-(--accent-teal)/30 bg-(--accent-teal)/10",
-        medium: "text-(--accent-yellow) border-(--accent-yellow)/30 bg-(--accent-yellow)/10",
+        light: "text-[var(--accent-teal)] border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/10",
+        medium: "text-[var(--accent-yellow)] border-[var(--accent-yellow)]/30 bg-[var(--accent-yellow)]/10",
         heavy: "text-red-400 border-red-400/30 bg-red-400/10"
-    };
-
-    const handleDelete = () => {
-        if (window.confirm(`Are you sure you want to delete "${task.title}"?`)) {
-            deleteTask(task.id);
-        }
-        setShowMenu(false);
     };
 
     const handleSaveEdit = () => {
         if (!editTitle.trim()) return;
         updateTask(task.id, {
-            title: editTitle,
-            load: editLoad,
-            deadline: editDeadline || undefined
+            title: editTitle, description: editDescription,
+            load: editLoad, deadline: editDeadline || undefined
         });
         setIsEditing(false);
         setShowMenu(false);
     };
 
-    const handleOpenFocus = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Stop drag event
-        openFocusModal(task.id);
+    const handleFrogToggle = () => {
+        if (task.isCompleted || locked) return;
+        const currentFrog = tasks.find(t => t.isFrog && t.id !== task.id);
+        const isUnmarking = task.isFrog;
+
+        if (isUnmarking) {
+            updateTask(task.id, { isFrog: false });
+            triggerChumToast("You returned the frog to the pond. Let me know when you spot a new one!");
+        } else {
+            if (currentFrog) {
+                updateTask(currentFrog.id, { isFrog: false });
+                triggerChumToast("🐸 Target swapped! The old frog was returned to the pond.");
+            } else {
+                triggerChumToast("🐸 Frog identified! Crush this heavy quest first to build massive momentum.");
+            }
+            updateTask(task.id, { isFrog: true });
+            setShowFrogReaction(true);
+            setTimeout(() => setShowFrogReaction(false), 3000);
+        }
+        setShowMenu(false);
     };
 
-    return (
-        <div
-            ref={setNodeRef}
-            style={style}
-            {...(isEditing || showMenu ? {} : listeners)}
-            {...(isEditing || showMenu ? {} : attributes)}
-            className={`group relative h-fit bg-(--bg-card) border rounded-2xl p-4 flex flex-col gap-3 transition-all duration-300 
-                ${isOverlay ? 'scale-105 shadow-2xl border-(--accent-teal) z-50 opacity-90' : 'border-(--border-color) hover:border-(--accent-teal)/50 shadow-sm hover:shadow-md'}
-                ${isDragging ? 'opacity-40' : 'opacity-100'}
-                ${task.isFrog && !task.isCompleted ? 'ring-2 ring-(--accent-teal)/50 shadow-[0_0_15px_rgba(45,212,191,0.2)]' : ''}
-                ${task.isCompleted ? 'grayscale-[0.5] opacity-70' : ''}
-            `}
-        >
-            {/* Frog Badge Glow */}
-            {task.isFrog && !task.isCompleted && (
-                <div className="absolute -top-2 -right-2 bg-(--accent-teal) text-[#0b1211] rounded-full p-1.5 shadow-lg z-10 animate-pulse border-2 border-[#0b1211]">
-                    <Zap size={14} fill="currentColor" />
-                </div>
-            )}
-            {task.isCompleted && (
-                <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1.5 shadow-lg z-10 border-2 border-[#0b1211]">
-                    <Check size={14} strokeWidth={3} />
-                </div>
-            )}
-            {/* --- TOP ROW: Badge & Menu --- */}
-            <div className="flex justify-between items-start">
-                {isEditing ? (
-                    <div className="flex gap-1 w-full mr-4">
-                        {(['light', 'medium', 'heavy'] as const).map(l => (
-                            <button
-                                key={l} onClick={() => setEditLoad(l)}
-                                className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${editLoad === l ? loadColors[l] : 'text-(--text-muted) border-(--border-color)'}`}
-                            >
-                                {l}
-                            </button>
-                        ))}
-                    </div>
-                ) : (
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${loadColors[task.load]}`}>
-                        {task.load}
-                    </span>
-                )}
-
-                {/* The 3-Dot Menu Button */}
-                <div className="relative">
-                    <button
-                        onPointerDown={(e) => e.stopPropagation()} // Stop dragging!
-                        onClick={() => setShowMenu(!showMenu)}
-                        className="text-(--text-muted) hover:text-(--text-main) p-1 rounded-md transition-colors"
-                    >
-                        <MoreHorizontal size={16} />
+    // 🔥 EXTRACTED ACTION MENU FOR CLEAN CODE REUSE 🔥
+    const ActionMenu = (
+        <AnimatePresence>
+            {showMenu && (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                    className="absolute right-0 top-8 w-36 bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-xl shadow-xl overflow-hidden z-[100] origin-top-right"
+                >
+                    <button onClick={() => { setShowViewModal(true); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-[var(--text-main)] hover:bg-[var(--bg-dark)] flex items-center gap-2 transition-colors border-b border-[var(--border-color)]">
+                        <Eye size={12} className="text-[var(--accent-teal)]" /> View Details
                     </button>
+                    <button onClick={() => { setIsEditing(true); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-[var(--text-main)] hover:bg-[var(--bg-dark)] flex items-center gap-2 transition-colors border-b border-[var(--border-color)]">
+                        <Edit2 size={12} className="text-[var(--accent-teal)]" /> Edit Quest
+                    </button>
+                    <button onClick={handleFrogToggle} className={`w-full px-3 py-2 text-xs font-bold flex items-center gap-2 transition-colors border-b border-[var(--border-color)] ${task.isFrog ? 'text-[var(--accent-teal)] hover:bg-[var(--accent-teal)]/10' : 'text-[var(--text-muted)] hover:bg-[var(--bg-dark)]'}`}>
+                        <Zap size={12} fill={task.isFrog ? "currentColor" : "none"} /> {task.isFrog ? 'Unmark Frog' : 'Eat the Frog'}
+                    </button>
+                    <button onClick={() => { setShowDeleteModal(true); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-400/10 flex items-center gap-2 transition-colors">
+                        <Trash2 size={12} /> Delete
+                    </button>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
 
-                    {/* The Dropdown Menu */}
-                    <AnimatePresence>
-                        {showMenu && (
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="absolute right-0 top-6 w-32 bg-(--bg-sidebar) border border-(--border-color) rounded-xl shadow-xl overflow-hidden z-100 origin-top-right"
-                            >
-                                <button
-                                    onClick={() => { setIsEditing(true); setShowMenu(false); }}
-                                    className="w-full px-3 py-2 text-xs font-bold text-(--text-main) hover:bg-(--bg-dark) flex items-center gap-2 transition-colors border-b border-(--border-color)"
-                                >
-                                    <Edit2 size={12} className="text-(--accent-teal)" /> Edit Quest
-                                </button>
-                                <button
-                                    onClick={() => { updateTask(task.id, { isFrog: !task.isFrog }); setShowMenu(false); }}
-                                    className={`w-full px-3 py-2 text-xs font-bold flex items-center gap-2 transition-colors border-b border-(--border-color) ${task.isFrog ? 'text-(--accent-teal) hover:bg-(--accent-teal)/10' : 'text-(--text-muted) hover:bg-(--bg-dark)'}`}
-                                >
-                                    <Zap size={12} fill={task.isFrog ? "currentColor" : "none"} /> {task.isFrog ? 'Unmark Frog' : 'Eat the Frog'}
-                                </button>
-                                <button
-                                    onClick={handleDelete}
-                                    className="w-full px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-400/10 flex items-center gap-2 transition-colors"
-                                >
-                                    <Trash2 size={12} /> Delete
-                                </button>
-                            </motion.div>
+    return (
+        <>
+            {/* 🔥 NEW: THE SLEEK MINIMIZED LAYOUT 🔥 */}
+            {isMinimized ? (
+                <div
+                    ref={setNodeRef} style={style} {...(isEditing || showMenu || locked ? {} : listeners)} {...(isEditing || showMenu || locked ? {} : attributes)}
+                    className={`group relative flex items-center justify-between p-3 sm:p-4 w-full transition-all duration-300 rounded-xl border-2
+                        ${isOverlay ? 'scale-105 shadow-2xl border-[var(--accent-teal)] z-50 bg-[var(--bg-card)]' : 'bg-transparent border-transparent hover:bg-black/20 hover:border-[var(--border-color)]/50'}
+                        ${isDragging ? 'opacity-40' : 'opacity-100'}
+                        ${locked ? 'cursor-not-allowed grayscale opacity-50' : 'cursor-grab'}
+                        ${task.isFrog && !task.isCompleted && !isOverlay ? 'bg-green-500/5' : ''}
+                    `}
+                >
+                    <div className="flex items-center gap-3 min-w-0 flex-1 pr-4">
+                        <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${loadColors[task.load]}`}>
+                            {task.load}
+                        </span>
+                        <h3 className={`text-sm font-bold truncate ${task.isCompleted ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-main)]'}`}>
+                            {task.title}
+                        </h3>
+                        {task.isFrog && !task.isCompleted && <span className="text-lg animate-bounce drop-shadow-md shrink-0">🐸</span>}
+                    </div>
+
+                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                        {!locked && !showMenu && !task.isCompleted && (
+                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => openFocusModal(task.id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-teal)] hover:bg-[var(--bg-dark)] border border-transparent hover:border-[var(--border-color)] flex items-center gap-1.5">
+                                <Pin size={14} /> <span className="text-[10px] font-bold hidden sm:inline">Focus</span>
+                            </button>
                         )}
-                    </AnimatePresence>
-                </div>
-            </div>
-
-            {/* --- MIDDLE ROW: Title & Edit Inputs --- */}
-            {isEditing ? (
-                <div className="flex flex-col gap-2" onPointerDown={(e) => e.stopPropagation()}>
-                    <input
-                        autoFocus
-                        type="text"
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        className="bg-(--bg-dark) border border-(--border-color) rounded-lg px-2 py-1 text-sm text-(--text-main) outline-none focus:border-(--accent-teal)"
-                    />
-                    <input
-                        type="datetime-local"
-                        value={editDeadline}
-                        onChange={(e) => setEditDeadline(e.target.value)}
-                        className="bg-(--bg-dark) border border-(--border-color) rounded-lg px-2 py-1 text-xs text-(--text-muted) outline-none focus:border-(--accent-teal)"
-                    />
-                    <div className="flex justify-end gap-2 mt-1">
-                        <button onClick={() => setIsEditing(false)} className="p-1.5 text-(--text-muted) hover:text-red-400 bg-(--bg-dark) rounded-md border border-(--border-color)"><X size={14} /></button>
-                        <button onClick={handleSaveEdit} className="p-1.5 text-[#0b1211] bg-(--accent-teal) rounded-md border border-(--accent-teal) hover:brightness-110"><Check size={14} /></button>
+                        <div className="relative z-30">
+                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setShowMenu(!showMenu)} disabled={locked} className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 rounded-md transition-colors disabled:opacity-50">
+                                <MoreHorizontal size={16} />
+                            </button>
+                            {ActionMenu}
+                        </div>
                     </div>
                 </div>
             ) : (
-                <h3 className="text-base font-bold text-(--text-main) leading-tight">
-                    {task.title}
-                </h3>
-            )}
-
-            {/* --- BOTTOM ROW: Deadline & Focus Button --- */}
-            {!isEditing && (
-                <div className="flex justify-between items-end mt-2">
-                    {task.deadline ? (
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-(--accent-teal)">
-                            <Clock size={12} />
-                            <span>Best Before: {new Date(task.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                /* 🔥 EXISTING: THE STANDARD BLOCKY LAYOUT 🔥 */
+                <div
+                    ref={setNodeRef} style={style} {...(isEditing || showMenu || locked ? {} : listeners)} {...(isEditing || showMenu || locked ? {} : attributes)}
+                    className={`group relative h-fit bg-[var(--bg-card)] border-2 rounded-2xl p-4 flex flex-col gap-3 transition-all duration-300 
+                        ${isOverlay ? 'scale-105 shadow-2xl border-[var(--accent-teal)] z-50 opacity-90' : 'hover:border-[var(--text-muted)] shadow-sm hover:shadow-md'}
+                        ${isDragging ? 'opacity-40' : 'opacity-100'}
+                        ${task.isCompleted ? 'grayscale-[0.5] opacity-70 border-[var(--border-color)]' : ''}
+                        ${locked ? 'opacity-50 grayscale select-none cursor-not-allowed border-[var(--border-color)]' : 'cursor-grab'}
+                        ${task.isFrog && !task.isCompleted ? 'border-green-500 shadow-[0_0_25px_rgba(34,197,94,0.3)] z-10' : 'border-[var(--border-color)]'}
+                    `}
+                >
+                    {locked && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-dark)]/40 backdrop-blur-[1px] rounded-2xl z-20">
+                            <Lock className="text-[var(--text-muted)] w-8 h-8 opacity-50" />
                         </div>
-                    ) : (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-(--text-muted)">Unscheduled</span>
                     )}
 
-                    <button
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={handleOpenFocus}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-(--bg-dark) border border-(--border-color) hover:border-(--accent-teal) hover:text-(--accent-teal) text-(--text-main) px-2 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-sm absolute bottom-4 right-4"
-                    >
-                        <Pin size={12} /> Focus
-                    </button>
+                    {task.isFrog && !task.isCompleted && (
+                        <div className="absolute -top-4 -right-4 z-50" onMouseEnter={() => setShowFrogHover(true)} onMouseLeave={() => setShowFrogHover(false)}>
+                            <div className="bg-[#0b1211] border-2 border-green-500 rounded-full w-10 h-10 flex items-center justify-center shadow-[0_0_15px_rgba(34,197,94,0.5)] animate-bounce cursor-help">
+                                <span className="text-xl">🐸</span>
+                            </div>
+                            <AnimatePresence>
+                                {showFrogHover && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.5, y: 0, x: 20 }} animate={{ opacity: 1, scale: 1, y: 10, x: -10 }} exit={{ opacity: 0, scale: 0.8, y: 0, x: 10 }} transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                                        className="absolute top-full right-0 mt-2 bg-[var(--bg-card)]/95 backdrop-blur-xl border border-green-500/50 p-3 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex gap-3 min-w-[220px] pointer-events-none"
+                                    >
+                                        <div className="absolute top-[-6px] right-4 w-3 h-3 bg-[var(--bg-card)]/95 border-t border-l border-green-500/50 rotate-45" />
+                                        <div className="w-6 h-6 rounded-full flex items-center justify-center border shrink-0 bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/30"><span className="text-xs">👻</span></div>
+                                        <div>
+                                            <p className="text-[9px] font-black uppercase tracking-wider text-[var(--accent-teal)] mb-0.5">Chum</p>
+                                            <p className="text-[10px] font-bold text-[var(--text-main)]"><span className="text-green-400 block mb-1">Eat the Frog!</span>I'm your heaviest quest. Crush me first for massive momentum!</p>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    )}
+
+                    <AnimatePresence>
+                        {showFrogReaction && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.5, y: 0, x: 20 }} animate={{ opacity: 1, scale: 1, y: -55, x: 0 }} exit={{ opacity: 0, scale: 0.8, y: -70, x: -10 }}
+                                className="absolute top-0 right-0 z-[100] bg-[var(--bg-card)]/95 backdrop-blur-xl border border-[var(--border-color)] p-3 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex gap-3 min-w-[200px]"
+                            >
+                                <div className="absolute bottom-[-6px] right-6 w-3 h-3 bg-[var(--bg-card)]/95 border-r border-b border-[var(--border-color)] rotate-45" />
+                                <div className="w-6 h-6 rounded-full flex items-center justify-center border shrink-0 bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/30"><span className="text-xs">👻</span></div>
+                                <div>
+                                    <p className="text-[9px] font-black uppercase tracking-wider text-[var(--accent-teal)] mb-0.5">Chum</p>
+                                    <p className="text-[10px] font-bold text-[var(--text-main)]">BIG FROG! LET'S GET IT! 🐸</p>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {task.isCompleted && (
+                        <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1.5 shadow-lg z-10 border-2 border-[#0b1211]">
+                            <Check size={14} strokeWidth={3} />
+                        </div>
+                    )}
+
+                    <div className="flex justify-between items-start">
+                        {isEditing ? (
+                            <div className="flex gap-1 w-full mr-4">
+                                {(['light', 'medium', 'heavy'] as const).map(l => (
+                                    <button key={l} onClick={() => setEditLoad(l)} className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${editLoad === l ? loadColors[l] : 'text-[var(--text-muted)] border-[var(--border-color)]'}`}>{l}</button>
+                                ))}
+                            </div>
+                        ) : (
+                            <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${loadColors[task.load]}`}>{task.load}</span>
+                        )}
+
+                        <div className="relative z-30">
+                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setShowMenu(!showMenu)} disabled={locked} className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 rounded-md transition-colors disabled:opacity-50">
+                                <MoreHorizontal size={16} />
+                            </button>
+                            {ActionMenu}
+                        </div>
+                    </div>
+
+                    {isEditing ? (
+                        <div className="flex flex-col gap-2 z-30" onPointerDown={(e) => e.stopPropagation()}>
+                            <input autoFocus type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Task Title" className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
+                            <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Description..." rows={2} className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] resize-none" />
+                            <input type="datetime-local" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-muted)] outline-none focus:border-[var(--accent-teal)]" />
+                            <div className="flex justify-end gap-2 mt-1">
+                                <button onClick={() => setIsEditing(false)} className="px-3 py-1.5 text-xs font-bold text-[var(--text-muted)] hover:text-red-400 bg-[var(--bg-dark)] rounded-md border border-[var(--border-color)]">Cancel</button>
+                                <button onClick={handleSaveEdit} className="px-3 py-1.5 text-xs font-bold text-[#0b1211] bg-[var(--accent-teal)] rounded-md border border-[var(--accent-teal)] hover:brightness-110">Save</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <h3 className="text-base font-bold text-[var(--text-main)] leading-tight">{task.title}</h3>
+                            {task.description && <p className="text-xs text-[var(--text-muted)] line-clamp-2">{task.description}</p>}
+                        </>
+                    )}
+
+                    {!isEditing && (
+                        <div className="flex justify-between items-end mt-2">
+                            {task.deadline ? (
+                                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--accent-teal)]">
+                                    <Clock size={12} /><span>Best Before: {new Date(task.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                                </div>
+                            ) : (
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Unscheduled</span>
+                            )}
+
+                            {!locked && !showMenu && (
+                                <button onPointerDown={(e) => e.stopPropagation()} onClick={() => openFocusModal(task.id)} className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-[var(--bg-dark)] border border-[var(--border-color)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)] text-[var(--text-main)] px-2 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-sm absolute bottom-4 right-4 z-20">
+                                    <Pin size={12} /> Focus
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
-        </div>
+
+            {/* --- Modals --- */}
+            <AnimatePresence>
+                {showDeleteModal && (
+                    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowDeleteModal(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 max-w-sm w-full relative z-10 shadow-2xl flex flex-col items-center text-center">
+                            <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mb-4 text-red-400"><AlertTriangle size={24} /></div>
+                            <h3 className="text-lg font-bold text-[var(--text-main)] mb-2">Delete Quest?</h3>
+                            <p className="text-sm text-[var(--text-muted)] mb-6">Are you sure you want to delete <span className="text-[var(--text-main)] font-bold">"{task.title}"</span>? This action cannot be undone.</p>
+                            <div className="flex gap-3 w-full">
+                                <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-2.5 rounded-xl bg-[var(--bg-dark)] border border-[var(--border-color)] text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">Cancel</button>
+                                <button onClick={() => { deleteTask(task.id); setShowDeleteModal(false); }} className="flex-1 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-sm font-bold text-red-400 hover:bg-red-500 hover:text-white transition-colors">Delete</button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showViewModal && (
+                    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowViewModal(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl w-full max-w-md relative z-10 shadow-2xl overflow-hidden">
+                            <div className="p-4 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--bg-sidebar)]">
+                                <div className="flex items-center gap-3">
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${loadColors[task.load]}`}>{task.load}</span>
+                                    {task.isFrog && <span className="text-sm">🐸</span>}
+                                </div>
+                                <button onClick={() => setShowViewModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 bg-[var(--bg-dark)] rounded-lg border border-[var(--border-color)]"><X size={16} /></button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <h2 className="text-xl font-bold text-[var(--text-main)]">{task.title}</h2>
+                                {task.deadline && (
+                                    <div className="flex items-center gap-2 text-xs font-bold text-[var(--accent-teal)] bg-[var(--accent-teal)]/10 w-fit px-3 py-1.5 rounded-lg border border-[var(--accent-teal)]/20">
+                                        <Clock size={14} /> Due: {new Date(task.deadline).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                    </div>
+                                )}
+                                <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl p-4 min-h-[100px]">
+                                    <h4 className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] mb-2">Description</h4>
+                                    <p className="text-sm text-[var(--text-main)] whitespace-pre-wrap leading-relaxed">
+                                        {task.description || <span className="italic text-[var(--text-muted)]">No description provided.</span>}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="p-4 border-t border-[var(--border-color)] bg-[var(--bg-sidebar)] flex justify-end">
+                                <button onClick={() => { setShowViewModal(false); setIsEditing(true); }} className="px-6 py-2 rounded-xl bg-[var(--accent-teal)] text-[#0b1211] font-bold text-sm hover:brightness-110 flex items-center gap-2">
+                                    <Edit2 size={14} /> Edit Quest
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+        </>
     );
 }

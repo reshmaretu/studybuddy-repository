@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, PerspectiveCamera, QuadraticBezierLine, Float, Points, PointMaterial } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
-import { BoxSelect, Layers, Zap } from "lucide-react";
+import { BoxSelect, Layers, Zap, Maximize2, Minimize2 } from "lucide-react";
 import { LanternUser } from "@/app/lantern/page";
 import { useRouter } from "next/navigation";
 import * as random from 'maath/random/dist/maath-random.esm';
@@ -46,16 +46,19 @@ export interface LanternNetHandle {
 const ThreeLanternNet = forwardRef<LanternNetHandle, { 
     users: LanternUser[], 
     isInitialLoading?: boolean,
+    isMaximized: boolean,
+    onToggleMaximize: () => void,
     debrisSize?: number,
     debrisColor?: string,
     debrisCount?: number,
     debrisSpread?: number
-}>(function ThreeLanternNet({ users, isInitialLoading, debrisSize = 0.4, debrisColor = "#2dd4bf", debrisCount = 3000, debrisSpread = 400 }, ref) {
+}>(function ThreeLanternNet({ users, isInitialLoading, isMaximized, onToggleMaximize, debrisSize = 0.4, debrisColor = "#2dd4bf", debrisCount = 3000, debrisSpread = 400 }, ref) {
     const [is3D, setIs3D] = useState(false);
     const [warpTarget, setWarpTarget] = useState<THREE.Vector3 | null>(null);
     const controlsRef = useRef<any>(null);
 
     const [globalIntensity, setGlobalIntensity] = useState(0);
+    const [isFocused, setIsFocused] = useState(false);
 
     // 2. THE POWER UP LOGIC
     useEffect(() => {
@@ -90,29 +93,42 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
     }), [users, getPos]);
 
     return (
-        <div className="w-full h-full bg-[#05080c] relative group">
+        <div 
+            className="w-full h-full bg-[#05080c] relative group"
+            onPointerEnter={() => setIsFocused(true)}
+            onPointerLeave={() => setIsFocused(false)}
+        >
             {/* --- TOOLBAR --- */}
             <div className="absolute top-6 right-6 z-[100] flex flex-col gap-3 items-end">
-                <div className="flex bg-[var(--bg-dark)]/80 backdrop-blur-md p-1.5 rounded-2xl border border-[var(--border-color)] shadow-2xl">
-                    <button onClick={() => setIs3D(false)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${!is3D ? 'bg-[var(--accent-teal)] text-black' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><BoxSelect size={14} /> 2D Map</button>
-                    <button onClick={() => setIs3D(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${is3D ? 'bg-[var(--accent-teal)] text-black' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><Layers size={14} /> 3D Void</button>
+                <div className="flex bg-(--bg-card)/80 backdrop-blur-md p-1.5 rounded-2xl border border-(--border-color) shadow-2xl">
+                    <button onClick={() => setIs3D(false)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${!is3D ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}><BoxSelect size={14} /> 2D Map</button>
+                    <button onClick={() => setIs3D(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${is3D ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}><Layers size={14} /> 3D Void</button>
+                    <div className="w-px h-6 bg-(--border-color) mx-1 self-center" />
+                    <button 
+                        onClick={onToggleMaximize} 
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all text-(--text-muted) hover:text-(--text-main)`}
+                        title={isMaximized ? "Minimize Map" : "Maximize Map"}
+                    >
+                        {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                        {isMaximized ? 'Minimize' : 'Maximize'}
+                    </button>
                 </div>
 
                 {/* --- BRIGHTNESS SLIDER --- */}
-                <div className="flex items-center gap-3 bg-[var(--bg-dark)]/80 backdrop-blur-md px-4 py-2 rounded-xl border border-[var(--border-color)] shadow-xl">
-                    <Zap size={14} className="text-[var(--accent-yellow)]" />
+                <div className="flex items-center gap-3 bg-(--bg-card)/80 backdrop-blur-md px-4 py-2 rounded-xl border border-(--border-color) shadow-xl">
+                    <Zap size={14} className="text-(--accent-yellow)" />
                     <input
                         type="range" min="0.5" max="4.0" step="0.1"
                         value={globalIntensity}
                         onChange={(e) => setGlobalIntensity(parseFloat(e.target.value))}
-                        className="w-24 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[var(--accent-teal)]"
+                        className="w-24 h-1 bg-(--border-color) rounded-lg appearance-none cursor-pointer accent-(--accent-teal)"
                     />
                 </div>
                 {/* --- HUD LOADER --- */}
                 {isInitialLoading && (
-                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-[var(--bg-dark)]/60 backdrop-blur-md px-6 py-3 rounded-full border border-[var(--border-color)] animate-pulse shadow-xl">
-                        <div className="w-3 h-3 border-2 border-[var(--accent-teal)]/30 border-t-[var(--accent-teal)] rounded-full animate-spin" />
-                        <span className="text-[10px] font-black tracking-widest uppercase text-[var(--accent-teal)]">Syncing Void...</span>
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-100 flex items-center gap-3 bg-(--bg-card)/60 backdrop-blur-md px-6 py-3 rounded-full border border-(--border-color) animate-pulse shadow-xl">
+                        <div className="w-3 h-3 border-2 border-(--accent-teal)/30 border-t-(--accent-teal) rounded-full animate-spin" />
+                        <span className="text-[10px] font-black tracking-widest uppercase text-(--accent-teal)">Syncing Void...</span>
                     </div>
                 )}
             </div>
@@ -143,7 +159,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                     />
                 </EffectComposer>
 
-                <CameraRig is3D={is3D} controlsRef={controlsRef} warpTarget={warpTarget} intensity={globalIntensity} onWarpComplete={() => setWarpTarget(null)} />
+                <CameraRig isFocused={isFocused} is3D={is3D} controlsRef={controlsRef} warpTarget={warpTarget} intensity={globalIntensity} onWarpComplete={() => setWarpTarget(null)} />
                 <OrbitControls
                     ref={controlsRef}
                     enableRotate={is3D}
@@ -306,7 +322,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                 {(isHovered || isSelected) && (
                     <Html distanceFactor={is3D ? 30 : 45} position={[0, 8, 0]} center className="pointer-events-none">
                         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                            className="bg-[var(--bg-dark)]/95 backdrop-blur-xl border border-[var(--border-color)] p-5 rounded-3xl w-64 pointer-events-auto shadow-2xl text-[var(--text-main)]">
+                            className="bg-(--bg-dark)/95 backdrop-blur-xl border border-(--border-color) p-5 rounded-3xl w-64 pointer-events-auto shadow-2xl text-(--text-main)">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="font-black text-sm">{user.name}</h3>
@@ -320,9 +336,9 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                 </div>
                                 <div className="text-2xl">{user.chumLabel.split(' ')[0]}</div>
                             </div>
-                            <div className="grid grid-cols-2 gap-3 bg-black/40 p-3 rounded-2xl border border-[var(--border-color)]">
-                                <div className="flex flex-col"><span className="text-[8px] uppercase font-black opacity-40">Total Hours</span><span className="text-xs font-mono font-bold text-[var(--accent-teal)]">{ user.hours}h</span></div>
-                                <div className="flex flex-col text-right"><span className="text-[8px] uppercase font-black opacity-40">Focus Score</span><span className="text-xs font-bold text-[var(--accent-yellow)]">{user.focusScore || 0}</span></div>
+                            <div className="grid grid-cols-2 gap-3 bg-black/40 p-3 rounded-2xl border border-(--border-color)">
+                                <div className="flex flex-col"><span className="text-[8px] uppercase font-black opacity-40">Total Hours</span><span className="text-xs font-mono font-bold text-(--accent-teal)">{ user.hours}h</span></div>
+                                <div className="flex flex-col text-right"><span className="text-[8px] uppercase font-black opacity-40">Focus Score</span><span className="text-xs font-bold text-(--accent-yellow)">{user.focusScore || 0}</span></div>
                             </div>
                             {/* 💎 AI MASTERING SHARD */}
                             {user.status === 'mastering' && (
@@ -356,19 +372,26 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                             )}
 
                             {/* 🔗 ROOM INTERACTION SECTION */}
-                            {isSelected && !isSelf && (['hosting', 'joined', 'drafting'].includes(user.status)) && (
+                            {isSelected && !isSelf && (['hosting', 'joined', 'drafting', 'cafe'].includes(user.status)) && (
                                 <motion.div initial={{ height: 0, opacity: 0 }}
                                     animate={{ height: 'auto', opacity: 1 }}
-                                    className="mt-4 pt-4 border-t border-[var(--border-color)]">
+                                    className="mt-4 pt-4 border-t border-(--border-color)">
                                     <p className="text-[10px] font-black uppercase text-white/40 mb-2">
                                         {user.status === 'drafting' ? 'Blueprint in Progress' : 'Current Sanctuary'}
                                     </p>
-                                    <p className="text-xs font-bold text-white mb-4 italic">
-                                        "{user.roomTitle || 'Quiet Study'}"
-                                    </p>
+                                    <div className="space-y-1 mb-4">
+                                        <p className="text-xs font-bold text-white italic">
+                                            "{user.roomTitle || 'Quiet Study'}"
+                                        </p>
+                                        {user.roomDescription && (
+                                            <p className="text-[10px] text-(--text-muted) leading-relaxed line-clamp-2 italic">
+                                                {user.roomDescription}
+                                            </p>
+                                        )}
+                                    </div>
                                     <button
                                         onClick={() => router.push(`/room/${user.roomCode}`)}
-                                        className="w-full py-3 bg-[var(--accent-teal)] text-black text-xs font-black rounded-xl shadow-lg"
+                                        className="w-full py-3 bg-(--accent-teal) text-black text-xs font-black rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"
                                     >
                                         {user.status === 'drafting' ? 'View Blueprint' : `Join Sanctuary [${user.roomCode || '...'}]`}
                                     </button>
@@ -382,7 +405,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
     );
 }
 
-function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete }: any) {
+function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete, isFocused }: any) {
     const isTransitioning = useRef(false);
     const isCancelled = useRef(false);
     
@@ -397,6 +420,15 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete }: any) {
     // Keyboard & Mouse Events for Freecam
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            // 🛡️ SECURITY GUARD: Only trigger if the map container is focused/hovered
+            if (!isFocused) return;
+
+            // 🛡️ SECURITY GUARD: Don't trigger map controls if typing in an input!
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+                return;
+            }
+
             const key = e.key.toLowerCase();
             keys.current[key] = true;
             if (key === ' ' || key === 'c') {
@@ -408,7 +440,14 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete }: any) {
                 onWarpComplete();
             }
         };
-        const handleKeyUp = (e: KeyboardEvent) => { keys.current[e.key.toLowerCase()] = false; };
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (!isFocused) return;
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+                return;
+            }
+            keys.current[e.key.toLowerCase()] = false; 
+        };
         
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
@@ -417,7 +456,7 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete }: any) {
              window.removeEventListener('keydown', handleKeyDown);
              window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [warpTarget, onWarpComplete]);
+    }, [warpTarget, onWarpComplete, isFocused]);
 
     // Cancel warp on user zoom/scroll
     useEffect(() => {
@@ -513,7 +552,7 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete }: any) {
                         <p className="text-[10px] font-black uppercase text-[var(--accent-teal)] tracking-widest flex items-center gap-2">
                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)] animate-pulse" /> Freecam Active
                         </p>
-                        <p className="text-[8px] font-bold text-white/50 tracking-wide mt-1">WASD to Move • EQ for Elevation • Mouse to Look</p>
+                        <p className="text-[8px] font-bold text-(--text-muted) tracking-wide mt-1">WASD to Move • EQ for Elevation • Mouse to Look</p>
                     </motion.div>
                 )}
             </AnimatePresence>

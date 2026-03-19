@@ -52,6 +52,21 @@ export interface Shard {
     createdAt: string;
 }
 
+export const calculateXpRequirement = (level: number) => {
+    // Standard RPG curve: 100 * Level^1.5 (rounded to nearest 50)
+    return Math.floor((100 * Math.pow(level, 1.5)) / 50) * 50;
+};
+
+export const getTitleForLevel = (level: number) => {
+    if (level >= 99) return "Ascended Scholar";
+    if (level >= 75) return "Grandmaster";
+    if (level >= 50) return "Architect of Time";
+    if (level >= 25) return "Flow State Adept";
+    if (level >= 10) return "Scholar of the Shard";
+    if (level >= 5) return "Focus Apprentice";
+    return "The Initiate";
+};
+
 interface StudyState {
     // 🌐 CLOUD SYNC STATE
     isInitialized: boolean;
@@ -88,6 +103,24 @@ interface StudyState {
     aiTier: 'cloud' | 'local' | 'offline';
     aiKeys: { groq: string; gemini: string; openrouter: string };
     ollamaUrl: string;
+
+    xp: number;
+    level: number;
+    modifyFocusScore: (amount: number) => Promise<void>;
+    gainXp: (amount: number) => Promise<void>;
+    completeStudySession: () => Promise<void>;
+
+    activeCrystalTheme: string;
+    activeAtmosphereFilter: 'default' | 'dark' | 'refreshing' | 'cool';
+    setActiveCrystalTheme: (themeId: string) => void;
+    setActiveAtmosphereFilter: (filter: 'default' | 'dark' | 'refreshing' | 'cool') => void;
+
+    windSpeed: number;
+    swayAmount: number;
+
+    flowerCount: number;
+    swayEnabled: boolean;
+    setFlowerSettings: (settings: Partial<{ flowerCount: number; swayEnabled: boolean }>) => void;
 
     // ⚡ ASYNC ACTIONS (Cloud Synced)
     addTask: (task: Omit<Task, 'id' | 'isCompleted'>) => Promise<void>;
@@ -138,15 +171,18 @@ interface StudyState {
     debrisColor: string;
     debrisCount: number;
     debrisSpread: number;
-    setDebris: (settings: Partial<{size: number, color: string, count: number, spread: number}>) => void;
+    setDebris: (settings: Partial<{ size: number, color: string, count: number, spread: number }>) => void;
     devOverlayEnabled: boolean;
     setDevOverlayEnabled: (val: boolean) => void;
 
     reset: () => void;
-    
+
     // 🎭 MOCK USERS (Dev Only)
     mockUsers: any[];
     setMockUsers: (val: any[] | ((prev: any[]) => any[])) => void;
+
+    chumToast: { message: string | React.ReactNode, type: 'warning' | 'normal' } | null;
+    triggerChumToast: (message: string | React.ReactNode, type?: 'warning' | 'normal') => void;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -216,12 +252,21 @@ export const useStudyStore = create<StudyState>()(
             isDev: false,
             devOverlayEnabled: true,
 
+            chumToast: null,
+            triggerChumToast: (message, type = 'normal') => {
+                set({ chumToast: { message, type } });
+                // Auto-clear the bubble after 6 seconds
+                setTimeout(() => {
+                    set((state) => state.chumToast?.message === message ? { chumToast: null } : state);
+                }, 6000);
+            },
+
             setActiveFramework: async (framework) => {
                 set({ activeFramework: framework });
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) await supabase.from('profiles').update({ active_framework: framework }).eq('id', user.id);
             },
-            
+
             setLastPlannedDate: async (date) => {
                 set({ lastPlannedDate: date });
                 const { data: { user } } = await supabase.auth.getUser();
@@ -248,9 +293,116 @@ export const useStudyStore = create<StudyState>()(
             setDevOverlayEnabled: (val) => set({ devOverlayEnabled: val }),
 
             mockUsers: [],
-            setMockUsers: (val) => set((state) => ({ 
-                mockUsers: typeof val === 'function' ? val(state.mockUsers) : val 
+            setMockUsers: (val) => set((state) => ({
+                mockUsers: typeof val === 'function' ? val(state.mockUsers) : val
             })),
+
+            xp: 0,
+            level: 1,
+
+            // ─── NEW STAT ACTIONS ───
+            modifyFocusScore: async (amount) => {
+                const { data: { user } } = await supabase.auth.getUser();
+                set((state) => {
+                    const newScore = Math.max(0, Math.min(100, state.focusScore + amount));
+                    if (user) supabase.from('user_stats').update({ focus_score: newScore }).eq('user_id', user.id).then();
+                    return { focusScore: newScore };
+                });
+            },
+
+            gainXp: async (amount) => {
+                const { data: { user } } = await supabase.auth.getUser();
+                set((state) => {
+                    // 20% boost if they are premium
+                    const finalAmount = state.isPremiumUser ? Math.floor(amount * 1.2) : amount;
+                    let currentXp = state.xp + finalAmount;
+                    let currentLevel = state.level;
+                    let xpNeeded = calculateXpRequirement(currentLevel);
+                    let didLevelUp = false;
+
+                    // Handles massive XP drops that might level you up twice
+                    while (currentXp >= xpNeeded) {
+                        currentXp -= xpNeeded;
+                        currentLevel += 1;
+                        xpNeeded = calculateXpRequirement(currentLevel);
+                        didLevelUp = true;
+                    }
+
+                    if (didLevelUp && state.triggerChumToast) {
+                        state.triggerChumToast(`Level Up! You earned the title: ${getTitleForLevel(currentLevel)}.`, 'normal');
+                    }
+
+                    if (user) {
+                        supabase.from('user_stats').update({ xp: currentXp, level: currentLevel }).eq('user_id', user.id).then();
+                    }
+
+                    return { xp: currentXp, level: currentLevel };
+                });
+            },
+
+            completeStudySession: async () => {
+                const { data: { user } } = await supabase.auth.getUser();
+
+                // +5 Focus Score for surviving the timer
+                get().modifyFocusScore(5);
+
+                // Time-based XP (e.g. 50 XP for finishing a full timer block)
+                get().gainXp(50);
+
+                set((state) => ({ totalSessions: state.totalSessions + 1 }));
+
+                if (user) {
+                    supabase.from('user_stats').update({ total_sessions: get().totalSessions }).eq('user_id', user.id).then();
+                }
+            },
+
+            // ─── UPDATED EXISTING ACTIONS ───
+
+            decrementTimer: () => {
+                const state = get();
+                // Intercept the timer exactly when it hits 0
+                if (state.timeLeft === 1) {
+                    state.completeStudySession();
+                    set({ timeLeft: 0, isRunning: false });
+                } else {
+                    set({ timeLeft: Math.max(0, state.timeLeft - 1) });
+                }
+            },
+
+            completeTask: async (id) => {
+                const { data: { user } } = await supabase.auth.getUser();
+                const task = get().tasks.find(t => t.id === id);
+
+                set((state) => ({
+                    tasks: state.tasks.map((t) => t.id === id ? { ...t, isCompleted: true } : t),
+                }));
+
+                // +5 Focus Score for completing a task
+                get().modifyFocusScore(5);
+
+                // Give specific XP based on cognitive load
+                if (task) {
+                    const xpReward = task.load === 'heavy' ? 20 : task.load === 'medium' ? 10 : 5;
+                    get().gainXp(xpReward);
+                }
+
+                if (!id.startsWith('temp-') && user) {
+                    await supabase.from('tasks').update({ is_completed: true }).eq('id', id);
+                }
+            },
+
+            activeCrystalTheme: 'quartz',
+            activeAtmosphereFilter: 'default',
+            setActiveCrystalTheme: (themeId) => set({ activeCrystalTheme: themeId }),
+            setActiveAtmosphereFilter: (filter) => set({ activeAtmosphereFilter: filter }),
+
+            windSpeed: 2.0,
+            swayAmount: 0.15,
+            setWindSettings: (settings: Partial<{ windSpeed: number; swayAmount: number }>) => set((state) => ({ ...state, ...settings })),
+
+            flowerCount: 2400,
+            swayEnabled: true,
+            setFlowerSettings: (settings: Partial<{ flowerCount: number; swayEnabled: boolean }>) => set((state) => ({ ...state, ...settings })),
 
             // ==========================================
             // 🌐 CLOUD FETCHING
@@ -359,28 +511,6 @@ export const useStudyStore = create<StudyState>()(
                 }
             },
 
-            completeTask: async (id) => {
-                const { data: { user } } = await supabase.auth.getUser();
-
-                set((state) => ({
-                    tasks: state.tasks.map((t) => t.id === id ? { ...t, isCompleted: true } : t),
-                    focusScore: Math.min(100, state.focusScore + 10),
-                    // ⚡ UPDATED: Incrementing the session count
-                    totalSessions: state.totalSessions + 1
-                }));
-
-                if (!id.startsWith('temp-') && user) {
-                    await Promise.all([
-                        supabase.from('tasks').update({ is_completed: true }).eq('id', id),
-                        // ⚡ UPDATED: Writing to user_stats instead of profiles
-                        supabase.from('user_stats').update({
-                            focus_score: Math.min(100, get().focusScore),
-                            total_sessions: get().totalSessions
-                        }).eq('user_id', user.id)
-                    ]);
-                }
-            },
-
             deleteTask: async (id) => {
                 set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) }));
                 if (!id.startsWith('temp-')) {
@@ -448,7 +578,6 @@ export const useStudyStore = create<StudyState>()(
             // --- 🕒 LOCAL UI ACTIONS ---
             toggleTimer: () => set((state) => ({ isRunning: !state.isRunning })),
             resetTimer: () => set((state) => ({ timeLeft: state.pomodoroFocus * 60, isRunning: false })),
-            decrementTimer: () => set((state) => ({ timeLeft: Math.max(0, state.timeLeft - 1) })),
 
             openFocusModal: (taskId) => set({ isFocusModalOpen: true, focusTaskId: taskId || null }),
             closeFocusModal: () => set({ isFocusModalOpen: false, focusTaskId: null }),
@@ -522,22 +651,20 @@ export const useStudyStore = create<StudyState>()(
                         const isNowMastered = newMastery >= 100;
                         const updatedShard = { ...shard, mastery: newMastery, isMastered: isNowMastered };
                         updatedShardRef = updatedShard;
+
+                        // Captures the exact moment it crosses the 100% threshold
                         if (isNowMastered && !shard.isMastered) masteredShardRef = updatedShard;
+
                         return updatedShard;
                     });
 
                     if (masteredShardRef) {
-                        const clonedTask: Task = {
-                            id: `mastery-${Date.now()}`,
-                            title: `Mastered: ${(masteredShardRef as Shard).title}`,
-                            description: "Forged and mastered in the Hall of Mastery.",
-                            load: 'heavy', isCompleted: true, isPinned: true
-                        };
-                        return { shards: newShards, tasks: [clonedTask, ...state.tasks] };
+                        return { shards: newShards }; // Just return the shards, no fake tasks!
                     }
                     return { shards: newShards };
                 });
 
+                // Update the database for the shard progress
                 if (updatedShardRef) {
                     await supabase.from('shards').update({
                         mastery: (updatedShardRef as Shard).mastery,
@@ -546,7 +673,15 @@ export const useStudyStore = create<StudyState>()(
                     }).eq('id', id);
                 }
 
+                // 🚨 THE 250 XP MASTERY BOUNTY 🚨
                 if (masteredShardRef) {
+                    get().gainXp(250); // The balanced XP payout!
+                    get().modifyFocusScore(15); // A nice Focus Score bump
+
+                    if (get().triggerChumToast) {
+                        get().triggerChumToast(`Neural Link Ascended! +250 XP for mastering ${(masteredShardRef as Shard).title}!`);
+                    }
+
                     await supabase.from('tasks').insert([{
                         user_id: user.id,
                         title: `Mastered: ${(masteredShardRef as Shard).title}`,
@@ -603,7 +738,12 @@ export const useStudyStore = create<StudyState>()(
                 pomodoroShortBreak: state.pomodoroShortBreak,
                 pomodoroLongBreak: state.pomodoroLongBreak,
                 pomodoroCycles: state.pomodoroCycles,
-                devOverlayEnabled: state.devOverlayEnabled
+                devOverlayEnabled: state.devOverlayEnabled,
+                activeCrystalTheme: state.activeCrystalTheme,
+                windSpeed: state.windSpeed,
+                swayAmount: state.swayAmount,
+                flowerCount: state.flowerCount,
+                swayEnabled: state.swayEnabled,
             })
         }
     )

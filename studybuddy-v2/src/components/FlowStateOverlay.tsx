@@ -80,14 +80,20 @@ export default function FlowStateOverlay() {
         const { data: { user } } = await supabase.auth.getUser();
         setShowExitConfirm(false);
 
+        // 🚨 THE PENALTY 🚨
+        const { timeLeft, modifyFocusScore } = useStudyStore.getState();
+        if (timeLeft > 0) {
+            modifyFocusScore(-10);
+            useStudyStore.getState().triggerChumToast("Focus broken. -10 Focus Score.", "warning");
+        }
+
         if (user) {
             await supabase.from('profiles')
                 .update({ status: 'idle', is_in_flowstate: false })
                 .eq('id', user.id);
         }
 
-        useStudyStore.setState({ activeMode: 'none' });
-        exitMode();
+        useStudyStore.getState().exitMode();
     };
 
     const handleExitClick = () => {

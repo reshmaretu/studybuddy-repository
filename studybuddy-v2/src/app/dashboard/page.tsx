@@ -1,7 +1,7 @@
 "use client";
 
 import { Brain, Play, Pause, Settings, Bell, Flame, Coffee, Zap, RotateCcw, Calendar, CheckCircle2, Pin } from "lucide-react"; import { useEffect, useState } from "react";
-import { useStudyStore, Task } from "@/store/useStudyStore";
+import { useStudyStore, Task, calculateXpRequirement, getTitleForLevel } from "@/store/useStudyStore";
 import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay } from "@dnd-kit/core";
 import { AnimatePresence, motion } from "framer-motion";
 import TaskCard from "@/components/TaskCard";
@@ -39,7 +39,7 @@ export default function Dashboard() {
     const {
         tasks, focusScore, dailyStreak, totalSessions,
         timeLeft, isRunning, toggleTimer, resetTimer, decrementTimer, completeTask,
-        isInitialized
+        isInitialized, xp, level
     } = useStudyStore();
 
     // Safety filter to ensure we only try to render valid tasks
@@ -177,8 +177,17 @@ export default function Dashboard() {
                             <>
                                 <div className="relative w-28 h-20 flex flex-col items-center justify-end">
                                     <svg viewBox="0 0 100 50" className="absolute top-0 w-full h-full overflow-visible">
-                                        <path d="M 10 45 A 35 35 0 0 1 90 45" stroke="var(--border-color)" strokeWidth="10" fill="none" strokeLinecap="round" />
-                                        <path d="M 10 45 A 35 35 0 0 1 90 45" stroke="var(--accent-teal)" strokeWidth="10" fill="none" strokeLinecap="round" strokeDasharray="110" strokeDashoffset={scoreOffset} style={{ filter: 'drop-shadow(0px 0px 8px var(--accent-teal))', transition: 'stroke-dashoffset 1s ease-out' }} />
+                                        {/* The magical pathLength="100" standardizes the stroke calculation perfectly */}
+                                        <path d="M 10 45 A 35 35 0 0 1 90 45" stroke="var(--border-color)" strokeWidth="10" fill="none" strokeLinecap="round" pathLength="100" />
+                                        <path
+                                            d="M 10 45 A 35 35 0 0 1 90 45"
+                                            stroke="var(--accent-teal)"
+                                            strokeWidth="10" fill="none" strokeLinecap="round"
+                                            pathLength="100"
+                                            strokeDasharray="100"
+                                            strokeDashoffset={100 - focusScore}
+                                            style={{ filter: 'drop-shadow(0px 0px 8px var(--accent-teal))', transition: 'stroke-dashoffset 1s ease-out' }}
+                                        />
                                     </svg>
                                     <div className="flex flex-col items-center z-10 mb-[-5px]">
                                         <span className="text-3xl font-bold text-[var(--text-main)] leading-none">{focusScore}</span>
@@ -232,20 +241,22 @@ export default function Dashboard() {
                     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-6 flex items-center gap-6 shadow-sm cursor-pointer hover:border-[var(--accent-teal)]/50 transition-colors">
                         <div className="relative w-24 h-24 bg-black/20 rounded-2xl flex items-center justify-center border border-[var(--border-color)] flex-shrink-0">
                             <span className="text-5xl drop-shadow-xl">🎗️</span>
-                            <div className="absolute -bottom-3 bg-[var(--accent-yellow)] text-black text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">LVL 4</div>
+                            <div className="absolute -bottom-3 bg-[var(--accent-yellow)] text-black text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">LVL {level}</div>
                         </div>
                         <div className="flex-1">
                             <div className="flex justify-between items-end mb-2">
                                 <div className="flex items-center gap-3">
-                                    <h3 className="text-xl font-bold text-[var(--text-main)]">Growing</h3>
+                                    {/* Dynamically pulling the user's RPG title */}
+                                    <h3 className="text-xl font-bold text-[var(--text-main)]">{getTitleForLevel(level)}</h3>
                                     <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--accent-yellow)]/10 border border-[var(--accent-yellow)]/20 text-[var(--accent-yellow)] font-bold text-[10px] uppercase tracking-wide">
                                         <Flame size={12} /> {dailyStreak} Day Streak
                                     </div>
                                 </div>
-                                <span className="text-[10px] font-mono text-[var(--text-muted)] font-bold tracking-widest">XP: {completedTasks.length * 50}/1000</span>
+                                <span className="text-[10px] font-mono text-[var(--text-muted)] font-bold tracking-widest">XP: {xp}/{calculateXpRequirement(level)}</span>
                             </div>
                             <div className="h-2 w-full bg-black/30 rounded-full overflow-hidden mb-2">
-                                <div className="h-full bg-[var(--accent-teal)] rounded-full transition-all duration-1000" style={{ width: `${(completedTasks.length * 50 / 1000) * 100}%` }}></div>
+                                {/* Perfectly calculates progress to the NEXT level */}
+                                <div className="h-full bg-[var(--accent-teal)] rounded-full transition-all duration-1000" style={{ width: `${(xp / calculateXpRequirement(level)) * 100}%` }}></div>
                             </div>
                             <p className="text-sm text-[var(--text-muted)] italic">"Complete quests to grow together."</p>
                         </div>
