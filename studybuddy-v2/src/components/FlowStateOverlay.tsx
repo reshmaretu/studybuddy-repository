@@ -73,6 +73,28 @@ export default function FlowStateOverlay() {
         }
     }, [activeMode]);
 
+    // 🔥 THE ANTI-DISTRACTION LISTENER (Safe at the top!)
+    useEffect(() => {
+        if (!isRunning || activeMode !== 'flowState') return;
+
+        const handleVisibilityChange = () => {
+            if (document.hidden) useStudyStore.getState().incrementFlowBreak();
+        };
+
+        const handleBlur = () => {
+            useStudyStore.getState().incrementTabSwitch();
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        window.addEventListener("blur", handleBlur);
+
+        return () => {
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            window.removeEventListener("blur", handleBlur);
+        };
+    }, [isRunning, activeMode]);
+
+
     // ==========================================
     // 2. EARLY RETURN (MUST BE AFTER ALL HOOKS)
     // ==========================================
@@ -124,32 +146,6 @@ export default function FlowStateOverlay() {
         }
         useStudyStore.getState().exitMode();
     };
-
-    // 🔥 THE ANTI-DISTRACTION LISTENER
-    useEffect(() => {
-        // Only track if the timer is actively ticking
-        if (!isRunning) return;
-
-        const handleVisibilityChange = () => {
-            if (document.hidden) {
-                // They minimized the window or switched to a different app completely
-                useStudyStore.getState().incrementFlowBreak();
-            }
-        };
-
-        const handleBlur = () => {
-            // They clicked away from the window or switched browser tabs
-            useStudyStore.getState().incrementTabSwitch();
-        };
-
-        document.addEventListener("visibilitychange", handleVisibilityChange);
-        window.addEventListener("blur", handleBlur);
-
-        return () => {
-            document.removeEventListener("visibilitychange", handleVisibilityChange);
-            window.removeEventListener("blur", handleBlur);
-        };
-    }, [isRunning]);
 
     // 🛡️ THE FULLSCREEN GUARD MODAL
     if (!isFullscreenReady) {

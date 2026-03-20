@@ -115,12 +115,10 @@ function CenteredVisualizer({ accent, isRunning }: { accent: string; isRunning: 
             const base = 3 + Math.sin((i / bars) * Math.PI) * 10;
             return [base, base + Math.floor(Math.random() * 18) + 4, base + Math.floor(Math.random() * 11), base + Math.floor(Math.random() * 20), base];
         });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
         <div className="flex flex-col items-center relative">
-            {/* 🌈 THE PULSE AURA: A blurred glow behind the bars */}
             <motion.div
                 className="absolute inset-0 rounded-full blur-3xl opacity-20"
                 animate={isRunning ? {
@@ -129,24 +127,19 @@ function CenteredVisualizer({ accent, isRunning }: { accent: string; isRunning: 
                 } : { opacity: 0 }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             />
-
-            {/* Upper bars */}
             <div className="flex items-end gap-[3px] relative z-10">
                 {barHeights.map((heights, i) => (
                     <motion.div key={`u${i}`} className="w-[4px] rounded-t-full"
                         style={{ backgroundColor: accent, boxShadow: `0 0 15px ${accent}44` }}
                         animate={isRunning ? {
-                            height: heights.map(h => `${h * 1.5}px`), // Taller bars for more energy
+                            height: heights.map(h => `${h * 1.5}px`),
                             opacity: [0.6, 1, 0.6]
                         } : { height: '4px', opacity: 0.2 }}
                         transition={{ duration: 1.1 + (i % 5) * 0.2, repeat: Infinity, ease: 'easeInOut' }}
                     />
                 ))}
             </div>
-
             <div style={{ width: '120%', height: '1px', backgroundColor: `${accent}44` }} className="my-1" />
-
-            {/* Lower (mirror) bars */}
             <div className="flex items-start gap-[3px] opacity-40 relative z-10">
                 {barHeights.map((heights, i) => (
                     <motion.div key={`d${i}`} className="w-[4px] rounded-b-full"
@@ -160,12 +153,13 @@ function CenteredVisualizer({ accent, isRunning }: { accent: string; isRunning: 
     );
 }
 
-// ─── Phase helpers ────────────────────────────────────────────────────────────
 type Phase = "focus" | "short" | "long";
 const PHASE_LABELS: Record<Phase, string> = { focus: "Focus", short: "Short Break", long: "Long Break" };
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 export default function StudyCafeOverlay() {
+    // ==========================================
+    // 1. STRICT HOOK ORDER (ALL AT THE TOP)
+    // ==========================================
     const {
         activeMode, activeTaskId, tasks, timeLeft, isRunning,
         toggleTimer, completeTask, exitMode,
@@ -178,24 +172,23 @@ export default function StudyCafeOverlay() {
     const [cycleCount, setCycleCount] = useState(0);
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+    const [stressLevel, setStressLevel] = useState(50);
+    const [actualPomos, setActualPomos] = useState(1);
+
     const dragControls = useDragControls();
     const constraintsRef = useRef<HTMLDivElement>(null);
+    const phaseRef = useRef(phase);
+    const cycleRef = useRef(cycleCount);
 
     const atmo = ATMOSPHERES.find(a => a.id === atmoId) ?? ATMOSPHERES[0];
     const task = activeTaskId ? tasks.find(t => t.id === activeTaskId) : null;
     const isActive = activeMode === "studyCafe";
 
-    const [stressLevel, setStressLevel] = useState(50);
-    const [actualPomos, setActualPomos] = useState(1);
+    // Update refs for timer logic
+    phaseRef.current = phase;
+    cycleRef.current = cycleCount;
 
-    useEffect(() => {
-        if (showCompleteConfirm && task?.estimatedPomos) {
-            setActualPomos(task.estimatedPomos);
-            setStressLevel(50);
-        }
-    }, [showCompleteConfirm, task]);
-
-    // 1. Add this tick effect so the timer actually moves
+    // Timer Tick
     useEffect(() => {
         let interval: NodeJS.Timeout;
         if (activeMode === 'studyCafe' && isRunning && timeLeft > 0) {
@@ -204,6 +197,7 @@ export default function StudyCafeOverlay() {
         return () => clearInterval(interval);
     }, [activeMode, isRunning, timeLeft]);
 
+    // DB Anchor Status
     useEffect(() => {
         const anchorStatus = async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -220,11 +214,6 @@ export default function StudyCafeOverlay() {
     }, [activeMode]);
 
     // Phase transitions
-    const phaseRef = useRef(phase);
-    const cycleRef = useRef(cycleCount);
-    phaseRef.current = phase;
-    cycleRef.current = cycleCount;
-
     useEffect(() => {
         if (!isActive || timeLeft !== 0) return;
         const currentPhase = phaseRef.current;
@@ -243,73 +232,22 @@ export default function StudyCafeOverlay() {
         }
     }, [timeLeft, isActive, pomodoroCycles]);
 
-    const formatTime = (s: number) =>
-        `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
-
-    const phaseTotal = phase === "focus" ? pomodoroFocus * 60 : phase === "short" ? pomodoroShortBreak * 60 : pomodoroLongBreak * 60;
-    const progress = Math.max(0, Math.min(100, ((phaseTotal - timeLeft) / phaseTotal) * 100));
-    const circumference = 2 * Math.PI * 44;
-
-    const handleComplete = () => {
-        setShowCompleteConfirm(true); // Open confirmation instead of immediate exit
-    };
-
-    const handleExit = () => {
-        setShowExitConfirm(true); // Ensure exit triggers modal
-    };
-
-    const confirmComplete = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (task) {
-            // 👇 Pass the premium stats payload!
-            completeTask(task.id, isPremiumUser ? { actualPomos, stressLevel } : undefined);
-        }
-
-        if (user) {
-            await supabase.from('profiles')
-                .update({ status: 'idle', is_in_flowstate: false })
-                .eq('id', user.id);
-        }
-
-        useStudyStore.setState({ activeMode: 'none' });
-        setShowCompleteConfirm(false);
-        exitMode();
-    };
-
-    const confirmExit = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        setShowExitConfirm(false);
-
-        // 🚨 THE PENALTY 🚨
-        const { timeLeft, modifyFocusScore } = useStudyStore.getState();
-        if (timeLeft > 0) {
-            modifyFocusScore(-10);
-            useStudyStore.getState().triggerChumToast("Focus broken. -10 Focus Score.", "warning");
-        }
-
-        if (user) {
-            await supabase.from('profiles')
-                .update({ status: 'idle', is_in_flowstate: false })
-                .eq('id', user.id);
-        }
-
-        useStudyStore.getState().exitMode();
-    };
-
-    // 🔥 THE ANTI-DISTRACTION LISTENER
+    // Premium Auto-fill
     useEffect(() => {
-        // Only track if the timer is actively ticking
+        if (showCompleteConfirm && task?.estimatedPomos) {
+            setActualPomos(task.estimatedPomos);
+            setStressLevel(50);
+        }
+    }, [showCompleteConfirm, task]);
+
+    // Anti-Distraction Listener
+    useEffect(() => {
         if (!isRunning) return;
 
         const handleVisibilityChange = () => {
-            if (document.hidden) {
-                // They minimized the window or switched to a different app completely
-                useStudyStore.getState().incrementFlowBreak();
-            }
+            if (document.hidden) useStudyStore.getState().incrementFlowBreak();
         };
-
         const handleBlur = () => {
-            // They clicked away from the window or switched browser tabs
             useStudyStore.getState().incrementTabSwitch();
         };
 
@@ -322,228 +260,135 @@ export default function StudyCafeOverlay() {
         };
     }, [isRunning]);
 
-    // Set/cleanup body attribute for glassmorphism injection
+    // Glassmorphism Body Tag
     useEffect(() => {
-        if (isActive) {
-            document.body.setAttribute("data-cafe", "true");
-        }
-        return () => {
-            document.body.removeAttribute("data-cafe");
-        };
+        if (isActive) document.body.setAttribute("data-cafe", "true");
+        return () => { document.body.removeAttribute("data-cafe"); };
     }, [isActive]);
 
+    // ==========================================
+    // 2. EARLY RETURN (SAFELY BELOW ALL HOOKS)
+    // ==========================================
     if (!isActive) return null;
+
+    // ==========================================
+    // 3. LOGIC & RENDER
+    // ==========================================
+
+    const formatTime = (s: number) =>
+        `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+
+    const phaseTotal = phase === "focus" ? pomodoroFocus * 60 : phase === "short" ? pomodoroShortBreak * 60 : pomodoroLongBreak * 60;
+    const progress = Math.max(0, Math.min(100, ((phaseTotal - timeLeft) / phaseTotal) * 100));
+    const circumference = 2 * Math.PI * 44;
+
+    const handleComplete = () => setShowCompleteConfirm(true);
+    const handleExit = () => setShowExitConfirm(true);
+
+    const confirmComplete = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (task) {
+            completeTask(task.id, isPremiumUser ? { actualPomos, stressLevel } : undefined);
+        }
+
+        if (user) {
+            await supabase.from('profiles').update({ status: 'idle', is_in_flowstate: false }).eq('id', user.id);
+        }
+
+        useStudyStore.setState({ activeMode: 'none' });
+        setShowCompleteConfirm(false);
+        exitMode();
+    };
+
+    const confirmExit = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        setShowExitConfirm(false);
+
+        const { timeLeft, modifyFocusScore } = useStudyStore.getState();
+        if (timeLeft > 0) {
+            modifyFocusScore(-10);
+            useStudyStore.getState().triggerChumToast("Focus broken. -10 Focus Score.", "warning");
+        }
+
+        if (user) {
+            await supabase.from('profiles').update({ status: 'idle', is_in_flowstate: false }).eq('id', user.id);
+        }
+
+        useStudyStore.getState().exitMode();
+    };
 
     return (
         <>
             <style>{`
+                body[data-cafe="true"] section.pt-2 { border: none !important; background: transparent !important; box-shadow: none !important; }
+                body[data-cafe="true"] section.pt-2 > div:first-child { border: none !important; background: transparent !important; box-shadow: none !important; }
+                body[data-cafe="true"] section .grid .border-\\[3px\\], body[data-cafe="true"] section .grid .bg-\\[var\\(--bg-card\\)\\], body[data-cafe="true"] section .bg-\\[var\\(--bg-card\\)\\].p-8 {
+                    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                    background: rgba(255,255,255, 0.02) !important;
+                }
+            `}</style>
 
-/* 1. Kill the section container borders/bg but KEEP the individual cards inside */
-body[data-cafe="true"] section.pt-2 {
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-/* 2. Target the Task Titles wrapper specifically if needed */
-body[data-cafe="true"] section.pt-2 > div:first-child {
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-/* 3. Restore definition to individual items */
-body[data-cafe="true"] section .grid .border-\\[3px\\],
-body[data-cafe="true"] section .grid .bg-\\[var\\(--bg-card\\)\\],
-body[data-cafe="true"] section .bg-\\[var\\(--bg-card\\)\\].p-8 {
-    /* These now get the glassy border from globals.css */
-    /* If the user wants specific borders, we can define them here */
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    background: rgba(255,255,255, 0.02) !important;
-}
-    
-`}</style>
-
-            {/* The Fixed Background Layer */}
             <div
                 className="fixed inset-0 pointer-events-none transition-all duration-1000"
-                style={{
-                    background: atmo.css,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    animation: 'cafe-breathe 12s ease infinite',
-                    zIndex: -1
-                }}
+                style={{ background: atmo.css, backgroundSize: 'cover', backgroundPosition: 'center', animation: 'cafe-breathe 12s ease infinite', zIndex: -1 }}
             />
 
-            {/* 🛡️ THE VISUALIZER FIX: Moved into the background layer (z-index 0) behind the dashboard */}
-            {/* 🛡️ THE VISUALIZER FIX: Increased opacity and adjusted positioning */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
-                <div
-                    className="absolute flex items-center justify-center opacity-80" // Increased from 40%
-                    style={{
-                        bottom: '25%',
-                        left: 'calc(50% + 40px)',
-                        transform: 'translateX(-50%)',
-                        filter: 'drop-shadow(0 0 12px var(--atmo-glow))' // Uses the theme's accent color
-                    }}
-                >
+                <div className="absolute flex items-center justify-center opacity-80" style={{ bottom: '25%', left: 'calc(50% + 40px)', transform: 'translateX(-50%)', filter: 'drop-shadow(0 0 12px var(--atmo-glow))' }}>
                     <CenteredVisualizer accent={atmo.accent} isRunning={isRunning} />
                 </div>
-
-                {/* Ambient Glow Blobs */}
-                <motion.div
-                    animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.85, 0.5] }}
-                    transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute bottom-[-10%] left-[-5%] w-[50vw] h-[50vw] rounded-full blur-[140px]"
-                    style={{ backgroundColor: atmo.glow }}
-                />
-                <motion.div
-                    animate={{ scale: [1, 1.08, 1], opacity: [0.3, 0.6, 0.3] }}
-                    transition={{ duration: 13, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-                    className="absolute top-[-10%] right-[-5%] w-[40vw] h-[40vw] rounded-full blur-[120px]"
-                    style={{ backgroundColor: atmo.glow }}
-                />
+                <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.85, 0.5] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }} className="absolute bottom-[-10%] left-[-5%] w-[50vw] h-[50vw] rounded-full blur-[140px]" style={{ backgroundColor: atmo.glow }} />
+                <motion.div animate={{ scale: [1, 1.08, 1], opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 13, repeat: Infinity, ease: "easeInOut", delay: 3 }} className="absolute top-[-10%] right-[-5%] w-[40vw] h-[40vw] rounded-full blur-[120px]" style={{ backgroundColor: atmo.glow }} />
             </div>
 
-            {/* ── Constraints container for drag ─── */}
             <div ref={constraintsRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 8020 }} />
 
-            {/* ═══════════════════════════════════════════════════════════════
-                THE CAFÉ COMMAND CENTER — Draggable Pill / Console
-            ═══════════════════════════════════════════════════════════════ */}
             <motion.div
-                drag
-                dragControls={dragControls}
-                dragMomentum={false}
-                dragConstraints={constraintsRef}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 260, damping: 28 }}
+                drag dragControls={dragControls} dragMomentum={false} dragConstraints={constraintsRef}
+                initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 260, damping: 28 }}
                 className="fixed pointer-events-auto select-none"
-                style={{
-                    zIndex: 8030,
-                    bottom: "5rem",
-                    left: "50%",
-                    translateX: "-50%",
-                    x: "-50%",
-                }}
+                style={{ zIndex: 8030, bottom: "5rem", left: "50%", translateX: "-50%", x: "-50%" }}
             >
                 <AnimatePresence mode="wait" initial={false}>
-                    {/* ─── MINIMIZED PILL ─── */}
                     {!expanded ? (
                         <motion.div
-                            key="pill"
-                            initial={{ scale: 0.85, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.85, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
+                            key="pill" initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.85, opacity: 0 }} transition={{ duration: 0.2 }}
                             onPointerDown={(e) => dragControls.start(e)}
                             className="flex items-center gap-4 px-5 py-3 rounded-full cursor-grab active:cursor-grabbing"
-                            style={{
-                                background: "rgba(12,12,14,0.92)",
-                                backdropFilter: "blur(24px)",
-                                border: `1px solid ${atmo.accent}30`,
-                                boxShadow: `0 0 0 1px rgba(255,255,255,0.06), 0 8px 40px rgba(0,0,0,0.7), 0 0 40px ${atmo.glow}`,
-                            }}
+                            style={{ background: "rgba(12,12,14,0.92)", backdropFilter: "blur(24px)", border: `1px solid ${atmo.accent}30`, boxShadow: `0 0 0 1px rgba(255,255,255,0.06), 0 8px 40px rgba(0,0,0,0.7), 0 0 40px ${atmo.glow}` }}
                         >
-                            {/* Glow dot */}
                             <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: atmo.accent }} />
-
-                            {/* Timer */}
                             <span className="font-mono font-bold text-xl text-white tracking-widest">{formatTime(timeLeft)}</span>
-
-                            {/* Play/Pause */}
-                            <button
-                                onClick={toggleTimer}
-                                className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
-                                style={{ backgroundColor: `${atmo.accent}20`, color: atmo.accent, border: `1px solid ${atmo.accent}40` }}
-                            >
+                            <button onClick={toggleTimer} className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ backgroundColor: `${atmo.accent}20`, color: atmo.accent, border: `1px solid ${atmo.accent}40` }}>
                                 {isRunning ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
                             </button>
-
-                            {/* Expand */}
-                            <button
-                                onClick={() => setExpanded(true)}
-                                className="text-white/40 hover:text-white/80 transition-colors"
-                            >
-                                <ChevronUp size={16} />
-                            </button>
-
-                            {/* Exit */}
-                            <button onClick={handleExit} className="text-white/30 hover:text-red-400 transition-colors">
-                                <X size={14} />
-                            </button>
+                            <button onClick={() => setExpanded(true)} className="text-white/40 hover:text-white/80 transition-colors"><ChevronUp size={16} /></button>
+                            <button onClick={handleExit} className="text-white/30 hover:text-red-400 transition-colors"><X size={14} /></button>
                         </motion.div>
-
                     ) : (
                         <motion.div
-                            key="console"
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            transition={{ duration: 0.25 }}
+                            key="console" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} transition={{ duration: 0.25 }}
                             onPointerDown={(e) => dragControls.start(e)}
                             className="flex rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing relative"
-                            style={{
-                                background: "rgba(10,10,12,0.92)",
-                                backdropFilter: "blur(32px) saturate(1.5)",
-                                border: `1px solid rgba(255,255,255,0.09)`,
-                                boxShadow: `0 0 0 1px rgba(255,255,255,0.05), 0 16px 60px rgba(0,0,0,0.8), 0 0 60px ${atmo.glow}`,
-                                width: "580px",
-                            }}
+                            style={{ background: "rgba(10,10,12,0.92)", backdropFilter: "blur(32px) saturate(1.5)", border: `1px solid rgba(255,255,255,0.09)`, boxShadow: `0 0 0 1px rgba(255,255,255,0.05), 0 16px 60px rgba(0,0,0,0.8), 0 0 60px ${atmo.glow}`, width: "580px" }}
                         >
-                            {/* Top accent line */}
-                            <div className="absolute top-0 left-0 right-0 h-px"
-                                style={{ background: `linear-gradient(90deg, transparent, ${atmo.accent}60, transparent)` }} />
+                            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${atmo.accent}60, transparent)` }} />
 
-                            {/* ─── LEFT: Track Selector ─── */}
                             <div className="flex flex-col p-4 gap-0.5" style={{ width: "165px", borderRight: "1px solid rgba(255,255,255,0.06)" }}>
-                                <p className="text-[9px] font-black tracking-[0.2em] uppercase mb-3" style={{ color: `${atmo.accent}80` }}>
-                                    Atmosphere
-                                </p>
+                                <p className="text-[9px] font-black tracking-[0.2em] uppercase mb-3" style={{ color: `${atmo.accent}80` }}>Atmosphere</p>
                                 {ATMOSPHERES.map((a) => {
                                     const Icon = a.icon;
                                     const active = a.id === atmoId;
                                     return (
-                                        <button
-                                            key={a.id}
-                                            onClick={() => setAtmoId(a.id)}
-                                            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all text-left"
-                                            style={{
-                                                background: active ? `${a.accent}15` : "transparent",
-                                                border: active ? `1px solid ${a.accent}35` : "1px solid transparent",
-                                                color: active ? a.accent : "rgba(255,255,255,0.4)",
-                                            }}
-                                        >
-                                            {/* Active dot or icon */}
+                                        <button key={a.id} onClick={() => setAtmoId(a.id)} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all text-left" style={{ background: active ? `${a.accent}15` : "transparent", border: active ? `1px solid ${a.accent}35` : "1px solid transparent", color: active ? a.accent : "rgba(255,255,255,0.4)" }}>
                                             <span className="flex items-center justify-center w-4 h-4 flex-shrink-0">
-                                                {active ? (
-                                                    <motion.span
-                                                        animate={{ scale: [1, 1.4, 1], opacity: [0.7, 1, 0.7] }}
-                                                        transition={{ duration: 1.4, repeat: Infinity }}
-                                                        className="w-2 h-2 rounded-full block"
-                                                        style={{ backgroundColor: a.accent, boxShadow: `0 0 8px ${a.glow}` }}
-                                                    />
-                                                ) : (
-                                                    <Icon size={13} />
-                                                )}
+                                                {active ? <motion.span animate={{ scale: [1, 1.4, 1], opacity: [0.7, 1, 0.7] }} transition={{ duration: 1.4, repeat: Infinity }} className="w-2 h-2 rounded-full block" style={{ backgroundColor: a.accent, boxShadow: `0 0 8px ${a.glow}` }} /> : <Icon size={13} />}
                                             </span>
                                             <span className="font-medium text-xs">{a.label}</span>
-                                            {/* Animated bars for active */}
                                             {active && (
                                                 <span className="ml-auto flex items-end gap-[2px] h-3">
                                                     {[1, 2, 3].map(i => (
-                                                        <motion.span
-                                                            key={i}
-                                                            className="w-[3px] rounded-full"
-                                                            style={{ backgroundColor: a.accent }}
-                                                            animate={isRunning
-                                                                ? { height: ["3px", `${6 + i * 3}px`, "3px"] }
-                                                                : { height: "3px" }
-                                                            }
-                                                            transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15 }}
-                                                        />
+                                                        <motion.span key={i} className="w-[3px] rounded-full" style={{ backgroundColor: a.accent }} animate={isRunning ? { height: ["3px", `${6 + i * 3}px`, "3px"] } : { height: "3px" }} transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15 }} />
                                                     ))}
                                                 </span>
                                             )}
@@ -552,102 +397,45 @@ body[data-cafe="true"] section .bg-\\[var\\(--bg-card\\)\\].p-8 {
                                 })}
                             </div>
 
-                            {/* ─── CENTER: Timer ─── */}
                             <div className="flex-1 flex flex-col items-center justify-center py-6 px-4 gap-4">
-                                {/* Phase Badges */}
                                 <div className="flex gap-2">
                                     {(["focus", "short", "long"] as Phase[]).map(p => (
-                                        <span
-                                            key={p}
-                                            className="text-[8px] font-black tracking-[0.18em] uppercase px-2.5 py-1 rounded-full transition-all"
-                                            style={phase === p ? {
-                                                background: `${atmo.accent}20`,
-                                                color: atmo.accent,
-                                                border: `1px solid ${atmo.accent}40`,
-                                            } : {
-                                                color: "rgba(255,255,255,0.2)",
-                                                border: "1px solid transparent",
-                                            }}
-                                        >
+                                        <span key={p} className="text-[8px] font-black tracking-[0.18em] uppercase px-2.5 py-1 rounded-full transition-all" style={phase === p ? { background: `${atmo.accent}20`, color: atmo.accent, border: `1px solid ${atmo.accent}40` } : { color: "rgba(255,255,255,0.2)", border: "1px solid transparent" }}>
                                             {PHASE_LABELS[p]}
                                         </span>
                                     ))}
                                 </div>
 
-                                {/* SVG Ring + Timer */}
                                 <div className="relative flex items-center justify-center">
                                     <svg width="130" height="130" viewBox="0 0 100 100" className="absolute">
                                         <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
-                                        <circle
-                                            cx="50" cy="50" r="44" fill="none"
-                                            stroke={atmo.accent}
-                                            strokeWidth="2.5"
-                                            strokeLinecap="round"
-                                            strokeDasharray={circumference}
-                                            strokeDashoffset={circumference * (1 - progress / 100)}
-                                            style={{
-                                                transform: "rotate(-90deg)",
-                                                transformOrigin: "50px 50px",
-                                                transition: "stroke-dashoffset 1s linear",
-                                                filter: `drop-shadow(0 0 6px ${atmo.accent})`,
-                                            }}
-                                        />
+                                        <circle cx="50" cy="50" r="44" fill="none" stroke={atmo.accent} strokeWidth="2.5" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress / 100)} style={{ transform: "rotate(-90deg)", transformOrigin: "50px 50px", transition: "stroke-dashoffset 1s linear", filter: `drop-shadow(0 0 6px ${atmo.accent})` }} />
                                     </svg>
-                                    <span
-                                        className="font-mono font-bold text-4xl text-white tracking-widest relative"
-                                        style={{
-                                            textShadow: `0 0 30px ${atmo.accent}60`,
-                                        }}
-                                    >
-                                        {formatTime(timeLeft)}
-                                    </span>
+                                    <span className="font-mono font-bold text-4xl text-white tracking-widest relative" style={{ textShadow: `0 0 30px ${atmo.accent}60` }}>{formatTime(timeLeft)}</span>
                                 </div>
 
-                                {/* Controls */}
                                 <div className="flex items-center gap-3">
-                                    <button
-                                        onClick={toggleTimer}
-                                        className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110"
-                                        style={{
-                                            background: `${atmo.accent}15`,
-                                            border: `1px solid ${atmo.accent}40`,
-                                            color: atmo.accent,
-                                            boxShadow: isRunning ? `0 0 20px ${atmo.glow}` : "none",
-                                        }}
-                                    >
+                                    <button onClick={toggleTimer} className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: `${atmo.accent}15`, border: `1px solid ${atmo.accent}40`, color: atmo.accent, boxShadow: isRunning ? `0 0 20px ${atmo.glow}` : "none" }}>
                                         {isRunning ? <Pause size={20} /> : <Play size={20} className="ml-0.5" />}
                                     </button>
-                                    <button
-                                        onClick={() => setPhase(p => p === "focus" ? "short" : "focus")}
-                                        className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110"
-                                        style={{ color: "rgba(255,255,255,0.35)", border: "1px solid rgba(255,255,255,0.08)" }}
-                                    >
+                                    <button onClick={() => setPhase(p => p === "focus" ? "short" : "focus")} className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ color: "rgba(255,255,255,0.35)", border: "1px solid rgba(255,255,255,0.08)" }}>
                                         <SkipForward size={15} />
                                     </button>
                                 </div>
 
-
-                                {/* Cycle Dots */}
                                 <div className="flex items-center gap-1.5">
                                     {Array.from({ length: pomodoroCycles }).map((_, i) => (
-                                        <div key={i} className="w-1.5 h-1.5 rounded-full transition-all"
-                                            style={{ backgroundColor: i < (cycleCount % pomodoroCycles) ? atmo.accent : "rgba(255,255,255,0.15)" }} />
+                                        <div key={i} className="w-1.5 h-1.5 rounded-full transition-all" style={{ backgroundColor: i < (cycleCount % pomodoroCycles) ? atmo.accent : "rgba(255,255,255,0.15)" }} />
                                     ))}
                                 </div>
                             </div>
 
-                            {/* ─── RIGHT: Chapter ─── */}
                             <div className="flex flex-col justify-between p-4" style={{ width: "165px", borderLeft: "1px solid rgba(255,255,255,0.06)" }}>
                                 <div>
-                                    <p className="text-[9px] font-black tracking-[0.2em] uppercase mb-3" style={{ color: `${atmo.accent}80` }}>
-                                        Current Chapter
-                                    </p>
+                                    <p className="text-[9px] font-black tracking-[0.2em] uppercase mb-3" style={{ color: `${atmo.accent}80` }}>Current Chapter</p>
                                     {task ? (
                                         <div>
-                                            <span className="text-[9px] uppercase tracking-widest font-extrabold mb-2 block"
-                                                style={{ color: atmo.accent }}>
-                                                {task.load} Load
-                                            </span>
+                                            <span className="text-[9px] uppercase tracking-widest font-extrabold mb-2 block" style={{ color: atmo.accent }}>{task.load} Load</span>
                                             <h3 className="text-white font-bold text-sm leading-snug mb-2">{task.title}</h3>
                                             <p className="text-xs text-white/40 line-clamp-3 leading-relaxed">{task.description}</p>
                                         </div>
@@ -657,32 +445,14 @@ body[data-cafe="true"] section .bg-\\[var\\(--bg-card\\)\\].p-8 {
                                 </div>
 
                                 <div className="flex flex-col gap-2 mt-4">
-                                    <button
-                                        onClick={handleComplete}
-                                        className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02]"
-                                        style={{
-                                            background: `${atmo.accent}18`,
-                                            border: `1px solid ${atmo.accent}40`,
-                                            color: atmo.accent,
-                                            boxShadow: `0 0 20px ${atmo.glow}`,
-                                        }}
-                                    >
-                                        <CheckCircle2 size={16} />
-                                        Complete
+                                    <button onClick={handleComplete} className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02]" style={{ background: `${atmo.accent}18`, border: `1px solid ${atmo.accent}40`, color: atmo.accent, boxShadow: `0 0 20px ${atmo.glow}` }}>
+                                        <CheckCircle2 size={16} /> Complete
                                     </button>
                                     <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setExpanded(false)}
-                                            className="flex-1 flex items-center justify-center py-2 rounded-xl text-xs font-medium transition-colors text-white/30 hover:text-white/60"
-                                            style={{ border: "1px solid rgba(255,255,255,0.06)" }}
-                                        >
+                                        <button onClick={() => setExpanded(false)} className="flex-1 flex items-center justify-center py-2 rounded-xl text-xs font-medium transition-colors text-white/30 hover:text-white/60" style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
                                             <ChevronDown size={14} className="mr-1" /> Minimise
                                         </button>
-                                        <button
-                                            onClick={handleExit}
-                                            className="w-9 h-9 flex items-center justify-center rounded-xl text-white/20 hover:text-red-400 transition-colors"
-                                            style={{ border: "1px solid rgba(255,255,255,0.06)" }}
-                                        >
+                                        <button onClick={handleExit} className="w-9 h-9 flex items-center justify-center rounded-xl text-white/20 hover:text-red-400 transition-colors" style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
                                             <X size={14} />
                                         </button>
                                     </div>
@@ -706,17 +476,13 @@ body[data-cafe="true"] section .bg-\\[var\\(--bg-card\\)\\].p-8 {
                             <h3 className="text-xl font-bold text-white mb-2">Chapter Complete?</h3>
                             <p className="text-white/40 text-sm mb-6">Ready to log your progress and return to the Lantern Network?</p>
 
-                            {/* 🔥 PREMIUM POST-MATCH SURVEY 🔥 */}
                             {isPremiumUser && (
                                 <div className="mb-6 space-y-4 text-left bg-black/40 p-4 rounded-xl border border-[var(--accent-yellow)]/20 shadow-[inset_0_0_20px_rgba(250,204,21,0.05)]">
                                     <div>
                                         <label className="text-xs font-bold text-[var(--accent-yellow)] flex items-center gap-1.5 mb-2">
                                             <BrainCircuit size={12} /> Stress Level: {stressLevel}
                                         </label>
-                                        <input
-                                            type="range" min="0" max="100" value={stressLevel} onChange={e => setStressLevel(parseInt(e.target.value))}
-                                            className="w-full accent-[var(--accent-yellow)]"
-                                        />
+                                        <input type="range" min="0" max="100" value={stressLevel} onChange={e => setStressLevel(parseInt(e.target.value))} className="w-full accent-[var(--accent-yellow)]" />
                                         <div className="flex justify-between text-[9px] text-white/40 mt-1 uppercase font-bold tracking-widest">
                                             <span>Flow (0)</span><span>Burnout (100)</span>
                                         </div>
@@ -725,10 +491,7 @@ body[data-cafe="true"] section .bg-\\[var\\(--bg-card\\)\\].p-8 {
                                         <label className="text-xs font-bold text-[var(--accent-yellow)] flex items-center gap-1.5 mb-2">
                                             <Clock size={12} /> Actual Pomodoros
                                         </label>
-                                        <input
-                                            type="number" min="1" value={actualPomos} onChange={e => setActualPomos(parseInt(e.target.value) || 1)}
-                                            className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent-yellow)]"
-                                        />
+                                        <input type="number" min="1" value={actualPomos} onChange={e => setActualPomos(parseInt(e.target.value) || 1)} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent-yellow)]" />
                                     </div>
                                 </div>
                             )}
@@ -742,7 +505,6 @@ body[data-cafe="true"] section .bg-\\[var\\(--bg-card\\)\\].p-8 {
                 )}
             </AnimatePresence>
 
-            {/* ─── Exit Confirm ─── */}
             <AnimatePresence>
                 {showExitConfirm && (
                     <motion.div
@@ -753,28 +515,14 @@ body[data-cafe="true"] section .bg-\\[var\\(--bg-card\\)\\].p-8 {
                         <motion.div
                             initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
                             className="rounded-3xl p-8 max-w-sm w-full text-center"
-                            style={{
-                                background: "rgba(12,12,14,0.96)",
-                                border: "1px solid rgba(255,255,255,0.1)",
-                                boxShadow: `0 0 0 1px rgba(255,255,255,0.05), 0 32px 80px rgba(0,0,0,0.8), 0 0 60px ${atmo.glow}`,
-                            }}
+                            style={{ background: "rgba(12,12,14,0.96)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: `0 0 0 1px rgba(255,255,255,0.05), 0 32px 80px rgba(0,0,0,0.8), 0 0 60px ${atmo.glow}` }}
                         >
                             <Coffee size={36} className="mx-auto mb-4" style={{ color: atmo.accent }} />
                             <h3 className="text-xl font-bold text-white mb-2">Leave the Café?</h3>
                             <p className="text-white/40 text-sm mb-6">Your flow will be saved. The vibe stops here.</p>
                             <div className="grid grid-cols-2 gap-3">
-                                <button
-                                    onClick={() => setShowExitConfirm(false)}
-                                    className="py-3 rounded-xl font-bold text-white/70 hover:text-white transition-colors"
-                                    style={{ border: "1px solid rgba(255,255,255,0.1)" }}
-                                >Stay</button>
-                                <button
-                                    onClick={confirmExit} // ⚡ FIX: Use the async handoff function instead of inline exitMode
-                                    className="py-3 rounded-xl font-bold text-red-400 hover:bg-red-500 hover:text-white transition-all"
-                                    style={{ border: "1px solid rgba(239,68,68,0.3)" }}
-                                >
-                                    Leave
-                                </button>
+                                <button onClick={() => setShowExitConfirm(false)} className="py-3 rounded-xl font-bold text-white/70 hover:text-white transition-colors" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>Stay</button>
+                                <button onClick={confirmExit} className="py-3 rounded-xl font-bold text-red-400 hover:bg-red-500 hover:text-white transition-all" style={{ border: "1px solid rgba(239,68,68,0.3)" }}>Leave</button>
                             </div>
                         </motion.div>
                     </motion.div>
