@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useStudyStore, TaskLoad, Task } from "@/store/useStudyStore";
-import { Sprout, Plus, Search, Moon, ChevronDown, X, Sparkles, Crosshair } from "lucide-react";
+import { Sprout, Plus, Search, Moon, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay } from "@dnd-kit/core";
 import TaskCard from "@/components/TaskCard";
@@ -196,7 +196,7 @@ function StandardZone({ id, tasks }: any) {
 }
 
 export default function CrystalGarden() {
-    const { tasks, shards, addTask, completeTask, updateTask, activeFramework, setActiveFramework, lastPlannedDate, isInitialized, triggerChumToast, openFocusModal } = useStudyStore();
+    const { isPremiumUser, tasks, shards, addTask, completeTask, updateTask, activeFramework, setActiveFramework, lastPlannedDate, isInitialized, triggerChumToast, openFocusModal } = useStudyStore();
     const [searchQuery, setSearchQuery] = useState("");
     const [isAdding, setIsAdding] = useState(false);
     const [activeDragTask, setActiveDragTask] = useState<Task | null>(null);
@@ -222,6 +222,17 @@ export default function CrystalGarden() {
 
     const [showFrameworkMenu, setShowFrameworkMenu] = useState(false);
     const [pendingFramework, setPendingFramework] = useState<string | null | undefined>(undefined);
+
+    const [stressLevel, setStressLevel] = useState(50);
+    const [actualPomos, setActualPomos] = useState(1);
+
+    // Auto-fill actual pomodoros with their estimate when the modal opens
+    useEffect(() => {
+        if (draggedToMasteryTask) {
+            setStressLevel(50);
+            setActualPomos(draggedToMasteryTask.estimatedPomos || 1);
+        }
+    }, [draggedToMasteryTask]);
 
     // 4:00 AM Reset Logic
     useEffect(() => {
@@ -275,7 +286,7 @@ export default function CrystalGarden() {
         return () => clearTimeout(timeoutId);
     }, [triggerChumToast]);
 
-    const [newTask, setNewTask] = useState({ title: "", description: "", load: "medium" as TaskLoad, deadline: "" });
+    const [newTask, setNewTask] = useState<{ title: string, description: string, load: TaskLoad, deadline: string, estimatedPomos?: number }>({ title: "", description: "", load: "medium", deadline: "" });
     const [isScheduled, setIsScheduled] = useState(false);
 
     const handleDragStart = (event: DragStartEvent) => {
@@ -412,6 +423,20 @@ export default function CrystalGarden() {
                                                     <button key={weight} type="button" onClick={() => setNewTask({ ...newTask, load: weight as TaskLoad })} className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase border transition-colors ${newTask.load === weight ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>{weight}</button>
                                                 ))}
                                             </div>
+                                            {/* 🔥 PREMIUM: Estimated Pomodoros Input */}
+                                            {isPremiumUser && (
+                                                <div className="bg-[var(--bg-dark)] border border-[var(--accent-yellow)]/30 rounded-xl p-3 mt-4 shadow-[inset_0_0_15px_rgba(250,204,21,0.05)]">
+                                                    <label className="text-xs font-bold text-[var(--accent-yellow)] uppercase mb-2 flex items-center gap-1.5">
+                                                        <Sparkles size={12} /> Estimated Pomodoros
+                                                    </label>
+                                                    <input
+                                                        type="number" min="1" max="20" placeholder="e.g. 2"
+                                                        value={newTask.estimatedPomos || ''}
+                                                        onChange={e => setNewTask({ ...newTask, estimatedPomos: parseInt(e.target.value) || 1 })}
+                                                        className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-yellow)]"
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl p-3 flex flex-col gap-2 transition-all">
@@ -451,22 +476,46 @@ export default function CrystalGarden() {
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDraggedToMasteryTask(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
                             <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-[var(--bg-card)] border-2 border-[var(--text-muted)] rounded-2xl p-8 w-full max-w-sm text-center shadow-[0_0_50px_rgba(0,0,0,0.5)] relative z-10">
                                 <h3 className="text-xl font-black text-white mb-2">Archive Quest?</h3>
-                                <p className="text-sm text-[var(--text-muted)] mb-8">Mark <span className="text-white font-bold">"{draggedToMasteryTask.title}"</span> as completed and move it to the Hall of Mastery.</p>
+                                <p className="text-sm text-[var(--text-muted)] mb-6">Mark <span className="text-white font-bold">"{draggedToMasteryTask.title}"</span> as completed and move it to the Hall of Mastery.</p>
+
+                                {/* 🔥 PREMIUM POST-MATCH SURVEY 🔥 */}
+                                {isPremiumUser && (
+                                    <div className="mb-6 space-y-4 text-left bg-black/40 p-4 rounded-xl border border-[var(--accent-yellow)]/20 shadow-[inset_0_0_20px_rgba(250,204,21,0.05)]">
+                                        <div>
+                                            <label className="text-xs font-bold text-[var(--accent-yellow)] flex items-center gap-1.5 mb-2">
+                                                <BrainCircuit size={12} /> Stress Level: {stressLevel}
+                                            </label>
+                                            <input
+                                                type="range" min="0" max="100" value={stressLevel} onChange={e => setStressLevel(parseInt(e.target.value))}
+                                                className="w-full accent-[var(--accent-yellow)]"
+                                            />
+                                            <div className="flex justify-between text-[9px] text-white/40 mt-1 uppercase font-bold tracking-widest">
+                                                <span>Flow (0)</span><span>Burnout (100)</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-[var(--accent-yellow)] flex items-center gap-1.5 mb-2">
+                                                <Clock size={12} /> Actual Pomodoros
+                                            </label>
+                                            <input
+                                                type="number" min="1" value={actualPomos} onChange={e => setActualPomos(parseInt(e.target.value) || 1)}
+                                                className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent-yellow)]"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="flex gap-3">
                                     <button onClick={() => setDraggedToMasteryTask(null)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/50 hover:bg-white/5 text-sm font-bold transition-all">Cancel</button>
                                     <button
                                         onClick={() => {
-                                            // 1. Check if it was a frog before we delete the reference
                                             const wasFrog = draggedToMasteryTask?.isFrog;
 
-                                            // 2. Complete the task
-                                            completeTask(draggedToMasteryTask!.id);
-                                            setDraggedToMasteryTask(null);
+                                            // 🔥 PASS THE PREMIUM STATS HERE
+                                            completeTask(draggedToMasteryTask!.id, isPremiumUser ? { actualPomos, stressLevel } : undefined);
 
-                                            // 3. Fire the celebration!
-                                            if (wasFrog) {
-                                                triggerChumToast("🐸 BOOM! Frog crushed! You just gained a massive amount of momentum for the day. Keep it up!");
-                                            }
+                                            setDraggedToMasteryTask(null);
+                                            if (wasFrog) triggerChumToast("🐸 BOOM! Frog crushed! You just gained a massive amount of momentum for the day. Keep it up!");
                                         }}
                                         className="flex-1 py-3 rounded-xl bg-white text-black hover:brightness-90 text-sm font-black transition-all shadow-lg"
                                     >

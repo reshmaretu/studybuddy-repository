@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, CheckCircle2, Edit3, LogOut, Plus, BrainCircuit, Network, Cpu, WifiOff, Settings, History } from "lucide-react";
+import { X, Send, CheckCircle2, Edit3, LogOut, Plus, BrainCircuit, Network, Cpu, WifiOff, Settings, History, Sparkles } from "lucide-react";
 import { useStudyStore, ChatMessage, TutorSession, Shard, TaskLoad } from "@/store/useStudyStore";
 import { supabase } from '@/lib/supabase';
 
@@ -25,8 +25,8 @@ export default function ChumWidget() {
         activeMode, exitMode, isTutorModeActive, activeShardId, exitTutorMode,
         shards, updateShardMastery, aiTier, setAITier, aiKeys, updateAIKeys, ollamaUrl, setOllamaUrl,
         normalChatHistory, tutorChatHistory, setNormalChatHistory, setTutorChatHistory,
-        tutorSessionState, updateTutorSessionState, completeTutorSession, pastTutorSessions, addTask, toggleMindDump,
-        showNodeBadge, setShowNodeBadge, chumToast
+        tutorSessionState, updateTutorSessionState, completeTutorSession, pastTutorSessions, toggleMindDump,
+        showNodeBadge, setShowNodeBadge, chumToast, addTask, isPremiumUser
     } = useStudyStore();
 
     const [widgetPos, setWidgetPos] = useState({ isLeft: false, isTop: false });
@@ -38,7 +38,7 @@ export default function ChumWidget() {
     const activeShard = shards.find(s => s.id === activeShardId);
 
     const [showTaskForm, setShowTaskForm] = useState(false);
-    const [newTask, setNewTask] = useState<{ title: string, description: string, load: TaskLoad, deadline?: string }>({ title: "", description: "", load: "medium" });
+    const [newTask, setNewTask] = useState<{ title: string, description: string, load: TaskLoad, deadline?: string, estimatedPomos?: number }>({ title: "", description: "", load: "medium" });
     const [isScheduled, setIsScheduled] = useState(false);
 
     useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [currentHistory, isOpen, showSettings, showSessions]);
@@ -683,13 +683,28 @@ export default function ChumWidget() {
 
                                 <div className="flex gap-2">
                                     {(['light', 'medium', 'heavy'] as const).map(load => (
-                                        <button key={load} onClick={() => setNewTask({ ...newTask, load })} className={`flex-1 py-1.5 rounded-md border text-xs font-bold uppercase ${newTask.load === load ? 'bg-(--accent-teal)/20 border-(--accent-teal) text-(--accent-teal)' : 'bg-(--bg-dark) border-(--border-color) text-(--text-muted) hover:text-(--text-main)'}`}>
+                                        <button key={load} onClick={() => setNewTask({ ...newTask, load })} className={`flex-1 py-1.5 rounded-md border text-xs font-bold uppercase ${newTask.load === load ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'bg-[var(--bg-dark)] border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>
                                             {load}
                                         </button>
                                     ))}
                                 </div>
 
-                                <div className="bg-(--bg-dark) border border-(--border-color) rounded-lg p-3 flex flex-col gap-2">
+                                {/* 🔥 PREMIUM: Estimated Pomodoros Input */}
+                                {isPremiumUser && (
+                                    <div className="bg-[var(--bg-dark)] border border-[var(--accent-yellow)]/30 rounded-xl p-3 shadow-[inset_0_0_15px_rgba(250,204,21,0.05)]">
+                                        <label className="text-xs font-bold text-[var(--accent-yellow)] uppercase mb-2 flex items-center gap-1.5">
+                                            <Sparkles size={12} /> Estimated Pomodoros
+                                        </label>
+                                        <input
+                                            type="number" min="1" max="20" placeholder="e.g. 2"
+                                            value={newTask.estimatedPomos || ''}
+                                            onChange={e => setNewTask({ ...newTask, estimatedPomos: parseInt(e.target.value) || 1 })}
+                                            className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-yellow)]"
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg p-3 flex flex-col gap-2">
                                     <div className="flex items-center justify-between">
                                         <span className="text-xs font-bold text-(--text-muted) uppercase tracking-wider">Best Before</span>
                                         <div onClick={() => handleToggleSchedule(!isScheduled)} className="flex items-center gap-2 cursor-pointer group">

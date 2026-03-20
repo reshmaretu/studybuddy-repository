@@ -5,7 +5,7 @@ import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useStudyStore } from "@/store/useStudyStore";
 import {
     Coffee, X, Play, Pause, SkipForward,
-    CheckCircle2, Music, Wind, Waves, Flame, Droplets, ChevronUp, ChevronDown
+    CheckCircle2, Music, Wind, Waves, Flame, Droplets, ChevronUp, ChevronDown, BrainCircuit, Clock
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -169,7 +169,7 @@ export default function StudyCafeOverlay() {
     const {
         activeMode, activeTaskId, tasks, timeLeft, isRunning,
         toggleTimer, completeTask, exitMode,
-        pomodoroFocus, pomodoroShortBreak, pomodoroLongBreak, pomodoroCycles,
+        pomodoroFocus, pomodoroShortBreak, pomodoroLongBreak, pomodoroCycles, isPremiumUser
     } = useStudyStore();
 
     const [atmoId, setAtmoId] = useState("lofi");
@@ -184,6 +184,16 @@ export default function StudyCafeOverlay() {
     const atmo = ATMOSPHERES.find(a => a.id === atmoId) ?? ATMOSPHERES[0];
     const task = activeTaskId ? tasks.find(t => t.id === activeTaskId) : null;
     const isActive = activeMode === "studyCafe";
+
+    const [stressLevel, setStressLevel] = useState(50);
+    const [actualPomos, setActualPomos] = useState(1);
+
+    useEffect(() => {
+        if (showCompleteConfirm && task?.estimatedPomos) {
+            setActualPomos(task.estimatedPomos);
+            setStressLevel(50);
+        }
+    }, [showCompleteConfirm, task]);
 
     // 1. Add this tick effect so the timer actually moves
     useEffect(() => {
@@ -250,7 +260,10 @@ export default function StudyCafeOverlay() {
 
     const confirmComplete = async () => {
         const { data: { user } } = await supabase.auth.getUser();
-        if (task) completeTask(task.id);
+        if (task) {
+            // 👇 Pass the premium stats payload!
+            completeTask(task.id, isPremiumUser ? { actualPomos, stressLevel } : undefined);
+        }
 
         if (user) {
             await supabase.from('profiles')
@@ -282,6 +295,32 @@ export default function StudyCafeOverlay() {
 
         useStudyStore.getState().exitMode();
     };
+
+    // 🔥 THE ANTI-DISTRACTION LISTENER
+    useEffect(() => {
+        // Only track if the timer is actively ticking
+        if (!isRunning) return;
+
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                // They minimized the window or switched to a different app completely
+                useStudyStore.getState().incrementFlowBreak();
+            }
+        };
+
+        const handleBlur = () => {
+            // They clicked away from the window or switched browser tabs
+            useStudyStore.getState().incrementTabSwitch();
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        window.addEventListener("blur", handleBlur);
+
+        return () => {
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            window.removeEventListener("blur", handleBlur);
+        };
+    }, [isRunning]);
 
     // Set/cleanup body attribute for glassmorphism injection
     useEffect(() => {
@@ -666,6 +705,34 @@ body[data-cafe="true"] section .bg-\\[var\\(--bg-card\\)\\].p-8 {
                             </div>
                             <h3 className="text-xl font-bold text-white mb-2">Chapter Complete?</h3>
                             <p className="text-white/40 text-sm mb-6">Ready to log your progress and return to the Lantern Network?</p>
+
+                            {/* 🔥 PREMIUM POST-MATCH SURVEY 🔥 */}
+                            {isPremiumUser && (
+                                <div className="mb-6 space-y-4 text-left bg-black/40 p-4 rounded-xl border border-[var(--accent-yellow)]/20 shadow-[inset_0_0_20px_rgba(250,204,21,0.05)]">
+                                    <div>
+                                        <label className="text-xs font-bold text-[var(--accent-yellow)] flex items-center gap-1.5 mb-2">
+                                            <BrainCircuit size={12} /> Stress Level: {stressLevel}
+                                        </label>
+                                        <input
+                                            type="range" min="0" max="100" value={stressLevel} onChange={e => setStressLevel(parseInt(e.target.value))}
+                                            className="w-full accent-[var(--accent-yellow)]"
+                                        />
+                                        <div className="flex justify-between text-[9px] text-white/40 mt-1 uppercase font-bold tracking-widest">
+                                            <span>Flow (0)</span><span>Burnout (100)</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-[var(--accent-yellow)] flex items-center gap-1.5 mb-2">
+                                            <Clock size={12} /> Actual Pomodoros
+                                        </label>
+                                        <input
+                                            type="number" min="1" value={actualPomos} onChange={e => setActualPomos(parseInt(e.target.value) || 1)}
+                                            className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent-yellow)]"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-2 gap-4">
                                 <button onClick={() => setShowCompleteConfirm(false)} className="py-3 rounded-xl border border-white/10 text-white font-bold hover:bg-white/5 transition-colors">Not yet</button>
                                 <button onClick={confirmComplete} className="py-3 rounded-xl bg-teal-500 text-black font-bold hover:bg-teal-400 transition-colors">Finish</button>

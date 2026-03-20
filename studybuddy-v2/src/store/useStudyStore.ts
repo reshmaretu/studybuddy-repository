@@ -18,6 +18,10 @@ export interface Task {
     isFrog?: boolean;
     eisenhowerQuadrant?: number;
     ivyRank?: number;
+    completedAt?: string;
+    estimatedPomos?: number;
+    actualPomos?: number;
+    stressLevel?: number;
 }
 
 export interface ChatMessage {
@@ -77,6 +81,12 @@ interface StudyState {
 
     tasks: Task[];
     focusScore: number;
+    dailyFocusScores: Record<string, number>;
+    flowBreaks: number;
+    tabSwitches: number;
+    incrementFlowBreak: () => void;
+    incrementTabSwitch: () => void;
+    resetFlowStats: () => void;
     dailyStreak: number;
     totalSessions: number;
     timeLeft: number;
@@ -127,7 +137,7 @@ interface StudyState {
     addTask: (task: Omit<Task, 'id' | 'isCompleted'>) => Promise<void>;
     deleteTask: (id: string) => Promise<void>;
     updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
-    completeTask: (id: string) => Promise<void>;
+    completeTask: (id: string, premiumStats?: { actualPomos?: number; stressLevel?: number }) => Promise<void>;
     forgeShard: (shard: Omit<Shard, "id" | "mastery" | "isMastered" | "createdAt">) => Promise<void>;
     deleteShard: (id: string) => Promise<void>;
 
@@ -214,6 +224,13 @@ export const useStudyStore = create<StudyState>()(
             toggleMindDump: () => set((state) => ({ isMindDumpOpen: !state.isMindDumpOpen })),
             tasks: [],
             focusScore: 100,
+            dailyFocusScores: {},
+            flowBreaks: 0,
+            tabSwitches: 0,
+
+            incrementFlowBreak: () => set((state) => ({ flowBreaks: state.flowBreaks + 1 })),
+            incrementTabSwitch: () => set((state) => ({ tabSwitches: state.tabSwitches + 1 })),
+            resetFlowStats: () => set({ flowBreaks: 0, tabSwitches: 0 }),
             dailyStreak: 3,
             totalSessions: 0,
             timeLeft: 1500,
@@ -306,8 +323,14 @@ export const useStudyStore = create<StudyState>()(
                 const { data: { user } } = await supabase.auth.getUser();
                 set((state) => {
                     const newScore = Math.max(0, Math.min(100, state.focusScore + amount));
+
+                    // 🔥 Take a daily snapshot!
+                    const today = new Date().toISOString().split('T')[0];
+                    const updatedDailyScores = { ...state.dailyFocusScores, [today]: newScore };
+
                     if (user) supabase.from('user_stats').update({ focus_score: newScore }).eq('user_id', user.id).then();
-                    return { focusScore: newScore };
+
+                    return { focusScore: newScore, dailyFocusScores: updatedDailyScores };
                 });
             },
 
@@ -370,25 +393,33 @@ export const useStudyStore = create<StudyState>()(
                 }
             },
 
-            completeTask: async (id) => {
+            completeTask: async (id, premiumStats) => {
                 const { data: { user } } = await supabase.auth.getUser();
                 const task = get().tasks.find(t => t.id === id);
+                const now = new Date().toISOString();
 
                 set((state) => ({
-                    tasks: state.tasks.map((t) => t.id === id ? { ...t, isCompleted: true } : t),
+                    tasks: state.tasks.map((t) => t.id === id ? {
+                        ...t,
+                        isCompleted: true,
+                        completedAt: now,
+                        ...premiumStats // Inject the modal stats!
+                    } : t),
                 }));
 
-                // +5 Focus Score for completing a task
                 get().modifyFocusScore(5);
 
-                // Give specific XP based on cognitive load
                 if (task) {
                     const xpReward = task.load === 'heavy' ? 20 : task.load === 'medium' ? 10 : 5;
                     get().gainXp(xpReward);
                 }
 
                 if (!id.startsWith('temp-') && user) {
-                    await supabase.from('tasks').update({ is_completed: true }).eq('id', id);
+                    const dbUpdate: any = { is_completed: true, completed_at: now };
+                    if (premiumStats?.actualPomos !== undefined) dbUpdate.actual_pomodoros = premiumStats.actualPomos;
+                    if (premiumStats?.stressLevel !== undefined) dbUpdate.stress_level = premiumStats.stressLevel;
+
+                    supabase.from('tasks').update(dbUpdate).eq('id', id).then();
                 }
             },
 
@@ -490,7 +521,13 @@ export const useStudyStore = create<StudyState>()(
                 set((state) => ({ tasks: [{ ...task, id: tempId, isCompleted: false }, ...state.tasks] }));
 
                 const { data } = await supabase.from('tasks').insert([{
-                    user_id: user.id, title: task.title, description: task.description, load: task.load, deadline: task.deadline
+                    user_id: user.id,
+                    title: task.title,
+                    description: task.description,
+                    load: task.load,
+                    deadline: task.deadline,
+                    // 👇 Map the new column
+                    estimated_pomodoros: task.estimatedPomos
                 }]).select().single();
 
                 if (data) {
@@ -745,6 +782,9 @@ export const useStudyStore = create<StudyState>()(
                 swayAmount: state.swayAmount,
                 flowerCount: state.flowerCount,
                 swayEnabled: state.swayEnabled,
+                dailyFocusScores: state.dailyFocusScores,
+                flowBreaks: state.flowBreaks,
+                tabSwitches: state.tabSwitches,
             })
         }
     )

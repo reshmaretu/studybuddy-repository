@@ -450,11 +450,11 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     if (s === 'SUBSCRIBED') {
                         const finalRoomTitle = roomData?.name || searchParams.get('title') || "New Sanctuary";
                         await channel.track({
-                            id: user.id, 
-                            name: finalName, 
+                            id: user.id,
+                            name: finalName,
                             chumAvatar: finalAvatar,
                             status: isActuallyHost ? (roomData?.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
-                            roomCode: roomCode, 
+                            roomCode: roomCode,
                             roomTitle: finalRoomTitle
                         });
                         // ⚡ LATE JOINER DETECTED: Ask host for the time!
@@ -474,11 +474,11 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     useEffect(() => {
         if (channelRef.current && currentUserId) {
             channelRef.current.track({
-                id: currentUserId, 
-                name: resolvedName, 
+                id: currentUserId,
+                name: resolvedName,
                 chumAvatar: resolvedAvatar,
                 status: isHost ? ((status === 'ACTIVE' || status === 'LAUNCHING') ? 'hosting' : 'drafting') : 'joined',
-                roomCode: roomCode, 
+                roomCode: roomCode,
                 roomTitle: settings.name || "Sanctuary"
             });
         }
@@ -520,7 +520,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
         // 3. 🛡️ BACKGROUND DB SYNC: Fire and forget. Don't block the UI!
         const { data: { user } } = await supabase.auth.getUser();
-        
+
         await Promise.all([
             supabase
                 .from('rooms')
@@ -528,7 +528,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 .eq('room_code', roomCode),
             supabase
                 .from('profiles')
-                .update({ 
+                .update({
                     status: 'hosting',
                     is_in_flowstate: settings.mode === 'pomodoro' // Only flowstate if it's a focus protocol
                 })
@@ -986,8 +986,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => setIsActive(!isActive)}
                                 className={`px-10 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-[0.2em] transition-all border outline-none ${isActive
-                                        ? 'bg-transparent border-[var(--text-muted)]/20 text-[var(--text-muted)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)]'
-                                        : 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black shadow-[0_0_25px_rgba(45,212,191,0.25)]'
+                                    ? 'bg-transparent border-[var(--text-muted)]/20 text-[var(--text-muted)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)]'
+                                    : 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black shadow-[0_0_25px_rgba(45,212,191,0.25)]'
                                     }`}
                             >
                                 {isActive ? "Pause Focus" : "Initiate Focus"}

@@ -43,8 +43,8 @@ export interface LanternNetHandle {
     warpToUser: (userId: string) => void;
 }
 
-const ThreeLanternNet = forwardRef<LanternNetHandle, { 
-    users: LanternUser[], 
+const ThreeLanternNet = forwardRef<LanternNetHandle, {
+    users: LanternUser[],
     isInitialLoading?: boolean,
     isMaximized: boolean,
     onToggleMaximize: () => void,
@@ -59,6 +59,8 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
 
     const [globalIntensity, setGlobalIntensity] = useState(0);
     const [isFocused, setIsFocused] = useState(false);
+
+    const [isFreeCam, setIsFreeCam] = useState(false);
 
     // 2. THE POWER UP LOGIC
     useEffect(() => {
@@ -93,24 +95,46 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
     }), [users, getPos]);
 
     return (
-        <div 
+        <div
             className="w-full h-full bg-[#05080c] relative group"
             onPointerEnter={() => setIsFocused(true)}
             onPointerLeave={() => setIsFocused(false)}
         >
+            {/* --- FREECAM HUD (Now safely anchored to the screen!) --- */}
+            <AnimatePresence>
+                {isFreeCam && is3D && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        className="absolute bottom-6 left-6 z-[100] bg-[var(--bg-dark)]/80 backdrop-blur-md px-4 py-2 rounded-xl border border-[var(--accent-teal)]/50 shadow-[0_0_15px_rgba(45,212,191,0.2)] pointer-events-none">
+                        <p className="text-[10px] font-black uppercase text-[var(--accent-teal)] tracking-widest flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)] animate-pulse" /> Freecam Active
+                        </p>
+                        <p className="text-[8px] font-bold text-(--text-muted) tracking-wide mt-1">WASD to Move • EQ for Elevation • Mouse to Look</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* --- TOOLBAR --- */}
             <div className="absolute top-6 right-6 z-[100] flex flex-col gap-3 items-end">
                 <div className="flex bg-(--bg-card)/80 backdrop-blur-md p-1.5 rounded-2xl border border-(--border-color) shadow-2xl">
-                    <button onClick={() => setIs3D(false)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${!is3D ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}><BoxSelect size={14} /> 2D Map</button>
+                    <button onClick={() => { setIs3D(false); setIsFreeCam(false); }} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${!is3D ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}><BoxSelect size={14} /> 2D Map</button>
                     <button onClick={() => setIs3D(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${is3D ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}><Layers size={14} /> 3D Void</button>
+
+                    {/* 🔥 NEW: Physical Freecam Toggle Button */}
+                    {is3D && (
+                        <>
+                            <div className="w-px h-6 bg-(--border-color) mx-1 self-center" />
+                            <button
+                                onClick={() => setIsFreeCam(!isFreeCam)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${isFreeCam ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}
+                            >
+                                Freecam (C)
+                            </button>
+                        </>
+                    )}
+
                     <div className="w-px h-6 bg-(--border-color) mx-1 self-center" />
-                    <button 
-                        onClick={onToggleMaximize} 
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all text-(--text-muted) hover:text-(--text-main)`}
-                        title={isMaximized ? "Minimize Map" : "Maximize Map"}
-                    >
-                        {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                        {isMaximized ? 'Minimize' : 'Maximize'}
+                    <button onClick={onToggleMaximize} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all text-(--text-muted) hover:text-(--text-main)`} title={isMaximized ? "Minimize Map" : "Maximize Map"}>
+                        {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />} {isMaximized ? 'Minimize' : 'Maximize'}
                     </button>
                 </div>
 
@@ -159,7 +183,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                     />
                 </EffectComposer>
 
-                <CameraRig isFocused={isFocused} is3D={is3D} controlsRef={controlsRef} warpTarget={warpTarget} intensity={globalIntensity} onWarpComplete={() => setWarpTarget(null)} />
+                <CameraRig isFocused={isFocused} is3D={is3D} controlsRef={controlsRef} warpTarget={warpTarget} intensity={globalIntensity} onWarpComplete={() => setWarpTarget(null)} isFreeCam={isFreeCam} setIsFreeCam={setIsFreeCam} />
                 <OrbitControls
                     ref={controlsRef}
                     enableRotate={is3D}
@@ -337,7 +361,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                 <div className="text-2xl">{user.chumLabel.split(' ')[0]}</div>
                             </div>
                             <div className="grid grid-cols-2 gap-3 bg-black/40 p-3 rounded-2xl border border-(--border-color)">
-                                <div className="flex flex-col"><span className="text-[8px] uppercase font-black opacity-40">Total Hours</span><span className="text-xs font-mono font-bold text-(--accent-teal)">{ user.hours}h</span></div>
+                                <div className="flex flex-col"><span className="text-[8px] uppercase font-black opacity-40">Total Hours</span><span className="text-xs font-mono font-bold text-(--accent-teal)">{user.hours}h</span></div>
                                 <div className="flex flex-col text-right"><span className="text-[8px] uppercase font-black opacity-40">Focus Score</span><span className="text-xs font-bold text-(--accent-yellow)">{user.focusScore || 0}</span></div>
                             </div>
                             {/* 💎 AI MASTERING SHARD */}
@@ -405,25 +429,19 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
     );
 }
 
-function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete, isFocused }: any) {
+function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete, isFocused, isFreeCam, setIsFreeCam }: any) {
     const isTransitioning = useRef(false);
     const isCancelled = useRef(false);
-    
-    // Freecam states
-    const [isFreeCam, setIsFreeCam] = useState(false);
+
     const velocity = useRef(new THREE.Vector3());
     const keys = useRef<{ [key: string]: boolean }>({});
-    const dragData = useRef({ isDragging: false, prevX: 0, prevY: 0, yaw: 0, pitch: 0 });
 
     useEffect(() => { isTransitioning.current = true; if (controlsRef.current) controlsRef.current.enabled = false; }, [is3D, controlsRef]);
 
-    // Keyboard & Mouse Events for Freecam
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // 🛡️ SECURITY GUARD: Only trigger if the map container is focused/hovered
             if (!isFocused) return;
 
-            // 🛡️ SECURITY GUARD: Don't trigger map controls if typing in an input!
             const target = e.target as HTMLElement;
             if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
                 return;
@@ -431,8 +449,10 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete, isFocused }:
 
             const key = e.key.toLowerCase();
             keys.current[key] = true;
-            if (key === ' ' || key === 'c') {
-                setIsFreeCam(prev => !prev);
+
+            // 🔥 THE FIX: Prevent rapid-fire toggling if the user holds the key down for a split second too long!
+            if (!e.repeat && (key === ' ' || key === 'c')) {
+                setIsFreeCam((prev: boolean) => !prev);
                 e.preventDefault();
             }
             if (warpTarget) {
@@ -443,22 +463,19 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete, isFocused }:
         const handleKeyUp = (e: KeyboardEvent) => {
             if (!isFocused) return;
             const target = e.target as HTMLElement;
-            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-                return;
-            }
-            keys.current[e.key.toLowerCase()] = false; 
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+            keys.current[e.key.toLowerCase()] = false;
         };
-        
+
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
-        
-        return () => {
-             window.removeEventListener('keydown', handleKeyDown);
-             window.removeEventListener('keyup', handleKeyUp);
-        };
-    }, [warpTarget, onWarpComplete, isFocused]);
 
-    // Cancel warp on user zoom/scroll
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, [warpTarget, onWarpComplete, isFocused, setIsFreeCam]);
+
     useEffect(() => {
         const handleWheel = () => {
             if (warpTarget) {
@@ -470,31 +487,28 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete, isFocused }:
         return () => window.removeEventListener('wheel', handleWheel);
     }, [warpTarget, onWarpComplete]);
 
-    // Reset cancelled flag when warp target changes
     useEffect(() => {
         if (warpTarget) isCancelled.current = false;
     }, [warpTarget]);
 
     useFrame((state, delta) => {
         const cam = state.camera as THREE.PerspectiveCamera;
-        
-        // Always smoothly handle FOV transitions
+
         cam.fov = THREE.MathUtils.lerp(cam.fov, is3D ? 50 : 30, delta * 3);
         cam.updateProjectionMatrix();
 
-        // Break out of freecam immediately if a snipe is requested
         if (isFreeCam && warpTarget) {
             setIsFreeCam(false);
             isCancelled.current = false;
         }
 
         if (isFreeCam && is3D && !warpTarget) {
-            if (controlsRef.current) controlsRef.current.enabled = true; // 👈 Let OrbitControls handle mouse pitch/yaw
-            
+            if (controlsRef.current) controlsRef.current.enabled = true;
+
             const speed = 60 * delta;
-            const damp = Math.pow(0.005, delta); 
+            const damp = Math.pow(0.005, delta);
             const acc = new THREE.Vector3();
-            
+
             const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion).normalize();
             const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion).normalize();
             const up = new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion).normalize();
@@ -510,17 +524,15 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete, isFocused }:
             velocity.current.multiplyScalar(damp);
 
             cam.position.add(velocity.current);
-            // In freecam, OrbitControls target follows camera to keep it independent
             if (controlsRef.current) {
-                controlsRef.current.target.add(velocity.current); // 👈 Move target by same velocity to maintain look angle
+                controlsRef.current.target.add(velocity.current);
                 controlsRef.current.update();
             }
         } else {
-            // Cinematic mode / Default mode
             if (controlsRef.current && !isTransitioning.current) controlsRef.current.enabled = true;
-            velocity.current.set(0,0,0);
-            
-            const transSpeed = delta * 4; // 👈 Slightly faster transitions
+            velocity.current.set(0, 0, 0);
+
+            const transSpeed = delta * 4;
             if (warpTarget && !isCancelled.current) {
                 const offset = new THREE.Vector3(0, 0, 40);
                 const targetPos = warpTarget.clone().add(offset);
@@ -533,31 +545,15 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete, isFocused }:
                 cam.position.lerp(targetPos, transSpeed);
                 controlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), transSpeed);
                 controlsRef.current.update();
-                if (cam.position.distanceTo(targetPos) < 1) { 
-                    isTransitioning.current = false; 
+                if (cam.position.distanceTo(targetPos) < 1) {
+                    isTransitioning.current = false;
                 }
-            } else if (!is3D && !warpTarget) {
-                // Remove forced centering drift in 2D so user can zoom/pan freely if they wanted
-                // But since we disabled Pan in 2D, it stays centered naturally
             }
         }
     });
-    
-    return (
-        <Html className="pointer-events-none absolute bottom-4 left-4">
-            <AnimatePresence>
-                {isFreeCam && is3D && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
-                        className="bg-[var(--bg-dark)]/80 backdrop-blur-md px-4 py-2 rounded-xl border border-[var(--accent-teal)]/50 shadow-[0_0_15px_rgba(45,212,191,0.2)]">
-                        <p className="text-[10px] font-black uppercase text-[var(--accent-teal)] tracking-widest flex items-center gap-2">
-                           <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)] animate-pulse" /> Freecam Active
-                        </p>
-                        <p className="text-[8px] font-bold text-(--text-muted) tracking-wide mt-1">WASD to Move • EQ for Elevation • Mouse to Look</p>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </Html>
-    );
+
+    // 🔥 We return null here because the HUD is now perfectly anchored outside the canvas!
+    return null;
 }
 
 function PulseWave() {
@@ -625,10 +621,10 @@ function FloatingParticles({ size, color, count, spread }: { size: number, color
             <PointMaterial
                 transparent
                 color={color}
-                size={size} 
+                size={size}
                 sizeAttenuation={true}
                 depthWrite={false}
-                opacity={0.4} 
+                opacity={0.4}
                 blending={THREE.AdditiveBlending}
             />
         </Points>
