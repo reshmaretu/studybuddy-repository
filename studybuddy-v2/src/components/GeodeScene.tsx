@@ -541,7 +541,7 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
     const containerRef = useRef<HTMLDivElement>(null);
     const keys = useRef({ w: false, a: false, s: false, d: false, q: false, e: false });
 
-    const { activeCrystalTheme, activeAtmosphereFilter, shards, flowerCount = 2400 } = useStudyStore();
+    const { activeCrystalTheme, activeAtmosphereFilter, shards, flowerCount = 10000 } = useStudyStore();
     const activeAtmosphere = SCENE_FILTERS[activeAtmosphereFilter as keyof typeof SCENE_FILTERS] || SCENE_FILTERS.default;
 
     const allFlowerPositions = useMemo(() => generateTrilliums(flowerCount), [flowerCount]);

@@ -178,6 +178,7 @@ export default function ChumWidget() {
 
         let aiResponse = "";
         let usedNode = "";
+
         try {
             if (aiTier === 'offline') throw new Error("Offline mode");
 
@@ -205,14 +206,40 @@ export default function ChumWidget() {
                         messages: messagesPayload,
                         user_id: session?.user?.id,
                         openrouter_key: aiKeys.openrouter,
-                        groq_key: aiKeys.groq,
                         gemini_key: aiKeys.gemini
                     })
                 });
-                const data = await res.json();
-                if (!res.ok || data.error) throw new Error("Cloud failed");
-                aiResponse = data.response;
-                usedNode = data.node || "Cloud Node";
+
+                if (!res.ok) throw new Error("Cloud failed");
+                if (!res.body) throw new Error("No stream body available");
+
+                usedNode = res.headers.get('X-Node-Used') || "Cloud Stream";
+
+                // 🔥 1. Inject an empty message into the chat immediately
+                setCurrentHistory([...newHistory, { role: 'chum', text: "", node: usedNode }]);
+
+                // 🔥 2. Set up the stream reader
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    // Decode the raw text chunk and append it
+                    const textChunk = decoder.decode(value, { stream: true });
+                    aiResponse += textChunk;
+
+                    // 🔥 3. Real-time typewriter effect: Update the very last message
+                    setCurrentHistory((prev: ChatMessage[]) => {
+                        const updated = [...prev];
+                        updated[updated.length - 1] = { ...updated[updated.length - 1], text: aiResponse };
+                        return updated;
+                    });
+                }
+
+                setIsTyping(false);
+
             } else {
                 throw new Error("Local mode active");
             }
@@ -239,14 +266,15 @@ export default function ChumWidget() {
                     aiResponse = data.message.content;
                     usedNode = "Local Hive (Ollama)";
                 } catch (e) {
-                    aiResponse = "Neural link failed. If using Ollama, ensure it is running and CORS is allowed (set OLLAMA_ORIGINS=\"*\" in env vars). Check your Ollama server and network connection.";
+                    aiResponse = "Neural link failed. If using Ollama, ensure it is running and CORS is allowed.";
                 }
             }
-        }
 
-        setIsTyping(false);
-        const finalHistory: ChatMessage[] = [...newHistory, { role: 'chum' as const, text: aiResponse, node: usedNode }];
-        setCurrentHistory(finalHistory);
+            setIsTyping(false);
+            // Only push the final history manually if we caught an error or used Local/Offline mode
+            const finalHistory: ChatMessage[] = [...newHistory, { role: 'chum' as const, text: aiResponse, node: usedNode }];
+            setCurrentHistory(finalHistory);
+        }
 
         if (isTutorModeActive && activeShard && !forcePrimer) {
             const responseUpper = aiResponse.toUpperCase();
