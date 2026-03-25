@@ -512,8 +512,8 @@ export default function ChumWidget() {
                                             {ephemeralMsg && (
                                                 <motion.div
                                                     key={ephemeralMsg.id}
-                                                    // THE "FLASHY" SETTINGS
-                                                    initial={{ opacity: 0, scale: 0.5, y: 20, rotate: -8 }}
+                                                    // RADICAL START: Very small, very tilted, very low
+                                                    initial={{ opacity: 0, scale: 0.1, y: 100, rotate: -25 }}
                                                     animate={{
                                                         opacity: 1,
                                                         scale: 1,
@@ -521,19 +521,22 @@ export default function ChumWidget() {
                                                         rotate: 0,
                                                         transition: {
                                                             type: "spring",
-                                                            stiffness: 300,
-                                                            damping: 15, // Lower damping = more "springy" bounce
-                                                            velocity: 2
+                                                            stiffness: 600, // Snap like a rubber band
+                                                            damping: 14,    // Allow a juicy jiggle
+                                                            mass: 0.6
                                                         }
                                                     }}
-                                                    exit={{ opacity: 0, scale: 0.8, rotate: 5, transition: { duration: 0.2 } }}
-                                                    whileHover={{ scale: 1.05, rotate: 1 }} // Add a little hover wiggle
-                                                    className={`absolute bottom-full mb-4 p-4 rounded-2xl border-2 shadow-xl ${ephemeralMsg.type === 'warning' ? 'border-red-500 bg-red-950/90 shadow-red-500/20' :
-                                                            ephemeralMsg.type === 'success' ? 'border-teal-500 bg-teal-950/90 shadow-teal-500/20' :
-                                                                'border-(--border-color) bg-(--bg-card)'
+                                                    exit={{ opacity: 0, scale: 0.5, rotate: 15, transition: { duration: 0.1 } }}
+                                                    className={`absolute bottom-full mb-12 p-4 rounded-2xl border-2 shadow-[0_25px_70px_-10px_rgba(0,0,0,0.6)] backdrop-blur-2xl ${ephemeralMsg.type === 'warning'
+                                                            ? 'border-red-500/50 bg-red-950/90 shadow-red-500/40'
+                                                            : ephemeralMsg.type === 'success'
+                                                                ? 'border-teal-500/50 bg-teal-950/90 shadow-teal-500/40'
+                                                                : 'border-zinc-700 bg-zinc-900/95 shadow-black/60'
                                                         }`}
                                                 >
-                                                    {ephemeralMsg.text}
+                                                    <div className="flex flex-col gap-1 min-w-[200px] drop-shadow-md">
+                                                        {ephemeralMsg.text}
+                                                    </div>
                                                 </motion.div>
                                             )}
                                         </AnimatePresence>

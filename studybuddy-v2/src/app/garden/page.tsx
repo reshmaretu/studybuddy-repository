@@ -211,7 +211,7 @@ export default function CrystalGarden() {
     const filteredTasks = validTasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.description?.toLowerCase().includes(searchQuery.toLowerCase()));
 
     // These are for the UI Columns (affected by search)
-    const activeQuests = validTasks.filter(t => !t.isCompleted);
+    const activeQuests = tasks.filter(t => t && !t.isCompleted);
     const sortedQuests = [...activeQuests].sort((a, b) => (b.isFrog ? 1 : 0) - (a.isFrog ? 1 : 0));
     const archivedQuests = filteredTasks.filter(t => t.isCompleted);
     const masteredShards = shards.filter(s => s.isMastered);

@@ -140,6 +140,9 @@ interface StudyState {
 
     isVerified: boolean;
 
+    userEmail: string;
+    setUserEmail: (email: string) => void;
+
     // ⚡ ASYNC ACTIONS (Cloud Synced)
     addTask: (task: Omit<Task, 'id' | 'isCompleted'>) => Promise<void>;
     deleteTask: (id: string) => Promise<void>;
@@ -205,10 +208,7 @@ interface StudyState {
         id: number;
     } | null;
 
-    triggerChumToast: (
-        message: React.ReactNode, // Change from string to React.ReactNode
-        type?: "warning" | "normal" | "success"
-    ) => void;
+    triggerChumToast: (message: React.ReactNode, type?: 'warning' | 'normal' | 'success') => void;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -250,6 +250,9 @@ export const useStudyStore = create<StudyState>()(
                         .eq('id', user.id);
                 }
             },
+
+            userEmail: "",
+            setUserEmail: (email) => set({ userEmail: email }),
 
             isMindDumpOpen: false,
             toggleMindDump: () => set((state) => ({ isMindDumpOpen: !state.isMindDumpOpen })),
@@ -358,18 +361,19 @@ export const useStudyStore = create<StudyState>()(
 
             // ─── NEW STAT ACTIONS ───
             modifyFocusScore: async (amount) => {
+                const currentScore = get().focusScore;
+                const newScore = Math.max(0, Math.min(100, currentScore + amount));
+
+                // 1. Update UI state immediately
+                set({ focusScore: newScore });
+
+                // 2. Update Database in the background
                 const { data: { user } } = await supabase.auth.getUser();
-                set((state) => {
-                    const newScore = Math.max(0, Math.min(100, state.focusScore + amount));
-
-                    // 🔥 Take a daily snapshot!
-                    const today = new Date().toISOString().split('T')[0];
-                    const updatedDailyScores = { ...state.dailyFocusScores, [today]: newScore };
-
-                    if (user) supabase.from('user_stats').update({ focus_score: newScore }).eq('user_id', user.id).then();
-
-                    return { focusScore: newScore, dailyFocusScores: updatedDailyScores };
-                });
+                if (user) {
+                    await supabase.from('user_stats')
+                        .update({ focus_score: newScore })
+                        .eq('user_id', user.id);
+                }
             },
 
             gainXp: async (amount) => {
@@ -535,7 +539,20 @@ export const useStudyStore = create<StudyState>()(
                         isDev: profileResponse.data?.is_dev || false,
                         activeFramework: profileResponse.data?.active_framework || null,
                         lastPlannedDate: profileResponse.data?.last_planned_date || null,
-                        displayName: profileResponse.data?.display_name || "Architect",
+
+                        // 🔥 FIX: Logic for Identity Display
+                        // 1. Prioritize display_name from DB
+                        // 2. Fallback to full_name
+                        // 3. Fallback to the prefix of their email (e.g., 'mark' from mark@example.com)
+                        // 4. Ultimate fallback to "Architect"
+                        displayName: profileResponse.data?.display_name ||
+                            profileResponse.data?.full_name ||
+                            user.email?.split('@')[0] ||
+                            "Architect",
+
+                        // 🔥 FIX: Map the email to the state variable
+                        userEmail: user.email,
+
                         isVerified: !!user.email_confirmed_at
                     });
 
@@ -558,23 +575,27 @@ export const useStudyStore = create<StudyState>()(
                 if (!user) return;
 
                 const tempId = `temp-${Date.now()}`;
-                set((state) => ({ tasks: [{ ...task, id: tempId, isCompleted: false }, ...state.tasks] }));
+                // Add to local state immediately
+                set((state) => ({
+                    tasks: [{ ...task, id: tempId, isCompleted: false }, ...state.tasks]
+                }));
 
-                const { data } = await supabase.from('tasks').insert([{
+                const { data, error } = await supabase.from('tasks').insert([{
                     user_id: user.id,
                     title: task.title,
                     description: task.description,
                     load: task.load,
                     deadline: task.deadline,
-                    // 👇 Map the new column
+                    is_completed: false, // 🔥 CRITICAL: Match your DB column name (snake_case)
                     estimated_pomodoros: task.estimatedPomos
                 }]).select().single();
 
                 if (data) {
-                    set((state) => ({ tasks: state.tasks.map(t => t.id === tempId ? { ...t, id: data.id } : t) }));
+                    set((state) => ({
+                        tasks: state.tasks.map(t => t.id === tempId ? { ...t, id: data.id } : t)
+                    }));
                 }
             },
-
             updateTask: async (id, updates) => {
                 set((state) => ({ tasks: state.tasks.map(t => t.id === id ? { ...t, ...updates } : t) }));
                 if (!id.startsWith('temp-')) {
@@ -801,6 +822,7 @@ export const useStudyStore = create<StudyState>()(
                 activeTaskId: null,
                 focusTaskId: null,
                 isPremiumUser: false,
+                displayName: "Architect", // Reset to default
                 normalChatHistory: [{ role: 'chum', text: "Ready to study." }],
                 tutorChatHistory: [],
                 pastTutorSessions: []

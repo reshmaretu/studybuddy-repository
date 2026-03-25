@@ -12,13 +12,12 @@ import StripeEmbedded from "@/components/EmbeddedCheckout";
 export default function AccountPage() {
     const {
         isPremiumUser, level, focusScore,
-        displayName, fullName, triggerChumToast
+        displayName, fullName, triggerChumToast, userEmail, setUserEmail
     } = useStudyStore();
 
     // UI States
     const [pendingAction, setPendingAction] = useState<{ type: string; label: string; execute: () => void } | null>(null);
     const [loading, setLoading] = useState(false);
-    const [userEmail, setUserEmail] = useState("");
     const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [isVerified, setIsVerified] = useState(false);
     const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -38,11 +37,13 @@ export default function AccountPage() {
     useEffect(() => {
         const checkStatus = async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            if (user?.email) setUserEmail(user.email);
-            setIsVerified(!!user?.email_confirmed_at);
+            if (user?.email) {
+                setUserEmail(user.email); // Sync to store
+                setIsVerified(!!user?.email_confirmed_at);
+            }
         };
         checkStatus();
-    }, []);
+    }, [setUserEmail]);
 
     const handleVerifyEmail = async () => {
         if (isResending) return;
