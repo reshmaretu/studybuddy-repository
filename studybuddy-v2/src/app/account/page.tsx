@@ -15,7 +15,7 @@ export default function AccountPage() {
     const {
         isPremiumUser, isDev, devOverlayEnabled,
         setDevOverlayEnabled, level, focusScore,
-        displayName, isVerified, setDisplayName
+        displayName, isVerified, setDisplayName, triggerChumToast
     } = useStudyStore();
 
     // UI States
@@ -153,8 +153,6 @@ export default function AccountPage() {
             setLoading(false);
         }
     };
-
-    const { triggerChumToast } = useStudyStore();
 
     const handleManageBilling = async () => {
         setLoading(true);
