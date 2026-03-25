@@ -76,7 +76,7 @@ export async function POST(req: Request) {
                 const openrouter = createOpenRouter({ apiKey: orKey });
 
                 streamResult = await streamText({
-                    model: openrouter("openrouter/auto"),
+                    model: openrouter("meta-llama/llama-3.1-8b-instruct:free"),
                     messages: formattedMessages
                 });
                 usedNode = "OpenRouter (Llama 3.1)";

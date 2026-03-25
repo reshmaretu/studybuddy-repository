@@ -33,7 +33,7 @@ function MasteryContainer({ id, masteryTab, setMasteryTab, children, isEmpty, em
             {/* STYLING FIX: Added missing Header! */}
             <div className="flex justify-between items-center mb-4 shrink-0">
                 <h2 className="text-xl font-bold text-[var(--text-main)]">The Hall of Mastery</h2>
-                <span className="text-xs font-medium text-[var(--text-muted)]">Completed/Archived quests</span>
+                <span className="text-xs font-medium text-[var(--text-muted)]">Completed</span>
             </div>
 
             <div className="flex justify-between items-center mb-4 shrink-0 gap-4">
