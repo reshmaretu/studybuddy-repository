@@ -6,10 +6,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const token_hash = searchParams.get('token_hash')
     const type = searchParams.get('type') as EmailOtpType | null
-    const next = searchParams.get('next') ?? '/account'
+    const next = searchParams.get('next') ?? '/' // Default to home or account
 
     if (token_hash && type) {
-        // 🔥 Now awaiting the client
         const supabase = await createClient()
 
         const { error } = await supabase.auth.verifyOtp({
@@ -18,9 +17,12 @@ export async function GET(request: Request) {
         })
 
         if (!error) {
-            return NextResponse.redirect(new URL(next, request.url))
+            // Force the redirect to the intended 'next' destination
+            const url = new URL(next, request.url)
+            return NextResponse.redirect(url)
         }
     }
 
+    // If verification fails, redirect to error page
     return NextResponse.redirect(new URL('/auth/auth-error', request.url))
 }

@@ -508,47 +508,32 @@ export default function ChumWidget() {
                                                 )}
                                             </div>
                                         ))}
-                                        <AnimatePresence>
+                                        <AnimatePresence mode="wait">
                                             {ephemeralMsg && (
                                                 <motion.div
                                                     key={ephemeralMsg.id}
-                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                    // The Flashy Disappear: It scales up slightly, blurs, and fades out
-                                                    exit={{ opacity: 0, scale: 1.05, filter: "brightness(1.5) blur(4px)", transition: { duration: 0.3 } }}
-                                                    className="flex justify-start flex-col mt-2 overflow-hidden"
+                                                    // THE "FLASHY" SETTINGS
+                                                    initial={{ opacity: 0, scale: 0.5, y: 20, rotate: -8 }}
+                                                    animate={{
+                                                        opacity: 1,
+                                                        scale: 1,
+                                                        y: 0,
+                                                        rotate: 0,
+                                                        transition: {
+                                                            type: "spring",
+                                                            stiffness: 300,
+                                                            damping: 15, // Lower damping = more "springy" bounce
+                                                            velocity: 2
+                                                        }
+                                                    }}
+                                                    exit={{ opacity: 0, scale: 0.8, rotate: 5, transition: { duration: 0.2 } }}
+                                                    whileHover={{ scale: 1.05, rotate: 1 }} // Add a little hover wiggle
+                                                    className={`absolute bottom-full mb-4 p-4 rounded-2xl border-2 shadow-xl ${ephemeralMsg.type === 'warning' ? 'border-red-500 bg-red-950/90 shadow-red-500/20' :
+                                                            ephemeralMsg.type === 'success' ? 'border-teal-500 bg-teal-950/90 shadow-teal-500/20' :
+                                                                'border-(--border-color) bg-(--bg-card)'
+                                                        }`}
                                                 >
-                                                    <div className={`relative p-4 text-sm max-w-[85%] shadow-md whitespace-pre-wrap rounded-2xl rounded-tl-none overflow-hidden ${ephemeralMsg.type === 'warning'
-                                                        ? 'bg-red-500/10 border border-red-500/30 text-red-200'
-                                                        : 'bg-[var(--accent-teal)]/10 border border-[var(--accent-teal)]/30 text-[var(--accent-teal)]'
-                                                        }`}>
-
-                                                        <div className="flex items-center gap-1.5 mb-2 opacity-70">
-                                                            <span className="text-[10px] font-black uppercase tracking-wider">
-                                                                {ephemeralMsg.type === 'warning' ? '⚠️ System Alert' : '🔔 Chum Alert'}
-                                                            </span>
-                                                        </div>
-
-                                                        {/* This allows ReactNode rendering so your bold burnout texts work perfectly */}
-                                                        <div className="leading-relaxed font-medium pb-2">
-                                                            {ephemeralMsg.text}
-                                                        </div>
-
-                                                        {/* The Decay Progress Bar Container */}
-                                                        <div className="absolute bottom-0 left-0 h-1.5 bg-black/20 w-full">
-                                                            {/* The Animated Bar */}
-                                                            <motion.div
-                                                                initial={{ width: "100%" }}
-                                                                animate={{ width: "0%" }}
-                                                                // Adjust this duration (in seconds) to make it stay longer/shorter
-                                                                transition={{ duration: 8, ease: "linear" }}
-                                                                // Triggers the flashy exit the exact millisecond the bar hits 0
-                                                                onAnimationComplete={() => setEphemeralMsg(null)}
-                                                                className={`h-full shadow-[0_0_10px_currentColor] ${ephemeralMsg.type === 'warning' ? 'bg-red-500 text-red-500' : 'bg-[var(--accent-teal)] text-[var(--accent-teal)]'
-                                                                    }`}
-                                                            />
-                                                        </div>
-                                                    </div>
+                                                    {ephemeralMsg.text}
                                                 </motion.div>
                                             )}
                                         </AnimatePresence>

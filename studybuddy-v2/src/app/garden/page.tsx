@@ -211,7 +211,7 @@ export default function CrystalGarden() {
     const filteredTasks = validTasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.description?.toLowerCase().includes(searchQuery.toLowerCase()));
 
     // These are for the UI Columns (affected by search)
-    const activeQuests = filteredTasks.filter(t => !t.isCompleted);
+    const activeQuests = validTasks.filter(t => !t.isCompleted);
     const sortedQuests = [...activeQuests].sort((a, b) => (b.isFrog ? 1 : 0) - (a.isFrog ? 1 : 0));
     const archivedQuests = filteredTasks.filter(t => t.isCompleted);
     const masteredShards = shards.filter(s => s.isMastered);
@@ -308,36 +308,43 @@ export default function CrystalGarden() {
         e.preventDefault();
         if (!newTask.title.trim()) return;
 
+        // Use the activeQuests defined in your component
         const heavyCount = activeQuests.filter(t => t.load === 'heavy').length;
 
-        // 1. Burnout Hard Stop
+        // 1. Burnout Hard Stop (Blocks execution)
         if (newTask.load === 'heavy' && heavyCount >= 2) {
             triggerChumToast(
                 <span>
-                    <strong className="text-red-400">Burnout Risk Detected! ⚠️</strong>
-                    <br />You already have {heavyCount} Heavy tasks today. Adding more severely reduces focus. Try breaking this into Medium tasks.
+                    <strong className="text-red-400">Burnout Risk! ⚠️</strong><br />
+                    You already have {heavyCount} Heavy tasks. Break this down to maintain focus.
                 </span>,
                 'warning'
             );
             return;
         }
 
-        // 2. Soft Limits for 1-3-5 Mode (Informational/Normal)
+        // 2. Framework Soft Limits (Informational only)
         if (activeFramework === '1-3-5') {
             const mediumCount = activeQuests.filter(t => t.load === 'medium').length;
             const lightCount = activeQuests.filter(t => t.load === 'light').length;
 
             if (newTask.load === 'medium' && mediumCount >= 3) {
-                triggerChumToast("You're loading up! Usually we keep it to 3 medium tasks in this framework.", 'normal');
+                triggerChumToast("Framework Alert: You've reached the 3-medium task limit for 1-3-5.", 'normal');
             } else if (newTask.load === 'light' && lightCount >= 5) {
-                triggerChumToast("That's a lot of small plants! Try to stay under 5 light tasks.", 'normal');
+                triggerChumToast("Framework Alert: 5 light tasks is the recommended limit here.", 'normal');
             }
         }
 
-        // 3. Logic Execution
-        addTask({ ...newTask, deadline: isScheduled ? newTask.deadline : undefined });
+        // 3. THE ADD ACTION
+        // isCompleted is handled automatically by the store
+        addTask({
+            title: newTask.title,
+            description: newTask.description,
+            load: newTask.load,
+            deadline: isScheduled ? newTask.deadline : undefined
+        });
 
-        // 4. Success Feedback
+        // 4. SUCCESS FEEDBACK (One consolidated flashy toast)
         triggerChumToast(
             <span>
                 <strong className="text-teal-400">Quest Planted! 🌱</strong>
@@ -346,10 +353,10 @@ export default function CrystalGarden() {
             'success'
         );
 
-        // 5. State Reset
+        // 5. FINAL STATE RESET
         setIsAdding(false);
-        setNewTask({ title: "", description: "", load: "medium", deadline: "" });
         setIsScheduled(false);
+        setNewTask({ title: "", description: "", load: "medium", deadline: "" });
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
