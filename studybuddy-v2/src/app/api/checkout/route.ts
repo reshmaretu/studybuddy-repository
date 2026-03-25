@@ -12,7 +12,7 @@ export async function POST(req: Request) {
             // 🚀 Use this instead to let the Dashboard handle it:
             payment_method_collection: 'always',
             line_items: [{
-                price: 'price_YOUR_ID',
+                price: 'prod_UDBfS4vxanVI6h',
                 quantity: 1,
             }],
             mode: 'subscription',

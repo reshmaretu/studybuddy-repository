@@ -136,6 +136,8 @@ interface StudyState {
     displayName: string;
     setDisplayName: (name: string) => Promise<void>;
 
+    fullName: string;
+
     isVerified: boolean;
 
     // ⚡ ASYNC ACTIONS (Cloud Synced)
@@ -227,19 +229,19 @@ export const useStudyStore = create<StudyState>()(
             },
 
             // ─── IDENTITY STATE ───
-            displayName: "Architect", // Default value
+            displayName: "Architect",
+            fullName: "",
+            isVerified: false,
 
-            setDisplayName: async (name) => {
+            setDisplayName: async (name: string) => {
                 set({ displayName: name });
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
                     await supabase.from('profiles')
-                        .update({ display_name: name })
+                        .update({ display_name: name, last_display_name_change: new Date().toISOString() })
                         .eq('id', user.id);
                 }
             },
-
-            isVerified: false,
 
             isMindDumpOpen: false,
             toggleMindDump: () => set((state) => ({ isMindDumpOpen: !state.isMindDumpOpen })),
