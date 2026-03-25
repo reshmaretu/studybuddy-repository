@@ -2,44 +2,35 @@
 
 import { useStudyStore } from "@/store/useStudyStore";
 import {
-    ShieldAlert, Terminal, Sparkles, CreditCard,
-    History, Zap, Crown, User, ArrowUpRight,
-    MailCheck, AlertCircle, X, LogOut
+    ShieldAlert, Terminal, Sparkles, Zap, Crown, User,
+    MailCheck, AlertCircle, LogOut, ChevronLeft, X, Lock
 } from "lucide-react";
-import { useState, useEffect, ComponentType } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import dynamic from "next/dynamic";
-
-// 🔥 Dynamically load Stripe to prevent SSR issues and define props type
-const StripeEmbedded = dynamic(() => import("@/components/EmbeddedCheckout"), {
-    ssr: false,
-    loading: () => (
-        <div className="h-[400px] flex flex-col items-center justify-center gap-4">
-            <div className="w-8 h-8 border-4 border-(--accent-teal) border-t-transparent rounded-full animate-spin" />
-            <span className="text-[10px] font-black uppercase text-(--accent-teal) tracking-[0.2em] animate-pulse">
-                Establishing Secure Tunnel
-            </span>
-        </div>
-    )
-}) as ComponentType<{ clientSecret: string }>;
+import StripeEmbedded from "@/components/EmbeddedCheckout";
 
 export default function AccountPage() {
     const {
         isPremiumUser, level, focusScore,
-        displayName, isVerified, setDisplayName, triggerChumToast
+        displayName, isVerified, triggerChumToast
     } = useStudyStore();
 
     // UI States
     const [activeModal, setActiveModal] = useState<'email' | 'password' | 'identity' | 'delete' | null>(null);
     const [loading, setLoading] = useState(false);
-    const [inputValue, setInputValue] = useState("");
-    const [secondInputValue, setSecondInputValue] = useState("");
     const [userEmail, setUserEmail] = useState("");
-
-    // 🔥 Payment States
     const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+
+    // Form States
+    const [forms, setForms] = useState({
+        newDisplayName: "",
+        fullName: "",
+        currentPassword: "",
+        newPassword: "",
+        newEmail: ""
+    });
 
     useEffect(() => {
         const getEmail = async () => {
@@ -49,43 +40,36 @@ export default function AccountPage() {
         getEmail();
     }, []);
 
-    // 🔥 FIXED NEURAL RECEIPT POLLING
-    useEffect(() => {
-        const query = new URLSearchParams(window.location.search);
-        const hasSession = query.get('session_id') || query.get('success');
+    const handleVerifyEmail = async () => {
+        const { error } = await supabase.auth.resend({
+            type: 'signup',
+            email: userEmail,
+            options: { emailRedirectTo: `${window.location.origin}/auth/confirm` }
+        });
+        if (error) toast.error("Uplink failed: " + error.message);
+        else toast.success("Verification signal sent to " + userEmail);
+    };
 
-        if (hasSession && !isPremiumUser) {
-            triggerChumToast("Neural upgrade detected. Finalizing uplink...", "normal");
+    const updateIdentity = async () => {
+        setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
 
-            const interval = setInterval(async () => {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return clearInterval(interval);
+        // Maps to schema fields: last_display_name_change_at & last_full_name_change_at
+        const { error } = await supabase
+            .from('profiles')
+            .update({
+                display_name: forms.newDisplayName || displayName,
+                full_name: forms.fullName,
+            })
+            .eq('id', user?.id);
 
-                const { data } = await supabase
-                    .from('profiles')
-                    .select('is_premium')
-                    .eq('id', user.id)
-                    .single();
-
-                if (data?.is_premium) {
-                    // ✅ SUCCESS: Update global state
-                    useStudyStore.setState({ isPremiumUser: true });
-
-                    // ✅ UI RESET: Close modal and clear secret
-                    setIsCheckoutOpen(false);
-                    setClientSecret(null);
-
-                    triggerChumToast("Uplink Complete. Welcome, Architect.", "normal");
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                    clearInterval(interval);
-                }
-            }, 2500);
-
-            return () => clearInterval(interval);
+        if (error) toast.error(error.message);
+        else {
+            toast.success("Identity synced with the Matrix.");
+            setActiveModal(null);
         }
-    }, [isPremiumUser, triggerChumToast]);
-
-    // ─── ACTION HANDLERS ───
+        setLoading(false);
+    };
 
     const handleUpgrade = async () => {
         setLoading(true);
@@ -97,157 +81,187 @@ export default function AccountPage() {
                 body: JSON.stringify({ userId: user?.id, email: user?.email }),
             });
             const data = await res.json();
-
             if (data.clientSecret) {
                 setClientSecret(data.clientSecret);
                 setIsCheckoutOpen(true);
-            } else {
-                throw new Error(data.error || "Uplink rejected.");
             }
         } catch (error: any) {
-            toast.error(error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleModalSubmit = async () => {
-        setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        try {
-            if (activeModal === 'email') {
-                const { error } = await supabase.auth.updateUser({ email: inputValue });
-                if (error) throw error;
-                toast.success("Coordinates updated.");
-            } else if (activeModal === 'identity') {
-                await setDisplayName(inputValue);
-                toast.success("Identity recalibrated.");
-            }
-            setActiveModal(null);
-            setInputValue("");
-        } catch (err: any) {
-            toast.error(err.message);
+            toast.error("Stripe uplink failed.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="h-screen max-w-6xl mx-auto p-4 md:p-8 flex flex-col gap-6 overflow-hidden relative">
-            {/* TOP IDENTITY HEADER */}
-            <header className="flex items-center justify-between bg-(--bg-card) border border-(--border-color) rounded-3xl p-6 shadow-sm">
+        // Added h-screen and overflow-hidden to lock the page
+        <div className="h-screen w-full max-w-5xl mx-auto p-6 flex flex-col overflow-hidden text-(--text-main)">
+
+            {/* IDENTITY HEADER */}
+            <header className="bg-(--bg-card) border border-(--border-color) rounded-[32px] p-6 mb-4 flex items-center justify-between shadow-xl">
                 <div className="flex items-center gap-6">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-(--accent-teal) to-(--accent-cyan) flex items-center justify-center border-4 border-(--bg-dark) shadow-xl">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-(--accent-teal) to-(--accent-cyan) flex items-center justify-center border-2 border-white/10 shadow-lg">
                         <User size={40} className="text-[#0b1211]" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-black text-(--text-main) italic uppercase tracking-tight leading-none mb-1">{displayName}</h1>
-                        <p className="text-sm text-(--text-muted) font-medium italic">{userEmail}</p>
-                        <div className="flex gap-2 mt-2">
-                            {isVerified && <span className="px-2 py-0.5 bg-(--accent-teal)/10 border border-(--accent-teal)/30 rounded-full text-[8px] font-black text-(--accent-teal) uppercase">Verified</span>}
-                            <span className="px-2 py-0.5 bg-(--accent-yellow)/10 border border-(--accent-yellow)/30 rounded-full text-[8px] font-black text-(--accent-yellow) uppercase">Level {level} Architect</span>
+                        <h1 className="text-3xl font-black italic uppercase tracking-tighter">{displayName}</h1>
+                        <p className="text-xs text-(--text-muted) font-medium italic mb-2">{userEmail}</p>
+                        <div className="flex gap-2 items-center">
+                            {isVerified ? (
+                                <span className="px-2 py-0.5 bg-teal-500/10 border border-teal-500/30 rounded-full text-[8px] font-black text-(--accent-teal) uppercase">Verified</span>
+                            ) : (
+                                <button
+                                    onClick={handleVerifyEmail}
+                                    className="px-2 py-0.5 bg-red-500/10 border border-red-500/30 rounded-full text-[8px] font-black text-red-400 uppercase hover:bg-red-500/20 transition-all group relative"
+                                >
+                                    Unverified
+                                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-black text-white text-[7px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Click to send verification link</span>
+                                </button>
+                            )}
+                            <span className="px-2 py-0.5 bg-yellow-500/10 border border-yellow-500/30 rounded-full text-[8px] font-black text-(--accent-yellow) uppercase tracking-widest">Level {level} Architect</span>
                         </div>
                     </div>
                 </div>
-                <div className="hidden md:flex items-center gap-4">
-                    <div className="text-right">
-                        <p className="text-[10px] font-black text-(--text-muted) uppercase">Neural Focus</p>
-                        <p className="text-2xl font-black text-(--accent-teal)">{focusScore}%</p>
+                <div className="text-right">
+                    <p className="text-[9px] font-black text-(--text-muted) uppercase tracking-widest">Neural Focus</p>
+                    <div className="flex items-center gap-2 justify-end">
+                        <span className="text-2xl font-black text-(--accent-teal)">{focusScore}%</span>
+                        <Zap size={20} className="text-(--accent-yellow)" />
                     </div>
-                    <Zap size={32} className="text-(--accent-yellow)" />
                 </div>
             </header>
 
-            {/* MAIN CONTENT AREA */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
-                {/* LEFT COLUMN: Settings & Subscription */}
-                <div className="lg:col-span-7 flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
-                    <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <button onClick={() => setActiveModal('email')} className="group flex items-center justify-between p-5 bg-(--bg-card) border border-(--border-color) rounded-2xl hover:border-(--accent-teal)/50 transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400"><MailCheck size={20} /></div>
-                                <span className="text-sm font-bold text-(--text-main)">Change Email</span>
-                            </div>
-                            <ArrowUpRight size={16} />
-                        </button>
-                        <button onClick={() => setActiveModal('identity')} className="group flex items-center justify-between p-5 bg-(--bg-card) border border-(--border-color) rounded-2xl hover:border-(--accent-teal)/50 transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-teal-500/10 rounded-xl text-teal-400"><Terminal size={20} /></div>
-                                <span className="text-sm font-bold text-(--text-main)">Update Identity</span>
-                            </div>
-                            <ArrowUpRight size={16} />
-                        </button>
-                    </section>
+            {/* MAIN CONTENT AREA - NO SCROLL GRID */}
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0 mb-4">
 
-                    {/* SUBSCRIPTION BOX */}
-                    <div className="bg-(--bg-card) border border-(--border-color) rounded-[32px] p-6 flex items-center justify-between shadow-sm">
-                        <div className="flex items-center gap-6">
-                            <div className={`p-4 rounded-2xl ${isPremiumUser ? 'bg-(--accent-yellow)/10 text-(--accent-yellow)' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
-                                {isPremiumUser ? <Crown size={32} /> : <Sparkles size={32} />}
-                            </div>
-                            <div>
-                                <h4 className="text-lg font-black italic uppercase text-(--text-main)">{isPremiumUser ? "Plus Member" : "Standard Tier"}</h4>
-                                <p className="text-[10px] font-bold text-(--text-muted) uppercase tracking-widest mt-1">
-                                    {isPremiumUser ? "Subscription Active" : "Unlock Pro Tutor & Matrix Analytics"}
-                                </p>
-                            </div>
+                {/* Security Actions Column */}
+                <div className="space-y-4 flex flex-col">
+                    <button onClick={() => setActiveModal('email')} className="flex-1 flex items-center gap-4 p-5 bg-(--bg-card) border border-(--border-color) rounded-[24px] hover:border-blue-500/50 transition-all group">
+                        <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400 group-hover:scale-110 transition-transform"><MailCheck size={20} /></div>
+                        <div className="text-left leading-tight">
+                            <p className="font-bold text-sm">Change Email</p>
+                            <p className="text-[9px] text-(--text-muted) uppercase">Password Required</p>
                         </div>
-                        {!isPremiumUser && (
-                            <button onClick={handleUpgrade} disabled={loading} className="px-6 py-3 bg-(--accent-teal) text-[#0b1211] rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all">
-                                {loading ? "..." : "Upgrade"}
-                            </button>
-                        )}
-                    </div>
+                    </button>
 
-                    <button onClick={() => supabase.auth.signOut()} className="w-full flex items-center justify-center gap-3 p-5 bg-white/5 border border-white/5 rounded-2xl text-xs font-black uppercase text-(--text-muted)">
-                        <LogOut size={16} /> Signal Disconnect
+                    <button onClick={() => setActiveModal('password')} className="flex-1 flex items-center gap-4 p-5 bg-(--bg-card) border border-(--border-color) rounded-[24px] hover:border-indigo-500/50 transition-all group">
+                        <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-400 group-hover:scale-110 transition-transform"><Lock size={20} /></div>
+                        <div className="text-left leading-tight">
+                            <p className="font-bold text-sm">Update Password</p>
+                            <p className="text-[9px] text-(--text-muted) uppercase">Neural Shielding</p>
+                        </div>
+                    </button>
+
+                    <button onClick={() => setActiveModal('identity')} className="flex-1 flex items-center gap-4 p-5 bg-(--bg-card) border border-(--border-color) rounded-[24px] hover:border-teal-500/50 transition-all group">
+                        <div className="p-3 bg-teal-500/10 rounded-xl text-teal-400 group-hover:scale-110 transition-transform"><Terminal size={20} /></div>
+                        <div className="text-left leading-tight">
+                            <p className="font-bold text-sm">Identity Sync</p>
+                            <p className="text-[9px] text-(--text-muted) uppercase">Names & Display</p>
+                        </div>
                     </button>
                 </div>
 
-                {/* RIGHT COLUMN: Customization */}
-                <div className="lg:col-span-5 bg-(--bg-card) border border-(--border-color) rounded-[32px] p-6 flex flex-col shadow-sm">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-(--text-muted) mb-6">Neural Customization</h3>
-                    <div className="space-y-3">
-                        <div className="w-full p-4 bg-(--bg-dark) border border-(--accent-teal)/30 rounded-2xl flex items-center justify-between">
-                            <span className="text-xs font-bold text-(--text-main)">🌙 Dark Forest</span>
-                            <div className="w-2 h-2 rounded-full bg-(--accent-teal) shadow-[0_0_10px_var(--accent-teal)]" />
+                {/* Center Billing Card */}
+                <div className="md:col-span-2 bg-(--bg-card) border border-(--border-color) rounded-[32px] p-8 flex flex-col justify-between relative overflow-hidden shadow-lg">
+                    {clientSecret ? (
+                        <div className="h-full flex flex-col animate-in fade-in duration-500">
+                            <button onClick={() => setClientSecret(null)} className="flex items-center gap-2 mb-4 text-[10px] font-black uppercase text-(--accent-teal)">
+                                <ChevronLeft size={14} /> Abort Link
+                            </button>
+                            <div className="flex-1 overflow-hidden rounded-2xl border border-white/5 no-scrollbar">
+                                <StripeEmbedded clientSecret={clientSecret} />
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h4 className="text-2xl font-black italic uppercase leading-none">{isPremiumUser ? "Plus Member" : "Standard Tier"}</h4>
+                                    <p className="text-[10px] font-bold text-(--text-muted) uppercase tracking-widest mt-2">
+                                        {isPremiumUser ? "Subscription Active • ₱99/mo" : "Unlock Pro Tutors & Matrix Analytics"}
+                                    </p>
+                                </div>
+                                <div className={`p-4 rounded-2xl ${isPremiumUser ? 'bg-yellow-500/10 text-yellow-500' : 'bg-white/5 text-white/20'}`}>
+                                    {isPremiumUser ? <Crown size={36} /> : <Sparkles size={36} />}
+                                </div>
+                            </div>
+
+                            <div className="mt-auto">
+                                {isPremiumUser ? (
+                                    <button className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase text-(--accent-teal) hover:bg-white/10 transition-all">Billing Portal & PDFs</button>
+                                ) : (
+                                    <button onClick={handleUpgrade} className="w-full py-4 bg-(--accent-teal) text-[#0b1211] rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-teal-500/20 active:scale-95 transition-all">
+                                        Initialize Plus Uplink — ₱99.00
+                                    </button>
+                                )}
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
 
-            {/* 💎 STRIPE CHECKOUT MODAL */}
-            {isCheckoutOpen && clientSecret && (
-                <div className="absolute inset-0 z-[200] flex items-center justify-center bg-(--bg-dark)/90 backdrop-blur-xl p-4">
-                    <div className="w-full max-w-2xl bg-(--bg-card) border border-(--border-color) rounded-[40px] overflow-hidden shadow-2xl">
-                        <div className="p-6 border-b border-(--border-color) flex justify-between items-center">
-                            <span className="text-[10px] font-black uppercase text-(--accent-teal) tracking-[0.2em]">Secure Stripe Uplink</span>
-                            <button onClick={() => { setIsCheckoutOpen(false); setClientSecret(null); }} className="text-(--text-muted) hover:text-white"><X size={20} /></button>
-                        </div>
-                        <div className="p-4 max-h-[70vh] overflow-y-auto no-scrollbar">
-                            <StripeEmbedded clientSecret={clientSecret} />
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* BOTTOM ACTION ROW */}
+            <footer className="flex gap-4">
+                <button onClick={() => supabase.auth.signOut()} className="flex-1 py-4 bg-white/5 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-(--text-muted) hover:bg-white/10 transition-all flex items-center justify-center gap-2">
+                    <LogOut size={16} /> Signal Disconnect
+                </button>
+                <button onClick={() => setActiveModal('delete')} className="px-6 py-4 bg-red-500/5 border border-red-500/10 rounded-2xl text-[10px] font-black uppercase text-red-500 hover:bg-red-500/10 transition-all flex items-center gap-2">
+                    <AlertCircle size={16} /> Terminate
+                </button>
+            </footer>
 
-            {/* NEURAL SETTINGS MODALS */}
+            {/* --- MODAL SYSTEM --- */}
             {activeModal && (
-                <div className="absolute inset-0 z-[100] flex items-center justify-center bg-(--bg-dark)/80 backdrop-blur-md p-4">
-                    <div className="w-full max-w-md bg-(--bg-card) border border-(--border-color) rounded-[40px] p-8 space-y-6">
-                        <div className="flex justify-between items-center border-b border-(--border-color) pb-4">
-                            <h3 className="text-xl font-black italic uppercase text-(--text-main)">{activeModal} Protocol</h3>
-                            <button onClick={() => setActiveModal(null)} className="text-(--text-muted)"><X size={20} /></button>
-                        </div>
-                        <input
-                            type="text"
-                            placeholder="Enter coordinates..."
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            className="w-full bg-(--bg-dark) border border-(--border-color) rounded-2xl px-6 py-5 text-sm outline-none focus:border-(--accent-teal)"
-                        />
-                        <button onClick={handleModalSubmit} className="w-full py-5 rounded-2xl bg-(--accent-teal) text-[#0b1211] font-black uppercase text-sm">Confirm</button>
+                <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+                    <div className="bg-[#0b1211] border border-white/10 rounded-[32px] p-8 w-full max-w-md shadow-2xl relative">
+                        <button onClick={() => setActiveModal(null)} className="absolute top-6 right-6 text-white/30 hover:text-white"><X size={20} /></button>
+
+                        {activeModal === 'identity' && (
+                            <div className="space-y-4">
+                                <h2 className="text-lg font-black uppercase italic text-(--accent-teal)">Identity Sync</h2>
+                                <div>
+                                    <label className="text-[10px] font-bold text-(--text-muted) uppercase">Display Name (7d cooldown)</label>
+                                    <input
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl p-3 mt-1 text-sm outline-none focus:border-(--accent-teal)"
+                                        placeholder={displayName}
+                                        onChange={(e) => setForms({ ...forms, newDisplayName: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-(--text-muted) uppercase">First (1m)</label>
+                                        <input className="w-full bg-white/5 border border-white/10 rounded-xl p-3 mt-1 text-sm outline-none focus:border-(--accent-teal)" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-(--text-muted) uppercase">Last (1m)</label>
+                                        <input className="w-full bg-white/5 border border-white/10 rounded-xl p-3 mt-1 text-sm outline-none focus:border-(--accent-teal)" />
+                                    </div>
+                                </div>
+                                <button onClick={updateIdentity} className="w-full py-4 bg-(--accent-teal) text-[#0b1211] rounded-xl text-[10px] font-black uppercase mt-4">Confirm Neural Change</button>
+                            </div>
+                        )}
+
+                        {activeModal === 'email' && (
+                            <div className="space-y-4">
+                                <h2 className="text-lg font-black uppercase italic text-blue-400">Communication Link</h2>
+                                <input type="email" placeholder="New Email Address" className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm outline-none" />
+                                <input type="password" placeholder="Verify Current Password" className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm outline-none" />
+                                <button className="w-full py-4 bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase">Update Primary Link</button>
+                            </div>
+                        )}
+
+                        {activeModal === 'delete' && (
+                            <div className="text-center space-y-6">
+                                <div className="mx-auto w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center text-red-500"><AlertCircle size={32} /></div>
+                                <div>
+                                    <h2 className="text-xl font-black uppercase text-red-500">Total Termination</h2>
+                                    <p className="text-xs text-(--text-muted) mt-2">This will erase your focus scores and neural profile permanently. No recovery possible.</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <input type="password" placeholder="Enter password to confirm" className="w-full bg-white/5 border border-red-500/20 rounded-xl p-3 text-sm outline-none" />
+                                    <button className="w-full py-4 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase">Finalize Deletion</button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
