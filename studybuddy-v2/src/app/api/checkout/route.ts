@@ -1,24 +1,24 @@
 import { Stripe } from 'stripe';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-
-
 export async function POST(req: Request) {
     try {
         const { userId, email } = await req.json();
 
+        // 🚨 DEBUG: Check if data is actually arriving
+        console.log("Uplink Request:", { userId, email });
+
+        if (!userId || !email) {
+            return Response.json({ error: "Neural Ident or Coordinate missing." }, { status: 400 });
+        }
+
         const session = await stripe.checkout.sessions.create({
-            // 🔥 Do NOT use payment_method_types or automatic_payment_methods here.
-            // 🚀 Use this instead to let the Dashboard handle it:
             payment_method_collection: 'always',
             line_items: [{
-                price: 'prod_UDBfS4vxanVI6h',
+                price: 'price_1R6A...', // 🔥 MUST BE YOUR REAL STRIPE PRICE ID
                 quantity: 1,
             }],
             mode: 'subscription',
-            subscription_data: {
-                trial_period_days: 30,
-            },
             customer_email: email,
             metadata: { userId },
             success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/account?success=true`,
@@ -27,7 +27,8 @@ export async function POST(req: Request) {
 
         return Response.json({ url: session.url });
     } catch (error: any) {
-        console.error("Stripe Error:", error);
+        // 🚨 DEBUG: This prints the EXACT Stripe error to your console
+        console.error("STRIPE CORE ERROR:", error.message);
         return Response.json({ error: error.message }, { status: 500 });
     }
 }
