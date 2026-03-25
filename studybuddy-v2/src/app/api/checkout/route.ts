@@ -15,7 +15,7 @@ export async function POST(req: Request) {
         const session = await stripe.checkout.sessions.create({
             payment_method_collection: 'always',
             line_items: [{
-                price: 'price_1R6A...', // 🔥 MUST BE YOUR REAL STRIPE PRICE ID
+                price: 'price_1TElHtQyyYfUtkCR5TvWfLzJ', // 🔥 MUST BE YOUR REAL STRIPE PRICE ID
                 quantity: 1,
             }],
             mode: 'subscription',
