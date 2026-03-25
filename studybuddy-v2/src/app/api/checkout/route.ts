@@ -5,29 +5,26 @@ export async function POST(req: Request) {
     try {
         const { userId, email } = await req.json();
 
-        // 🚨 DEBUG: Check if data is actually arriving
-        console.log("Uplink Request:", { userId, email });
-
         if (!userId || !email) {
             return Response.json({ error: "Neural Ident or Coordinate missing." }, { status: 400 });
         }
 
         const session = await stripe.checkout.sessions.create({
-            payment_method_collection: 'always',
+            ui_mode: 'embedded', // 🔥 REQUIRED for embedded flow
             line_items: [{
-                price: 'price_1TElHtQyyYfUtkCR5TvWfLzJ', // 🔥 MUST BE YOUR REAL STRIPE PRICE ID
+                price: 'price_1TElHtQyyYfUtkCR5TvWfLzJ',
                 quantity: 1,
             }],
             mode: 'subscription',
             customer_email: email,
             metadata: { userId },
-            success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/account?success=true`,
-            cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/account?canceled=true`,
+            // Stripe redirects here after GCash/Card auth
+            return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/account?session_id={CHECKOUT_SESSION_ID}`,
         });
 
-        return Response.json({ url: session.url });
+        // 🔥 Return the secret instead of the URL
+        return Response.json({ clientSecret: session.client_secret });
     } catch (error: any) {
-        // 🚨 DEBUG: This prints the EXACT Stripe error to your console
         console.error("STRIPE CORE ERROR:", error.message);
         return Response.json({ error: error.message }, { status: 500 });
     }
