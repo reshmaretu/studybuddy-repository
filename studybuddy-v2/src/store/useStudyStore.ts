@@ -200,11 +200,15 @@ interface StudyState {
     setMockUsers: (val: any[] | ((prev: any[]) => any[])) => void;
 
     chumToast: {
-        message: string;
-        type: "warning" | "normal" | "success"; // Add "success" here
+        message: React.ReactNode; // Change from string to React.ReactNode
+        type?: "warning" | "normal" | "success";
         id: number;
     } | null;
-    triggerChumToast: (message: string, type?: "warning" | "normal" | "success") => void;
+
+    triggerChumToast: (
+        message: React.ReactNode, // Change from string to React.ReactNode
+        type?: "warning" | "normal" | "success"
+    ) => void;
 }
 
 export const useStudyStore = create<StudyState>()(

@@ -313,25 +313,40 @@ export default function CrystalGarden() {
         // 1. Burnout Hard Stop
         if (newTask.load === 'heavy' && heavyCount >= 2) {
             triggerChumToast(
-                <span><strong className="text-red-400">Burnout Risk Detected! ⚠️</strong><br />You already have {heavyCount} Heavy tasks today. Adding more severely reduces focus. Try breaking this into Medium tasks.</span>,
+                <span>
+                    <strong className="text-red-400">Burnout Risk Detected! ⚠️</strong>
+                    <br />You already have {heavyCount} Heavy tasks today. Adding more severely reduces focus. Try breaking this into Medium tasks.
+                </span>,
                 'warning'
             );
             return;
         }
 
-        // 2. Soft Limits for 1-3-5 Mode
+        // 2. Soft Limits for 1-3-5 Mode (Informational/Normal)
         if (activeFramework === '1-3-5') {
             const mediumCount = activeQuests.filter(t => t.load === 'medium').length;
             const lightCount = activeQuests.filter(t => t.load === 'light').length;
 
             if (newTask.load === 'medium' && mediumCount >= 3) {
-                triggerChumToast("You're loading up! Usually we keep it to 3 medium tasks in this framework.");
+                triggerChumToast("You're loading up! Usually we keep it to 3 medium tasks in this framework.", 'normal');
             } else if (newTask.load === 'light' && lightCount >= 5) {
-                triggerChumToast("That's a lot of small plants! Try to stay under 5 light tasks.");
+                triggerChumToast("That's a lot of small plants! Try to stay under 5 light tasks.", 'normal');
             }
         }
 
+        // 3. Logic Execution
         addTask({ ...newTask, deadline: isScheduled ? newTask.deadline : undefined });
+
+        // 4. Success Feedback
+        triggerChumToast(
+            <span>
+                <strong className="text-teal-400">Quest Planted! 🌱</strong>
+                <br />"{newTask.title}" is now in your focus queue.
+            </span>,
+            'success'
+        );
+
+        // 5. State Reset
         setIsAdding(false);
         setNewTask({ title: "", description: "", load: "medium", deadline: "" });
         setIsScheduled(false);
