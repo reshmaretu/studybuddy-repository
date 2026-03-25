@@ -585,36 +585,43 @@ export default function ChumWidget() {
                     )}
                 </AnimatePresence>
 
-                {/* 🗣️ CHUM FLOATING BUBBLE (Now handles Chat AND System Toasts!) */}
+                {/* 🗣️ CHUM FLOATING BUBBLE (Handles Chat AND System Toasts) */}
                 <AnimatePresence>
                     {(showBubble || chumToast) && !isOpen && (
                         <motion.div
-                            // 👇 Safe scale animation that respects screen edges
                             initial={{ opacity: 0, scale: 0.3 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ type: "spring", stiffness: 450, damping: 12 }}
                             exit={{ opacity: 0, scale: 0, transition: { duration: 0.2 } }}
                             onClick={() => {
                                 setIsOpen(true);
-                                // If it's a system toast, capture it as an ephemeral message!
                                 if (chumToast) {
                                     setEphemeralMsg({
                                         text: chumToast.message,
                                         type: chumToast.type || 'info',
-                                        id: Date.now() // Unique ID to force re-renders if clicked multiple times
+                                        id: Date.now()
                                     });
                                 }
                             }}
-                            // 👇 Changed sizing to w-[320px] to make it longer!
-                            className={`absolute ${bubbleXPos} ${bubbleYPos} ${tailCorner} w-[320px] min-h-[80px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer transition-colors group z-50 pointer-events-auto flex flex-col justify-center ${chumToast?.type === 'warning' ? 'border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]' : 'border-[var(--border-color)] hover:border-[var(--accent-teal)]'}`}
+                            // Added dynamic styling for warning vs info
+                            className={`absolute ${bubbleXPos} ${bubbleYPos} ${tailCorner} w-[320px] min-h-[80px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer z-50 flex flex-col justify-center transition-all ${chumToast?.type === 'warning'
+                                    ? 'border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]'
+                                    : chumToast?.type === 'success'
+                                        ? 'border-teal-500/50 shadow-[0_0_30px_rgba(20,184,166,0.3)]' // Teal glow for success
+                                        : 'border-[var(--border-color)] hover:border-[var(--accent-teal)]'
+                                }`}
                         >
                             <div className="relative">
                                 {chumToast ? (
                                     <>
-                                        <p className={`text-[10px] font-black uppercase tracking-wider mb-1 ${chumToast.type === 'warning' ? 'text-red-400' : 'text-[var(--accent-teal)]'}`}>
-                                            {chumToast.type === 'warning' ? '⚠️ Burnout Warning' : 'Chum Says:'}
+                                        {/* 2. Update the Toast Title Text Color */}
+                                        <p className={`text-[10px] font-black uppercase tracking-wider mb-1 ${chumToast.type === 'warning' ? 'text-red-400' :
+                                                chumToast.type === 'success' ? 'text-teal-400' : 'text-[var(--accent-teal)]'
+                                            }`}>
+                                            {/* 3. Update the Label Text */}
+                                            {chumToast.type === 'warning' ? '⚠️ System Alert' :
+                                                chumToast.type === 'success' ? '✅ Success' : 'Chum Says:'}
                                         </p>
-                                        {/* 👇 Upgraded text-sm, added font-bold, and applied line-clamp-2 */}
                                         <div className="text-sm text-[var(--text-main)] leading-relaxed font-bold">
                                             {chumToast.message}
                                         </div>

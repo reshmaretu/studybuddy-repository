@@ -199,8 +199,12 @@ interface StudyState {
     mockUsers: any[];
     setMockUsers: (val: any[] | ((prev: any[]) => any[])) => void;
 
-    chumToast: { message: string | React.ReactNode, type: 'warning' | 'normal' } | null;
-    triggerChumToast: (message: string | React.ReactNode, type?: 'warning' | 'normal') => void;
+    chumToast: {
+        message: string;
+        type: "warning" | "normal" | "success"; // Add "success" here
+        id: number;
+    } | null;
+    triggerChumToast: (message: string, type?: "warning" | "normal" | "success") => void;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -294,12 +298,19 @@ export const useStudyStore = create<StudyState>()(
             devOverlayEnabled: true,
 
             chumToast: null,
-            triggerChumToast: (message, type = 'normal') => {
-                set({ chumToast: { message, type } });
-                // Auto-clear the bubble after 6 seconds
+            triggerChumToast: (message, type = "normal") => {
+                set({
+                    chumToast: {
+                        message,
+                        type, // This now accepts "success"
+                        id: Date.now()
+                    }
+                });
+
+                // Optional: Clear toast after 5 seconds
                 setTimeout(() => {
-                    set((state) => state.chumToast?.message === message ? { chumToast: null } : state);
-                }, 6000);
+                    set((state) => (state.chumToast?.message === message ? { chumToast: null } : {}));
+                }, 5000);
             },
 
             setActiveFramework: async (framework) => {
