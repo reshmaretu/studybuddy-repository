@@ -3,7 +3,7 @@
 import { useStudyStore } from "@/store/useStudyStore";
 import {
     ShieldAlert, Terminal, Sparkles, Zap, Crown, User,
-    MailCheck, AlertCircle, LogOut, ChevronLeft
+    MailCheck, AlertCircle, LogOut, ChevronLeft, X
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -25,14 +25,10 @@ export default function AccountPage() {
     const [userEmail, setUserEmail] = useState("");
     const [clientSecret, setClientSecret] = useState<string | null>(null);
 
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+
     // Fetch user email on mount
-    useEffect(() => {
-        const getEmail = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user?.email) setUserEmail(user.email);
-        };
-        getEmail();
-    }, []);
+
 
     // 🔥 NEURAL RECEIPT POLLING
     useEffect(() => {
@@ -73,31 +69,32 @@ export default function AccountPage() {
         }
     }, [isPremiumUser, triggerChumToast]);
 
-    // ─── ACTION HANDLERS ───
+    useEffect(() => {
+        const getEmail = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user?.email) setUserEmail(user.email);
+        };
+        getEmail();
+    }, []);
 
     const handleUpgrade = async () => {
         setLoading(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                triggerChumToast("Neural link unstable. Please log in.", "warning");
-                return;
-            }
-
             const res = await fetch("/api/checkout", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId: user.id, email: user.email }),
+                body: JSON.stringify({ userId: user?.id, email: user?.email }),
             });
-
             const data = await res.json();
             if (data.clientSecret) {
-                setClientSecret(data.clientSecret); // 🔥 Activates EmbeddedCheckout
+                setClientSecret(data.clientSecret);
+                setIsCheckoutOpen(true);
             } else {
-                throw new Error(data.error || "Uplink failed");
+                throw new Error(data.error);
             }
         } catch (error: any) {
-            triggerChumToast(error.message, "warning");
+            toast.error(error.message);
         } finally {
             setLoading(false);
         }
@@ -194,6 +191,25 @@ export default function AccountPage() {
                                 </button>
                             )}
                         </div>
+                        {/* 💎 NEURAL MODAL OVERLAY (ZenCanvas Aesthetic) */}
+                        {isCheckoutOpen && clientSecret && (
+                            <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                                <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={() => setIsCheckoutOpen(false)} />
+
+                                <div className="relative w-full max-w-2xl bg-[#0b1211] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-500">
+                                    <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5 backdrop-blur-2xl">
+                                        <span className="text-[10px] font-black uppercase text-(--accent-teal) tracking-[0.2em]">Neural Encryption Tunnel</span>
+                                        <button onClick={() => setIsCheckoutOpen(false)} className="p-2 hover:bg-white/10 rounded-full text-white/50 transition-colors">
+                                            <X size={20} />
+                                        </button>
+                                    </div>
+
+                                    <div className="p-4 max-h-[80vh] overflow-y-auto no-scrollbar">
+                                        <StripeEmbedded clientSecret={clientSecret} />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
