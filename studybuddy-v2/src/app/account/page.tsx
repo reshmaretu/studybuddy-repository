@@ -6,35 +6,22 @@ import {
     History, Zap, Crown, User, ArrowUpRight,
     MailCheck, AlertCircle
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 export default function AccountPage() {
+    // 🔥 Pull everything from the store
     const {
         isPremiumUser, isDev, devOverlayEnabled,
-        setDevOverlayEnabled, level, focusScore
+        setDevOverlayEnabled, level, focusScore,
+        displayName, isVerified
     } = useStudyStore();
 
     const [loading, setLoading] = useState(false);
     const [verifying, setVerifying] = useState(false);
-    const [userAuth, setUserAuth] = useState<{ id: string, verified: boolean } | null>(null);
 
-    // Sync real Supabase Auth status
-    useEffect(() => {
-        const getAuth = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                setUserAuth({
-                    // Clean Neural ID from UUID
-                    id: user.id.split('-')[0].toUpperCase(),
-                    verified: !!user.email_confirmed_at
-                });
-            }
-        };
-        getAuth();
-    }, []);
-
+    // Function to handle verification resend
     const handleVerifyEmail = async () => {
         setVerifying(true);
         const { data: { user } } = await supabase.auth.getUser();
@@ -78,7 +65,8 @@ export default function AccountPage() {
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <h1 className="text-4xl font-black text-(--text-main) tracking-tight italic uppercase">Portal Settings</h1>
-                    <p className="text-(--text-muted) font-medium italic">Architect Ident: <span className="text-(--accent-teal)">Mark</span></p>
+                    {/* Header Identity */}
+                    <p className="text-(--text-muted) font-medium italic">Architect Ident: <span className="text-(--accent-teal)">{displayName}</span></p>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 bg-(--bg-card) border border-(--border-color) rounded-2xl shadow-sm">
                     <Zap size={14} className="text-(--accent-yellow)" />
@@ -162,16 +150,15 @@ export default function AccountPage() {
                             <User size={40} className="text-[#0b1211]" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-black text-(--text-main)">Mark</h3>
+                            {/* 🔥 Real Name and Level from Store */}
+                            <h3 className="text-xl font-black text-(--text-main)">{displayName}</h3>
                             <p className="text-xs text-(--text-muted)">Level {level} Architect</p>
                         </div>
 
                         <div className="flex flex-col gap-3 items-center pt-2">
                             <div className="flex justify-center gap-2">
-                                <div className="px-3 py-1 bg-(--bg-dark) border border-(--border-color) rounded-full text-[9px] font-bold text-(--text-muted) uppercase tracking-tighter">
-                                    ID: {userAuth?.id || "..."}
-                                </div>
-                                {userAuth?.verified ? (
+                                {/* 🔥 Uses Store isVerified */}
+                                {isVerified ? (
                                     <div className="px-3 py-1 bg-(--accent-teal)/10 border border-(--accent-teal)/30 rounded-full text-[9px] font-bold text-(--accent-teal) uppercase flex items-center gap-1">
                                         <MailCheck size={10} /> Verified
                                     </div>
@@ -181,7 +168,7 @@ export default function AccountPage() {
                                     </div>
                                 )}
                             </div>
-                            {!userAuth?.verified && (
+                            {!isVerified && (
                                 <button
                                     onClick={handleVerifyEmail}
                                     disabled={verifying}

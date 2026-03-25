@@ -133,6 +133,11 @@ interface StudyState {
     swayEnabled: boolean;
     setFlowerSettings: (settings: Partial<{ flowerCount: number; swayEnabled: boolean }>) => void;
 
+    displayName: string;
+    setDisplayName: (name: string) => Promise<void>;
+
+    isVerified: boolean;
+
     // ⚡ ASYNC ACTIONS (Cloud Synced)
     addTask: (task: Omit<Task, 'id' | 'isCompleted'>) => Promise<void>;
     deleteTask: (id: string) => Promise<void>;
@@ -220,6 +225,22 @@ export const useStudyStore = create<StudyState>()(
                     console.error("Premium Sync Error:", error);
                 }
             },
+
+            // ─── IDENTITY STATE ───
+            displayName: "Architect", // Default value
+
+            setDisplayName: async (name) => {
+                set({ displayName: name });
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    await supabase.from('profiles')
+                        .update({ display_name: name })
+                        .eq('id', user.id);
+                }
+            },
+
+            isVerified: false,
+
             isMindDumpOpen: false,
             toggleMindDump: () => set((state) => ({ isMindDumpOpen: !state.isMindDumpOpen })),
             tasks: [],
@@ -443,7 +464,7 @@ export const useStudyStore = create<StudyState>()(
                 const { data: { user } } = await supabase.auth.getUser();
 
                 if (!user) {
-                    set({ isInitialized: true });
+                    set({ isInitialized: true, isVerified: false });
                     return;
                 }
 
@@ -496,7 +517,9 @@ export const useStudyStore = create<StudyState>()(
                         isPremiumUser: profileResponse.data?.is_premium || false,
                         isDev: profileResponse.data?.is_dev || false,
                         activeFramework: profileResponse.data?.active_framework || null,
-                        lastPlannedDate: profileResponse.data?.last_planned_date || null
+                        lastPlannedDate: profileResponse.data?.last_planned_date || null,
+                        displayName: profileResponse.data?.display_name || "Architect",
+                        isVerified: !!user.email_confirmed_at
                     });
 
                     const activeTheme = wardrobeResponse.data?.active_theme || 'default';
