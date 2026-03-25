@@ -2,19 +2,18 @@
 
 import { useStudyStore } from "@/store/useStudyStore";
 import {
-    ShieldAlert, Terminal, Sparkles, CreditCard,
-    History, Zap, Crown, User, ArrowUpRight,
-    MailCheck, AlertCircle, X, LogOut
+    ShieldAlert, Terminal, Sparkles, Zap, Crown, User,
+    MailCheck, AlertCircle, LogOut, ChevronLeft
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import StripeEmbedded from "@/components/EmbeddedCheckout";
 
 export default function AccountPage() {
     // 🔥 State from Zustand Store
     const {
-        isPremiumUser, isDev, devOverlayEnabled,
-        setDevOverlayEnabled, level, focusScore,
+        isPremiumUser, level, focusScore,
         displayName, isVerified, setDisplayName, triggerChumToast
     } = useStudyStore();
 
@@ -22,10 +21,11 @@ export default function AccountPage() {
     const [activeModal, setActiveModal] = useState<'email' | 'password' | 'identity' | 'delete' | null>(null);
     const [loading, setLoading] = useState(false);
     const [inputValue, setInputValue] = useState("");
-    const [secondInputValue, setSecondInputValue] = useState(""); // Used for Full Name
+    const [secondInputValue, setSecondInputValue] = useState("");
     const [userEmail, setUserEmail] = useState("");
+    const [clientSecret, setClientSecret] = useState<string | null>(null);
 
-    // Fetch user email on mount for display
+    // Fetch user email on mount
     useEffect(() => {
         const getEmail = async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -34,21 +34,21 @@ export default function AccountPage() {
         getEmail();
     }, []);
 
+    // 🔥 NEURAL RECEIPT POLLING
     useEffect(() => {
         const query = new URLSearchParams(window.location.search);
+        const hasSession = query.get('session_id') || query.get('success');
 
-        // 🔥 Detect return from Stripe
-        if (query.get('success') && !isPremiumUser) {
+        if (hasSession && !isPremiumUser) {
             triggerChumToast("Neural upgrade detected. Finalizing uplink...", "normal");
 
             let attempts = 0;
-            const maxAttempts = 10; // Try for 20 seconds total
+            const maxAttempts = 12; // 24 seconds total for GCash processing
 
             const interval = setInterval(async () => {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return clearInterval(interval);
 
-                // Fetch the 'is_premium' flag directly from the source of truth
                 const { data } = await supabase
                     .from('profiles')
                     .select('is_premium')
@@ -56,12 +56,8 @@ export default function AccountPage() {
                     .single();
 
                 if (data?.is_premium) {
-                    // ✅ Update the global Zustand store instantly
                     useStudyStore.setState({ isPremiumUser: true });
-
                     triggerChumToast("Uplink Complete. Welcome to StudyBuddy Plus, Architect.", "normal");
-
-                    // Clean up the URL for a professional look
                     window.history.replaceState({}, document.title, window.location.pathname);
                     clearInterval(interval);
                 }
@@ -69,7 +65,7 @@ export default function AccountPage() {
                 attempts++;
                 if (attempts >= maxAttempts) {
                     clearInterval(interval);
-                    triggerChumToast("Uplink taking longer than expected. Check your neural inbox (Email).", "warning");
+                    triggerChumToast("Uplink delayed. Verify via email receipt.", "warning");
                 }
             }, 2000);
 
@@ -79,89 +75,29 @@ export default function AccountPage() {
 
     // ─── ACTION HANDLERS ───
 
-    const handleModalSubmit = async () => {
-        setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        try {
-            if (activeModal === 'email') {
-                const { error } = await supabase.auth.updateUser({ email: inputValue });
-                if (error) throw error;
-                toast.success("Coordinates updated. Check your new inbox.");
-            }
-            else if (activeModal === 'password') {
-                const { error } = await supabase.auth.resetPasswordForEmail(user.email!, {
-                    redirectTo: `${window.location.origin}/auth/reset-password`,
-                });
-                if (error) throw error;
-                toast.success("Security reset link transmitted.");
-            }
-            else if (activeModal === 'identity') {
-                // Cooldown logic
-                const { data: profile } = await supabase.from('profiles').select('last_display_name_change').eq('id', user.id).single();
-                const daysSince = (new Date().getTime() - new Date(profile?.last_display_name_change || 0).getTime()) / (1000 * 3600 * 24);
-
-                if (daysSince < 7) {
-                    toast.error(`Neural cooldown: ${Math.ceil(7 - daysSince)} days remaining.`);
-                } else {
-                    await setDisplayName(inputValue);
-                    if (secondInputValue) {
-                        await supabase.from('profiles').update({
-                            full_name: secondInputValue,
-                            last_full_name_change: new Date().toISOString()
-                        }).eq('id', user.id);
-                    }
-                    toast.success("Identity recalibrated.");
-                }
-            }
-            else if (activeModal === 'delete') {
-                const { error: authError } = await supabase.auth.signInWithPassword({ email: user.email!, password: inputValue });
-                if (authError) throw new Error("Incorrect credentials.");
-
-                const res = await fetch('/api/auth/delete-user', { method: 'POST' });
-                if (res.ok) {
-                    await supabase.auth.signOut();
-                    window.location.href = "/";
-                }
-            }
-            setActiveModal(null);
-            setInputValue("");
-            setSecondInputValue("");
-        } catch (err: any) {
-            toast.error(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleUpgrade = async () => {
         setLoading(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-
             if (!user) {
-                triggerChumToast("Neural link unstable. Please log in again.", "warning");
+                triggerChumToast("Neural link unstable. Please log in.", "warning");
                 return;
             }
 
             const res = await fetch("/api/checkout", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    userId: user.id, // 🔥 Ensures ID is not undefined
-                    email: user.email
-                }),
+                body: JSON.stringify({ userId: user.id, email: user.email }),
             });
 
             const data = await res.json();
-            if (data.url) {
-                window.location.href = data.url;
+            if (data.clientSecret) {
+                setClientSecret(data.clientSecret); // 🔥 Activates EmbeddedCheckout
             } else {
-                throw new Error("No session URL received.");
+                throw new Error(data.error || "Uplink failed");
             }
-        } catch (error) {
-            triggerChumToast("Stripe uplink failed. Check your connection.", "warning");
+        } catch (error: any) {
+            triggerChumToast(error.message, "warning");
         } finally {
             setLoading(false);
         }
@@ -172,16 +108,10 @@ export default function AccountPage() {
         try {
             const res = await fetch("/api/checkout/portal", { method: "POST" });
             const data = await res.json();
-
-            if (!res.ok) {
-                // 🔥 This pipes the error directly into the sleek Chum bubble
-                triggerChumToast(data.error, "warning");
-                return;
-            }
-
+            if (!res.ok) throw new Error(data.error);
             window.location.href = data.url;
-        } catch (error) {
-            triggerChumToast("Network disruption: Could not reach billing server.", "warning");
+        } catch (error: any) {
+            triggerChumToast(error.message || "Portal uplink failed.", "warning");
         } finally {
             setLoading(false);
         }
@@ -215,55 +145,66 @@ export default function AccountPage() {
                 </div>
             </header>
 
-            {/* SETTINGS GRID - Takes up remaining space */}
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <button onClick={() => setActiveModal('email')} className="flex items-center gap-5 p-6 bg-(--bg-card) border border-(--border-color) rounded-[24px] hover:border-(--accent-teal)/50 transition-all text-left group shadow-sm">
-                    <div className="p-4 bg-blue-500/10 rounded-2xl text-blue-400 group-hover:scale-110 transition-transform"><MailCheck size={24} /></div>
-                    <span className="font-bold text-(--text-main)">Change Email</span>
-                </button>
-                <button onClick={() => setActiveModal('password')} className="flex items-center gap-5 p-6 bg-(--bg-card) border border-(--border-color) rounded-[24px] hover:border-(--accent-teal)/50 transition-all text-left group shadow-sm">
-                    <div className="p-4 bg-indigo-500/10 rounded-2xl text-indigo-400 group-hover:scale-110 transition-transform"><ShieldAlert size={24} /></div>
-                    <span className="font-bold text-(--text-main)">Security Reset</span>
-                </button>
-                <button onClick={() => setActiveModal('identity')} className="flex items-center gap-5 p-6 bg-(--bg-card) border border-(--border-color) rounded-[24px] hover:border-(--accent-teal)/50 transition-all text-left group shadow-sm">
-                    <div className="p-4 bg-teal-500/10 rounded-2xl text-teal-400 group-hover:scale-110 transition-transform"><Terminal size={24} /></div>
-                    <span className="font-bold text-(--text-main)">Update Identity</span>
-                </button>
-                <button onClick={() => setActiveModal('delete')} className="flex items-center gap-5 p-6 bg-red-500/5 border border-red-500/10 rounded-[24px] hover:bg-red-500/10 transition-all text-left group shadow-sm">
-                    <div className="p-4 bg-red-500/10 rounded-2xl text-red-500 group-hover:scale-110 transition-transform"><AlertCircle size={24} /></div>
-                    <span className="font-bold text-red-500">Terminate Account</span>
-                </button>
+            {/* SETTINGS GRID / EMBEDDED CHECKOUT */}
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-6">
+                {clientSecret ? (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <button
+                            onClick={() => setClientSecret(null)}
+                            className="flex items-center gap-2 mb-4 text-[10px] font-black uppercase text-(--text-muted) hover:text-(--accent-teal) transition-colors"
+                        >
+                            <ChevronLeft size={14} /> Abort Link & Return
+                        </button>
+                        <StripeEmbedded clientSecret={clientSecret} />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button onClick={() => setActiveModal('email')} className="flex items-center gap-5 p-6 bg-(--bg-card) border border-(--border-color) rounded-[24px] hover:border-(--accent-teal)/50 transition-all text-left group">
+                            <div className="p-4 bg-blue-500/10 rounded-2xl text-blue-400 group-hover:scale-110 transition-transform"><MailCheck size={24} /></div>
+                            <span className="font-bold text-(--text-main)">Change Email</span>
+                        </button>
+                        <button onClick={() => setActiveModal('password')} className="flex items-center gap-5 p-6 bg-(--bg-card) border border-(--border-color) rounded-[24px] hover:border-(--accent-teal)/50 transition-all text-left group">
+                            <div className="p-4 bg-indigo-500/10 rounded-2xl text-indigo-400 group-hover:scale-110 transition-transform"><ShieldAlert size={24} /></div>
+                            <span className="font-bold text-(--text-main)">Security Reset</span>
+                        </button>
+                        <button onClick={() => setActiveModal('identity')} className="flex items-center gap-5 p-6 bg-(--bg-card) border border-(--border-color) rounded-[24px] hover:border-(--accent-teal)/50 transition-all text-left group">
+                            <div className="p-4 bg-teal-500/10 rounded-2xl text-teal-400 group-hover:scale-110 transition-transform"><Terminal size={24} /></div>
+                            <span className="font-bold text-(--text-main)">Update Identity</span>
+                        </button>
+                        <button onClick={() => setActiveModal('delete')} className="flex items-center gap-5 p-6 bg-red-500/5 border border-red-500/10 rounded-[24px] hover:bg-red-500/10 transition-all text-left group">
+                            <div className="p-4 bg-red-500/10 rounded-2xl text-red-500 group-hover:scale-110 transition-transform"><AlertCircle size={24} /></div>
+                            <span className="font-bold text-red-500">Terminate Account</span>
+                        </button>
 
-                {/* SUBSCRIPTION CARD - Spans both columns if on desktop */}
-                <div className="md:col-span-2 bg-(--bg-card) border border-(--border-color) rounded-[32px] p-8 flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-6">
-                        <div className={`p-5 rounded-2xl ${isPremiumUser ? 'bg-(--accent-yellow)/10 text-(--accent-yellow)' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
-                            {isPremiumUser ? <Crown size={40} /> : <Sparkles size={40} />}
-                        </div>
-                        <div>
-                            <h4 className="text-xl font-black italic uppercase text-(--text-main)">{isPremiumUser ? "Plus Member" : "Standard Tier"}</h4>
-                            <p className="text-xs font-bold text-(--text-muted) uppercase tracking-widest mt-1">{isPremiumUser ? "Subscription Active • Automatic Receipts" : "Unlock Pro Tutor & Matrix Analytics"}</p>
+                        <div className="md:col-span-2 bg-(--bg-card) border border-(--border-color) rounded-[32px] p-8 flex items-center justify-between shadow-sm">
+                            <div className="flex items-center gap-6">
+                                <div className={`p-5 rounded-2xl ${isPremiumUser ? 'bg-(--accent-yellow)/10 text-(--accent-yellow)' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
+                                    {isPremiumUser ? <Crown size={40} /> : <Sparkles size={40} />}
+                                </div>
+                                <div>
+                                    <h4 className="text-xl font-black italic uppercase text-(--text-main)">{isPremiumUser ? "Plus Member" : "Standard Tier"}</h4>
+                                    <p className="text-xs font-bold text-(--text-muted) uppercase tracking-widest mt-1">{isPremiumUser ? "Subscription Active • Automatic Receipts" : "Unlock Pro Tutor & Matrix Analytics"}</p>
+                                </div>
+                            </div>
+                            {isPremiumUser ? (
+                                <button onClick={handleManageBilling} className="px-8 py-4 bg-(--bg-dark) border border-(--border-color) rounded-2xl text-xs font-black uppercase text-(--accent-teal) hover:border-(--accent-teal) transition-all">Portal & PDFs</button>
+                            ) : (
+                                <button onClick={handleUpgrade} disabled={loading} className="px-8 py-4 bg-(--accent-teal) text-[#0b1211] rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-teal-500/20 active:scale-95 transition-all">
+                                    {loading ? "Syncing..." : "Upgrade"}
+                                </button>
+                            )}
                         </div>
                     </div>
-                    {isPremiumUser ? (
-                        <button onClick={handleManageBilling} className="px-8 py-4 bg-(--bg-dark) border border-(--border-color) rounded-2xl text-xs font-black uppercase text-(--accent-teal) hover:border-(--accent-teal) transition-all">Portal & PDFs</button>
-                    ) : (
-                        <button onClick={handleUpgrade} disabled={loading} className="px-8 py-4 bg-(--accent-teal) text-[#0b1211] rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-teal-500/20 active:scale-95 transition-all">
-                            {loading ? "Transmitting..." : "Upgrade"}
-                        </button>
-                    )}
-                </div>
+                )}
             </div>
 
-            {/* LOGOUT BUTTON - Snaps to bottom */}
+            {/* LOGOUT BUTTON */}
             <button
                 onClick={() => supabase.auth.signOut()}
                 className="mt-auto w-full flex items-center justify-center gap-3 p-6 bg-white/5 border border-white/5 rounded-[24px] hover:bg-white/10 transition-all text-xs font-black uppercase tracking-[0.3em] text-(--text-muted)"
             >
                 <LogOut size={18} /> Signal Disconnect (Logout)
             </button>
-
-            {/* MODAL OVERLAY CODE (Keep your existing modal logic here) */}
         </div>
     );
 }
