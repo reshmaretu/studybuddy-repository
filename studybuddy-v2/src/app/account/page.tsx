@@ -154,6 +154,31 @@ export default function AccountPage() {
         setLoading(false);
     };
 
+    // --- NEW: Handle Upgrade Action ---
+    const handleUpgrade = async () => {
+        setLoading(true);
+        setActiveModal('stripe'); // Open modal immediately to show loader
+
+        try {
+            const response = await fetch("/api/checkout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: userEmail }),
+            });
+            const data = await response.json();
+            if (data.clientSecret) {
+                setClientSecret(data.clientSecret);
+            } else {
+                throw new Error("Failed to initialize gateway");
+            }
+        } catch (err) {
+            triggerChumToast("Gateway connection failed.", "warning");
+            setActiveModal(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-full w-full flex flex-col items-center justify-center p-4 md:p-8">
             <div className="w-full max-w-2xl space-y-6">
@@ -198,17 +223,43 @@ export default function AccountPage() {
                 </div>
             </div>
 
+            {/* SUBSCRIPTION DISPLAY */}
+            <div className={`p-8 rounded-[40px] border transition-all duration-500 ${isPremiumUser ? 'bg-(--accent-teal)/5 border-(--accent-teal)/20' : 'bg-white/5 border-white/10'}`}>
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="flex items-center gap-5">
+                        <div className="p-4 bg-white/5 rounded-3xl text-(--accent-teal)"><Crown size={28} /></div>
+                        <div>
+                            <h4 className="text-[11px] font-black uppercase tracking-[0.2em]">{isPremiumUser ? "Grandmaster Status" : "Standard Tier"}</h4>
+                            <p className="text-[9px] opacity-40 uppercase font-bold mt-1 tracking-tight">{isPremiumUser ? "Neural Network Active" : "Initialize Plus for ₱99.00"}</p>
+                        </div>
+                    </div>
+                    {!isPremiumUser && (
+                        <button onClick={handleUpgrade} className="px-10 py-4 bg-white text-black rounded-2xl text-[9px] font-black uppercase hover:bg-(--accent-teal) transition-all">
+                            Upgrade Link
+                        </button>
+                    )}
+                </div>
+            </div>
+
             {/* --- MODAL SYSTEM --- */}
             {activeModal && (
-                <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+                <div
+                    className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300"
+                    onClick={() => setActiveModal(null)} // Click backdrop to close
+                >
                     <div
                         className={`bg-(--bg-card) border border-white/10 w-full rounded-[40px] relative shadow-2xl flex flex-col 
-    transition-all duration-500 ease-out
-    ${activeModal === 'stripe' ? 'max-w-4xl h-[90vh] md:h-auto' : 'max-w-md'} 
-    mx-4 overflow-hidden`}
-                        onClick={(e) => e.stopPropagation()}
+                        transition-all duration-500 ease-out p-8 md:p-10
+                        ${activeModal === 'stripe' ? 'max-w-4xl min-h-[500px]' : 'max-w-md'} 
+                        mx-4 overflow-hidden`}
+                        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
                     >
-                        <button onClick={() => setActiveModal(null)} className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 z-10"><X size={16} /></button>
+                        <button
+                            onClick={() => setActiveModal(null)}
+                            className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 z-10 transition-colors"
+                        >
+                            <X size={16} />
+                        </button>
 
                         {/* Identity Config */}
                         {activeModal === 'identity' && (
@@ -291,18 +342,15 @@ export default function AccountPage() {
                             </div>
                         )}
 
-                        {/* Modal: Stripe (Responsive Desktop & Mobile) */}
+                        {/* Optimized Stripe Modal */}
                         {activeModal === 'stripe' && (
-                            <div className="flex flex-col h-full max-h-[85vh]">
+                            <div className="flex flex-col h-full">
                                 <div className="mb-6">
                                     <h2 className="text-xl font-black uppercase italic tracking-tighter">Payment Terminal</h2>
                                     <p className="text-[9px] uppercase font-bold opacity-30 tracking-widest">Secure checkout via Stripe</p>
                                 </div>
 
-                                {/* Scrollable container for the Stripe form. 
-            min-h-[450px] ensures the layout doesn't jump during load.
-        */}
-                                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-[450px]">
+                                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-[400px]">
                                     {clientSecret ? (
                                         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                                             <StripeEmbedded clientSecret={clientSecret} />
@@ -318,14 +366,12 @@ export default function AccountPage() {
                                     )}
                                 </div>
 
-                                {/* Subtle footer to indicate security */}
-                                <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-center gap-2 opacity-20">
+                                <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-center gap-2 opacity-20">
                                     <Lock size={10} />
                                     <span className="text-[8px] font-bold uppercase tracking-widest">End-to-End Encrypted</span>
                                 </div>
                             </div>
                         )}
-
                     </div>
                 </div>
             )}
