@@ -34,6 +34,7 @@ export default function AccountPage() {
         newFirstName: "",
         newFullName: "",
         newEmail: "",
+        currentPassword: "",
         newPassword: "",
         confirmPassword: ""
     });
@@ -88,26 +89,47 @@ export default function AccountPage() {
 
     const commitIdentity = async () => {
         setLoading(true);
-        const now = Date.now();
-        const updateData: any = {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const nowIso = new Date().toISOString();
+        const nowMs = Date.now();
+        
+        const metadataUpdates: any = {
             display_name: formData.newDisplayName,
             first_name: formData.newFirstName,
             full_name: formData.newFullName,
         };
 
+        const profileUpdates: any = {
+            display_name: formData.newDisplayName,
+            full_name: formData.newFullName,
+        };
+
         // Only update timestamps if the value actually changed
         if (formData.newFirstName !== meta.firstName || formData.newFullName !== meta.fullName) {
-            updateData.last_identity_update = now;
+            metadataUpdates.last_identity_update = nowMs;
+            profileUpdates.last_full_name_change = nowIso;
         }
         if (formData.newDisplayName !== displayName) {
-            updateData.last_display_update = now;
+            metadataUpdates.last_display_update = nowMs;
+            profileUpdates.last_display_name_change = nowIso;
         }
 
-        const { error } = await supabase.auth.updateUser({ data: updateData });
+        // 1. Update Auth Metadata
+        const { error: authError } = await supabase.auth.updateUser({ data: metadataUpdates });
+        if (authError) {
+            triggerChumToast(authError.message, "warning");
+        } else {
+            // 2. Update Public Profiles Table (Keep in sync with schema)
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .update(profileUpdates)
+                .eq('id', user.id);
 
-        if (error) triggerChumToast(error.message, "warning");
-        else {
-            triggerChumToast("Identity synchronized.", "success");
+            if (profileError) triggerChumToast("Cloud sync delay. Profile status updated.", "warning");
+            else triggerChumToast("Identity synchronized.", "success");
+            
             setActiveModal(null);
             setTimeout(() => window.location.reload(), 1000);
         }
@@ -115,33 +137,76 @@ export default function AccountPage() {
     };
 
     const handlePasswordChange = async () => {
+        if (!formData.currentPassword) return triggerChumToast("Current cipher required.", "warning");
         if (formData.newPassword.length < 6) return triggerChumToast("Cipher must be 6+ chars.", "warning");
         if (formData.newPassword !== formData.confirmPassword) return triggerChumToast("Ciphers do not match.", "warning");
 
         setLoading(true);
+        // Verify current password first
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: userEmail,
+            password: formData.currentPassword
+        });
+
+        if (signInError) {
+            triggerChumToast("Current cipher is incorrect.", "warning");
+            setLoading(false);
+            return;
+        }
+
         const { error } = await supabase.auth.updateUser({ password: formData.newPassword });
         if (error) triggerChumToast(error.message, "warning");
         else {
             triggerChumToast("Security cipher updated.", "success");
             setActiveModal(null);
+            setFormData(prev => ({ ...prev, currentPassword: "", newPassword: "", confirmPassword: "" }));
         }
         setLoading(false);
     };
 
     const handleEmailChange = async () => {
         if (!formData.newEmail.includes("@")) return triggerChumToast("Invalid relay address.", "warning");
+        if (!formData.currentPassword) return triggerChumToast("Current cipher required.", "warning");
+
         setLoading(true);
+        // 🔥 SECURITY: Verify current password
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: userEmail,
+            password: formData.currentPassword
+        });
+
+        if (signInError) {
+            triggerChumToast("Current cipher is incorrect.", "warning");
+            setLoading(false);
+            return;
+        }
+
         const { error } = await supabase.auth.updateUser({ email: formData.newEmail });
         if (error) triggerChumToast(error.message, "warning");
         else {
             triggerChumToast("Check both emails to confirm migration.", "success");
             setActiveModal(null);
+            setFormData(prev => ({ ...prev, currentPassword: "" }));
         }
         setLoading(false);
     };
 
     const handleDeleteAccount = async () => {
+        if (!formData.currentPassword) return triggerChumToast("Current cipher required to delete.", "warning");
+
         setLoading(true);
+        // 🔥 SECURITY: Verify current password
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: userEmail,
+            password: formData.currentPassword
+        });
+
+        if (signInError) {
+            triggerChumToast("Current cipher is incorrect.", "warning");
+            setLoading(false);
+            return;
+        }
+
         // Note: For true deletion, you usually call a Supabase Edge Function 
         // because users cannot delete themselves via the Client SDK for security.
         const { error } = await supabase.rpc('delete_user_own_account');
@@ -160,10 +225,17 @@ export default function AccountPage() {
         setActiveModal('stripe'); // Open modal immediately to show loader
 
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user;
+            if (!user || !session) throw new Error("Unauthorized");
+
             const response = await fetch("/api/checkout", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: userEmail }),
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ email: userEmail, userId: user.id }),
             });
             const data = await response.json();
             if (data.clientSecret) {
@@ -290,6 +362,20 @@ export default function AccountPage() {
                             <div className="space-y-6 text-center py-4">
                                 <ShieldAlert size={40} className="mx-auto text-(--accent-teal)" />
                                 <h2 className="text-xl font-black uppercase italic">Sync Changes?</h2>
+                                <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-2">
+                                    {formData.newDisplayName !== displayName && (
+                                        <div className="flex justify-between text-[8px] uppercase font-bold px-2">
+                                            <span className="opacity-40 text-left uppercase">Display Name</span>
+                                            <span className="text-(--accent-teal) text-right truncate overflow-hidden max-w-[100px]">{formData.newDisplayName}</span>
+                                        </div>
+                                    )}
+                                    {(formData.newFirstName !== meta.firstName || formData.newFullName !== meta.fullName) && (
+                                        <div className="flex justify-between text-[8px] uppercase font-bold px-2">
+                                            <span className="opacity-40 text-left uppercase">Legal Identity</span>
+                                            <span className="text-(--accent-teal) text-right truncate overflow-hidden max-w-[100px]">{formData.newFirstName || "Unset"}</span>
+                                        </div>
+                                    )}
+                                </div>
                                 <p className="text-[10px] uppercase font-bold opacity-40 leading-relaxed">Identity locks for 30 days. Display name for 7 days. Proceed?</p>
                                 <div className="flex gap-4 pt-4">
                                     <button onClick={() => setActiveModal('identity')} className="flex-1 py-4 bg-white/5 rounded-2xl text-[10px] font-black uppercase">Abort</button>
@@ -305,6 +391,8 @@ export default function AccountPage() {
                             <div className="space-y-6">
                                 <h2 className="text-xl font-black uppercase italic tracking-tighter">Update Cipher</h2>
                                 <div className="space-y-4">
+                                    <input type="password" placeholder="Current Password" value={formData.currentPassword} onChange={e => setFormData({ ...formData, currentPassword: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs outline-none focus:border-(--accent-teal)" />
+                                    <div className="h-px bg-white/5" />
                                     <input type="password" placeholder="New Password" value={formData.newPassword} onChange={e => setFormData({ ...formData, newPassword: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs outline-none focus:border-(--accent-teal)" />
                                     <input type="password" placeholder="Confirm Password" value={formData.confirmPassword} onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs outline-none focus:border-(--accent-teal)" />
                                     <button onClick={handlePasswordChange} disabled={loading} className="w-full py-4 bg-white text-black rounded-2xl text-[10px] font-black uppercase">
@@ -320,6 +408,8 @@ export default function AccountPage() {
                                 <h2 className="text-xl font-black uppercase italic tracking-tighter">Relay Route</h2>
                                 <div className="space-y-4">
                                     <input type="email" placeholder="New Email Address" value={formData.newEmail} onChange={e => setFormData({ ...formData, newEmail: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs outline-none focus:border-(--accent-teal)" />
+                                    <div className="h-px bg-white/5" />
+                                    <input type="password" placeholder="Verify with Current Cipher" value={formData.currentPassword} onChange={e => setFormData({ ...formData, currentPassword: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs outline-none focus:border-(--accent-teal)" />
                                     <button onClick={handleEmailChange} disabled={loading} className="w-full py-4 bg-white text-black rounded-2xl text-[10px] font-black uppercase">
                                         {loading ? <RefreshCcw className="animate-spin mx-auto" size={14} /> : "Migrate Route"}
                                     </button>
@@ -333,6 +423,10 @@ export default function AccountPage() {
                                 <Trash2 size={40} className="mx-auto text-red-500" />
                                 <h2 className="text-xl font-black uppercase italic">Terminate Account?</h2>
                                 <p className="text-[10px] uppercase font-bold opacity-40">This action is irreversible. All progress will be wiped.</p>
+                                <div className="space-y-4 mt-4 text-left">
+                                    <label className="text-[8px] font-black uppercase opacity-30 ml-2">Secure Verification</label>
+                                    <input type="password" placeholder="Enter Current Cipher to Confirm" value={formData.currentPassword} onChange={e => setFormData({ ...formData, currentPassword: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs outline-none focus:border-red-500" />
+                                </div>
                                 <div className="flex gap-4">
                                     <button onClick={() => setActiveModal(null)} className="flex-1 py-4 bg-white/5 rounded-2xl text-[10px] font-black uppercase">Abort</button>
                                     <button onClick={handleDeleteAccount} disabled={loading} className="flex-1 py-4 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase">

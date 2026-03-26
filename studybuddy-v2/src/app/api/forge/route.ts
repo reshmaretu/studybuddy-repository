@@ -7,12 +7,29 @@ export async function POST(req: Request) {
     try {
         const { title, content, files, user_id } = await req.json();
 
+        // 🔥 BACKEND SECURITY: Verify the user via Bearer token
+        const authHeader = req.headers.get('Authorization');
+        const token = authHeader?.split(' ')[1];
+
+        if (!token) return NextResponse.json({ error: "Missing Neural Key." }, { status: 401 });
+
+        const supabaseAnon = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        const { data: { user }, error: authError } = await supabaseAnon.auth.getUser(token);
+
+        if (authError || !user || user.id !== user_id) {
+            return NextResponse.json({ error: "Neural Ident Mismatch." }, { status: 403 });
+        }
+
         const llamaKey = process.env.LLAMA_CLOUD_API_KEY;
         const geminiKey = process.env.GEMINI_AI_API_KEY;
 
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY! // 👈 Make sure this is in your .env.local
+            process.env.SUPABASE_SERVICE_ROLE_KEY! // 👈 Service Role for admin writes
         );
 
         let finalContent = content || "";

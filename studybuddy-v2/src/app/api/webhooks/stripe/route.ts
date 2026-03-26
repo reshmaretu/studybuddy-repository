@@ -37,6 +37,20 @@ export async function POST(req: Request) {
                     .from('profiles')
                     .update({ is_premium: true })
                     .eq('id', userId);
+
+                // 📄 Record Receipt (Matches official schema)
+                await supabaseAdmin
+                    .from('receipts')
+                    .upsert({
+                        user_id: userId,
+                        stripe_customer_id: session.customer,
+                        stripe_subscription_id: session.subscription || session.id,
+                        amount_paid: session.amount_paid || session.amount_total || 0,
+                        currency: session.currency || 'php',
+                        status: session.status || 'succeeded',
+                        receipt_url: session.hosted_invoice_url || session.receipt_url,
+                    }, { onConflict: 'user_id' });
+
                 console.log(`✅ Architect ${userId} elevated to Plus.`);
                 break;
 

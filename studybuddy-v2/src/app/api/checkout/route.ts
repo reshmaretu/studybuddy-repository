@@ -1,9 +1,28 @@
 import { Stripe } from 'stripe';
+import { createClient } from '@supabase/supabase-js';
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(req: Request) {
     try {
         const { userId, email } = await req.json();
+
+        // 🔥 BACKEND SECURITY: Verify the user via Bearer token
+        const authHeader = req.headers.get('Authorization');
+        const token = authHeader?.split(' ')[1];
+
+        if (!token) return Response.json({ error: "Missing Neural Key." }, { status: 401 });
+
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+        if (authError || !user || user.id !== userId) {
+            return Response.json({ error: "Neural Ident Mismatch." }, { status: 403 });
+        }
 
         if (!userId || !email) {
             return Response.json({ error: "Neural Ident or Coordinate missing." }, { status: 400 });
@@ -19,6 +38,9 @@ export async function POST(req: Request) {
             mode: 'subscription',
             customer_email: email,
             metadata: { userId },
+            subscription_data: {
+                metadata: { userId }
+            },
             // 🔥 Embedded mode uses return_url instead of success_url
             return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/account?session_id={CHECKOUT_SESSION_ID}`,
         });
