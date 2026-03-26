@@ -201,7 +201,13 @@ export default function AccountPage() {
             {/* --- MODAL SYSTEM --- */}
             {activeModal && (
                 <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-(--bg-card) border border-white/10 w-full max-w-md rounded-[40px] relative shadow-2xl flex flex-col p-8" onClick={(e) => e.stopPropagation()}>
+                    <div
+                        className={`bg-(--bg-card) border border-white/10 w-full rounded-[40px] relative shadow-2xl flex flex-col 
+    transition-all duration-500 ease-out
+    ${activeModal === 'stripe' ? 'max-w-4xl h-[90vh] md:h-auto' : 'max-w-md'} 
+    mx-4 overflow-hidden`}
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button onClick={() => setActiveModal(null)} className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 z-10"><X size={16} /></button>
 
                         {/* Identity Config */}
@@ -284,6 +290,42 @@ export default function AccountPage() {
                                 </div>
                             </div>
                         )}
+
+                        {/* Modal: Stripe (Responsive Desktop & Mobile) */}
+                        {activeModal === 'stripe' && (
+                            <div className="flex flex-col h-full max-h-[85vh]">
+                                <div className="mb-6">
+                                    <h2 className="text-xl font-black uppercase italic tracking-tighter">Payment Terminal</h2>
+                                    <p className="text-[9px] uppercase font-bold opacity-30 tracking-widest">Secure checkout via Stripe</p>
+                                </div>
+
+                                {/* Scrollable container for the Stripe form. 
+            min-h-[450px] ensures the layout doesn't jump during load.
+        */}
+                                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-[450px]">
+                                    {clientSecret ? (
+                                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                            <StripeEmbedded clientSecret={clientSecret} />
+                                        </div>
+                                    ) : (
+                                        <div className="py-24 flex flex-col items-center justify-center gap-4">
+                                            <div className="relative">
+                                                <RefreshCcw className="animate-spin text-(--accent-teal)" size={32} />
+                                                <div className="absolute inset-0 blur-md bg-(--accent-teal)/20 animate-pulse rounded-full" />
+                                            </div>
+                                            <span className="text-[9px] font-black uppercase opacity-20 tracking-[0.3em]">Handshaking with Gateway...</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Subtle footer to indicate security */}
+                                <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-center gap-2 opacity-20">
+                                    <Lock size={10} />
+                                    <span className="text-[8px] font-bold uppercase tracking-widest">End-to-End Encrypted</span>
+                                </div>
+                            </div>
+                        )}
+
                     </div>
                 </div>
             )}
