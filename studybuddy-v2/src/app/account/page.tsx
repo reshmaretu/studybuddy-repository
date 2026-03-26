@@ -164,78 +164,93 @@ export default function AccountPage() {
             {activeModal && (
                 <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
                     <div
-                        className="bg-(--bg-card) border border-white/10 w-full max-w-md rounded-[40px] p-8 relative shadow-2xl animate-in zoom-in-95 duration-300"
+                        className={`bg-(--bg-card) border border-white/10 w-full rounded-[40px] relative shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh] ${activeModal === 'stripe' ? 'max-w-4xl' : 'max-w-md'
+                            }`}
                         onClick={(e) => e.stopPropagation()}
                     >
+                        {/* Static Header / Close Button */}
                         <button
                             onClick={() => setActiveModal(null)}
-                            className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+                            className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors z-10"
                         >
                             <X size={16} />
                         </button>
 
-                        {/* Modal: Identity */}
-                        {activeModal === 'identity' && (
-                            <div className="space-y-6">
-                                <h2 className="text-xl font-black uppercase italic italic tracking-tighter">Update Identity</h2>
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[9px] font-black uppercase ml-2 opacity-30 tracking-widest">Callsgn</label>
-                                        <input
-                                            value={formData.newDisplayName}
-                                            onChange={(e) => setFormData({ ...formData, newDisplayName: e.target.value })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm outline-none focus:border-(--accent-teal)"
-                                        />
+                        {/* Scrollable Content Area */}
+                        <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
+
+                            {/* Modal: Identity */}
+                            {activeModal === 'identity' && (
+                                <div className="space-y-6">
+                                    <h2 className="text-xl font-black uppercase italic tracking-tighter">Update Identity</h2>
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black uppercase ml-2 opacity-30 tracking-widest">Callsgn</label>
+                                            <input
+                                                value={formData.newDisplayName}
+                                                onChange={(e) => setFormData({ ...formData, newDisplayName: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm outline-none focus:border-(--accent-teal)"
+                                            />
+                                        </div>
+                                        <button onClick={handleUpdateIdentity} className="w-full py-4 bg-(--accent-teal) text-black rounded-2xl text-[10px] font-black uppercase">Save to Matrix</button>
                                     </div>
-                                    <button onClick={handleUpdateIdentity} className="w-full py-4 bg-(--accent-teal) text-black rounded-2xl text-[10px] font-black uppercase">Save to Matrix</button>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {/* Modal: Email */}
-                        {activeModal === 'email' && (
-                            <div className="space-y-6">
-                                <div className="flex justify-between items-end">
-                                    <h2 className="text-xl font-black uppercase italic tracking-tighter">Relay Route</h2>
-                                    {!isVerified && (
-                                        <button onClick={handleVerifyEmail} className="text-[9px] font-black uppercase text-(--accent-teal) mb-1 underline underline-offset-4">Resend Link</button>
-                                    )}
-                                </div>
-                                <div className="space-y-4">
-                                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between">
-                                        <span className="text-[11px] font-medium opacity-50">{userEmail}</span>
-                                        {isVerified ? <CheckCircle2 size={16} className="text-teal-400" /> : <AlertCircle size={16} className="text-red-400" />}
+                            {/* Modal: Email */}
+                            {activeModal === 'email' && (
+                                <div className="space-y-6">
+                                    <div className="flex justify-between items-end">
+                                        <h2 className="text-xl font-black uppercase italic tracking-tighter">Relay Route</h2>
+                                        {!isVerified && (
+                                            <button onClick={handleVerifyEmail} className="text-[9px] font-black uppercase text-(--accent-teal) mb-1 underline underline-offset-4">Resend Link</button>
+                                        )}
                                     </div>
-                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm outline-none" placeholder="New Email Address" />
-                                    <button className="w-full py-4 bg-white text-black rounded-2xl text-[10px] font-black uppercase">Migrate Route</button>
+                                    <div className="space-y-4">
+                                        <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between">
+                                            <span className="text-[11px] font-medium opacity-50">{userEmail}</span>
+                                            {isVerified ? <CheckCircle2 size={16} className="text-teal-400" /> : <AlertCircle size={16} className="text-red-400" />}
+                                        </div>
+                                        <input className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm outline-none" placeholder="New Email Address" />
+                                        <button className="w-full py-4 bg-white text-black rounded-2xl text-[10px] font-black uppercase">Migrate Route</button>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {/* Modal: Stripe */}
-                        {activeModal === 'stripe' && (
-                            <div className="space-y-6">
-                                <h2 className="text-xl font-black uppercase italic tracking-tighter">Payment Terminal</h2>
-                                {clientSecret ? (
-                                    <StripeEmbedded clientSecret={clientSecret} />
-                                ) : (
-                                    <div className="py-20 flex justify-center"><RefreshCcw className="animate-spin opacity-20" /></div>
-                                )}
-                            </div>
-                        )}
+                            {/* Modal: Stripe (Optimized for Desktop & Scrolling) */}
+                            {activeModal === 'stripe' && (
+                                <div className="space-y-6">
+                                    <div className="mb-4">
+                                        <h2 className="text-xl font-black uppercase italic tracking-tighter">Payment Terminal</h2>
+                                        <p className="text-[9px] uppercase font-bold opacity-30 tracking-widest">Secure checkout via Stripe</p>
+                                    </div>
 
-                        {/* Modal: Delete */}
-                        {activeModal === 'delete' && (
-                            <div className="space-y-6 text-center">
-                                <Trash2 size={40} className="mx-auto text-red-500" />
-                                <h2 className="text-xl font-black uppercase italic">Terminate Account?</h2>
-                                <p className="text-[10px] uppercase font-bold opacity-40 tracking-tighter">This will wipe your focus history and levels from the database permanently.</p>
-                                <div className="flex gap-4">
-                                    <button onClick={() => setActiveModal(null)} className="flex-1 py-4 bg-white/5 rounded-2xl text-[10px] font-black uppercase">Abort</button>
-                                    <button className="flex-1 py-4 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase">Confirm Wipe</button>
+                                    <div className="min-h-[400px]">
+                                        {clientSecret ? (
+                                            <StripeEmbedded clientSecret={clientSecret} />
+                                        ) : (
+                                            <div className="py-20 flex flex-col items-center gap-4">
+                                                <RefreshCcw className="animate-spin text-(--accent-teal)" size={32} />
+                                                <span className="text-[9px] font-black uppercase opacity-20 tracking-widest">Handshaking with Gateway...</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+
+                            {/* Modal: Delete */}
+                            {activeModal === 'delete' && (
+                                <div className="space-y-6 text-center py-4">
+                                    <Trash2 size={40} className="mx-auto text-red-500" />
+                                    <h2 className="text-xl font-black uppercase italic">Terminate Account?</h2>
+                                    <p className="text-[10px] uppercase font-bold opacity-40 tracking-tighter">This will wipe your focus history and levels from the database permanently.</p>
+                                    <div className="flex gap-4">
+                                        <button onClick={() => setActiveModal(null)} className="flex-1 py-4 bg-white/5 rounded-2xl text-[10px] font-black uppercase">Abort</button>
+                                        <button className="flex-1 py-4 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase">Confirm Wipe</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
