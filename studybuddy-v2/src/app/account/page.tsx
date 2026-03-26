@@ -62,6 +62,16 @@ export default function AccountPage() {
         syncUser();
     }, [setUserEmail, displayName]);
 
+    // ⚡ THE FIX: Clear sensitive fields when switching modals
+    useEffect(() => {
+        setFormData(prev => ({
+            ...prev,
+            currentPassword: "",
+            newPassword: "",
+            confirmPassword: ""
+        }));
+    }, [activeModal]);
+
     // --- LOGIC HELPERS ---
 
     const checkCooldown = (lastUpdate: number, days: number) => {
