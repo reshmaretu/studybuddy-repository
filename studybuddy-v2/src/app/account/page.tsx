@@ -62,6 +62,17 @@ export default function AccountPage() {
         syncUser();
     }, [setUserEmail, displayName]);
 
+    const handleResendVerification = async () => {
+        setLoading(true);
+        const { error } = await supabase.auth.resend({
+            type: 'signup',
+            email: userEmail,
+        });
+        if (error) triggerChumToast(error.message, "warning");
+        else triggerChumToast("Verification link dispatched.", "success");
+        setLoading(false);
+    };
+
     // ⚡ THE FIX: Clear sensitive fields when switching modals
     useEffect(() => {
         setFormData(prev => ({
@@ -273,11 +284,21 @@ export default function AccountPage() {
                     <div className="text-center md:text-left flex-1">
                         <h1 className="text-2xl font-black uppercase italic tracking-tighter">{displayName || "Architect"}</h1>
                         <p className="text-[10px] font-bold opacity-40 uppercase tracking-[0.2em]">{userEmail}</p>
-                        <div className="flex gap-2 mt-3 justify-center md:justify-start">
+                        <div className="flex gap-2 mt-3 justify-center md:justify-start items-center">
                             <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase flex items-center gap-1 ${isVerified ? 'bg-teal-500/10 text-teal-400' : 'bg-red-500/10 text-red-400'}`}>
                                 {isVerified ? <ShieldCheck size={8} /> : <AlertCircle size={8} />}
                                 {isVerified ? 'Verified' : 'Unverified'}
                             </span>
+                            {!isVerified && (
+                                <button 
+                                    onClick={handleResendVerification} 
+                                    disabled={loading}
+                                    className="text-[8px] font-black uppercase text-(--accent-teal) hover:underline transition-all flex items-center gap-1"
+                                >
+                                    {loading ? <RefreshCcw size={8} className="animate-spin" /> : <RefreshCcw size={8} />}
+                                    Verify Link
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

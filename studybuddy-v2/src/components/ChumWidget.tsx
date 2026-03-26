@@ -512,18 +512,18 @@ export default function ChumWidget() {
                                             {ephemeralMsg && (
                                                 <motion.div
                                                     key={ephemeralMsg.id}
-                                                    // RADICAL START: Very small, very tilted, very low
-                                                    initial={{ opacity: 0, scale: 0.1, y: 100, rotate: -25 }}
+                                                    // 📸 THE INSTAGRAM FEEL: Exaggerated pop, tilt, and elastic spring
+                                                    initial={{ opacity: 0, scale: 0.5, y: 100, rotate: -35 }}
                                                     animate={{
                                                         opacity: 1,
-                                                        scale: 1,
+                                                        scale: [0.5, 1.2, 1],
                                                         y: 0,
-                                                        rotate: 0,
+                                                        rotate: [35, -5, 0],
                                                         transition: {
                                                             type: "spring",
-                                                            stiffness: 600, // Snap like a rubber band
-                                                            damping: 14,    // Allow a juicy jiggle
-                                                            mass: 0.6
+                                                            stiffness: 500,
+                                                            damping: 15,
+                                                            mass: 0.8
                                                         }
                                                     }}
                                                     exit={{ opacity: 0, scale: 0.5, rotate: 15, transition: { duration: 0.1 } }}
@@ -581,9 +581,19 @@ export default function ChumWidget() {
                 <AnimatePresence>
                     {(showBubble || chumToast) && !isOpen && (
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.3 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ type: "spring", stiffness: 450, damping: 12 }}
+                            initial={{ opacity: 0, scale: 0.4, rotate: -15, y: 40 }}
+                                animate={{ 
+                                    opacity: 1, 
+                                    scale: [0.4, 1.15, 1], 
+                                    rotate: [15, -5, 0], 
+                                    y: 0 
+                                }}
+                                transition={{ 
+                                    type: "spring", 
+                                    stiffness: 400, 
+                                    damping: 12,
+                                    mass: 0.7 
+                                }}
                             exit={{ opacity: 0, scale: 0, transition: { duration: 0.2 } }}
                             onClick={() => {
                                 setIsOpen(true);
@@ -596,11 +606,11 @@ export default function ChumWidget() {
                                 }
                             }}
                             // Added dynamic styling for warning vs info
-                            className={`absolute ${bubbleXPos} ${bubbleYPos} ${tailCorner} w-[320px] min-h-[80px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer z-50 flex flex-col justify-center transition-all ${chumToast?.type === 'warning'
+                            className={`absolute ${bubbleXPos} ${bubbleYPos} ${tailCorner} w-[320px] min-h-[80px] bg-(--bg-card)/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer z-50 flex flex-col justify-center transition-all ${chumToast?.type === 'warning'
                                 ? 'border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]'
                                 : chumToast?.type === 'success'
                                     ? 'border-teal-500/50 shadow-[0_0_30px_rgba(20,184,166,0.3)]' // Teal glow for success
-                                    : 'border-[var(--border-color)] hover:border-[var(--accent-teal)]'
+                                    : 'border-(--border-color) hover:border-(--accent-teal)'
                                 }`}
                         >
                             <div className="relative">
