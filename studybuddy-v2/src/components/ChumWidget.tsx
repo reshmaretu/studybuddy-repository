@@ -512,23 +512,22 @@ export default function ChumWidget() {
                                             {ephemeralMsg && (
                                                 <motion.div
                                                     key={ephemeralMsg.id}
-                                                    // 📸 THE MAXIMUM JELLY: High-energy, low-damping, multi-bounce
-                                                    initial={{ opacity: 0, scale: 0.2, y: 120, rotate: -55 }}
+                                                    // ⚡ HYPER-FLASHY: Fast pop with very high stiffness
+                                                    initial={{ opacity: 0, scale: 0.1, y: 50, rotate: -25 }}
                                                     animate={{
                                                         opacity: 1,
-                                                        scale: [0.2, 1.25, 0.9, 1.05, 1], // The "Overshoot & Settle" keyframes
-                                                        y: [120, -10, 5, 0],
-                                                        rotate: [55, -15, 8, -3, 0],
+                                                        scale: 1,
+                                                        y: 0,
+                                                        rotate: 0,
                                                         transition: {
                                                             type: "spring",
-                                                            stiffness: 380,
-                                                            damping: 8,    // Low damping = More jiggle
-                                                            mass: 0.5,     // Lightweight feel
-                                                            duration: 0.8
+                                                            stiffness: 1000, // Snap!
+                                                            damping: 35,     // Quickly settles
+                                                            mass: 1
                                                         }
                                                     }}
-                                                    whileHover={{ scale: 1.03, rotate: 1 }}
-                                                    whileTap={{ scale: 0.97 }}
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
                                                     exit={{ opacity: 0, scale: 0.5, rotate: 15, transition: { duration: 0.1 } }}
                                                     className={`absolute bottom-full mb-12 p-4 rounded-2xl border-2 shadow-[0_25px_70px_-10px_rgba(0,0,0,0.6)] backdrop-blur-2xl ${ephemeralMsg.type === 'warning'
                                                             ? 'border-red-500/50 bg-red-950/90 shadow-red-500/40'
@@ -584,21 +583,20 @@ export default function ChumWidget() {
                 <AnimatePresence>
                     {(showBubble || chumToast) && !isOpen && (
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.3, rotate: -25, y: 60 }}
+                            initial={{ opacity: 0, scale: 0.2, rotate: -20, y: 40 }}
                                 animate={{ 
                                     opacity: 1, 
-                                    scale: [0.3, 1.2, 0.95, 1.05, 1], 
-                                    rotate: [25, -12, 6, -2, 0], 
+                                    scale: 1, 
+                                    rotate: 0, 
                                     y: 0 
                                 }}
                                 transition={{ 
                                     type: "spring", 
-                                    stiffness: 350, 
-                                    damping: 9,
-                                    mass: 0.6 
+                                    stiffness: 900, 
+                                    damping: 30 
                                 }}
-                            whileHover={{ scale: 1.05, rotate: 2 }}
-                            whileTap={{ scale: 0.95 }}
+                            whileHover={{ scale: 1.1, rotate: 5 }}
+                            whileTap={{ scale: 0.9 }}
                             exit={{ opacity: 0, scale: 0, transition: { duration: 0.2 } }}
                             onClick={() => {
                                 setIsOpen(true);
