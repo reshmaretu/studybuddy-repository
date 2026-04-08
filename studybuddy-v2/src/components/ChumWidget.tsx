@@ -547,21 +547,31 @@ export default function ChumWidget() {
                                             {ephemeralMsg && (
                                                 <motion.div
                                                     key={ephemeralMsg.id}
-                                                    initial={{ opacity: 0, scale: 0.5, y: 30, rotate: -5 }}
-                                                    animate={{ opacity: 1, scale: 1, y: 0, rotate: 0 }}
-                                                    transition={{ type: "spring", stiffness: 450, damping: 25, mass: 0.8 }}
-                                                    whileInView={{ scale: 1.02 }}
-                                                    exit={{ opacity: 0, scale: 0.2, transition: { duration: 0.1 } }}
-                                                    className={`absolute bottom-20 left-4 right-4 z-50 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-2xl ${ephemeralMsg.type === 'warning'
-                                                        ? 'border-red-500/50 bg-red-950/90 shadow-red-500/40'
+                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.1 } }}
+                                                    className={`relative p-3 rounded-xl border-2 text-xs font-bold uppercase tracking-tight overflow-hidden ${
+                                                        ephemeralMsg.type === 'warning'
+                                                        ? 'bg-red-500/10 border-red-500/30 text-red-400'
                                                         : ephemeralMsg.type === 'success'
-                                                            ? 'border-teal-500/50 bg-teal-950/90 shadow-teal-500/40'
-                                                            : 'border-zinc-700 bg-zinc-900/95 shadow-black/60'
+                                                            ? 'bg-teal-500/10 border-teal-500/30 text-teal-400'
+                                                            : 'bg-(--bg-sidebar) border-(--accent-teal)/30 text-(--accent-teal)'
                                                         }`}
                                                 >
-                                                    <div className="flex flex-col gap-1 min-w-[200px] drop-shadow-md font-bold text-xs uppercase tracking-tight">
+                                                    <div className="flex flex-col gap-1 relative z-10">
                                                         {ephemeralMsg.text}
                                                     </div>
+                                                    
+                                                    {/* Life Bar */}
+                                                    <motion.div 
+                                                        initial={{ width: "100%" }}
+                                                        animate={{ width: "0%" }}
+                                                        transition={{ duration: 6, ease: "linear" }}
+                                                        className={`absolute bottom-0 left-0 h-0.5 ${
+                                                            ephemeralMsg.type === 'warning' ? 'bg-red-500' : 
+                                                            ephemeralMsg.type === 'success' ? 'bg-teal-500' : 'bg-(--accent-teal)'
+                                                        }`}
+                                                    />
                                                 </motion.div>
                                             )}
                                         </AnimatePresence>
@@ -606,12 +616,11 @@ export default function ChumWidget() {
                 <AnimatePresence>
                     {(showBubble || chumToast) && !isOpen && (
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.2, y: 40, rotate: -25 }}
+                            initial={{ opacity: 0, scale: 0.2, y: 40 }}
                             animate={{
                                 opacity: 1,
                                 scale: 1,
-                                y: 0,
-                                rotate: 0
+                                y: 0
                             }}
                             transition={{
                                 type: "spring",
@@ -619,7 +628,7 @@ export default function ChumWidget() {
                                 damping: 20,
                                 mass: 0.8
                             }}
-                            whileHover={{ scale: 1.05, rotate: 1 }}
+                            whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             exit={{ opacity: 0, scale: 0, transition: { duration: 0.1 } }}
                             onClick={() => {
