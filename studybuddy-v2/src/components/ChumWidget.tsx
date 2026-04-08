@@ -82,7 +82,7 @@ export default function ChumWidget() {
                 useStudyStore.setState({ chumToast: null });
             }
         }
-    }, [isOpen, chumToast]); 
+    }, [isOpen, chumToast]);
 
     // 4. Ephemeral Message Auto-Dismissal
     useEffect(() => {
@@ -259,9 +259,9 @@ export default function ChumWidget() {
                 if (!aiResponse) {
                     setCurrentHistory((prev: ChatMessage[]) => {
                         const updated = [...prev];
-                        updated[updated.length - 1] = { 
-                            ...updated[updated.length - 1], 
-                            text: "The Neural Link is quiet right now... (OpenRouter returned an empty stream). Try switching to another AI Node in settings!" 
+                        updated[updated.length - 1] = {
+                            ...updated[updated.length - 1],
+                            text: "The Neural Link is quiet right now... (OpenRouter returned an empty stream). Try switching to another AI Node in settings!"
                         };
                         return updated;
                     });
