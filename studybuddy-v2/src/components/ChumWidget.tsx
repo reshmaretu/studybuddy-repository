@@ -78,7 +78,7 @@ export default function ChumWidget() {
                     type: chumToast.type || 'info',
                     id: Date.now()
                 });
-                useStudyStore.setState({ chumToast: undefined });
+                useStudyStore.setState({ chumToast: null });
             }
         }
     }, [isOpen, chumToast]); // Now listens to chumToast updates!
@@ -508,35 +508,23 @@ export default function ChumWidget() {
                                                 )}
                                             </div>
                                         ))}
-                                        <AnimatePresence mode="wait">
+                                        <AnimatePresence>
                                             {ephemeralMsg && (
                                                 <motion.div
                                                     key={ephemeralMsg.id}
-                                                    // ⚡ HYPER-FLASHY: Fast pop with very high stiffness
-                                                    initial={{ opacity: 0, scale: 0.1, y: 50, rotate: -25 }}
-                                                    animate={{
-                                                        opacity: 1,
-                                                        scale: 1,
-                                                        y: 0,
-                                                        rotate: 0,
-                                                        transition: {
-                                                            type: "spring",
-                                                            stiffness: 1000, // Snap!
-                                                            damping: 35,     // Quickly settles
-                                                            mass: 1
-                                                        }
-                                                    }}
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    exit={{ opacity: 0, scale: 0.5, rotate: 15, transition: { duration: 0.1 } }}
-                                                    className={`absolute bottom-full mb-12 p-4 rounded-2xl border-2 shadow-[0_25px_70px_-10px_rgba(0,0,0,0.6)] backdrop-blur-2xl ${ephemeralMsg.type === 'warning'
-                                                            ? 'border-red-500/50 bg-red-950/90 shadow-red-500/40'
-                                                            : ephemeralMsg.type === 'success'
-                                                                ? 'border-teal-500/50 bg-teal-950/90 shadow-teal-500/40'
-                                                                : 'border-zinc-700 bg-zinc-900/95 shadow-black/60'
+                                                    initial={{ opacity: 0, scale: 0.5, y: 30, rotate: -5 }}
+                                                    animate={{ opacity: 1, scale: 1, y: 0, rotate: 0 }}
+                                                    transition={{ type: "spring", stiffness: 450, damping: 25, mass: 0.8 }}
+                                                    whileInView={{ scale: 1.02 }}
+                                                    exit={{ opacity: 0, scale: 0.2, transition: { duration: 0.1 } }}
+                                                    className={`absolute bottom-20 left-4 right-4 z-50 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-2xl ${ephemeralMsg.type === 'warning'
+                                                        ? 'border-red-500/50 bg-red-950/90 shadow-red-500/40'
+                                                        : ephemeralMsg.type === 'success'
+                                                            ? 'border-teal-500/50 bg-teal-950/90 shadow-teal-500/40'
+                                                            : 'border-zinc-700 bg-zinc-900/95 shadow-black/60'
                                                         }`}
                                                 >
-                                                    <div className="flex flex-col gap-1 min-w-[200px] drop-shadow-md">
+                                                    <div className="flex flex-col gap-1 min-w-[200px] drop-shadow-md font-bold text-xs uppercase tracking-tight">
                                                         {ephemeralMsg.text}
                                                     </div>
                                                 </motion.div>
@@ -583,21 +571,22 @@ export default function ChumWidget() {
                 <AnimatePresence>
                     {(showBubble || chumToast) && !isOpen && (
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.2, rotate: -20, y: 40 }}
-                                animate={{ 
-                                    opacity: 1, 
-                                    scale: 1, 
-                                    rotate: 0, 
-                                    y: 0 
-                                }}
-                                transition={{ 
-                                    type: "spring", 
-                                    stiffness: 900, 
-                                    damping: 30 
-                                }}
-                            whileHover={{ scale: 1.1, rotate: 5 }}
-                            whileTap={{ scale: 0.9 }}
-                            exit={{ opacity: 0, scale: 0, transition: { duration: 0.2 } }}
+                            initial={{ opacity: 0, scale: 0.2, y: 40, rotate: -25 }}
+                            animate={{
+                                opacity: 1,
+                                scale: 1,
+                                y: 0,
+                                rotate: 0
+                            }}
+                            transition={{
+                                type: "spring",
+                                stiffness: 700,
+                                damping: 20,
+                                mass: 0.8
+                            }}
+                            whileHover={{ scale: 1.05, rotate: 1 }}
+                            whileTap={{ scale: 0.95 }}
+                            exit={{ opacity: 0, scale: 0, transition: { duration: 0.1 } }}
                             onClick={() => {
                                 setIsOpen(true);
                                 if (chumToast) {
@@ -609,7 +598,7 @@ export default function ChumWidget() {
                                 }
                             }}
                             // Added dynamic styling for warning vs info
-                            className={`absolute ${bubbleXPos} ${bubbleYPos} ${tailCorner} w-[320px] min-h-[80px] bg-(--bg-card)/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer z-50 flex flex-col justify-center transition-all ${chumToast?.type === 'warning'
+                            className={`absolute ${bubbleXPos} ${bubbleYPos} ${tailCorner} origin-center w-[320px] min-h-[80px] bg-(--bg-card)/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer z-50 flex flex-col justify-center transition-all ${chumToast?.type === 'warning'
                                 ? 'border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]'
                                 : chumToast?.type === 'success'
                                     ? 'border-teal-500/50 shadow-[0_0_30px_rgba(20,184,166,0.3)]' // Teal glow for success

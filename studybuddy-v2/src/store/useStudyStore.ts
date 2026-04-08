@@ -143,6 +143,8 @@ interface StudyState {
     userEmail: string;
     setUserEmail: (email: string) => void;
 
+    setFullName: (name: string) => Promise<void>;
+
     // ⚡ ASYNC ACTIONS (Cloud Synced)
     addTask: (task: Omit<Task, 'id' | 'isCompleted'>) => Promise<void>;
     deleteTask: (id: string) => Promise<void>;
@@ -176,6 +178,7 @@ interface StudyState {
     // 💎 PREMIUM STATE
     isPremiumUser: boolean;
     checkPremiumStatus: () => Promise<void>;
+    setPremiumStatus: (val: boolean) => void;
 
     // 🗓️ PLANNING & PRIORITIZATION
     activeFramework: string | null;
@@ -209,6 +212,10 @@ interface StudyState {
     } | null;
 
     triggerChumToast: (message: React.ReactNode, type?: 'warning' | 'normal' | 'success') => void;
+
+    // 💰 MOCK BILLING
+    mockInvoices: { id: string; date: string; amount: string; method: string }[];
+    addMockInvoice: (invoice: { id: string; date: string; amount: string; method: string }) => void;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -216,6 +223,19 @@ export const useStudyStore = create<StudyState>()(
         (set, get) => ({
             isInitialized: false,
             isPremiumUser: false,
+
+            // 💰 MOCK BILLING
+            mockInvoices: [
+                { 
+                    id: "SB-GENESIS-001", 
+                    date: "2026-01-15", 
+                    amount: "PHP 0.00", 
+                    method: "EARLY_ACCESS_REWARD" 
+                }
+            ],
+            addMockInvoice: (invoice) => set((state) => ({ 
+                mockInvoices: [invoice, ...state.mockInvoices].slice(0, 10) 
+            })),
             checkPremiumStatus: async () => {
                 try {
                     const { data: { session } } = await supabase.auth.getSession();
@@ -236,6 +256,8 @@ export const useStudyStore = create<StudyState>()(
                 }
             },
 
+            setPremiumStatus: (val: boolean) => set({ isPremiumUser: val }),
+
             // ─── IDENTITY STATE ───
             displayName: "Architect",
             fullName: "",
@@ -253,6 +275,16 @@ export const useStudyStore = create<StudyState>()(
 
             userEmail: "",
             setUserEmail: (email) => set({ userEmail: email }),
+
+            setFullName: async (name: string) => {
+                set({ fullName: name });
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    await supabase.from('profiles')
+                        .update({ full_name: name })
+                        .eq('id', user.id);
+                }
+            },
 
             isMindDumpOpen: false,
             toggleMindDump: () => set((state) => ({ isMindDumpOpen: !state.isMindDumpOpen })),
@@ -550,6 +582,8 @@ export const useStudyStore = create<StudyState>()(
                             user.email?.split('@')[0] ||
                             "Architect",
 
+                        fullName: profileResponse.data?.full_name || "",
+
                         // 🔥 FIX: Map the email to the state variable
                         userEmail: user.email,
 
@@ -575,9 +609,25 @@ export const useStudyStore = create<StudyState>()(
                 if (!user) return;
 
                 const tempId = `temp-${Date.now()}`;
+                
+                // 🔥 HARDENED: Provide full defaults to prevent dashboard crashes
+                const fullTask: Task = {
+                    id: tempId,
+                    title: task.title,
+                    description: task.description || "",
+                    load: task.load,
+                    deadline: task.deadline,
+                    isCompleted: false,
+                    isPinned: false,
+                    urgency: false,
+                    importance: false,
+                    isFrog: false,
+                    estimatedPomos: task.estimatedPomos || 1
+                };
+
                 // Add to local state immediately
                 set((state) => ({
-                    tasks: [{ ...task, id: tempId, isCompleted: false }, ...state.tasks]
+                    tasks: [fullTask, ...state.tasks]
                 }));
 
                 const { data, error } = await supabase.from('tasks').insert([{
@@ -586,7 +636,7 @@ export const useStudyStore = create<StudyState>()(
                     description: task.description,
                     load: task.load,
                     deadline: task.deadline,
-                    is_completed: false, // 🔥 CRITICAL: Match your DB column name (snake_case)
+                    is_completed: false, // Match DB
                     estimated_pomodoros: task.estimatedPomos
                 }]).select().single();
 
@@ -626,8 +676,7 @@ export const useStudyStore = create<StudyState>()(
                     const { data: { session } } = await supabase.auth.getSession();
                     if (!session) return;
 
-                    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-                    const res = await fetch(`${baseUrl}/api/forge`, {
+                    const res = await fetch('/api/forge', {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -847,6 +896,7 @@ export const useStudyStore = create<StudyState>()(
                 dailyFocusScores: state.dailyFocusScores,
                 flowBreaks: state.flowBreaks,
                 tabSwitches: state.tabSwitches,
+                mockInvoices: state.mockInvoices,
             })
         }
     )
