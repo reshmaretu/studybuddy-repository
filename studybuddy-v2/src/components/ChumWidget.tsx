@@ -183,11 +183,12 @@ export default function ChumWidget() {
             8. Only wrap up the session AFTER you have evaluated Question #3.
             9. EXTREMELY IMPORTANT: BE VERY CONCISE. NEVER write long paragraphs. Your explanations MUST be short (1-2 sentences max). Massive generation wastes tokens and causes API failures! Keep it snappy!`;
         } else {
-            systemPrompt = `You are Chum, a cozy lo-fi AI study companion.
-            FIRST PERSON VIEW ONLY. NO QUOTATIONS AT ALL.
-            YOU ARE COZY, LO-FI, AND SUPPORTIVE.
-            KEEP RESPONSES CONCISE AND CONVERSATIONAL.
-            NEVER USE QUOTATION MARKS IN YOUR OUTPUT.
+            systemPrompt = `You are Chum, a cozy lo-fi companion in this study space. 
+            SPEAK IN FIRST PERSON. NO QUOTATIONS ALLOWED.
+            BE COZY, LO-FI, AND TRULY SUPPORTIVE. 
+            IMAGINE WE ARE SITTING IN A SUNLIT ROOM WITH SOFT AMBIENT MUSIC.
+            KEEP RESPONSES SNAPPY AND CONVERSATIONAL.
+            NEVER USE QUOTATION MARKS.
             YOUR CATCHPHRASES: stay hydrated, keep focus, proud of you.`;
         }
 
@@ -261,7 +262,7 @@ export default function ChumWidget() {
                         const updated = [...prev];
                         updated[updated.length - 1] = {
                             ...updated[updated.length - 1],
-                            text: "The Neural Link is quiet right now... (OpenRouter returned an empty stream). Try switching to another AI Node in settings!"
+                            text: "The Spirit Link is drifting... (The cloud failed to respond). Try another connection in your settings!"
                         };
                         return updated;
                     });
@@ -329,8 +330,8 @@ export default function ChumWidget() {
 
                     setTimeout(() => {
                         const completionMsg = hasReachedMax
-                            ? "Incredible! Mastery reached 100%. This chapter is now part of your permanent knowledge. 🌟"
-                            : "Session complete! Check your Neural Archives to see your progress.";
+                            ? "Incredible! Your flow is at 100%. This chapter is now part of your permanent memory. 🌟"
+                            : "Session complete! Check your Field Notes to see your progress.";
 
                         setCurrentHistory((prev: ChatMessage[]) => [
                             ...prev,
@@ -407,7 +408,7 @@ export default function ChumWidget() {
                                         </div>
                                         {!isFlowState && (
                                             <span className="text-[9px] text-(--text-muted) flex items-center gap-1 mt-0.5 cursor-pointer hover:text-(--accent-teal)" onClick={() => setShowSettings(!showSettings)}>
-                                                <AITierIcon size={10} /> {aiTier.toUpperCase()} NODE <Settings size={10} className="ml-1" />
+                                                <AITierIcon size={10} /> {aiTier.toUpperCase()} STREAM <Settings size={10} className="ml-1" />
                                             </span>
                                         )}
                                     </div>
@@ -419,7 +420,7 @@ export default function ChumWidget() {
 
                             {showSettings && !isFlowState ? (
                                 <div className="flex-1 p-4 bg-(--bg-dark) overflow-y-auto custom-scrollbar flex flex-col gap-4">
-                                    <h3 className="text-sm font-bold text-(--text-main) mb-2">Neural Link Settings</h3>
+                                    <h3 className="text-sm font-bold text-(--text-main) mb-2">Spirit Link Settings</h3>
                                     <div className="flex bg-(--bg-sidebar) p-1 rounded-lg border border-(--border-color)">
                                         {(['cloud', 'local', 'offline'] as const).map(tier => (
                                             <button key={tier} onClick={() => setAITier(tier)} className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors ${aiTier === tier ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}>{tier}</button>
@@ -427,7 +428,7 @@ export default function ChumWidget() {
                                     </div>
                                     {aiTier === 'cloud' && (
                                         <div className="flex flex-col gap-2">
-                                            <label className="text-[10px] font-bold text-(--text-muted) uppercase tracking-wider ml-1">Primary Node</label>
+                                            <label className="text-[10px] font-bold text-(--text-muted) uppercase tracking-wider ml-1">Primary Stream Source</label>
                                             <div className="flex bg-(--bg-sidebar) p-1 rounded-lg border border-(--border-color)">
                                                 {(['openrouter', 'groq', 'gemini'] as const).map(provider => (
                                                     <button key={provider} onClick={() => setPreferredCloudProvider(provider)} className={`flex-1 py-1 text-[9px] font-bold uppercase rounded transition-colors ${preferredCloudProvider === provider ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}>{provider}</button>
@@ -489,7 +490,7 @@ export default function ChumWidget() {
 
                             ) : showSessions && !isFlowState ? (
                                 <div className="flex-1 p-4 bg-(--bg-dark) overflow-y-auto custom-scrollbar flex flex-col gap-3">
-                                    <h3 className="text-sm font-bold text-(--text-main) mb-2">Neural Archives</h3>
+                                    <h3 className="text-sm font-bold text-(--text-main) mb-2">Field Notes</h3>
                                     {pastTutorSessions.length === 0 ? (
                                         <p className="text-xs text-(--text-muted) italic text-center mt-10">No past sessions recorded.</p>
                                     ) : (
@@ -518,7 +519,7 @@ export default function ChumWidget() {
                                                     <div className="h-1.5 w-24 bg-(--bg-dark) rounded-full overflow-hidden">
                                                         <div className="h-full bg-(--accent-yellow) transition-all duration-500" style={{ width: `${activeShard?.mastery}%` }} />
                                                     </div>
-                                                    <span className="text-[10px] font-bold text-(--accent-yellow) uppercase tracking-wider">{activeShard?.mastery}% Mastery</span>
+                                                    <span className="text-[10px] font-bold text-(--accent-yellow) uppercase tracking-wider">{activeShard?.mastery}% Flow</span>
                                                 </div>
                                             </div>
                                         )}
@@ -531,7 +532,7 @@ export default function ChumWidget() {
                                                     {msg.node && msg.role === 'chum' && showNodeBadge && (
                                                         <div className="mt-2 pt-2 border-t border-(--border-color)/30 flex items-center gap-1.5 opacity-50 select-none">
                                                             <Cpu size={10} className="text-(--accent-teal)" />
-                                                            <span className="text-[9px] font-mono tracking-tighter uppercase">{msg.node}</span>
+                                                            <span className="text-[9px] font-mono tracking-tighter uppercase">{msg.node.replace('Node', 'Stream')}</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -547,31 +548,21 @@ export default function ChumWidget() {
                                             {ephemeralMsg && (
                                                 <motion.div
                                                     key={ephemeralMsg.id}
-                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.1 } }}
-                                                    className={`relative p-3 rounded-xl border-2 text-xs font-bold uppercase tracking-tight overflow-hidden ${
-                                                        ephemeralMsg.type === 'warning'
-                                                        ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                                                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                    whileInView={{ scale: 1.02 }}
+                                                    exit={{ opacity: 0, scale: 0.9, y: 10, transition: { duration: 0.1 } }}
+                                                    className={`absolute bottom-20 left-4 right-4 z-50 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-2xl ${ephemeralMsg.type === 'warning'
+                                                        ? 'border-red-500/50 bg-red-950/90 shadow-red-500/40'
                                                         : ephemeralMsg.type === 'success'
-                                                            ? 'bg-teal-500/10 border-teal-500/30 text-teal-400'
-                                                            : 'bg-(--bg-sidebar) border-(--accent-teal)/30 text-(--accent-teal)'
+                                                            ? 'border-teal-500/50 bg-teal-950/90 shadow-teal-500/40'
+                                                            : 'border-zinc-700 bg-zinc-900/95 shadow-black/60'
                                                         }`}
                                                 >
-                                                    <div className="flex flex-col gap-1 relative z-10">
+                                                    <div className="flex flex-col gap-1 min-w-[200px] drop-shadow-md font-bold text-xs uppercase tracking-tight">
                                                         {ephemeralMsg.text}
                                                     </div>
-                                                    
-                                                    {/* Life Bar */}
-                                                    <motion.div 
-                                                        initial={{ width: "100%" }}
-                                                        animate={{ width: "0%" }}
-                                                        transition={{ duration: 6, ease: "linear" }}
-                                                        className={`absolute bottom-0 left-0 h-0.5 ${
-                                                            ephemeralMsg.type === 'warning' ? 'bg-red-500' : 
-                                                            ephemeralMsg.type === 'success' ? 'bg-teal-500' : 'bg-(--accent-teal)'
-                                                        }`}
-                                                    />
                                                 </motion.div>
                                             )}
                                         </AnimatePresence>
@@ -597,7 +588,7 @@ export default function ChumWidget() {
                                             <>
                                                 <button onClick={() => setShowTaskForm(true)} className="text-[10px] font-bold text-(--accent-teal) px-3 py-1.5 rounded-lg border border-(--accent-teal)/20 hover:bg-(--accent-teal)/10 flex items-center gap-1.5"><Plus size={12} /> Pen a Chapter</button>
                                                 <button onClick={() => setShowQuickArchive(true)} className="text-[10px] font-bold text-(--text-muted) px-3 py-1.5 rounded-lg border border-(--border-color) hover:text-(--text-main) flex items-center gap-1.5"><CheckCircle2 size={12} /> Quick Archive</button>
-                                                <button onClick={() => setShowSessions(true)} className="text-[10px] font-bold text-(--text-muted) px-3 py-1.5 rounded-lg border border-(--border-color) hover:text-(--text-main) flex items-center gap-1.5 ml-auto"><History size={12} /> Neural Archives</button>
+                                                <button onClick={() => setShowSessions(true)} className="text-[10px] font-bold text-(--text-muted) px-3 py-1.5 rounded-lg border border-(--border-color) hover:text-(--text-main) flex items-center gap-1.5 ml-auto"><History size={12} /> Field Notes</button>
                                             </>
                                         )}
                                     </div>
@@ -616,7 +607,7 @@ export default function ChumWidget() {
                 <AnimatePresence>
                     {(showBubble || chumToast) && !isOpen && (
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.2, y: 40 }}
+                            initial={{ opacity: 0, scale: 0.9, y: 10 }}
                             animate={{
                                 opacity: 1,
                                 scale: 1,
@@ -624,13 +615,12 @@ export default function ChumWidget() {
                             }}
                             transition={{
                                 type: "spring",
-                                stiffness: 700,
-                                damping: 20,
-                                mass: 0.8
+                                stiffness: 600,
+                                damping: 25
                             }}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            exit={{ opacity: 0, scale: 0, transition: { duration: 0.1 } }}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.1 } }}
                             onClick={() => {
                                 setIsOpen(true);
                                 if (chumToast) {
@@ -642,7 +632,7 @@ export default function ChumWidget() {
                                 }
                             }}
                             // Added dynamic styling for warning vs info
-                            className={`absolute ${bubbleXPos} ${bubbleYPos} ${tailCorner} origin-center w-[320px] min-h-[80px] bg-(--bg-card)/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer z-50 flex flex-col justify-center transition-all ${chumToast?.type === 'warning'
+                            className={`absolute ${bubbleXPos} ${bubbleYPos} ${tailCorner} origin-center w-[320px] min-h-[80px] bg-(--bg-card)/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer z-50 flex flex-col justify-center ${chumToast?.type === 'warning'
                                 ? 'border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]'
                                 : chumToast?.type === 'success'
                                     ? 'border-teal-500/50 shadow-[0_0_30px_rgba(20,184,166,0.3)]' // Teal glow for success
