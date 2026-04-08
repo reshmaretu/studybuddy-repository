@@ -242,6 +242,18 @@ export default function ChumWidget() {
                     });
                 }
 
+                // 🔥 4. Final Fallback: If the stream was empty, show a neutral message
+                if (!aiResponse) {
+                    setCurrentHistory((prev: ChatMessage[]) => {
+                        const updated = [...prev];
+                        updated[updated.length - 1] = { 
+                            ...updated[updated.length - 1], 
+                            text: "The Neural Link is quiet right now... (OpenRouter returned an empty stream). Try switching to another AI Node in settings!" 
+                        };
+                        return updated;
+                    });
+                }
+
                 setIsTyping(false);
 
             } else {

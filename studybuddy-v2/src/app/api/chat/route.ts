@@ -73,13 +73,19 @@ export async function POST(req: Request) {
         // 🌊 PRIMARY: OpenRouter (Using Native Provider)
         if (!streamResult && orKey) {
             try {
-                const openrouter = createOpenRouter({ apiKey: orKey });
+                const openrouter = createOpenRouter({ 
+                    apiKey: orKey,
+                    headers: {
+                        "HTTP-Referer": "https://studybuddy-v2.vercel.app",
+                        "X-Title": "StudyBuddy",
+                    }
+                });
 
                 streamResult = await streamText({
-                    model: openrouter("meta-llama/llama-3.1-8b-instruct:free"),
+                    model: openrouter("meta-llama/llama-3.2-3b-instruct:free"),
                     messages: formattedMessages
                 });
-                usedNode = "OpenRouter (Llama 3.1)";
+                usedNode = "OpenRouter (Llama 3.2)";
             } catch (e: any) {
                 console.warn(`OpenRouter failed: ${e.message}. Falling back to Groq...`);
             }
