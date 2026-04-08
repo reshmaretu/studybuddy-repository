@@ -82,7 +82,17 @@ export default function ChumWidget() {
                 useStudyStore.setState({ chumToast: null });
             }
         }
-    }, [isOpen, chumToast]); // Now listens to chumToast updates!
+    }, [isOpen, chumToast]); 
+
+    // 4. Ephemeral Message Auto-Dismissal
+    useEffect(() => {
+        if (ephemeralMsg) {
+            const timer = setTimeout(() => {
+                setEphemeralMsg(null);
+            }, 6000); // Disappear after 6s
+            return () => clearTimeout(timer);
+        }
+    }, [ephemeralMsg]);
 
     const handleToggleSchedule = (checked: boolean) => {
         setIsScheduled(checked);
@@ -541,17 +551,21 @@ export default function ChumWidget() {
                                                     animate={{ opacity: 1, scale: 1, y: 0, rotate: 0 }}
                                                     transition={{ type: "spring", stiffness: 450, damping: 25, mass: 0.8 }}
                                                     whileInView={{ scale: 1.02 }}
-                                                    exit={{ opacity: 0, scale: 0.2, transition: { duration: 0.1 } }}
-                                                    className={`absolute bottom-20 left-4 right-4 z-50 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-2xl ${ephemeralMsg.type === 'warning'
-                                                        ? 'border-red-500/50 bg-red-950/90 shadow-red-500/40'
+                                                    whileTap={{ scale: 0.98 }}
+                                                    exit={{ opacity: 0, scale: 0.2, y: 20, transition: { duration: 0.15 } }}
+                                                    onClick={() => setEphemeralMsg(null)}
+                                                    className={`absolute bottom-20 left-4 right-4 z-50 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-3xl cursor-pointer ${
+                                                        ephemeralMsg.type === 'warning'
+                                                        ? 'border-red-500/50 bg-red-950/80 shadow-red-500/40'
                                                         : ephemeralMsg.type === 'success'
-                                                            ? 'border-teal-500/50 bg-teal-950/90 shadow-teal-500/40'
-                                                            : 'border-zinc-700 bg-zinc-900/95 shadow-black/60'
+                                                            ? 'border-teal-500/50 bg-teal-950/80 shadow-teal-500/40'
+                                                            : 'border-(--accent-teal)/50 bg-(--bg-card)/90 shadow-black/60'
                                                         }`}
                                                 >
-                                                    <div className="flex flex-col gap-1 min-w-[200px] drop-shadow-md font-bold text-xs uppercase tracking-tight">
+                                                    <div className="flex flex-col gap-1 min-w-[200px] drop-shadow-md font-bold text-xs uppercase tracking-tight text-(--text-main)">
                                                         {ephemeralMsg.text}
                                                     </div>
+                                                    <p className="text-[8px] opacity-40 mt-2 font-black uppercase tracking-widest text-right">Tap to dismiss</p>
                                                 </motion.div>
                                             )}
                                         </AnimatePresence>
