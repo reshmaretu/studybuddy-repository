@@ -112,6 +112,8 @@ interface StudyState {
 
     aiTier: 'cloud' | 'local' | 'offline';
     aiKeys: { groq: string; gemini: string; openrouter: string };
+    preferredCloudProvider: 'openrouter' | 'groq' | 'gemini';
+    setPreferredCloudProvider: (provider: 'openrouter' | 'groq' | 'gemini') => void;
     ollamaUrl: string;
 
     xp: number;
@@ -327,6 +329,8 @@ export const useStudyStore = create<StudyState>()(
 
             aiTier: 'cloud',
             aiKeys: { groq: '', gemini: '', openrouter: '' },
+            preferredCloudProvider: 'openrouter',
+            setPreferredCloudProvider: (provider) => set({ preferredCloudProvider: provider }),
             ollamaUrl: 'http://localhost:11434',
             showNodeBadge: true,
             setShowNodeBadge: (showNodeBadge) => set({ showNodeBadge }),
@@ -897,6 +901,7 @@ export const useStudyStore = create<StudyState>()(
                 flowBreaks: state.flowBreaks,
                 tabSwitches: state.tabSwitches,
                 mockInvoices: state.mockInvoices,
+                preferredCloudProvider: state.preferredCloudProvider,
             })
         }
     )

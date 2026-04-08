@@ -30,7 +30,8 @@ export default function ChumWidget() {
         shards, updateShardMastery, aiTier, setAITier, aiKeys, updateAIKeys, ollamaUrl, setOllamaUrl,
         normalChatHistory, tutorChatHistory, setNormalChatHistory, setTutorChatHistory,
         tutorSessionState, updateTutorSessionState, completeTutorSession, pastTutorSessions, toggleMindDump,
-        showNodeBadge, setShowNodeBadge, chumToast, addTask, isPremiumUser
+        showNodeBadge, setShowNodeBadge, chumToast, addTask, isPremiumUser,
+        preferredCloudProvider, setPreferredCloudProvider
     } = useStudyStore();
 
     const [widgetPos, setWidgetPos] = useState({ isLeft: false, isTop: false });
@@ -210,7 +211,9 @@ export default function ChumWidget() {
                         messages: messagesPayload,
                         user_id: session?.user?.id,
                         openrouter_key: aiKeys.openrouter,
-                        gemini_key: aiKeys.gemini
+                        groq_key: aiKeys.groq,
+                        gemini_key: aiKeys.gemini,
+                        preferred_provider: preferredCloudProvider
                     })
                 });
 
@@ -412,6 +415,16 @@ export default function ChumWidget() {
                                             <button key={tier} onClick={() => setAITier(tier)} className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors ${aiTier === tier ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}>{tier}</button>
                                         ))}
                                     </div>
+                                    {aiTier === 'cloud' && (
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-[10px] font-bold text-(--text-muted) uppercase tracking-wider ml-1">Primary Node</label>
+                                            <div className="flex bg-(--bg-sidebar) p-1 rounded-lg border border-(--border-color)">
+                                                {(['openrouter', 'groq', 'gemini'] as const).map(provider => (
+                                                    <button key={provider} onClick={() => setPreferredCloudProvider(provider)} className={`flex-1 py-1 text-[9px] font-bold uppercase rounded transition-colors ${preferredCloudProvider === provider ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}>{provider}</button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                     {aiTier === 'cloud' && (
                                         <div className="flex flex-col gap-3">
                                             <input type="password" placeholder="OpenRouter API Key" value={aiKeys.openrouter} onChange={e => updateAIKeys({ openrouter: e.target.value })} className="w-full bg-(--bg-card) border border-(--border-color) rounded-lg px-4 py-2 text-xs text-(--text-main) outline-none focus:border-(--accent-teal)" />
