@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import emailjs from '@emailjs/browser';
 import jsPDF from 'jspdf';
 import { motion, AnimatePresence } from "framer-motion";
+import { useRef } from "react";
 
 export default function AccountPage() {
     const {
@@ -25,6 +26,7 @@ export default function AccountPage() {
     const [loading, setLoading] = useState(false);
     const [otp, setOtp] = useState("");
     const [generatedOtp, setGeneratedOtp] = useState("");
+    const otpRef = useRef("");
     const [refNumber, setRefNumber] = useState("");
 
     // Cooldown/Meta States
@@ -71,20 +73,20 @@ export default function AccountPage() {
                 const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
                 if (profile) {
                     setIsVerified(!!profile.is_verified);
-
-                    const m_firstName = user.user_metadata?.first_name || profile.full_name?.split(' ')[0] || "";
-                    const m_lastName = user.user_metadata?.last_name || profile.full_name?.split(' ').slice(1).join(' ') || "";
+                    
+                    const m_firstName = profile.full_name?.split(' ')[0] || "";
+                    const m_lastName = profile.full_name?.split(' ').slice(1).join(' ') || "";
 
                     setMeta({
                         firstName: m_firstName,
                         lastName: m_lastName,
-                        lastIdentityUpdate: user.user_metadata?.last_identity_update || 0,
-                        lastDisplayUpdate: user.user_metadata?.last_display_update || 0,
+                        lastIdentityUpdate: profile.last_identity_update || 0,
+                        lastDisplayUpdate: profile.last_display_update || 0,
                     });
-
+                    
                     setFormData(prev => ({
                         ...prev,
-                        newDisplayName: profile.display_name || user.user_metadata?.display_name || displayName,
+                        newDisplayName: profile.display_name || displayName,
                         newFirstName: m_firstName,
                         newLastName: m_lastName
                     }));
@@ -92,7 +94,7 @@ export default function AccountPage() {
             }
         };
         syncUser();
-    }, [setUserEmail, displayName, fullName]);
+    }, [setUserEmail, displayName]);
 
     // ⚡ SNAPSHOT & REVERT PATTERN (Placeholder for complex logic, used in identity commit)
 
@@ -103,6 +105,7 @@ export default function AccountPage() {
         setOtpPurpose(purpose);
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         setGeneratedOtp(code);
+        otpRef.current = code;
 
         // Debug log for expo fallback
         console.log(`[NEURAL DEBUG] Generated OTP for ${purpose}: ${code}`);
@@ -145,7 +148,13 @@ export default function AccountPage() {
     };
 
     const handleVerifyOTP = async () => {
-        if (otp.trim() !== generatedOtp.trim()) return triggerChumToast("Invalid Neural Cipher.", "warning");
+        const trimmedCode = otp.trim();
+        const trimmedGenerated = otpRef.current.trim();
+        
+        if (trimmedCode !== trimmedGenerated) {
+            console.log(`[NEURAL] OTP mismatch: Input="${trimmedCode}" Expected="${trimmedGenerated}" (Current State: ${generatedOtp})`);
+            return triggerChumToast("Invalid Neural Cipher. Please ensure you are using the latest code sent.", "warning");
+        }
 
         setLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
@@ -178,33 +187,37 @@ export default function AccountPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Snapshot current state
-        const snapshot = { ...meta, displayName };
-
-        // Optimistic Update
-        setLoading(true);
         const nowMs = Date.now();
-        // Full Name concatenation
+        const displayCooldown = 7 * 24 * 60 * 60 * 1000;
+        const identityCooldown = 14 * 24 * 60 * 60 * 1000;
+
+        // 🛡️ Cooldown Check
+        const isChangingDisplay = formData.newDisplayName !== (displayName || "");
         const finalFullName = `${formData.newFirstName} ${formData.newLastName}`.trim();
-        const profileUpdates = {
-            display_name: formData.newDisplayName,
-            full_name: finalFullName,
-        };
+        const isChangingIdentity = finalFullName !== (fullName || "");
+
+        if (isChangingDisplay && meta.lastDisplayUpdate > 0 && (nowMs - meta.lastDisplayUpdate) < displayCooldown) {
+            const remaining = Math.ceil((displayCooldown - (nowMs - meta.lastDisplayUpdate)) / (24 * 60 * 60 * 1000));
+            return triggerChumToast(`Garden Label is resting. Wait ${remaining} more days to tend it again.`, "warning");
+        }
+
+        if (isChangingIdentity && meta.lastIdentityUpdate > 0 && (nowMs - meta.lastIdentityUpdate) < identityCooldown) {
+            const remaining = Math.ceil((identityCooldown - (nowMs - meta.lastIdentityUpdate)) / (24 * 60 * 60 * 1000));
+            return triggerChumToast(`Spirit Core needs ${remaining} days to stabilize.`, "warning");
+        }
+
+        setLoading(true);
+        const profileUpdates: any = {};
+        if (isChangingDisplay) {
+            profileUpdates.display_name = formData.newDisplayName;
+            profileUpdates.last_display_update = nowMs;
+        }
+        if (isChangingIdentity) {
+            profileUpdates.full_name = finalFullName;
+            profileUpdates.last_identity_update = nowMs;
+        }
 
         try {
-            const { error: authError } = await supabase.auth.updateUser({
-                data: {
-                    display_name: formData.newDisplayName,
-                    first_name: formData.newFirstName,
-                    last_name: formData.newLastName,
-                    full_name: finalFullName,
-                    last_identity_update: nowMs,
-                    last_display_update: nowMs
-                }
-            });
-
-            if (authError) throw authError;
-
             const { error: profileError } = await supabase
                 .from('profiles')
                 .update(profileUpdates)
@@ -212,15 +225,13 @@ export default function AccountPage() {
 
             if (profileError) throw profileError;
 
-            await setDisplayName(formData.newDisplayName);
-            await setFullName(finalFullName);
+            if (isChangingDisplay) await setDisplayName(formData.newDisplayName);
+            if (isChangingIdentity) await setFullName(finalFullName);
 
-            triggerChumToast("Identity Synchronized.", "success");
+            triggerChumToast("Garden identity harmonized.", "success");
             setActiveModal(null);
-            // Optional reload to ensure all components sync from Auth
             setTimeout(() => window.location.reload(), 1500);
         } catch (err: any) {
-            // Revert on failure
             triggerChumToast(err.message || "Sync failed. Reverting shards.", "warning");
         } finally {
             setLoading(false);
@@ -424,70 +435,70 @@ export default function AccountPage() {
     return (
         <div className="min-h-screen w-full flex flex-col items-center p-6 md:p-12 overflow-y-auto bg-(--bg-dark) select-none custom-scrollbar">
             <div className="w-full max-w-4xl h-full flex flex-col gap-6 animate-in fade-in duration-700">
-
-                {/* Profile Header */}
-                <div className="flex flex-col md:flex-row items-center gap-10 bg-white/5 border border-white/10 p-12 rounded-[56px] backdrop-blur-md relative overflow-hidden group">
-                    <div className="w-36 h-36 rounded-full border-2 border-(--accent-teal)/30 p-1 bg-(--bg-card) flex items-center justify-center relative group-hover:border-(--accent-teal)/60 transition-colors">
-                        <User size={64} className="text-(--accent-teal)" />
-                        <div className="absolute inset-0 rounded-full bg-(--accent-teal)/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                
+                {/* Centered Profile Section (Cozy/Refined) */}
+                <div className="flex flex-col items-center text-center gap-6 mt-4">
+                    <div className="relative group">
+                        <div className="w-40 h-40 rounded-full border-4 border-teal-500/20 p-1.5 bg-(--bg-card) flex items-center justify-center relative transition-all duration-500 group-hover:border-teal-400 group-hover:scale-[1.02] shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+                            <User size={80} className="text-teal-400" />
+                            <div className="absolute inset-0 rounded-full bg-teal-400/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
                     </div>
-                    <div className="text-center md:text-left flex-1 space-y-4">
-                        <div className="flex flex-col md:flex-row md:items-center gap-4 justify-center md:justify-start">
-                            <h1 className="text-5xl font-black uppercase italic tracking-tighter leading-none">
-                                {displayName || fullName || "Guardian"}
+                    
+                    <div className="space-y-1">
+                        <div className="flex items-center justify-center gap-3">
+                            <h1 className="text-4xl font-bold tracking-tight text-white leading-tight">
+                                {displayName || fullName || userEmail.split('@')[0] || "Guardian"}
                             </h1>
-                            <div className="flex items-center gap-2">
-                                <span className="text-[11px] font-black bg-(--accent-teal) text-black px-3 py-1 rounded-lg tracking-widest uppercase">LVL {level}</span>
-                                <button
-                                    onClick={() => setActiveModal('premium-status')}
-                                    className={`p-2 rounded-xl transition-all ${isPremiumUser ? 'bg-amber-400 text-black shadow-[0_0_20px_rgba(251,191,36,0.4)]' : 'bg-white/10 text-white/40 hover:text-white'}`}
-                                >
-                                    <Crown size={20} fill={isPremiumUser ? "currentColor" : "none"} />
-                                </button>
+                            <button 
+                                onClick={() => setActiveModal('premium-status')}
+                                className={`p-2 rounded-2xl transition-all shadow-lg ${isPremiumUser ? 'bg-amber-400 text-black' : 'bg-white/5 text-white/40 hover:text-white'}`}
+                            >
+                                <Crown size={20} fill={isPremiumUser ? "currentColor" : "none"} />
+                            </button>
+                        </div>
+                        <p className="text-sm font-medium text-teal-400/80 tracking-wide">{userEmail}</p>
+                        <div className="flex items-center justify-center gap-2 mt-2">
+                             <span className="text-[10px] font-bold bg-teal-500/10 text-teal-400 border border-teal-500/20 px-3 py-1 rounded-full uppercase tracking-wider">Level {level}</span>
+                             <div className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase flex items-center gap-2 border shadow-sm ${isVerified ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                                {isVerified ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
+                                {isVerified ? 'Verified' : 'Unverified'}
                             </div>
                         </div>
-                        <p className="text-sm font-black italic text-(--accent-teal) uppercase tracking-[0.2em] opacity-80">{userEmail}</p>
-                        <div className="flex flex-wrap gap-4 mt-6 justify-center md:justify-start items-center">
-                            <div className={`px-5 py-2 rounded-[24px] text-[10px] font-black uppercase flex items-center gap-2 border bg-black/40 backdrop-blur-md shadow-xl ${isVerified ? 'text-teal-400 border-teal-500/40' : 'text-red-500 border-red-500/40'}`}>
-                                {isVerified ? <ShieldCheck size={14} className="text-teal-400" /> : <ShieldAlert size={14} className="text-red-500" />}
-                                {isVerified ? 'GARDEN VERIFIED' : 'GHOST MODE UNVERIFIED'}
-                            </div>
-                            {!isVerified && (
-                                <button
-                                    onClick={() => handleSendOTP('verify')}
-                                    disabled={loading}
-                                    className="px-6 py-2 rounded-[24px] bg-white text-black text-[10px] font-black uppercase hover:bg-(--accent-teal) transition-all flex items-center gap-3 shadow-2xl active:scale-95 disabled:opacity-50"
-                                >
-                                    {loading ? <RefreshCcw size={14} className="animate-spin" /> : <Fingerprint size={14} />}
-                                    SPIRIT LINK
-                                </button>
-                            )}
-                        </div>
+                        {!isVerified && (
+                             <button
+                                onClick={() => handleSendOTP('verify')}
+                                disabled={loading}
+                                className="mt-4 px-6 py-2.5 rounded-full bg-white text-black text-[10px] font-bold uppercase hover:bg-teal-400 transition-all flex items-center gap-2 mx-auto active:scale-95 shadow-xl"
+                            >
+                                {loading ? <RefreshCcw size={14} className="animate-spin" /> : <Fingerprint size={14} />}
+                                Verify Heartbeat
+                            </button>
+                        )}
                     </div>
-                    <div className="absolute -top-20 -right-20 w-64 h-64 bg-(--accent-teal)/5 blur-[100px] rounded-full group-hover:bg-(--accent-teal)/10 transition-all duration-1000" />
                 </div>
 
-                {/* Action Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 w-full">
-                    <button onClick={() => setActiveModal('identity')} className="flex flex-col items-center justify-center gap-4 p-12 rounded-[48px] border bg-white/5 border-white/10 hover:bg-(--accent-teal)/10 hover:border-(--accent-teal)/30 transition-all group min-h-[180px]">
-                        <User size={32} className="group-hover:scale-110 transition-transform text-(--accent-teal)" />
-                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">Name</span>
+                {/* Cozy Action Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full mt-6">
+                    <button onClick={() => setActiveModal('identity')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all group">
+                        <User size={28} className="text-teal-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Garden Label</span>
                     </button>
-                    <button onClick={() => setActiveModal('email')} className="flex flex-col items-center justify-center gap-4 p-12 rounded-[48px] border bg-white/5 border-white/10 hover:bg-(--accent-teal)/10 hover:border-(--accent-teal)/30 transition-all group min-h-[180px]">
-                        <Mail size={32} className="group-hover:scale-110 transition-transform text-(--accent-teal)" />
-                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">E mail</span>
+                    <button onClick={() => setActiveModal('email')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all group">
+                        <Mail size={28} className="text-teal-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Coordinate</span>
                     </button>
-                    <button onClick={() => setActiveModal('password')} className="flex flex-col items-center justify-center gap-4 p-12 rounded-[48px] border bg-white/5 border-white/10 hover:bg-(--accent-teal)/10 hover:border-(--accent-teal)/30 transition-all group min-h-[180px]">
-                        <Lock size={32} className="group-hover:scale-110 transition-transform text-(--accent-teal)" />
-                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">Password</span>
+                    <button onClick={() => setActiveModal('password')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all group">
+                        <Lock size={28} className="text-teal-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Hearth</span>
                     </button>
-                    <button onClick={() => setActiveModal('delete')} className="flex flex-col items-center justify-center gap-4 p-12 rounded-[48px] border bg-white/5 border-white/10 hover:border-red-500/50 hover:bg-red-500/5 text-red-400 transition-all group min-h-[180px]">
-                        <Trash2 size={32} className="group-hover:scale-110 transition-transform" />
-                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">Delete</span>
+                    <button onClick={() => setActiveModal('delete')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:border-red-500/40 hover:bg-red-500/5 transition-all group">
+                        <Trash2 size={28} className="text-red-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Deep Rest</span>
                     </button>
-                    <button onClick={() => supabase.auth.signOut()} className="flex flex-col items-center justify-center gap-4 p-12 rounded-[48px] border bg-white/5 border-white/10 hover:bg-red-500/10 hover:border-red-500/30 transition-all group min-h-[180px]">
-                        <LogOut size={32} className="group-hover:scale-110 transition-transform text-red-500" />
-                        <span className="text-[11px] font-black uppercase tracking-[0.22em] text-red-500">Logout</span>
+                    <button onClick={() => supabase.auth.signOut()} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:border-red-500/40 hover:bg-red-500/5 transition-all group">
+                        <LogOut size={28} className="text-red-500 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/80">Depart</span>
                     </button>
                 </div>
 
@@ -650,8 +661,10 @@ export default function AccountPage() {
                                             maxLength={6}
                                             placeholder="000000"
                                             value={otp}
-                                            onChange={e => setOtp(e.target.value)}
-                                            className="w-full bg-white/5 border border-white/10 rounded-[32px] p-8 text-4xl text-center font-black tracking-[0.5em] outline-none focus:border-(--accent-teal) text-(--accent-teal)"
+                                            autoComplete="off"
+                                            inputMode="numeric"
+                                            onChange={e => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                                            className="w-full bg-white/5 border border-white/10 rounded-[32px] p-8 text-4xl text-center font-bold tracking-[0.5em] outline-none focus:border-teal-400 text-teal-400"
                                         />
                                         <button onClick={handleVerifyOTP} disabled={loading} className="w-full py-5 bg-(--accent-teal) text-black rounded-[24px] text-[11px] font-black uppercase shadow-[0_0_30px_-5px_rgba(0,255,200,0.5)]">
                                             {loading ? "Synchronizing..." : "FINAL VERIFICATION"}
