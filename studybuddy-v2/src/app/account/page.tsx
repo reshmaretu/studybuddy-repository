@@ -15,12 +15,13 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function AccountPage() {
     const {
         isPremiumUser, level, displayName, fullName, userEmail, setUserEmail, triggerChumToast,
-        setPremiumStatus, setDisplayName, setFullName, mockInvoices, addMockInvoice
+        setPremiumStatus, setDisplayName, setFullName, mockInvoices, addMockInvoice,
+        isVerified, setIsVerified
     } = useStudyStore();
 
     // UI States
     const [activeModal, setActiveModal] = useState<string | null>(null);
-    const [isVerified, setIsVerified] = useState(false);
+    // Deleted local isVerified (now in store)
     const [loading, setLoading] = useState(false);
     const [otp, setOtp] = useState("");
     const [generatedOtp, setGeneratedOtp] = useState("");
@@ -144,7 +145,7 @@ export default function AccountPage() {
     };
 
     const handleVerifyOTP = async () => {
-        if (otp !== generatedOtp) return triggerChumToast("Invalid Neural Cipher.", "warning");
+        if (otp.trim() !== generatedOtp.trim()) return triggerChumToast("Invalid Neural Cipher.", "warning");
 
         setLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
@@ -425,86 +426,69 @@ export default function AccountPage() {
             <div className="w-full max-w-4xl h-full flex flex-col gap-6 animate-in fade-in duration-700">
 
                 {/* Profile Header */}
-                <div className="flex flex-col md:flex-row items-center gap-8 bg-white/5 border border-white/10 p-10 rounded-[48px] backdrop-blur-md">
-                    <div className="w-28 h-28 rounded-full border-2 border-(--accent-teal)/30 p-1 bg-(--bg-card) flex items-center justify-center relative group">
-                        <User size={48} className="text-(--accent-teal)" />
-                        <div className="absolute inset-0 rounded-full bg-(--accent-teal)/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="flex flex-col md:flex-row items-center gap-10 bg-white/5 border border-white/10 p-12 rounded-[56px] backdrop-blur-md relative overflow-hidden group">
+                    <div className="w-36 h-36 rounded-full border-2 border-(--accent-teal)/30 p-1 bg-(--bg-card) flex items-center justify-center relative group-hover:border-(--accent-teal)/60 transition-colors">
+                        <User size={64} className="text-(--accent-teal)" />
+                        <div className="absolute inset-0 rounded-full bg-(--accent-teal)/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
-                    <div className="text-center md:text-left flex-1 space-y-2">
-                        <div className="flex flex-col md:flex-row md:items-end gap-3 justify-center md:justify-start">
-                            <h1 className="text-4xl font-black uppercase italic tracking-tighter leading-none">{displayName || "Guardian"}</h1>
-                            <span className="text-[10px] font-black bg-(--accent-teal) text-black px-2 py-0.5 rounded-md tracking-widest uppercase mb-1">LVL {level}</span>
+                    <div className="text-center md:text-left flex-1 space-y-4">
+                        <div className="flex flex-col md:flex-row md:items-center gap-4 justify-center md:justify-start">
+                            <h1 className="text-5xl font-black uppercase italic tracking-tighter leading-none">
+                                {displayName || fullName || "Guardian"}
+                            </h1>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[11px] font-black bg-(--accent-teal) text-black px-3 py-1 rounded-lg tracking-widest uppercase">LVL {level}</span>
+                                <button 
+                                    onClick={() => setActiveModal('premium-status')}
+                                    className={`p-2 rounded-xl transition-all ${isPremiumUser ? 'bg-amber-400 text-black shadow-[0_0_20px_rgba(251,191,36,0.4)]' : 'bg-white/10 text-white/40 hover:text-white'}`}
+                                >
+                                    <Crown size={20} fill={isPremiumUser ? "currentColor" : "none"} />
+                                </button>
+                            </div>
                         </div>
-                        <p className="text-[12px] font-black italic text-(--accent-teal) uppercase tracking-widest opacity-80">{userEmail}</p>
-                        <div className="flex gap-3 mt-4 justify-center md:justify-start items-center">
-                            <span className={`px-4 py-1.5 rounded-2xl text-[9px] font-black uppercase flex items-center gap-2 border ${isVerified ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
-                                {isVerified ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
+                        <p className="text-sm font-black italic text-(--accent-teal) uppercase tracking-[0.2em] opacity-80">{userEmail}</p>
+                        <div className="flex flex-wrap gap-4 mt-6 justify-center md:justify-start items-center">
+                            <div className={`px-5 py-2 rounded-[24px] text-[10px] font-black uppercase flex items-center gap-2 border bg-black/40 backdrop-blur-md shadow-xl ${isVerified ? 'text-teal-400 border-teal-500/40' : 'text-red-500 border-red-500/40'}`}>
+                                {isVerified ? <ShieldCheck size={14} className="text-teal-400" /> : <ShieldAlert size={14} className="text-red-500" />}
                                 {isVerified ? 'GARDEN VERIFIED' : 'GHOST MODE UNVERIFIED'}
-                            </span>
+                            </div>
                             {!isVerified && (
                                 <button
                                     onClick={() => handleSendOTP('verify')}
                                     disabled={loading}
-                                    className="px-4 py-1.5 rounded-2xl bg-white text-black text-[9px] font-black uppercase hover:bg-(--accent-teal) transition-all flex items-center gap-2 shadow-lg"
+                                    className="px-6 py-2 rounded-[24px] bg-white text-black text-[10px] font-black uppercase hover:bg-(--accent-teal) transition-all flex items-center gap-3 shadow-2xl active:scale-95 disabled:opacity-50"
                                 >
-                                    {loading ? <RefreshCcw size={12} className="animate-spin" /> : <Fingerprint size={12} />}
+                                    {loading ? <RefreshCcw size={14} className="animate-spin" /> : <Fingerprint size={14} />}
                                     SPIRIT LINK
                                 </button>
                             )}
                         </div>
                     </div>
+                    <div className="absolute -top-20 -right-20 w-64 h-64 bg-(--accent-teal)/5 blur-[100px] rounded-full group-hover:bg-(--accent-teal)/10 transition-all duration-1000" />
                 </div>
 
-                {/* Action Grid (Universal Shards) */}
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                    <button onClick={() => setActiveModal('identity')} className="flex flex-col items-center justify-center gap-3 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-(--accent-teal)/10 hover:border-(--accent-teal)/30 transition-all group">
-                        <User size={24} className="group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Identity</span>
+                {/* Action Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 w-full">
+                    <button onClick={() => setActiveModal('identity')} className="flex flex-col items-center justify-center gap-4 p-12 rounded-[48px] border bg-white/5 border-white/10 hover:bg-(--accent-teal)/10 hover:border-(--accent-teal)/30 transition-all group min-h-[180px]">
+                        <User size={32} className="group-hover:scale-110 transition-transform text-(--accent-teal)" />
+                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">Identity</span>
                     </button>
-                    <button onClick={() => setActiveModal('email')} className="flex flex-col items-center justify-center gap-3 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-(--accent-teal)/10 hover:border-(--accent-teal)/30 transition-all group">
-                        <Mail size={24} className="group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Postbox</span>
+                    <button onClick={() => setActiveModal('email')} className="flex flex-col items-center justify-center gap-4 p-12 rounded-[48px] border bg-white/5 border-white/10 hover:bg-(--accent-teal)/10 hover:border-(--accent-teal)/30 transition-all group min-h-[180px]">
+                        <Mail size={32} className="group-hover:scale-110 transition-transform text-(--accent-teal)" />
+                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">Postbox</span>
                     </button>
-                    <button onClick={() => setActiveModal('password')} className="flex flex-col items-center justify-center gap-3 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-(--accent-teal)/10 hover:border-(--accent-teal)/30 transition-all group">
-                        <Lock size={24} className="group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Hearth</span>
+                    <button onClick={() => setActiveModal('password')} className="flex flex-col items-center justify-center gap-4 p-12 rounded-[48px] border bg-white/5 border-white/10 hover:bg-(--accent-teal)/10 hover:border-(--accent-teal)/30 transition-all group min-h-[180px]">
+                        <Lock size={32} className="group-hover:scale-110 transition-transform text-(--accent-teal)" />
+                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">Hearth</span>
                     </button>
-                    <button onClick={() => setActiveModal('delete')} className="flex flex-col items-center justify-center gap-3 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:border-red-500/50 hover:bg-red-500/5 text-red-400 transition-all group">
-                        <Trash2 size={24} className="group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Rest</span>
+                    <button onClick={() => setActiveModal('delete')} className="flex flex-col items-center justify-center gap-4 p-12 rounded-[48px] border bg-white/5 border-white/10 hover:border-red-500/50 hover:bg-red-500/5 text-red-400 transition-all group min-h-[180px]">
+                        <Trash2 size={32} className="group-hover:scale-110 transition-transform" />
+                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">Rest</span>
                     </button>
-                    <button onClick={() => supabase.auth.signOut()} className="flex flex-col items-center justify-center gap-3 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-red-500/10 hover:border-red-500/30 transition-all group">
-                        <LogOut size={24} className="group-hover:scale-110 transition-transform text-red-500" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-red-500">Depart</span>
+                    <button onClick={() => supabase.auth.signOut()} className="flex flex-col items-center justify-center gap-4 p-12 rounded-[48px] border bg-white/5 border-white/10 hover:bg-red-500/10 hover:border-red-500/30 transition-all group min-h-[180px]">
+                        <LogOut size={32} className="group-hover:scale-110 transition-transform text-red-500" />
+                        <span className="text-[11px] font-black uppercase tracking-[0.22em] text-red-500">Depart</span>
                     </button>
-                </div>
-
-                {/* Neural Subscription Card */}
-                <div className={`p-10 rounded-[48px] border-2 transition-all duration-700 relative overflow-hidden flex-1 flex flex-col justify-center ${isPremiumUser ? 'bg-(--accent-teal)/10 border-(--accent-teal)/40 shadow-[0_0_50px_-12px_rgba(0,255,200,0.3)]' : 'bg-white/5 border-white/10'}`}>
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-8 h-full">
-                        <div className="flex items-center gap-8">
-                            <div className="p-6 bg-white/10 rounded-[32px] text-(--accent-teal) shadow-inner">
-                                <Crown size={40} className="drop-shadow-[0_0_10px_rgba(0,255,200,0.8)]" />
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-black uppercase tracking-[0.3em]">{isPremiumUser ? "SPIRIT ASCENDANT STATUS" : "FRIENDLY HUMAN TIER"}</h4>
-                                <p className="text-[10px] opacity-40 uppercase font-bold mt-2 tracking-wide max-w-xs">{isPremiumUser ? "Infinite knowledge shards, priority forge pipelines, and active garden protection enabled." : "Upgrade to unlock global payments, infinite garden shards, and elite chum wardrobe."}</p>
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-3 min-w-[200px]">
-                            {!isPremiumUser ? (
-                                <button onClick={() => setActiveModal('ph-payment')} className="w-full px-8 py-5 bg-white text-black rounded-3xl text-[10px] font-black uppercase hover:bg-(--accent-teal) hover:-translate-y-1 transition-all shadow-xl flex items-center justify-center gap-2">
-                                    <QrCode size={14} /> TEND THE GARDEN
-                                </button>
-                            ) : (
-                                <button onClick={() => generateReceiptPDF(mockInvoices[0])} className="w-full px-8 py-5 bg-teal-500/20 text-teal-400 border border-teal-500/30 rounded-3xl text-[10px] font-black uppercase hover:bg-teal-500/30 transition-all flex items-center justify-center gap-2">
-                                    <Download size={14} /> EXTRACT LOGBOOK
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                    {/* Futuristic Background Accent */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-(--accent-teal)/5 blur-3xl rounded-full" />
                 </div>
 
                 {/* --- 💰 INVOICE LEDGER (If Premium) --- */}
@@ -573,6 +557,60 @@ export default function AccountPage() {
                             >
                                 <X size={18} />
                             </button>
+
+                            {/* Premium Status Modal */}
+                            {activeModal === 'premium-status' && (
+                                <div className="space-y-8 flex flex-col items-center">
+                                    <div className="p-8 bg-white/5 rounded-[40px] text-amber-400 relative group overflow-hidden border border-amber-400/20">
+                                        <Crown size={64} className="drop-shadow-[0_0_15px_rgba(251,191,36,0.5)] relative z-10" />
+                                        <div className="absolute inset-0 bg-amber-400/5 blur-3xl rounded-full" />
+                                    </div>
+                                    <div className="text-center space-y-2">
+                                        <h2 className="text-3xl font-black uppercase italic tracking-tighter">
+                                            {isPremiumUser ? "Ascendant Soul" : "Sprout Guardian"}
+                                        </h2>
+                                        <p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em]">
+                                            {isPremiumUser ? "Eternal Garden Access Active" : "Unlock the full potential of your sanctuary"}
+                                        </p>
+                                    </div>
+
+                                    <div className="w-full space-y-4">
+                                        <div className="p-6 rounded-3xl bg-white/5 border border-white/10 space-y-4">
+                                            <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-teal-400">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-teal-400" />
+                                                Infinite Knowledge Shards
+                                            </div>
+                                            <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-teal-400">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-teal-400" />
+                                                Priority Forge Pipelines
+                                            </div>
+                                            <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-teal-400">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-teal-400" />
+                                                Elite Chum Wardrobe
+                                            </div>
+                                        </div>
+
+                                        {!isPremiumUser ? (
+                                            <button 
+                                                onClick={() => setActiveModal('ph-payment')}
+                                                className="w-full py-6 bg-white text-black rounded-[32px] text-xs font-black uppercase hover:bg-(--accent-teal) transition-all shadow-2xl active:scale-95"
+                                            >
+                                                Tend the Garden (₱99)
+                                            </button>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                <button 
+                                                    onClick={() => generateReceiptPDF(mockInvoices[0])}
+                                                    className="w-full py-5 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-[32px] text-[10px] font-black uppercase hover:bg-teal-500/20 transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    <Download size={14} /> Extract Logbook
+                                                </button>
+                                                <p className="text-[9px] font-bold opacity-30 text-center uppercase">Member since {mockInvoices[0]?.date || 'the beginning'}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Identity Config */}
                             {activeModal === 'identity' && (

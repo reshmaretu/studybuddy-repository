@@ -75,10 +75,12 @@ interface StudyState {
     displayName: string;
     fullName: string;
     userEmail: string;
+    isVerified: boolean;
     
     setDisplayName: (name: string) => void;
     setFullName: (name: string) => void;
     setUserEmail: (email: string) => void;
+    setIsVerified: (val: boolean) => void;
 
     // 🌐 CLOUD SYNC STATE
     isInitialized: boolean;
@@ -217,6 +219,7 @@ export const useStudyStore = create<StudyState>()(
         (set, get) => ({
             isInitialized: false,
             isPremiumUser: false,
+            isVerified: false,
             displayName: "Guardian",
             fullName: "",
             userEmail: "",
@@ -225,6 +228,7 @@ export const useStudyStore = create<StudyState>()(
             setDisplayName: (name) => set({ displayName: name }),
             setFullName: (name) => set({ fullName: name }),
             setUserEmail: (email) => set({ userEmail: email }),
+            setIsVerified: (val) => set({ isVerified: val }),
 
             addMockInvoice: (invoice) => set((state) => ({ 
                 mockInvoices: [invoice, ...state.mockInvoices] 
@@ -506,7 +510,7 @@ export const useStudyStore = create<StudyState>()(
                     const [tasksResponse, shardsResponse, profileResponse, statsResponse, wardrobeResponse, sessionsResponse] = await Promise.all([
                         supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                        supabase.from('profiles').select('display_name, full_name, is_premium, is_dev, active_framework, last_planned_date').eq('id', user.id).maybeSingle(),
+                        supabase.from('profiles').select('display_name, full_name, is_premium, is_dev, active_framework, last_planned_date, is_verified').eq('id', user.id).maybeSingle(),
                         supabase.from('user_stats').select('focus_score, total_sessions, total_seconds_tracked').eq('user_id', user.id).maybeSingle(),
                         supabase.from('chum_wardrobe').select('active_theme').eq('user_id', user.id).maybeSingle(),
                         supabase.from('ai_sessions').select('*, shards(title)').eq('user_id', user.id).order('created_at', { ascending: false })
@@ -546,8 +550,9 @@ export const useStudyStore = create<StudyState>()(
                     }
 
                     set({
-                        displayName: profileResponse.data?.display_name || "Guardian",
+                        displayName: profileResponse.data?.display_name || "",
                         fullName: profileResponse.data?.full_name || "",
+                        isVerified: profileResponse.data?.is_verified || false,
                         userEmail: user.email || "",
                         focusScore: statsResponse.data?.focus_score ?? 100,
                         totalSessions: statsResponse.data?.total_sessions ?? 0,

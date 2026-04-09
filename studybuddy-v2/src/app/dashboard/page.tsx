@@ -130,7 +130,7 @@ export default function Dashboard() {
 
     // Attempt to grab the user's name from the store, falling back to "Guardian"
     const store = useStudyStore();
-    const displayName = store.displayName || "Guardian";
+    const displayName = store.displayName || store.fullName || "Guardian";
     // 👆 END OF GREETING LOGIC
 
     // Drag and Drop Handlers
