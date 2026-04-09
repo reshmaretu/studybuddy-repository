@@ -71,7 +71,7 @@ export default function AccountPage() {
                 const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
                 if (profile) {
                     setIsVerified(!!profile.is_verified);
-                    
+
                     const m_firstName = user.user_metadata?.first_name || profile.full_name?.split(' ')[0] || "";
                     const m_lastName = user.user_metadata?.last_name || profile.full_name?.split(' ').slice(1).join(' ') || "";
 
@@ -81,7 +81,7 @@ export default function AccountPage() {
                         lastIdentityUpdate: user.user_metadata?.last_identity_update || 0,
                         lastDisplayUpdate: user.user_metadata?.last_display_update || 0,
                     });
-                    
+
                     setFormData(prev => ({
                         ...prev,
                         newDisplayName: profile.display_name || user.user_metadata?.display_name || displayName,
@@ -109,7 +109,7 @@ export default function AccountPage() {
 
         try {
             let targetEmail = purpose === 'email' ? formData.newEmail : userEmail;
-            
+
             // 🔥 REDUNDANT SYNC: If state is empty, pull direct from Auth
             if (!targetEmail && purpose === 'verify') {
                 const { data: { user } } = await supabase.auth.getUser();
@@ -240,7 +240,7 @@ export default function AccountPage() {
     };
 
     const startDeleteCountdown = async () => {
-        if (!formData.purgePassword) return triggerChumToast("Peaceful hearth password required.", "warning");
+        if (!formData.purgePassword) return triggerChumToast("Password required.", "warning");
         setLoading(true);
 
         const { data: { user } } = await supabase.auth.getUser();
@@ -300,7 +300,7 @@ export default function AccountPage() {
         });
 
         const { data: { user } } = await supabase.auth.getUser();
-        
+
         // Use either the provided invoice or fallback to current details
         const invoiceId = targetInvoice?.id || `SB-${Date.now().toString().slice(-6)}`;
         const amount = targetInvoice?.amount || "PHP 99.00";
@@ -335,7 +335,7 @@ export default function AccountPage() {
         doc.setFontSize(12);
         doc.text('NEURAL_ASCENDANT_UPGRADE', 10, 80);
         doc.text(amount, 70, 80);
-        
+
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.text(`METHOD: ${method.toUpperCase()}`, 10, 88);
@@ -375,7 +375,7 @@ export default function AccountPage() {
                 if (result.success) {
                     // Logic already exists to sync DB
                     setPremiumStatus(true);
-                    
+
                     const newInvoice = {
                         id: `SB-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
                         date: new Date().toLocaleDateString(),
@@ -403,7 +403,7 @@ export default function AccountPage() {
                 if (user) {
                     await supabase.from('profiles').update({ is_premium: true }).eq('id', user.id);
                     setPremiumStatus(true);
-                    
+
                     const newInvoice = {
                         id: `SB-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
                         date: new Date().toLocaleDateString(),
@@ -438,7 +438,7 @@ export default function AccountPage() {
                             </h1>
                             <div className="flex items-center gap-2">
                                 <span className="text-[11px] font-black bg-(--accent-teal) text-black px-3 py-1 rounded-lg tracking-widest uppercase">LVL {level}</span>
-                                <button 
+                                <button
                                     onClick={() => setActiveModal('premium-status')}
                                     className={`p-2 rounded-xl transition-all ${isPremiumUser ? 'bg-amber-400 text-black shadow-[0_0_20px_rgba(251,191,36,0.4)]' : 'bg-white/10 text-white/40 hover:text-white'}`}
                                 >
@@ -471,29 +471,29 @@ export default function AccountPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 w-full">
                     <button onClick={() => setActiveModal('identity')} className="flex flex-col items-center justify-center gap-4 p-12 rounded-[48px] border bg-white/5 border-white/10 hover:bg-(--accent-teal)/10 hover:border-(--accent-teal)/30 transition-all group min-h-[180px]">
                         <User size={32} className="group-hover:scale-110 transition-transform text-(--accent-teal)" />
-                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">Identity</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">Name</span>
                     </button>
                     <button onClick={() => setActiveModal('email')} className="flex flex-col items-center justify-center gap-4 p-12 rounded-[48px] border bg-white/5 border-white/10 hover:bg-(--accent-teal)/10 hover:border-(--accent-teal)/30 transition-all group min-h-[180px]">
                         <Mail size={32} className="group-hover:scale-110 transition-transform text-(--accent-teal)" />
-                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">Postbox</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">E mail</span>
                     </button>
                     <button onClick={() => setActiveModal('password')} className="flex flex-col items-center justify-center gap-4 p-12 rounded-[48px] border bg-white/5 border-white/10 hover:bg-(--accent-teal)/10 hover:border-(--accent-teal)/30 transition-all group min-h-[180px]">
                         <Lock size={32} className="group-hover:scale-110 transition-transform text-(--accent-teal)" />
-                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">Hearth</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">Password</span>
                     </button>
                     <button onClick={() => setActiveModal('delete')} className="flex flex-col items-center justify-center gap-4 p-12 rounded-[48px] border bg-white/5 border-white/10 hover:border-red-500/50 hover:bg-red-500/5 text-red-400 transition-all group min-h-[180px]">
                         <Trash2 size={32} className="group-hover:scale-110 transition-transform" />
-                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">Rest</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.22em]">Delete</span>
                     </button>
                     <button onClick={() => supabase.auth.signOut()} className="flex flex-col items-center justify-center gap-4 p-12 rounded-[48px] border bg-white/5 border-white/10 hover:bg-red-500/10 hover:border-red-500/30 transition-all group min-h-[180px]">
                         <LogOut size={32} className="group-hover:scale-110 transition-transform text-red-500" />
-                        <span className="text-[11px] font-black uppercase tracking-[0.22em] text-red-500">Depart</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.22em] text-red-500">Logout</span>
                     </button>
                 </div>
 
                 {/* --- 💰 INVOICE LEDGER (If Premium) --- */}
                 {isPremiumUser && mockInvoices.length > 0 && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="bg-white/5 border border-white/10 p-10 rounded-[48px] backdrop-blur-md"
@@ -505,7 +505,7 @@ export default function AccountPage() {
                             </div>
                             <ShieldCheck size={20} className="text-(--accent-teal) opacity-50" />
                         </div>
-                        
+
                         <div className="space-y-4">
                             {mockInvoices.map((inv) => (
                                 <div key={inv.id} className="flex items-center justify-between p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-white/10 transition-all group">
@@ -520,7 +520,7 @@ export default function AccountPage() {
                                     </div>
                                     <div className="flex items-center gap-6">
                                         <p className="text-[11px] font-black text-(--accent-teal)">{inv.amount}</p>
-                                        <button 
+                                        <button
                                             onClick={() => generateReceiptPDF(inv)}
                                             className="px-4 py-2 rounded-xl bg-white/10 text-[9px] font-black uppercase hover:bg-white text-white hover:text-black transition-all"
                                         >
@@ -591,7 +591,7 @@ export default function AccountPage() {
                                         </div>
 
                                         {!isPremiumUser ? (
-                                            <button 
+                                            <button
                                                 onClick={() => setActiveModal('ph-payment')}
                                                 className="w-full py-6 bg-white text-black rounded-[32px] text-xs font-black uppercase hover:bg-(--accent-teal) transition-all shadow-2xl active:scale-95"
                                             >
@@ -599,7 +599,7 @@ export default function AccountPage() {
                                             </button>
                                         ) : (
                                             <div className="space-y-3">
-                                                <button 
+                                                <button
                                                     onClick={() => generateReceiptPDF(mockInvoices[0])}
                                                     className="w-full py-5 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-[32px] text-[10px] font-black uppercase hover:bg-teal-500/20 transition-all flex items-center justify-center gap-2"
                                                 >
@@ -702,8 +702,8 @@ export default function AccountPage() {
                                                     <div className="absolute inset-0 bg-(--accent-teal)/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                                                 </div>
                                                 <div className="flex items-center justify-center gap-4">
-                                                     <div className="px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase">Verified GCash</div>
-                                                     <div className="px-4 py-2 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black uppercase">InstaPay Sync</div>
+                                                    <div className="px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase">Verified GCash</div>
+                                                    <div className="px-4 py-2 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black uppercase">InstaPay Sync</div>
                                                 </div>
                                                 <p className="text-[9px] font-bold opacity-30 text-center uppercase tracking-widest px-8">Scan to trigger neural relay upgrade. System will auto-verify on completion.</p>
                                             </div>
@@ -727,16 +727,16 @@ export default function AccountPage() {
                                                 <div className="space-y-4">
                                                     <div className="space-y-2">
                                                         <label className="text-[8px] font-black uppercase opacity-30 ml-3">Card Name</label>
-                                                        <input value={cardData.name} onChange={e => setCardData({...cardData, name: e.target.value.toUpperCase()})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs outline-none focus:border-(--accent-teal)" />
+                                                        <input value={cardData.name} onChange={e => setCardData({ ...cardData, name: e.target.value.toUpperCase() })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs outline-none focus:border-(--accent-teal)" />
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="space-y-2">
                                                             <label className="text-[8px] font-black uppercase opacity-30 ml-3">Expiry</label>
-                                                            <input value={cardData.expiry} onChange={e => setCardData({...cardData, expiry: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs outline-none focus:border-(--accent-teal)" />
+                                                            <input value={cardData.expiry} onChange={e => setCardData({ ...cardData, expiry: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs outline-none focus:border-(--accent-teal)" />
                                                         </div>
                                                         <div className="space-y-2">
                                                             <label className="text-[8px] font-black uppercase opacity-30 ml-3">CVV</label>
-                                                            <input type="password" maxLength={3} value={cardData.cvv} onChange={e => setCardData({...cardData, cvv: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs outline-none focus:border-(--accent-teal)" />
+                                                            <input type="password" maxLength={3} value={cardData.cvv} onChange={e => setCardData({ ...cardData, cvv: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs outline-none focus:border-(--accent-teal)" />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -804,13 +804,13 @@ export default function AccountPage() {
                                 <div className="space-y-8 text-center py-4">
                                     <Trash2 size={48} className="mx-auto text-red-500" />
                                     <h2 className="text-2xl font-black uppercase italic">Lay to Rest?</h2>
-                                    <p className="text-[10px] uppercase font-bold opacity-30">This garden will be forgotten forever. All memory shards will be lost. Enter your hearth password to proceed.</p>
+                                    <p className="text-[10px] uppercase font-bold opacity-30">This garden will be forgotten forever. All memory shards will be lost. Enter your password to proceed with account deletion.</p>
 
                                     {deletionCountdown === null ? (
                                         <>
                                             <input
                                                 type="password"
-                                                placeholder="Hearth Password"
+                                                placeholder="Password"
                                                 value={formData.purgePassword}
                                                 onChange={e => setFormData({ ...formData, purgePassword: e.target.value })}
                                                 className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm outline-none focus:border-red-500 text-center"

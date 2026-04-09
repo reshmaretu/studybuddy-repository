@@ -220,7 +220,7 @@ export const useStudyStore = create<StudyState>()(
             isInitialized: false,
             isPremiumUser: false,
             isVerified: false,
-            displayName: "Guardian",
+            displayName: "",
             fullName: "",
             userEmail: "",
             mockInvoices: [],
@@ -507,6 +507,7 @@ export const useStudyStore = create<StudyState>()(
                 }
 
                 try {
+                    console.log("[NEURAL] Tapping into database shards...");
                     const [tasksResponse, shardsResponse, profileResponse, statsResponse, wardrobeResponse, sessionsResponse] = await Promise.all([
                         supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
@@ -562,6 +563,7 @@ export const useStudyStore = create<StudyState>()(
                         activeFramework: profileResponse.data?.active_framework || null,
                         lastPlannedDate: profileResponse.data?.last_planned_date || null
                     });
+                    console.log(`[NEURAL] Profile Loaded: ${profileResponse.data?.display_name || "Unknown"} (${user.email})`);
 
                     const activeTheme = wardrobeResponse.data?.active_theme || 'default';
                     document.documentElement.setAttribute("data-theme", activeTheme);
