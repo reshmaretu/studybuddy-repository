@@ -90,13 +90,13 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
                         <Eye size={12} className="text-[var(--accent-teal)]" /> View Details
                     </button>
                     <button onClick={() => { setIsEditing(true); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-[var(--text-main)] hover:bg-[var(--bg-dark)] flex items-center gap-2 transition-colors border-b border-[var(--border-color)]">
-                        <Edit2 size={12} className="text-[var(--accent-teal)]" /> Edit Quest
+                        <Edit2 size={12} className="text-[var(--accent-teal)]" /> Tend the Bloom
                     </button>
                     <button onClick={handleFrogToggle} className={`w-full px-3 py-2 text-xs font-bold flex items-center gap-2 transition-colors border-b border-[var(--border-color)] ${task.isFrog ? 'text-[var(--accent-teal)] hover:bg-[var(--accent-teal)]/10' : 'text-[var(--text-muted)] hover:bg-[var(--bg-dark)]'}`}>
                         <Zap size={12} fill={task.isFrog ? "currentColor" : "none"} /> {task.isFrog ? 'Unmark Frog' : 'Eat the Frog'}
                     </button>
                     <button onClick={() => { setShowDeleteModal(true); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-400/10 flex items-center gap-2 transition-colors">
-                        <Trash2 size={12} /> Delete
+                        <Trash2 size={12} /> Release
                     </button>
                 </motion.div>
             )}
@@ -224,8 +224,8 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
 
                     {isEditing ? (
                         <div className="flex flex-col gap-2 z-30" onPointerDown={(e) => e.stopPropagation()}>
-                            <input autoFocus type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Task Title" className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
-                            <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Description..." rows={2} className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] resize-none" />
+                            <input autoFocus type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Quest Name" className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
+                            <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Field notes..." rows={2} className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] resize-none" />
                             <input type="datetime-local" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-muted)] outline-none focus:border-[var(--accent-teal)]" />
                             <div className="flex justify-end gap-2 mt-1">
                                 <button onClick={() => setIsEditing(false)} className="px-3 py-1.5 text-xs font-bold text-[var(--text-muted)] hover:text-red-400 bg-[var(--bg-dark)] rounded-md border border-[var(--border-color)]">Cancel</button>
@@ -266,11 +266,11 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowDeleteModal(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 max-w-sm w-full relative z-10 shadow-2xl flex flex-col items-center text-center">
                             <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mb-4 text-red-400"><AlertTriangle size={24} /></div>
-                            <h3 className="text-lg font-bold text-[var(--text-main)] mb-2">Delete Quest?</h3>
-                            <p className="text-sm text-[var(--text-muted)] mb-6">Are you sure you want to delete <span className="text-[var(--text-main)] font-bold">"{task.title}"</span>? This action cannot be undone.</p>
+                            <h3 className="text-lg font-bold text-[var(--text-main)] mb-2">Release into Pond?</h3>
+                            <p className="text-sm text-[var(--text-muted)] mb-6">Are you sure you want to release <span className="text-[var(--text-main)] font-bold">"{task.title}"</span>? It will float away forever.</p>
                             <div className="flex gap-3 w-full">
                                 <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-2.5 rounded-xl bg-[var(--bg-dark)] border border-[var(--border-color)] text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">Cancel</button>
-                                <button onClick={() => { deleteTask(task.id); setShowDeleteModal(false); }} className="flex-1 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-sm font-bold text-red-400 hover:bg-red-500 hover:text-white transition-colors">Delete</button>
+                                <button onClick={() => { deleteTask(task.id); setShowDeleteModal(false); }} className="flex-1 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-sm font-bold text-red-400 hover:bg-red-500 hover:text-white transition-colors">Release</button>
                             </div>
                         </motion.div>
                     </div>
@@ -297,7 +297,7 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
                                     </div>
                                 )}
                                 <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl p-4 min-h-[100px]">
-                                    <h4 className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] mb-2">Description</h4>
+                                    <h4 className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] mb-2">Field Notes</h4>
                                     <p className="text-sm text-[var(--text-main)] whitespace-pre-wrap leading-relaxed">
                                         {task.description || <span className="italic text-[var(--text-muted)]">No description provided.</span>}
                                     </p>
@@ -305,7 +305,7 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
                             </div>
                             <div className="p-4 border-t border-[var(--border-color)] bg-[var(--bg-sidebar)] flex justify-end">
                                 <button onClick={() => { setShowViewModal(false); setIsEditing(true); }} className="px-6 py-2 rounded-xl bg-[var(--accent-teal)] text-[#0b1211] font-bold text-sm hover:brightness-110 flex items-center gap-2">
-                                    <Edit2 size={14} /> Edit Quest
+                                    <Edit2 size={14} /> Tend the Bloom
                                 </button>
                             </div>
                         </motion.div>

@@ -53,9 +53,9 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
     return (
         <>
             <PresenceSync />
-            <div className="flex h-screen w-full overflow-hidden bg-[var(--bg-dark)]">
+            <div className="flex flex-col md:flex-row h-screen w-full overflow-hidden bg-[var(--bg-dark)]">
                 <Sidebar />
-                <main className="flex-1 ml-[80px] p-8 h-full overflow-y-auto relative z-[1] custom-scrollbar">
+                <main className="flex-1 w-full md:ml-0 p-4 md:p-8 pb-24 md:pb-12 h-full overflow-y-auto relative z-[1] custom-scrollbar">
                     {children}
                 </main>
                 <ChumWidget />

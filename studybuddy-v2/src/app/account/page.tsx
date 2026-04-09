@@ -46,6 +46,9 @@ export default function AccountPage() {
         purgePassword: ""
     });
 
+    const [deletionCountdown, setDeletionCountdown] = useState<number | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const [checkoutMethod, setCheckoutMethod] = useState<'manual' | 'qrph' | 'card'>('qrph');
     const [otpPurpose, setOtpPurpose] = useState<'verify' | 'email'>('verify');
 
@@ -235,8 +238,8 @@ export default function AccountPage() {
         setLoading(false);
     };
 
-    const handleDeleteAccount = async () => {
-        if (!formData.purgePassword) return triggerChumToast("Purge password required.", "warning");
+    const startDeleteCountdown = async () => {
+        if (!formData.purgePassword) return triggerChumToast("Peaceful hearth password required.", "warning");
         setLoading(true);
 
         const { data: { user } } = await supabase.auth.getUser();
@@ -250,16 +253,40 @@ export default function AccountPage() {
 
         if (verifyError) {
             setLoading(false);
-            return triggerChumToast("Neural Identification mismatch. Purge aborted.", "warning");
+            return triggerChumToast("Heartbeat mismatch. Resetting the hearth.", "warning");
         }
 
+        setLoading(false);
+        setDeletionCountdown(20);
+        triggerChumToast("Setting the hearth to rest. You have 20 seconds to change your mind.", "info");
+    };
+
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        if (deletionCountdown !== null && deletionCountdown > 0) {
+            timer = setTimeout(() => setDeletionCountdown(deletionCountdown - 1), 1000);
+        } else if (deletionCountdown === 0) {
+            handleFinalDelete();
+        }
+        return () => clearTimeout(timer);
+    }, [deletionCountdown]);
+
+    const handleFinalDelete = async () => {
+        setIsDeleting(true);
         const { error } = await supabase.rpc('delete_user_own_account');
-        if (error) triggerChumToast("Termination failed. Contact Admin.", "warning");
-        else {
+        if (error) {
+            triggerChumToast("Something went wrong with the rest pulse. Please try again.", "warning");
+            setDeletionCountdown(null);
+            setIsDeleting(false);
+        } else {
             await supabase.auth.signOut();
             window.location.href = "/";
         }
-        setLoading(false);
+    };
+
+    const cancelDeletion = () => {
+        setDeletionCountdown(null);
+        triggerChumToast("Glad you decided to stay in the garden!", "success");
     };
 
     // --- PAYMENT & RECEIPTS ---
@@ -314,11 +341,11 @@ export default function AccountPage() {
 
         doc.setFontSize(6);
         doc.setTextColor(100, 100, 100);
-        doc.text('This shard validates your lifetime neural access.', 10, 130);
-        doc.text('StudyBuddy Heritage v2.0 - Antigravity Protocol', 10, 135);
+        doc.text('This log validates your garden growth access.', 10, 130);
+        doc.text('StudyBuddy Garden v2.0 - Peace Protocol', 10, 135);
 
         doc.save(`receipt_${invoiceId}.pdf`);
-        triggerChumToast("Neural receipt extracted.", "success");
+        triggerChumToast("Garden logbook extracted.", "success");
     };
 
     const handleUniversalPayment = async () => {
@@ -338,7 +365,7 @@ export default function AccountPage() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         userId: user.id,
-                        cipher: refNumber
+                        token: refNumber
                     })
                 });
 
@@ -356,7 +383,7 @@ export default function AccountPage() {
                     };
                     addMockInvoice(newInvoice);
 
-                    triggerChumToast("Neural System Upgraded!", "success");
+                    triggerChumToast("Garden Soul Blossomed!", "success");
                     setActiveModal(null);
                     setTimeout(() => window.location.reload(), 2000);
                 } else {
@@ -394,7 +421,7 @@ export default function AccountPage() {
     };
 
     return (
-        <div className="h-screen w-full flex flex-col items-center justify-center p-6 md:p-12 overflow-hidden bg-(--bg-dark) select-none">
+        <div className="min-h-screen w-full flex flex-col items-center p-6 md:p-12 overflow-y-auto bg-(--bg-dark) select-none custom-scrollbar">
             <div className="w-full max-w-4xl h-full flex flex-col gap-6 animate-in fade-in duration-700">
 
                 {/* Profile Header */}
@@ -405,14 +432,14 @@ export default function AccountPage() {
                     </div>
                     <div className="text-center md:text-left flex-1 space-y-2">
                         <div className="flex flex-col md:flex-row md:items-end gap-3 justify-center md:justify-start">
-                            <h1 className="text-4xl font-black uppercase italic tracking-tighter leading-none">{displayName || "Architect"}</h1>
+                            <h1 className="text-4xl font-black uppercase italic tracking-tighter leading-none">{displayName || "Guardian"}</h1>
                             <span className="text-[10px] font-black bg-(--accent-teal) text-black px-2 py-0.5 rounded-md tracking-widest uppercase mb-1">LVL {level}</span>
                         </div>
                         <p className="text-[12px] font-black italic text-(--accent-teal) uppercase tracking-widest opacity-80">{userEmail}</p>
                         <div className="flex gap-3 mt-4 justify-center md:justify-start items-center">
                             <span className={`px-4 py-1.5 rounded-2xl text-[9px] font-black uppercase flex items-center gap-2 border ${isVerified ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                                 {isVerified ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
-                                {isVerified ? 'NEURALLY VERIFIED' : 'GHOST MODE UNVERIFIED'}
+                                {isVerified ? 'GARDEN VERIFIED' : 'GHOST MODE UNVERIFIED'}
                             </span>
                             {!isVerified && (
                                 <button
@@ -421,7 +448,7 @@ export default function AccountPage() {
                                     className="px-4 py-1.5 rounded-2xl bg-white text-black text-[9px] font-black uppercase hover:bg-(--accent-teal) transition-all flex items-center gap-2 shadow-lg"
                                 >
                                     {loading ? <RefreshCcw size={12} className="animate-spin" /> : <Fingerprint size={12} />}
-                                    NEURAL LINK
+                                    SPIRIT LINK
                                 </button>
                             )}
                         </div>
@@ -436,19 +463,19 @@ export default function AccountPage() {
                     </button>
                     <button onClick={() => setActiveModal('email')} className="flex flex-col items-center justify-center gap-3 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-(--accent-teal)/10 hover:border-(--accent-teal)/30 transition-all group">
                         <Mail size={24} className="group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Relay</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Postbox</span>
                     </button>
                     <button onClick={() => setActiveModal('password')} className="flex flex-col items-center justify-center gap-3 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-(--accent-teal)/10 hover:border-(--accent-teal)/30 transition-all group">
                         <Lock size={24} className="group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Cipher</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Hearth</span>
                     </button>
                     <button onClick={() => setActiveModal('delete')} className="flex flex-col items-center justify-center gap-3 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:border-red-500/50 hover:bg-red-500/5 text-red-400 transition-all group">
                         <Trash2 size={24} className="group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Purge</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Rest</span>
                     </button>
                     <button onClick={() => supabase.auth.signOut()} className="flex flex-col items-center justify-center gap-3 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-red-500/10 hover:border-red-500/30 transition-all group">
                         <LogOut size={24} className="group-hover:scale-110 transition-transform text-red-500" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-red-500">Logoff</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-red-500">Depart</span>
                     </button>
                 </div>
 
@@ -460,18 +487,18 @@ export default function AccountPage() {
                                 <Crown size={40} className="drop-shadow-[0_0_10px_rgba(0,255,200,0.8)]" />
                             </div>
                             <div>
-                                <h4 className="text-sm font-black uppercase tracking-[0.3em]">{isPremiumUser ? "NEURAL ASCENDANT STATUS" : "STANDARD HUMAN TIER"}</h4>
-                                <p className="text-[10px] opacity-40 uppercase font-bold mt-2 tracking-wide max-w-xs">{isPremiumUser ? "Infinite vector shards, priority forge pipelines, and active neural protection enabled." : "Upgrade to unlock ph-global payments, infinite workspace shards, and elite chum wardrobe."}</p>
+                                <h4 className="text-sm font-black uppercase tracking-[0.3em]">{isPremiumUser ? "SPIRIT ASCENDANT STATUS" : "FRIENDLY HUMAN TIER"}</h4>
+                                <p className="text-[10px] opacity-40 uppercase font-bold mt-2 tracking-wide max-w-xs">{isPremiumUser ? "Infinite knowledge shards, priority forge pipelines, and active garden protection enabled." : "Upgrade to unlock global payments, infinite garden shards, and elite chum wardrobe."}</p>
                             </div>
                         </div>
                         <div className="flex flex-col gap-3 min-w-[200px]">
                             {!isPremiumUser ? (
                                 <button onClick={() => setActiveModal('ph-payment')} className="w-full px-8 py-5 bg-white text-black rounded-3xl text-[10px] font-black uppercase hover:bg-(--accent-teal) hover:-translate-y-1 transition-all shadow-xl flex items-center justify-center gap-2">
-                                    <QrCode size={14} /> INITIALIZE PLUS
+                                    <QrCode size={14} /> TEND THE GARDEN
                                 </button>
                             ) : (
                                 <button onClick={() => generateReceiptPDF(mockInvoices[0])} className="w-full px-8 py-5 bg-teal-500/20 text-teal-400 border border-teal-500/30 rounded-3xl text-[10px] font-black uppercase hover:bg-teal-500/30 transition-all flex items-center justify-center gap-2">
-                                    <Download size={14} /> EXTRACT RECEIPT
+                                    <Download size={14} /> EXTRACT LOGBOOK
                                 </button>
                             )}
                         </div>
@@ -738,21 +765,31 @@ export default function AccountPage() {
                             {activeModal === 'delete' && (
                                 <div className="space-y-8 text-center py-4">
                                     <Trash2 size={48} className="mx-auto text-red-500" />
-                                    <h2 className="text-2xl font-black uppercase italic">Purge Account?</h2>
-                                    <p className="text-[10px] uppercase font-bold opacity-30">This action is irreversible. All neural shards will be vaporized. Enter your current cipher to proceed.</p>
+                                    <h2 className="text-2xl font-black uppercase italic">Lay to Rest?</h2>
+                                    <p className="text-[10px] uppercase font-bold opacity-30">This garden will be forgotten forever. All memory shards will be lost. Enter your hearth password to proceed.</p>
 
-                                    <input
-                                        type="password"
-                                        placeholder="Current Neural Cipher"
-                                        value={formData.purgePassword}
-                                        onChange={e => setFormData({ ...formData, purgePassword: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm outline-none focus:border-red-500 text-center"
-                                    />
+                                    {deletionCountdown === null ? (
+                                        <>
+                                            <input
+                                                type="password"
+                                                placeholder="Hearth Password"
+                                                value={formData.purgePassword}
+                                                onChange={e => setFormData({ ...formData, purgePassword: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm outline-none focus:border-red-500 text-center"
+                                            />
 
-                                    <div className="flex gap-4 pt-4">
-                                        <button onClick={() => setActiveModal(null)} className="flex-1 py-5 bg-white/5 rounded-2xl text-[11px] font-black uppercase">Abort</button>
-                                        <button onClick={handleDeleteAccount} className="flex-1 py-5 bg-red-600 text-white rounded-2xl text-[11px] font-black uppercase shadow-[0_0_30px_-5px_rgba(239,68,68,0.5)] border border-red-500/50">PURGE</button>
-                                    </div>
+                                            <div className="flex gap-4 pt-4">
+                                                <button onClick={() => setActiveModal(null)} className="flex-1 py-5 bg-white/5 rounded-2xl text-[11px] font-black uppercase">Stay awhile</button>
+                                                <button onClick={startDeleteCountdown} className="flex-1 py-5 bg-red-600 text-white rounded-2xl text-[11px] font-black uppercase shadow-[0_0_30px_-5px_rgba(239,68,68,0.5)] border border-red-500/50">Rest now</button>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="space-y-6">
+                                            <div className="text-5xl font-black text-red-500 animate-pulse">{deletionCountdown}</div>
+                                            <p className="text-xs font-bold text-white/50 italic">Preparing the final rest pulse...</p>
+                                            <button onClick={cancelDeletion} disabled={isDeleting} className="w-full py-5 bg-white text-black rounded-2xl text-[11px] font-black uppercase">Hold on, let me stay!</button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </motion.div>

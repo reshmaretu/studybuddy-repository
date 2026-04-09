@@ -62,13 +62,13 @@ export const calculateXpRequirement = (level: number) => {
 };
 
 export const getTitleForLevel = (level: number) => {
-    if (level >= 99) return "Ascended Scholar";
-    if (level >= 75) return "Grandmaster";
-    if (level >= 50) return "Architect of Time";
-    if (level >= 25) return "Flow State Adept";
-    if (level >= 10) return "Scholar of the Shard";
-    if (level >= 5) return "Focus Apprentice";
-    return "The Initiate";
+    if (level >= 99) return "Guardian of the Garden";
+    if (level >= 75) return "Spirit Sage";
+    if (level >= 50) return "Master of Flow";
+    if (level >= 25) return "Grounded Scholar";
+    if (level >= 10) return "Leaf Listener";
+    if (level >= 5) return "Seedling";
+    return "New Sprout";
 };
 
 interface StudyState {
@@ -752,7 +752,7 @@ export const useStudyStore = create<StudyState>()(
                     get().modifyFocusScore(15); // A nice Focus Score bump
 
                     if (get().triggerChumToast) {
-                        get().triggerChumToast(`Neural Link Ascended! +250 XP for mastering ${(masteredShardRef as Shard).title}!`);
+                        get().triggerChumToast(`Spirit Connection Blooms! +250 Spirit for nurturing ${(masteredShardRef as Shard).title}!`);
                     }
 
                     await supabase.from('tasks').insert([{

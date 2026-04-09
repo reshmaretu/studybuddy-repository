@@ -26,7 +26,7 @@ function CompletionDropZone() {
         >
             <CheckCircle2 size={36} className={`mb-2 ${isOver ? "text-[var(--accent-teal)] animate-bounce" : ""}`} />
             <span className="text-lg font-bold tracking-widest uppercase">
-                {isOver ? "Release to Complete!" : "Drop Quest Here"}
+                {isOver ? "Release to Bloom!" : "Gently Nurture Here"}
             </span>
         </motion.div>
     );
@@ -128,9 +128,9 @@ export default function Dashboard() {
         greeting = "Good Afternoon";
     }
 
-    // Attempt to grab the user's name from the store, falling back to "Explorer"
+    // Attempt to grab the user's name from the store, falling back to "Guardian"
     const store = useStudyStore();
-    const displayName = store.userName || "Explorer";
+    const displayName = store.userName || "Guardian";
     // 👆 END OF GREETING LOGIC
 
     // Drag and Drop Handlers
@@ -144,7 +144,7 @@ export default function Dashboard() {
         const { active, over } = event;
 
         if (over && over.id === "completion-zone") {
-            if (window.confirm("Spark this quest as complete?")) {
+            if (window.confirm("Spark this bloom to completion?")) {
                 completeTask(active.id as string);
             }
         }
@@ -218,7 +218,7 @@ export default function Dashboard() {
                                 </div>
                                 <div className="flex flex-col items-center gap-3 w-32 md:w-36">
                                     <div className="flex items-center gap-1.5 text-[var(--text-main)] font-bold text-xs md:text-sm">
-                                        <Flame size={14} className="text-[var(--accent-cyan)] md:size-16" /> {totalSessions} Sessions
+                                        <Flame size={14} className="text-[var(--accent-cyan)] md:size-16" /> {totalSessions} Focus Flows
                                     </div>
                                     <button
                                         onClick={() => useStudyStore.getState().openFocusModal()}
@@ -237,8 +237,8 @@ export default function Dashboard() {
                     >
                         <div className="absolute inset-0 bg-[var(--accent-teal)] opacity-0 group-hover:opacity-5 transition-opacity duration-700"></div>
                         <Brain size={48} className="text-[var(--accent-teal)] mb-3 group-hover:scale-110 transition-transform duration-500" style={{ filter: 'drop-shadow(0px 0px 10px var(--accent-teal))' }} />
-                        <h2 className="text-lg font-bold text-[var(--text-main)] mb-1">Brain Reset</h2>
-                        <p className="text-[var(--text-muted)] text-xs font-medium">2-min meditation</p>
+                        <h2 className="text-lg font-bold text-[var(--text-main)] mb-1">Mindful Reset</h2>
+                        <p className="text-[var(--text-muted)] text-xs font-medium">Breathe deeply</p>
                     </button>
 
                 </section>
@@ -267,12 +267,12 @@ export default function Dashboard() {
                                         <Flame size={12} /> {dailyStreak} Day Streak
                                     </div>
                                 </div>
-                                <span className="text-[9px] md:text-[10px] font-mono text-[var(--text-muted)] font-bold tracking-widest whitespace-nowrap">XP: {xp}/{calculateXpRequirement(level)}</span>
+                                <span className="text-[9px] md:text-[10px] font-mono text-[var(--text-muted)] font-bold tracking-widest whitespace-nowrap">Spirit: {xp}/{calculateXpRequirement(level)}</span>
                             </div>
                             <div className="h-2 w-full bg-black/30 rounded-full overflow-hidden mb-2">
                                 <div className="h-full bg-[var(--accent-teal)] rounded-full transition-all duration-1000" style={{ width: `${(xp / calculateXpRequirement(level)) * 100}%` }}></div>
                             </div>
-                            <p className="text-xs md:text-sm text-[var(--text-muted)] italic truncate">"Complete quests to grow together."</p>
+                            <p className="text-xs md:text-sm text-[var(--text-muted)] italic truncate">"Nurture your blooms, grow your soul."</p>
                         </div>
                     </div>
 
@@ -281,7 +281,7 @@ export default function Dashboard() {
                 {/* CURRENT FOCUS */}
                 <section className="pt-2 relative">
                     <div className="flex items-center gap-3 mb-4">
-                        <h2 className="text-xl font-bold text-[var(--text-main)]">Current Focus</h2>
+                        <h2 className="text-xl font-bold text-[var(--text-main)]">Garden Blooms</h2>
                         <span className="bg-[var(--bg-card)] border border-[var(--border-color)] px-2 py-1 rounded-md text-[11px] text-[var(--text-muted)] font-mono flex items-center gap-1.5">
                             <Calendar size={12} /> {formattedDate}
                         </span>
@@ -319,12 +319,12 @@ export default function Dashboard() {
                         <div className="h-24 md:h-32 border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex flex-col items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--accent-teal)]">
                             <span className="text-lg md:text-xl mb-1">✨</span>
                             <span className="text-[10px] md:text-xs font-bold tracking-wide uppercase">Crystal Garden</span>
-                            <span className="text-[9px] md:text-[10px] opacity-70 mt-1">+{Math.max(0, activeTasks.length - 3)} hidden tasks</span>
+                            <span className="text-[9px] md:text-[10px] opacity-70 mt-1">+{Math.max(0, activeTasks.length - 3)} hidden blooms</span>
                         </div>
                     </div>
 
                     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-8 shadow-sm">
-                        <h3 className="text-lg font-bold text-[var(--text-main)] mb-6">Quest Progress</h3>
+                        <h3 className="text-lg font-bold text-[var(--text-main)] mb-6">Garden Strength</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-4 text-center mb-8 border-b border-[var(--border-color)] pb-8">
                             <div className="flex flex-col items-center justify-center">
                                 <span className="text-3xl md:text-4xl font-bold text-[var(--text-main)] mb-1">{activeTasks.length}</span>
@@ -337,7 +337,7 @@ export default function Dashboard() {
                             <div className="flex flex-col items-center justify-center">
                                 {/* 👇 Now divides literal seconds by 3600 to get true hours! */}
                                 <span className="text-3xl md:text-4xl font-bold text-[var(--text-main)] mb-1">{(totalSecondsTracked / 3600).toFixed(1)}</span>
-                                <span className="text-xs text-[var(--text-muted)] font-medium">Hours</span>
+                                <span className="text-xs text-[var(--text-muted)] font-medium">Flow Hours</span>
                             </div>
                         </div>
                         <div className="flex flex-col items-center justify-center text-center py-4">
@@ -350,7 +350,7 @@ export default function Dashboard() {
                                 <>
                                     <CheckCircle2 size={24} className={completedTasks.length > 0 ? "text-[var(--accent-teal)] mb-2" : "text-[var(--border-color)] mb-2"} />
                                     <p className="text-[var(--text-muted)] text-sm">
-                                        {completedTasks.length > 0 ? `You crushed ${completedTasks.length} quests!` : "No completed quests yet"}
+                                        {completedTasks.length > 0 ? `You nurtured ${completedTasks.length} blooms today.` : "Keep tending your garden."}
                                     </p>
                                 </>
                             )}
