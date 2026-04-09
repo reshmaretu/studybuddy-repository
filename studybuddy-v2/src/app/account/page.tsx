@@ -210,11 +210,11 @@ export default function AccountPage() {
         const profileUpdates: any = {};
         if (isChangingDisplay) {
             profileUpdates.display_name = formData.newDisplayName;
-            profileUpdates.last_display_update = nowMs;
+            profileUpdates.last_display_change = nowMs;
         }
         if (isChangingIdentity) {
             profileUpdates.full_name = finalFullName;
-            profileUpdates.last_identity_update = nowMs;
+            profileUpdates.last_full_name_change = nowMs;
         }
 
         try {
