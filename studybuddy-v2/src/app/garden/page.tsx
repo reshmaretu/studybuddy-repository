@@ -413,8 +413,8 @@ export default function CrystalGarden() {
 
     return (
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            {/* Full-height container, overflow hidden so the page never scrolls */}
-            <div className="h-[calc(100vh-theme(spacing.24))] flex flex-col max-w-[1600px] mx-auto space-y-4 relative overflow-hidden px-4">
+            {/* Full-height container on desktop, scrolling on mobile */}
+            <div className="md:h-[calc(100vh-(--spacing(24)))] flex flex-col max-w-[1600px] mx-auto space-y-4 relative md:overflow-hidden px-2 md:px-4 pb-20 md:pb-0">
 
                 <AnimatePresence>
                     {showMorningModal && <MorningPlanningModal />}
@@ -572,15 +572,15 @@ export default function CrystalGarden() {
 
                 {/* Header Section */}
                 {/* STYLING FIX: Added relative z-[100] to ensure dropdowns overlap the 3D canvas! */}
-                <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 shrink-0 relative z-[100]">
+                <header className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-4 shrink-0 relative z-[100] pt-2">
                     <div>
-                        <h1 className="text-3xl font-bold text-[var(--text-main)] flex items-center gap-3">
+                        <h1 className="text-2xl md:text-3xl font-bold text-[var(--text-main)] flex items-center gap-3">
                             <Sprout className="text-[var(--accent-teal)]" size={32} /> Crystal Garden
                         </h1>
-                        <p className="text-[var(--text-muted)] mt-1">Cultivate and manage your active quests.</p>
+                        <p className="text-xs md:text-sm text-[var(--text-muted)] mt-1">Cultivate and manage your active quests.</p>
                     </div>
 
-                    <div className="flex gap-3 w-full md:w-auto flex-wrap pb-2 md:pb-0 hide-scrollbar shrink-0">
+                    <div className="flex gap-2 md:gap-3 w-full xl:w-auto flex-wrap pb-2 xl:pb-0 hide-scrollbar shrink-0">
                         <div className="relative flex-1 md:w-48 shrink-0">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
                             <input
@@ -634,12 +634,12 @@ export default function CrystalGarden() {
                     </div>
                 </header>
 
-                {/* 3. The Strict 3-Column Layout! */}
-                <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0 pb-4">
+                {/* 3. The Strict 3-Column Layout! (Stacks on mobile/tablet) */}
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 min-h-0 md:pb-4">
 
                     {/* LEFT Column: Active Quests (Cinematic Shape-Shifter) */}
-                    <section className="h-full flex flex-col">
-                        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col h-full overflow-hidden shadow-sm">
+                    <section className="h-[600px] lg:h-full flex flex-col">
+                        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-5 flex flex-col h-full overflow-hidden shadow-sm">
 
                             {/* Static Header */}
                             <div className="flex justify-between items-center mb-4 shrink-0">
@@ -738,7 +738,7 @@ export default function CrystalGarden() {
                     </section>
 
                     {/* MIDDLE Column: The Terrarium Drop Zone */}
-                    <div ref={setGeodeRef} className={`h-full relative flex flex-col rounded-[2.5rem] p-3 transition-colors duration-300 ${isGeodeOver ? 'bg-[var(--accent-teal)] shadow-[0_0_30px_rgba(20,184,166,0.3)]' : 'bg-[#111] shadow-[inset_0_4px_20px_rgba(0,0,0,0.6),0_0_0_1px_var(--border-color)]'}`}>
+                    <div ref={setGeodeRef} className={`h-[400px] lg:h-full relative flex flex-col rounded-4xl md:rounded-[2.5rem] p-2 md:p-3 transition-colors duration-300 ${isGeodeOver ? 'bg-[var(--accent-teal)] shadow-[0_0_30px_rgba(20,184,166,0.3)]' : 'bg-[#111] shadow-[inset_0_4px_20px_rgba(0,0,0,0.6),0_0_0_1px_var(--border-color)]'}`}>
                         <div className={`flex-1 w-full h-full rounded-[1.8rem] overflow-hidden relative shadow-[inset_0_0_60px_rgba(0,0,0,0.9)] transition-all ${isGeodeOver ? 'border-2 border-[var(--bg-dark)]' : 'border border-white/10'}`}>
 
                             <div className="absolute top-5 left-5 z-10 pointer-events-none">
@@ -766,7 +766,7 @@ export default function CrystalGarden() {
                     </div>
 
                     {/* RIGHT Column: Hall of Mastery */}
-                    <section className="h-full overflow-hidden flex flex-col">
+                    <section className="h-[600px] lg:h-full overflow-hidden flex flex-col">
                         <MasteryContainer
                             id="hall-of-mastery"
                             masteryTab={masteryTab}

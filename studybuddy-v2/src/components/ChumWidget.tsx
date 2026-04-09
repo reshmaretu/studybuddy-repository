@@ -383,7 +383,7 @@ export default function ChumWidget() {
                     isTop: info.point.y < window.innerHeight / 3 // Flips if in the top 33% of screen
                 })}
                 style={{ zIndex: 100000 }}
-                className="fixed bottom-8 right-8 flex flex-col items-end justify-end cursor-grab active:cursor-grabbing relative"
+                className="fixed bottom-20 md:bottom-8 right-4 md:right-8 flex flex-col items-end justify-end cursor-grab active:cursor-grabbing relative"
             >
                 <AnimatePresence>
                     {isOpen && (
@@ -680,7 +680,7 @@ export default function ChumWidget() {
                                         <div className="mt-3 pt-3 border-t border-[var(--border-color)]/30 flex items-center justify-between">
                                             <div className="flex items-center gap-1.5">
                                                 <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)] animate-pulse" />
-                                                <span className="text-[10px] font-black uppercase tracking-tighter text-[var(--accent-teal)]">Neural Link</span>
+                                                <span className="text-[10px] font-black uppercase tracking-tighter text-[var(--accent-teal)]">Spirit Link</span>
                                             </div>
                                         </div>
                                     </>
@@ -710,7 +710,7 @@ export default function ChumWidget() {
                                         {viewingLog.shardTitle}
                                     </h2>
                                     <span className="text-[10px] text-(--text-muted) font-mono">
-                                        {new Date(viewingLog.date).toLocaleString()} • +{viewingLog.masteryGained}% Mastery
+                                        {new Date(viewingLog.date).toLocaleString()} • +{viewingLog.masteryGained}% Flow
                                     </span>
                                 </div>
                                 <button onClick={() => setViewingLog(null)} className="p-1.5 rounded-md hover:bg-(--bg-dark) text-(--text-muted) hover:text-(--text-main) transition-colors">

@@ -243,7 +243,7 @@ export default function FlowStateOverlay() {
                                     <CheckCircle2 size={32} />
                                 </div>
                                 <h3 className="text-xl font-bold text-white mb-2">Chapter Complete?</h3>
-                                <p className="text-white/40 text-sm mb-6">Ready to log your progress and return to the Lantern Network?</p>
+                                <p className="text-white/40 text-sm mb-6">Ready to log your progress and return to the Spirit Link?</p>
 
                                 {/* 🔥 PREMIUM POST-MATCH SURVEY 🔥 */}
                                 {isPremiumUser && (

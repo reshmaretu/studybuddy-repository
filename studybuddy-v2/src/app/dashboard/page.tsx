@@ -126,7 +126,7 @@ export default function Dashboard() {
         const { active, over } = event;
 
         if (over && over.id === "completion-zone") {
-            if (window.confirm("Spark this quest as complete?")) {
+            if (window.confirm("Mark this quest as complete?")) {
                 completeTask(active.id as string);
             }
         }

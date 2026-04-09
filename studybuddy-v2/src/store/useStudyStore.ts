@@ -831,13 +831,13 @@ export const useStudyStore = create<StudyState>()(
                     get().modifyFocusScore(15); // A nice Focus Score bump
 
                     if (get().triggerChumToast) {
-                        get().triggerChumToast(`Neural Link Ascended! +250 XP for mastering ${(masteredShardRef as Shard).title}!`);
+                        get().triggerChumToast(`Spirit Link Ascended! +250 XP for mastering ${(masteredShardRef as Shard).title}!`);
                     }
 
                     await supabase.from('tasks').insert([{
                         user_id: user.id,
                         title: `Mastered: ${(masteredShardRef as Shard).title}`,
-                        description: "Forged and mastered in the Hall of Mastery.",
+                        description: "Forged and mastered in the Flow Garden.",
                         load: 'heavy',
                         is_completed: true,
                         is_pinned: true
@@ -875,7 +875,7 @@ export const useStudyStore = create<StudyState>()(
                 activeTaskId: null,
                 focusTaskId: null,
                 isPremiumUser: false,
-                displayName: "Architect", // Reset to default
+                displayName: "Explorer", // Reset to default
                 normalChatHistory: [{ role: 'chum', text: "Ready to study." }],
                 tutorChatHistory: [],
                 pastTutorSessions: []
