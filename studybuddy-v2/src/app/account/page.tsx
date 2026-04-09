@@ -73,17 +73,17 @@ export default function AccountPage() {
                 const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
                 if (profile) {
                     setIsVerified(!!profile.is_verified);
-                    
+
                     const m_firstName = profile.full_name?.split(' ')[0] || "";
                     const m_lastName = profile.full_name?.split(' ').slice(1).join(' ') || "";
 
                     setMeta({
                         firstName: m_firstName,
                         lastName: m_lastName,
-                        lastIdentityUpdate: profile.last_identity_update || 0,
-                        lastDisplayUpdate: profile.last_display_update || 0,
+                        lastIdentityUpdate: profile.last_identity_change || 0,
+                        lastDisplayUpdate: profile.last_display_change || 0,
                     });
-                    
+
                     setFormData(prev => ({
                         ...prev,
                         newDisplayName: profile.display_name || displayName,
@@ -150,7 +150,7 @@ export default function AccountPage() {
     const handleVerifyOTP = async () => {
         const trimmedCode = otp.trim();
         const trimmedGenerated = otpRef.current.trim();
-        
+
         if (trimmedCode !== trimmedGenerated) {
             console.log(`[NEURAL] OTP mismatch: Input="${trimmedCode}" Expected="${trimmedGenerated}" (Current State: ${generatedOtp})`);
             return triggerChumToast("Invalid Neural Cipher. Please ensure you are using the latest code sent.", "warning");
@@ -435,7 +435,7 @@ export default function AccountPage() {
     return (
         <div className="min-h-screen w-full flex flex-col items-center p-6 md:p-12 overflow-y-auto bg-(--bg-dark) select-none custom-scrollbar">
             <div className="w-full max-w-4xl h-full flex flex-col gap-6 animate-in fade-in duration-700">
-                
+
                 {/* Centered Profile Section (Cozy/Refined) */}
                 <div className="flex flex-col items-center text-center gap-6 mt-4">
                     <div className="relative group">
@@ -444,13 +444,13 @@ export default function AccountPage() {
                             <div className="absolute inset-0 rounded-full bg-teal-400/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                     </div>
-                    
+
                     <div className="space-y-1">
                         <div className="flex items-center justify-center gap-3">
                             <h1 className="text-4xl font-bold tracking-tight text-white leading-tight">
                                 {displayName || fullName || userEmail.split('@')[0] || "Guardian"}
                             </h1>
-                            <button 
+                            <button
                                 onClick={() => setActiveModal('premium-status')}
                                 className={`p-2 rounded-2xl transition-all shadow-lg ${isPremiumUser ? 'bg-amber-400 text-black' : 'bg-white/5 text-white/40 hover:text-white'}`}
                             >
@@ -459,14 +459,14 @@ export default function AccountPage() {
                         </div>
                         <p className="text-sm font-medium text-teal-400/80 tracking-wide">{userEmail}</p>
                         <div className="flex items-center justify-center gap-2 mt-2">
-                             <span className="text-[10px] font-bold bg-teal-500/10 text-teal-400 border border-teal-500/20 px-3 py-1 rounded-full uppercase tracking-wider">Level {level}</span>
-                             <div className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase flex items-center gap-2 border shadow-sm ${isVerified ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                            <span className="text-[10px] font-bold bg-teal-500/10 text-teal-400 border border-teal-500/20 px-3 py-1 rounded-full uppercase tracking-wider">Level {level}</span>
+                            <div className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase flex items-center gap-2 border shadow-sm ${isVerified ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                                 {isVerified ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
                                 {isVerified ? 'Verified' : 'Unverified'}
                             </div>
                         </div>
                         {!isVerified && (
-                             <button
+                            <button
                                 onClick={() => handleSendOTP('verify')}
                                 disabled={loading}
                                 className="mt-4 px-6 py-2.5 rounded-full bg-white text-black text-[10px] font-bold uppercase hover:bg-teal-400 transition-all flex items-center gap-2 mx-auto active:scale-95 shadow-xl"
