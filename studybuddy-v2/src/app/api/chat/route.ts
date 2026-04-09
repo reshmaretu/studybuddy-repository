@@ -9,7 +9,7 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
     try {
-        const { messages, user_id, openrouter_key, groq_key, gemini_key, preferred_provider } = await req.json();
+        const { messages, user_id, openrouter_key, groq_key, gemini_key } = await req.json();
 
         // 🗝️ Centralized Key Logic
         const orKey = (openrouter_key?.trim() || process.env.OPENROUTER_AI_API_KEY)?.trim();
@@ -65,71 +65,53 @@ export async function POST(req: Request) {
         });
 
         // ==========================================
-        // STEP 2: THE STREAMING WATERFALL (Dynamic Sort)
+        // STEP 2: THE STREAMING WATERFALL
         // ==========================================
         let streamResult;
         let usedNode = "";
 
-        // Define the specific pipeline for each provider
-        const cloudNodes = [
-            {
-                id: 'openrouter',
-                name: 'OpenRouter (Llama 3.2)',
-                key: orKey,
-                run: async () => {
-                    const openrouter = createOpenRouter({ 
-                        apiKey: orKey,
-                        headers: { "HTTP-Referer": "https://studybuddy-v2.vercel.app", "X-Title": "StudyBuddy" }
-                    });
-                    return streamText({
-                        model: openrouter("meta-llama/llama-3.2-3b-instruct:free"),
-                        messages: formattedMessages
-                    });
-                }
-            },
-            {
-                id: 'groq',
-                name: 'Groq (Llama 3.3)',
-                key: groqKey,
-                run: async () => {
-                    const groq = createGroq({ apiKey: groqKey });
-                    return streamText({
-                        model: groq("llama-3.3-70b-versatile"),
-                        messages: formattedMessages
-                    });
-                }
-            },
-            {
-                id: 'gemini',
-                name: 'Gemini 2.0',
-                key: geminiKey,
-                run: async () => {
-                    const google = createGoogleGenerativeAI({ apiKey: geminiKey });
-                    return streamText({
-                        model: google('gemini-2.0-flash'),
-                        messages: formattedMessages
-                    });
-                }
+        // 🌊 PRIMARY: OpenRouter (Using Native Provider)
+        if (!streamResult && orKey) {
+            try {
+                const openrouter = createOpenRouter({ apiKey: orKey });
+
+                streamResult = await streamText({
+                    model: openrouter("meta-llama/llama-3.1-8b-instruct:free"),
+                    messages: formattedMessages
+                });
+                usedNode = "OpenRouter (Llama 3.1)";
+            } catch (e: any) {
+                console.warn(`OpenRouter failed: ${e.message}. Falling back to Groq...`);
             }
-        ];
+        }
 
-        // 🔥 CRITICAL: Sort based on user preference!
-        const sortedNodes = [...cloudNodes].sort((a, b) => {
-            if (a.id === preferred_provider) return -1;
-            if (b.id === preferred_provider) return 1;
-            return 0;
-        });
+        // 🌊 SECONDARY: Groq (Using Native Provider)
+        if (!streamResult && groqKey) {
+            try {
+                const groq = createGroq({ apiKey: groqKey });
 
-        // Execute waterfall
-        for (const node of sortedNodes) {
-            if (!streamResult && node.key) {
-                try {
-                    streamResult = await node.run();
-                    usedNode = node.name;
-                    break;
-                } catch (e: any) {
-                    console.warn(`${node.name} failed: ${e.message}. Moving to next node...`);
-                }
+                streamResult = await streamText({
+                    model: groq("llama-3.3-70b-versatile"),
+                    messages: formattedMessages
+                });
+                usedNode = "Groq (Llama 3.3)";
+            } catch (e: any) {
+                console.warn(`Groq failed: ${e.message}. Falling back to Gemini...`);
+            }
+        }
+
+        // 🌊 TERTIARY: Gemini (Using Native Provider)
+        if (!streamResult && geminiKey) {
+            try {
+                const google = createGoogleGenerativeAI({ apiKey: geminiKey });
+
+                streamResult = await streamText({
+                    model: google('gemini-2.0-flash'),
+                    messages: formattedMessages
+                });
+                usedNode = "Gemini 2.0";
+            } catch (e: any) {
+                console.warn(`Gemini failed: ${e.message}.`);
             }
         }
 

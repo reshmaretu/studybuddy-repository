@@ -1,14 +1,18 @@
-"use client";
+// Inside TldrawSafe.tsx
+import { Tldraw, Editor } from "tldraw";
 
-// Move the library import here
-import { Tldraw } from "@tldraw/tldraw";
+interface TldrawSafeProps {
+    id: string;
+    onMount: (editor: Editor) => void;
+    showMenu?: boolean; // 👈 Add this line!
+}
 
-export default function TldrawSafe({ onMount, id }: { onMount: (app: any) => void, id: string }) {
+export default function TldrawSafe({ id, onMount, showMenu }: TldrawSafeProps) {
     return (
         <Tldraw
-            id={id}
-            showMenu={false}
+            persistenceKey={id}
             onMount={onMount}
+            hideUi={!showMenu} // Often in tldraw, you use hideUi or specialized props
         />
     );
 }

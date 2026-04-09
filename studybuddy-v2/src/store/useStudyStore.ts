@@ -72,6 +72,8 @@ export const getTitleForLevel = (level: number) => {
 };
 
 interface StudyState {
+    userName?: string; // <-- ADD IT HERE
+
     // 🌐 CLOUD SYNC STATE
     isInitialized: boolean;
     initializeData: () => Promise<void>;
@@ -89,6 +91,7 @@ interface StudyState {
     resetFlowStats: () => void;
     dailyStreak: number;
     totalSessions: number;
+    totalSecondsTracked: number;
     timeLeft: number;
     isRunning: boolean;
     activeMode: 'none' | 'focusModal' | 'flowState' | 'studyCafe';
@@ -112,8 +115,6 @@ interface StudyState {
 
     aiTier: 'cloud' | 'local' | 'offline';
     aiKeys: { groq: string; gemini: string; openrouter: string };
-    preferredCloudProvider: 'openrouter' | 'groq' | 'gemini';
-    setPreferredCloudProvider: (provider: 'openrouter' | 'groq' | 'gemini') => void;
     ollamaUrl: string;
 
     xp: number;
@@ -127,6 +128,10 @@ interface StudyState {
     setActiveCrystalTheme: (themeId: string) => void;
     setActiveAtmosphereFilter: (filter: 'default' | 'dark' | 'refreshing' | 'cool') => void;
 
+    activeAccessories: { id: string; fileName: string; zIndex: number; name?: string }[];
+    toggleAccessory: (acc: any) => void;
+    setActiveAccessories: (accessories: { id: string; fileName: string; zIndex: number; name?: string }[]) => void;
+
     windSpeed: number;
     swayAmount: number;
     setWindSettings: (settings: Partial<{ windSpeed: number; swayAmount: number }>) => void;
@@ -134,18 +139,6 @@ interface StudyState {
     flowerCount: number;
     swayEnabled: boolean;
     setFlowerSettings: (settings: Partial<{ flowerCount: number; swayEnabled: boolean }>) => void;
-
-    displayName: string;
-    setDisplayName: (name: string) => Promise<void>;
-
-    fullName: string;
-
-    isVerified: boolean;
-
-    userEmail: string;
-    setUserEmail: (email: string) => void;
-
-    setFullName: (name: string) => Promise<void>;
 
     // ⚡ ASYNC ACTIONS (Cloud Synced)
     addTask: (task: Omit<Task, 'id' | 'isCompleted'>) => Promise<void>;
@@ -180,7 +173,6 @@ interface StudyState {
     // 💎 PREMIUM STATE
     isPremiumUser: boolean;
     checkPremiumStatus: () => Promise<void>;
-    setPremiumStatus: (val: boolean) => void;
 
     // 🗓️ PLANNING & PRIORITIZATION
     activeFramework: string | null;
@@ -207,17 +199,8 @@ interface StudyState {
     mockUsers: any[];
     setMockUsers: (val: any[] | ((prev: any[]) => any[])) => void;
 
-    chumToast: {
-        message: React.ReactNode; // Change from string to React.ReactNode
-        type?: "warning" | "normal" | "success";
-        id: number;
-    } | null;
-
-    triggerChumToast: (message: React.ReactNode, type?: 'warning' | 'normal' | 'success') => void;
-
-    // 💰 MOCK BILLING
-    mockInvoices: { id: string; date: string; amount: string; method: string }[];
-    addMockInvoice: (invoice: { id: string; date: string; amount: string; method: string }) => void;
+    chumToast: { message: string | React.ReactNode, type: 'warning' | 'normal' } | null;
+    triggerChumToast: (message: string | React.ReactNode, type?: 'warning' | 'normal') => void;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -225,19 +208,6 @@ export const useStudyStore = create<StudyState>()(
         (set, get) => ({
             isInitialized: false,
             isPremiumUser: false,
-
-            // 💰 MOCK BILLING
-            mockInvoices: [
-                { 
-                    id: "SB-GENESIS-001", 
-                    date: "2026-01-15", 
-                    amount: "PHP 0.00", 
-                    method: "EARLY_ACCESS_REWARD" 
-                }
-            ],
-            addMockInvoice: (invoice) => set((state) => ({ 
-                mockInvoices: [invoice, ...state.mockInvoices].slice(0, 10) 
-            })),
             checkPremiumStatus: async () => {
                 try {
                     const { data: { session } } = await supabase.auth.getSession();
@@ -257,37 +227,6 @@ export const useStudyStore = create<StudyState>()(
                     console.error("Premium Sync Error:", error);
                 }
             },
-
-            setPremiumStatus: (val: boolean) => set({ isPremiumUser: val }),
-
-            // ─── IDENTITY STATE ───
-            displayName: "Architect",
-            fullName: "",
-            isVerified: false,
-
-            setDisplayName: async (name: string) => {
-                set({ displayName: name });
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    await supabase.from('profiles')
-                        .update({ display_name: name, last_display_name_change: new Date().toISOString() })
-                        .eq('id', user.id);
-                }
-            },
-
-            userEmail: "",
-            setUserEmail: (email) => set({ userEmail: email }),
-
-            setFullName: async (name: string) => {
-                set({ fullName: name });
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    await supabase.from('profiles')
-                        .update({ full_name: name })
-                        .eq('id', user.id);
-                }
-            },
-
             isMindDumpOpen: false,
             toggleMindDump: () => set((state) => ({ isMindDumpOpen: !state.isMindDumpOpen })),
             tasks: [],
@@ -301,6 +240,7 @@ export const useStudyStore = create<StudyState>()(
             resetFlowStats: () => set({ flowBreaks: 0, tabSwitches: 0 }),
             dailyStreak: 3,
             totalSessions: 0,
+            totalSecondsTracked: 0,
             timeLeft: 1500,
             isRunning: false,
             activeMode: 'none',
@@ -329,8 +269,6 @@ export const useStudyStore = create<StudyState>()(
 
             aiTier: 'cloud',
             aiKeys: { groq: '', gemini: '', openrouter: '' },
-            preferredCloudProvider: 'openrouter',
-            setPreferredCloudProvider: (provider) => set({ preferredCloudProvider: provider }),
             ollamaUrl: 'http://localhost:11434',
             showNodeBadge: true,
             setShowNodeBadge: (showNodeBadge) => set({ showNodeBadge }),
@@ -341,19 +279,12 @@ export const useStudyStore = create<StudyState>()(
             devOverlayEnabled: true,
 
             chumToast: null,
-            triggerChumToast: (message, type = "normal") => {
-                set({
-                    chumToast: {
-                        message,
-                        type, // This now accepts "success"
-                        id: Date.now()
-                    }
-                });
-
-                // Optional: Clear toast after 5 seconds
+            triggerChumToast: (message, type = 'normal') => {
+                set({ chumToast: { message, type } });
+                // Auto-clear the bubble after 6 seconds
                 setTimeout(() => {
-                    set((state) => (state.chumToast?.message === message ? { chumToast: null } : {}));
-                }, 5000);
+                    set((state) => state.chumToast?.message === message ? { chumToast: null } : state);
+                }, 6000);
             },
 
             setActiveFramework: async (framework) => {
@@ -397,19 +328,18 @@ export const useStudyStore = create<StudyState>()(
 
             // ─── NEW STAT ACTIONS ───
             modifyFocusScore: async (amount) => {
-                const currentScore = get().focusScore;
-                const newScore = Math.max(0, Math.min(100, currentScore + amount));
-
-                // 1. Update UI state immediately
-                set({ focusScore: newScore });
-
-                // 2. Update Database in the background
                 const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    await supabase.from('user_stats')
-                        .update({ focus_score: newScore })
-                        .eq('user_id', user.id);
-                }
+                set((state) => {
+                    const newScore = Math.max(0, Math.min(100, state.focusScore + amount));
+
+                    // 🔥 Take a daily snapshot!
+                    const today = new Date().toISOString().split('T')[0];
+                    const updatedDailyScores = { ...state.dailyFocusScores, [today]: newScore };
+
+                    if (user) supabase.from('user_stats').update({ focus_score: newScore }).eq('user_id', user.id).then();
+
+                    return { focusScore: newScore, dailyFocusScores: updatedDailyScores };
+                });
             },
 
             gainXp: async (amount) => {
@@ -454,7 +384,11 @@ export const useStudyStore = create<StudyState>()(
                 set((state) => ({ totalSessions: state.totalSessions + 1 }));
 
                 if (user) {
-                    supabase.from('user_stats').update({ total_sessions: get().totalSessions }).eq('user_id', user.id).then();
+                    // 👇 Add total_seconds_tracked to the update payload
+                    supabase.from('user_stats').update({
+                        total_sessions: get().totalSessions,
+                        total_seconds_tracked: get().totalSecondsTracked
+                    }).eq('user_id', user.id).then();
                 }
             },
 
@@ -462,12 +396,20 @@ export const useStudyStore = create<StudyState>()(
 
             decrementTimer: () => {
                 const state = get();
+                const newTracked = state.totalSecondsTracked + 1;
+
                 // Intercept the timer exactly when it hits 0
                 if (state.timeLeft === 1) {
                     state.completeStudySession();
                     set({ timeLeft: 0, isRunning: false });
+                    get().completeStudySession();
                 } else {
                     set({ timeLeft: Math.max(0, state.timeLeft - 1) });
+                }
+                if (newTracked % 60 === 0) {
+                    supabase.auth.getUser().then(({ data: { user } }) => {
+                        if (user) supabase.from('user_stats').update({ total_seconds_tracked: newTracked }).eq('user_id', user.id).then();
+                    });
                 }
             },
 
@@ -503,6 +445,19 @@ export const useStudyStore = create<StudyState>()(
 
             activeCrystalTheme: 'quartz',
             activeAtmosphereFilter: 'default',
+
+            activeAccessories: [],
+            toggleAccessory: (acc) => set((state) => ({
+                activeAccessories: state.activeAccessories.find(a => a.id === acc.id)
+                    ? state.activeAccessories.filter(a => a.id !== acc.id) // Remove if already active
+                    : [...state.activeAccessories, acc] // Add if not active
+            })),
+
+            setActiveAccessories: (accessories) => {
+                set({ activeAccessories: accessories });
+                localStorage.setItem('activeAccessories', JSON.stringify(accessories));
+            },
+
             setActiveCrystalTheme: (themeId) => set({ activeCrystalTheme: themeId }),
             setActiveAtmosphereFilter: (filter) => set({ activeAtmosphereFilter: filter }),
 
@@ -521,7 +476,7 @@ export const useStudyStore = create<StudyState>()(
                 const { data: { user } } = await supabase.auth.getUser();
 
                 if (!user) {
-                    set({ isInitialized: true, isVerified: false });
+                    set({ isInitialized: true });
                     return;
                 }
 
@@ -569,29 +524,14 @@ export const useStudyStore = create<StudyState>()(
                     }
 
                     set({
+                        userName: profileResponse.data?.display_name || profileResponse.data?.full_name || "Explorer",
                         focusScore: statsResponse.data?.focus_score ?? 100,
                         totalSessions: statsResponse.data?.total_sessions ?? 0,
+                        totalSecondsTracked: statsResponse.data?.total_seconds_tracked ?? 0,
                         isPremiumUser: profileResponse.data?.is_premium || false,
                         isDev: profileResponse.data?.is_dev || false,
                         activeFramework: profileResponse.data?.active_framework || null,
-                        lastPlannedDate: profileResponse.data?.last_planned_date || null,
-
-                        // 🔥 FIX: Logic for Identity Display
-                        // 1. Prioritize display_name from DB
-                        // 2. Fallback to full_name
-                        // 3. Fallback to the prefix of their email (e.g., 'mark' from mark@example.com)
-                        // 4. Ultimate fallback to "Architect"
-                        displayName: profileResponse.data?.display_name ||
-                            profileResponse.data?.full_name ||
-                            user.email?.split('@')[0] ||
-                            "Architect",
-
-                        fullName: profileResponse.data?.full_name || "",
-
-                        // 🔥 FIX: Map the email to the state variable
-                        userEmail: user.email,
-
-                        isVerified: !!user.email_confirmed_at
+                        lastPlannedDate: profileResponse.data?.last_planned_date || null
                     });
 
                     const activeTheme = wardrobeResponse.data?.active_theme || 'default';
@@ -613,43 +553,23 @@ export const useStudyStore = create<StudyState>()(
                 if (!user) return;
 
                 const tempId = `temp-${Date.now()}`;
-                
-                // 🔥 HARDENED: Provide full defaults to prevent dashboard crashes
-                const fullTask: Task = {
-                    id: tempId,
-                    title: task.title,
-                    description: task.description || "",
-                    load: task.load,
-                    deadline: task.deadline,
-                    isCompleted: false,
-                    isPinned: false,
-                    urgency: false,
-                    importance: false,
-                    isFrog: false,
-                    estimatedPomos: task.estimatedPomos || 1
-                };
+                set((state) => ({ tasks: [{ ...task, id: tempId, isCompleted: false }, ...state.tasks] }));
 
-                // Add to local state immediately
-                set((state) => ({
-                    tasks: [fullTask, ...state.tasks]
-                }));
-
-                const { data, error } = await supabase.from('tasks').insert([{
+                const { data } = await supabase.from('tasks').insert([{
                     user_id: user.id,
                     title: task.title,
                     description: task.description,
                     load: task.load,
                     deadline: task.deadline,
-                    is_completed: false, // Match DB
+                    // 👇 Map the new column
                     estimated_pomodoros: task.estimatedPomos
                 }]).select().single();
 
                 if (data) {
-                    set((state) => ({
-                        tasks: state.tasks.map(t => t.id === tempId ? { ...t, id: data.id } : t)
-                    }));
+                    set((state) => ({ tasks: state.tasks.map(t => t.id === tempId ? { ...t, id: data.id } : t) }));
                 }
             },
+
             updateTask: async (id, updates) => {
                 set((state) => ({ tasks: state.tasks.map(t => t.id === id ? { ...t, ...updates } : t) }));
                 if (!id.startsWith('temp-')) {
@@ -680,7 +600,8 @@ export const useStudyStore = create<StudyState>()(
                     const { data: { session } } = await supabase.auth.getSession();
                     if (!session) return;
 
-                    const res = await fetch('/api/forge', {
+                    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+                    const res = await fetch(`${baseUrl}/api/forge`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -831,13 +752,13 @@ export const useStudyStore = create<StudyState>()(
                     get().modifyFocusScore(15); // A nice Focus Score bump
 
                     if (get().triggerChumToast) {
-                        get().triggerChumToast(`Spirit Link Ascended! +250 XP for mastering ${(masteredShardRef as Shard).title}!`);
+                        get().triggerChumToast(`Neural Link Ascended! +250 XP for mastering ${(masteredShardRef as Shard).title}!`);
                     }
 
                     await supabase.from('tasks').insert([{
                         user_id: user.id,
                         title: `Mastered: ${(masteredShardRef as Shard).title}`,
-                        description: "Forged and mastered in the Flow Garden.",
+                        description: "Forged and mastered in the Hall of Mastery.",
                         load: 'heavy',
                         is_completed: true,
                         is_pinned: true
@@ -871,11 +792,11 @@ export const useStudyStore = create<StudyState>()(
                 shards: [],
                 focusScore: 100,
                 totalSessions: 0,
+                totalSecondsTracked: 0,
                 activeMode: 'none',
                 activeTaskId: null,
                 focusTaskId: null,
                 isPremiumUser: false,
-                displayName: "Explorer", // Reset to default
                 normalChatHistory: [{ role: 'chum', text: "Ready to study." }],
                 tutorChatHistory: [],
                 pastTutorSessions: []
@@ -893,6 +814,7 @@ export const useStudyStore = create<StudyState>()(
                 pomodoroCycles: state.pomodoroCycles,
                 devOverlayEnabled: state.devOverlayEnabled,
                 activeCrystalTheme: state.activeCrystalTheme,
+                activeAccessories: state.activeAccessories,
                 windSpeed: state.windSpeed,
                 swayAmount: state.swayAmount,
                 flowerCount: state.flowerCount,
@@ -900,9 +822,8 @@ export const useStudyStore = create<StudyState>()(
                 dailyFocusScores: state.dailyFocusScores,
                 flowBreaks: state.flowBreaks,
                 tabSwitches: state.tabSwitches,
-                mockInvoices: state.mockInvoices,
-                preferredCloudProvider: state.preferredCloudProvider,
             })
         }
     )
 );
+

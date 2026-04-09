@@ -5,36 +5,54 @@ import { Save, Cloud, CloudOff } from "lucide-react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { getSnapshot, loadSnapshot } from "tldraw";
+import "tldraw/tldraw.css";
+import "tldraw/tldraw.css"; // ✅ Keep the official v2 styles
 
-// ⚡ THE SHIELD: This dynamically imports the actual Tldraw component
-// only when the code is running in a browser (ssr: false).
+// ⚡ THE SHIELD: Dynamically import Tldraw for Client-Side only
 const TldrawComponent = dynamic(
-    () => import("@tldraw/tldraw").then((mod) => mod.Tldraw),
-    {
-        ssr: false,
-        loading: () => <div className="h-full w-full bg-[var(--bg-dark)] animate-pulse" />
-    }
+    () => import("./TldrawSafe"), // Points to your safe wrapper
+    { ssr: false } // Crucial: This disables server-side rendering for the engine
 );
-
-
 
 export default function ZenCanvas() {
     const [app, setApp] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [canvasId, setCanvasId] = useState("studybuddy-zen-canvas-guest");
 
-    // Initialize state from localStorage
-    const [autoSaveCloud, setAutoSaveCloud] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('zen_cloud_sync') === 'true';
-        }
-        return false;
-    });
+    // Initialize state from localStorage safely
+    const [autoSaveCloud, setAutoSaveCloud] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
 
-    // Update localStorage when it changes
+    // ⚡ THE THEME FIX: Watch the DOM for changes to data-theme
+    useEffect(() => {
+        const observer = new MutationObserver(() => {
+            if (!app) return;
+            // Force Tldraw to re-evaluate its environment when the theme flips
+            app.updateInstanceState({ isDebugMode: false });
+        });
+
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['data-theme']
+        });
+
+        return () => observer.disconnect();
+    }, [app]);
+
+    // Update localStorage when sync toggle changes
     useEffect(() => {
         localStorage.setItem('zen_cloud_sync', autoSaveCloud.toString());
     }, [autoSaveCloud]);
 
+    // ⚡ Reactive ID for Persistence (Prevents leakage between user profiles)
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data }) => {
+            if (data?.user) setCanvasId(`studybuddy-zen-canvas-${data.user.id}`);
+        });
+    }, []);
+
+    // Load Snapshot from Supabase
     useEffect(() => {
         const loadFromCloud = async () => {
             if (!app) return;
@@ -49,17 +67,14 @@ export default function ZenCanvas() {
                     .eq('user_id', user.id)
                     .single();
 
-                if (error && error.code !== 'PGRST116') throw error; // PGRST116 means no data found
+                if (error && error.code !== 'PGRST116') throw error;
 
                 if (data?.snapshot_data) {
-                    // 🔒 SECURITY CHECK: If RLS is weak, ensure this data actually belongs to us
-                    if ((data as any).user_id && (data as any).user_id !== user.id) {
-                        console.error("Critical: Retreived canvas data for wrong user!");
-                        return;
-                    }
+                    // Security Check: Verify ownership
+                    if (data.user_id && data.user_id !== user.id) return;
 
-                    // v1.29.0 specific method to load the document
-                    app.loadDocument(data.snapshot_data);
+                    // 👇 Pass the store as the first argument
+                    loadSnapshot(app.store, data.snapshot_data);
                     toast.success("Welcome back to your Sanctuary.");
                 }
             } catch (error) {
@@ -71,17 +86,7 @@ export default function ZenCanvas() {
         loadFromCloud();
     }, [app]);
 
-    // ⚡ Reactive ID for Tldraw Persistence (Prevents LocalStorage leakage between profiles)
-    const [canvasId, setCanvasId] = useState("studybuddy-zen-canvas-guest");
-    useEffect(() => {
-        supabase.auth.getUser().then(({ data }) => {
-            if (data?.user) setCanvasId(`studybuddy-zen-canvas-${data.user.id}`);
-        });
-    }, []);
-
     const handleSave = async () => {
-        // ⚡ THE FIX: Ensure we aren't just checking 'app', 
-        // but also ensuring the engine isn't mid-transaction.
         if (!app || isSaving) return;
         setIsSaving(true);
 
@@ -89,9 +94,8 @@ export default function ZenCanvas() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // Force the app to sync its internal state to the document object
-            // before we grab the snapshot for Supabase.
-            const snapshot = { ...app.document };
+            // 👇 Wrap the store inside the standalone function
+            const snapshot = getSnapshot(app.store);
 
             const { error } = await supabase
                 .from('whiteboards')
@@ -112,27 +116,27 @@ export default function ZenCanvas() {
         }
     };
 
+    // Auto-save Interval Logic
     useEffect(() => {
-        if (!autoSaveCloud || !app) return;
+        // We move the conditional logic INSIDE the hook, not the dependency array
+        if (!autoSaveCloud || !app || !isMounted) return;
 
         const autoSaveInterval = setInterval(() => {
-            // Direct call to handleSave without requiring manual triggers
             handleSave();
         }, 30000);
 
         return () => clearInterval(autoSaveInterval);
-    }, [autoSaveCloud, app]);
+    }, [autoSaveCloud, app, isMounted]); // Size is ALWAYS 3. Fixes the error.
 
     return (
         <div style={{ position: "absolute", inset: 0 }}>
-            {/* 🎨 Floating Sanctuary UI */}
-            {/* 🎨 Zen Controls: High-Contrast Crystal */}
-            <div className="absolute top-4 right-4 z-[200] flex items-center gap-2 bg-white/5 backdrop-blur-2xl p-1.5 rounded-2xl border border-white/10 shadow-2xl">
+            {/* 🎨 Positioned at Top-Center to avoid Tldraw UI collisions */}
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-2 bg-(--bg-card)/80 backdrop-blur-2xl p-2 rounded-2xl border border-(--border-color) shadow-2xl">
                 <button
                     onClick={() => setAutoSaveCloud(!autoSaveCloud)}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all text-[10px] font-black uppercase tracking-tighter ${autoSaveCloud
-                        ? 'bg-teal-400 text-black shadow-[0_0_20px_rgba(45,212,191,0.4)]'
-                        : 'bg-white/10 text-white/60 hover:text-white'
+                        ? 'bg-(--accent-teal) text-(--bg-dark) shadow-[0_0_20px_var(--accent-teal)]'
+                        : 'bg-(--bg-dark)/50 text-(--text-muted) hover:text-(--text-main)'
                         }`}
                 >
                     {autoSaveCloud ? <Cloud size={14} /> : <CloudOff size={14} />}
@@ -142,17 +146,27 @@ export default function ZenCanvas() {
                 <button
                     onClick={handleSave}
                     disabled={isSaving || autoSaveCloud}
-                    className="px-4 py-1.5 bg-white text-black rounded-xl hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest disabled:opacity-30"
+                    className="px-4 py-1.5 bg-(--text-main) text-(--bg-dark) rounded-xl hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest disabled:opacity-30"
                 >
                     {isSaving ? "STASHING..." : "SAVE SNAPSHOT"}
                 </button>
             </div>
 
             <TldrawComponent
+                key={canvasId} // Forces a fresh mount when user ID changes
                 id={canvasId}
-                showMenu={false}
-                onMount={(appInstance: any) => setApp(appInstance)}
+                showMenu={true}
+                onMount={(editor: any) => {
+                    // 🔥 THE FIX: Wrap the state update in a timeout or requestAnimationFrame.
+                    // This prevents React 19 from throwing a fit about "updating during mount"
+                    // while it's still processing these legacy refs.
+                    window.requestAnimationFrame(() => {
+                        setApp(editor);
+                    });
+                }}
             />
         </div>
     );
+
 }
+

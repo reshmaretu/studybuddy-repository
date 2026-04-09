@@ -22,12 +22,7 @@ export default function Login() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
 
         if (error) {
-            // Check if account exists but isn't confirmed (if they didn't toggle the dashboard setting)
-            if (error.message.includes("Email not confirmed")) {
-                setMessage({ text: "Check your email inbox or verify later in your profile.", show: true });
-            } else {
-                setMessage({ text: "Invalid credentials. Try again.", show: true });
-            }
+            setMessage({ text: "Invalid email or password.", show: true });
             setLoading(false);
         } else {
             // 🔒 SECURITY: Wipe previous session state before entering the sanctuary
@@ -37,57 +32,61 @@ export default function Login() {
     };
 
     return (
-        <div className="full-page-container flex h-screen bg-[#05080c] text-white overflow-hidden">
-            <main className="flex-1 flex items-center justify-center p-8">
-                <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <div className="text-center md:text-left">
-                        <h1 className="text-4xl font-black italic tracking-tighter">WELCOME BACK</h1>
-                        <p className="text-white/40 text-sm mt-3 uppercase tracking-widest font-bold font-mono">Resyncing Neural Link...</p>
-                    </div>
+        <div className="full-page-container">
+            <main className="login-section">
+                <div className="form-wrapper">
+                    <h1>Welcome back!</h1>
+                    <p className="subtitle">Simplify your workflow with <strong>StudyBuddy</strong>.</p>
 
-                    {message.show && (
-                        <div className={`p-4 rounded-2xl text-xs font-black uppercase tracking-wider border-2 bg-red-500/10 border-red-500/30 text-red-400`}>
-                             ⚠️ {message.text}
-                        </div>
-                    )}
+                    {message.show && <div className="messageDiv">{message.text}</div>}
 
-                    <form onSubmit={handleLogin} className="space-y-4">
+                    <form onSubmit={handleLogin}>
                         <input
                             type="email"
-                            placeholder="Email Address"
-                            className="w-full bg-[#111111] border border-white/5 rounded-2xl px-5 py-4 outline-none focus:border-[#84ccb9]/50 transition-all font-bold placeholder:text-white/20"
+                            placeholder="Email"
+                            className="input-field"
                             required
                             onChange={(e) => setEmail(e.target.value)}
                         />
                         <input
                             type="password"
-                            placeholder="Cipher (Password)"
-                            className="w-full bg-[#111111] border border-white/5 rounded-2xl px-5 py-4 outline-none focus:border-[#84ccb9]/50 transition-all font-bold placeholder:text-white/20"
+                            placeholder="Password"
+                            className="input-field"
                             required
                             onChange={(e) => setPassword(e.target.value)}
                         />
-                        <button type="submit" className="w-full py-5 bg-[#84ccb9] text-black rounded-2xl font-black mt-4 hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_30px_rgba(132,204,185,0.2)]" disabled={loading}>
-                            {loading ? "AUTHENTICATING..." : "ENTER THE LAB"}
+                        <button type="submit" className="login-btn" disabled={loading}>
+                            {loading ? "Logging in..." : "Login"}
                         </button>
                     </form>
 
-                    <p className="text-center text-xs font-bold text-white/30 uppercase tracking-widest">
-                        Not a member? <Link href="/register" className="text-[#84ccb9] hover:underline">
+                    <div className="divider">or continue with</div>
+                    <div className="social-icons">
+                        <div className="icon-circle">G</div>
+                        <div className="icon-circle">A</div>
+                        <div className="icon-circle">F</div>
+                    </div>
+
+                    <p className="footer-text">
+                        Not a member? <Link href="/register" style={{ color: 'var(--accent-cyan)', cursor: 'pointer', fontWeight: '600' }}>
                             Register now
                         </Link>
                     </p>
                 </div>
             </main>
 
-            <section className="hidden lg:flex w-[45%] bg-[#0b1211] border-l border-white/5 items-center justify-center p-20 relative overflow-hidden">
-                <div className="absolute inset-0 bg-linear-to-br from-[#84ccb9]/5 to-transparent pointer-events-none" />
-                <div className="text-center relative z-10">
-                    <div className="w-full aspect-square bg-[#111111] rounded-[40px] border-2 border-white/10 flex items-center justify-center mb-10 shadow-2xl relative">
-                        {/* Fallback pattern for the illustration */}
-                        <div className="absolute inset-10 border-2 border-dashed border-white/10 rounded-full animate-[spin_20s_linear_infinite]" />
-                        <span className="text-6xl grayscale opacity-40">🔐</span>
-                    </div>
-                    <h2 className="text-4xl font-black italic tracking-tighter leading-tight">THE SMARTEST WAY <br/> TO EVOLVE YOUR FLOW.</h2>
+            <section className="promo-section">
+                <div className="promo-inner">
+                    {/* 4. Use Next.js Image for automatic optimization */}
+                    <Image
+                        src="/your-illustration.png"
+                        alt="Illustration"
+                        className="hero-img"
+                        width={400}
+                        height={400}
+                        priority // Add priority since this image is visible immediately on load
+                    />
+                    <h2>Make your work easier with <strong>StudyBuddy</strong></h2>
                 </div>
             </section>
         </div>

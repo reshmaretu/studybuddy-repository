@@ -5,7 +5,36 @@ import { Lock, CheckCircle2, Palette, Shirt, Sparkles, Gem } from "lucide-react"
 import { useStudyStore } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
 
-// --- THE CRYSTAL CATALOG ---
+import ChumRenderer from "@/components/ChumRenderer";
+
+// --- THE ACCESSORY CATALOG (UPDATED WITH YOUR ASSETS) ---
+const ACCESSORY_CATALOG = {
+    clips: [
+        { id: 'clip1', name: 'Red Ribbon', fileName: 'clip1.png', zIndex: 40, isPremium: false },
+        { id: 'clip2', name: 'Rose', fileName: 'clip2.png', zIndex: 40, isPremium: false },
+        { id: 'clip3', name: 'Yellow Tulip', fileName: 'clip3.png', zIndex: 40, isPremium: true },
+        { id: 'clip4', name: 'Purple Rose', fileName: 'clip4.png', zIndex: 40, isPremium: true },
+        { id: 'clip5', name: 'Green Ribbon  ', fileName: 'clip5.png', zIndex: 40, isPremium: true },
+    ],
+    glasses: [
+        { id: 'glasses1', name: 'Brown Round Glasses', fileName: 'glasses1.png', zIndex: 30, isPremium: false },
+        { id: 'glasses2', name: 'Gold Round Glasses', fileName: 'glasses2.png', zIndex: 30, isPremium: false },
+        { id: 'glasses3', name: 'Silver Rectangle Glasses', fileName: 'glasses3.png', zIndex: 30, isPremium: false },
+        { id: 'glasses4', name: 'Black Oversized Glasses', fileName: 'glasses4.png', zIndex: 30, isPremium: true },
+        { id: 'glasses5', name: 'White Textured Square Glasses', fileName: 'glasses5.png', zIndex: 30, isPremium: true },
+        { id: 'glasses6', name: 'Black Round Glasses', fileName: 'glasses6.png', zIndex: 30, isPremium: true },
+        { id: 'glasses7', name: 'Chum Glasses', fileName: 'glasses7.png', zIndex: 30, isPremium: true },
+    ],
+    hats: [
+        { id: 'hat1', name: 'Beanie', fileName: 'hat1.png', zIndex: 50, isPremium: false },
+        { id: 'hat2', name: 'Hat', fileName: 'hat2.png', zIndex: 50, isPremium: false },
+        { id: 'hat3', name: 'Sports Band', fileName: 'hat3.png', zIndex: 50, isPremium: false },
+        { id: 'hat4', name: 'Ribbon', fileName: 'hat4.png', zIndex: 50, isPremium: true },
+        { id: 'hat5', name: 'Cap', fileName: 'hat5.png', zIndex: 50, isPremium: true },
+        { id: 'hat6', name: 'Crown', fileName: 'hat6.png', zIndex: 50, isPremium: true },
+    ],
+};
+
 const CRYSTAL_CATALOG = {
     // 🟢 STARTER
     quartz: { name: "Clear Quartz", unlockLevel: 1, isPremium: false, color: "#e0f8ff", emissive: "#8cd8f5" },
@@ -38,12 +67,19 @@ const CRYSTAL_CATALOG = {
 
 export default function WardrobePage() {
     // UI Tabs State
-    const [activeTab, setActiveTab] = useState<'themes' | 'crystals'>('themes');
+    const [activeTab, setActiveTab] = useState<'themes' | 'crystals' | 'accessories'>('themes');
     const [shakeTarget, setShakeTarget] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(true);
 
     // Store State
-    const { isPremiumUser, checkPremiumStatus, level, activeCrystalTheme, setActiveCrystalTheme, activeAtmosphereFilter, setActiveAtmosphereFilter } = useStudyStore(); const [activeAppTheme, setActiveAppTheme] = useState("deep-teal");
+    const {
+        isPremiumUser, checkPremiumStatus, level,
+        activeCrystalTheme, setActiveCrystalTheme,
+        activeAtmosphereFilter, setActiveAtmosphereFilter,
+        activeAccessories, setActiveAccessories
+    } = useStudyStore();
+
+    const [activeAppTheme, setActiveAppTheme] = useState("deep-teal");
 
     useEffect(() => {
         const initWardrobe = async () => {
@@ -78,8 +114,33 @@ export default function WardrobePage() {
             setTimeout(() => setShakeTarget(null), 400);
             return;
         }
-        // Save to store!
         if (setActiveCrystalTheme) setActiveCrystalTheme(crystalId);
+    };
+
+    const handleToggleAccessory = (accessory: any) => {
+        if (accessory.isPremium && !isPremiumUser) {
+            setShakeTarget(accessory.id);
+            setTimeout(() => setShakeTarget(null), 400);
+            return;
+        }
+
+        const isActive = activeAccessories?.some(acc => acc.id === accessory.id);
+        let newAccessories;
+
+        if (isActive) {
+            // Remove accessory
+            newAccessories = (activeAccessories || []).filter(acc => acc.id !== accessory.id);
+        } else {
+            // Add accessory
+            newAccessories = [...(activeAccessories || []), {
+                id: accessory.id,
+                fileName: accessory.fileName,
+                zIndex: accessory.zIndex,
+                name: accessory.name
+            }];
+        }
+
+        setActiveAccessories(newAccessories);
     };
 
     const freeThemes = [
@@ -121,18 +182,12 @@ export default function WardrobePage() {
                     </div>
 
                     <div className="flex-1 flex items-center justify-center w-full">
-                        <div className="relative w-64 h-64 bg-[var(--bg-dark)]/30 rounded-full border border-[var(--border-color)] flex items-center justify-center shadow-inner">
-                            <span className="text-8xl drop-shadow-2xl">👻</span>
+                        <div className="relative w-64 h-64">
+                            <ChumRenderer size="w-full h-full" />
                         </div>
                     </div>
 
-                    <div className="w-full grid grid-cols-3 gap-3">
-                        {['Base', 'Outfit', 'Head'].map(label => (
-                            <button key={label} className="py-2.5 bg-[var(--bg-dark)]/50 border border-[var(--border-color)] rounded-xl text-[10px] font-black uppercase text-[var(--text-muted)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)] transition-all">
-                                {label}
-                            </button>
-                        ))}
-                    </div>
+
                 </section>
 
                 {/* RIGHT PANEL: Customization Hub */}
@@ -151,6 +206,12 @@ export default function WardrobePage() {
                             className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'crystals' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
                             <Gem size={14} className={activeTab === 'crystals' ? 'text-[var(--accent-teal)]' : ''} /> Crystal Vault
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('accessories')}
+                            className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'accessories' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
+                        >
+                            <Shirt size={14} className={activeTab === 'accessories' ? 'text-[var(--accent-teal)]' : ''} /> Accessories
                         </button>
                     </div>
 
@@ -180,7 +241,7 @@ export default function WardrobePage() {
                                             ))}
                                         </div>
                                     </div>
-                                    {/* NEW: GARDEN ATMOSPHERE FILTERS */}
+                                    {/* GARDEN ATMOSPHERE FILTERS */}
                                     <div>
                                         <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4 block">Garden Atmosphere</label>
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -240,6 +301,64 @@ export default function WardrobePage() {
 
                                 </motion.div>
                             )}
+
+                            {/* ACCESSORIES TAB (NEW) */}
+                            {activeTab === 'accessories' && (
+                                <motion.div key="accessories" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-8">
+
+                                    {/* CLIPS SECTION */}
+                                    <div>
+                                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4 block">Hair Clips</label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {ACCESSORY_CATALOG.clips.map((clip) => (
+                                                <AccessoryButton
+                                                    key={clip.id}
+                                                    accessory={clip}
+                                                    isActive={activeAccessories?.some(acc => acc.id === clip.id) || false}
+                                                    isLocked={clip.isPremium && !isPremiumUser}
+                                                    isShaking={shakeTarget === clip.id}
+                                                    onClick={() => handleToggleAccessory(clip)}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* GLASSES SECTION */}
+                                    <div>
+                                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4 block">Eyewear</label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {ACCESSORY_CATALOG.glasses.map((glasses) => (
+                                                <AccessoryButton
+                                                    key={glasses.id}
+                                                    accessory={glasses}
+                                                    isActive={activeAccessories?.some(acc => acc.id === glasses.id) || false}
+                                                    isLocked={glasses.isPremium && !isPremiumUser}
+                                                    isShaking={shakeTarget === glasses.id}
+                                                    onClick={() => handleToggleAccessory(glasses)}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* HATS SECTION */}
+                                    <div>
+                                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4 block">Headwear</label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {ACCESSORY_CATALOG.hats.map((hat) => (
+                                                <AccessoryButton
+                                                    key={hat.id}
+                                                    accessory={hat}
+                                                    isActive={activeAccessories?.some(acc => acc.id === hat.id) || false}
+                                                    isLocked={hat.isPremium && !isPremiumUser}
+                                                    isShaking={shakeTarget === hat.id}
+                                                    onClick={() => handleToggleAccessory(hat)}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                </motion.div>
+                            )}
                         </AnimatePresence>
                     </div>
                 </section>
@@ -276,6 +395,37 @@ function CrystalButton({ crystal, isActive, isLocked, isShaking, onClick }: any)
                     <span className="text-[9px] text-[var(--text-muted)] font-black tracking-widest uppercase">Unlocks Lvl {crystal.unlockLevel}</span>
                 )}
                 {isLocked && crystal.isPremium && (
+                    <span className="text-[9px] text-[var(--accent-yellow)] font-black tracking-widest uppercase">Pro Exclusive</span>
+                )}
+            </div>
+
+            {isActive ? <CheckCircle2 className="text-[var(--accent-teal)] w-4 h-4 shrink-0" /> : isLocked && <Lock size={12} className="text-[var(--text-muted)] shrink-0" />}
+        </button>
+    );
+}
+
+// 👕 Helper Component for Accessories (NEW)
+function AccessoryButton({ accessory, isActive, isLocked, isShaking, onClick }: any) {
+    return (
+        <button
+            onClick={onClick}
+            className={`group relative flex items-center p-4 rounded-2xl border-2 transition-all duration-200 ${isShaking ? 'animate-premium-shake border-red-500' :
+                isActive ? 'border-[var(--accent-teal)] bg-[var(--bg-dark)] shadow-[0_0_15px_rgba(20,184,166,0.15)]' :
+                    'border-[var(--border-color)] bg-[var(--bg-sidebar)]/50 hover:bg-[var(--bg-sidebar)]'
+                } ${isLocked && !isActive ? 'opacity-60 hover:opacity-100' : ''}`}
+        >
+            {/* Accessory Icon Preview - PATH UPDATED to /assets/accessories/ */}
+            <div className="w-8 h-8 rounded-lg mr-3 shadow-sm shrink-0 relative overflow-hidden bg-[var(--bg-dark)]/50 border border-[var(--border-color)] flex items-center justify-center p-0.5">
+                <img
+                    src={`/assets/accessories/${accessory.fileName}`}
+                    alt={accessory.name}
+                    className="w-full h-full object-contain drop-shadow-md"
+                />
+            </div>
+
+            <div className="flex-1 text-left flex flex-col">
+                <span className="font-bold text-xs text-[var(--text-main)]">{accessory.name}</span>
+                {isLocked && (
                     <span className="text-[9px] text-[var(--accent-yellow)] font-black tracking-widest uppercase">Pro Exclusive</span>
                 )}
             </div>
