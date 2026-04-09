@@ -72,7 +72,13 @@ export const getTitleForLevel = (level: number) => {
 };
 
 interface StudyState {
-    userName?: string; // <-- ADD IT HERE
+    displayName: string;
+    fullName: string;
+    userEmail: string;
+    
+    setDisplayName: (name: string) => void;
+    setFullName: (name: string) => void;
+    setUserEmail: (email: string) => void;
 
     // 🌐 CLOUD SYNC STATE
     isInitialized: boolean;
@@ -195,12 +201,15 @@ interface StudyState {
 
     reset: () => void;
 
-    // 🎭 MOCK USERS (Dev Only)
+    // 🎭 MOCK USERS & INVOICES (Dev Only)
     mockUsers: any[];
+    mockInvoices: any[];
     setMockUsers: (val: any[] | ((prev: any[]) => any[])) => void;
+    addMockInvoice: (invoice: any) => void;
+    setPremiumStatus: (status: boolean) => void;
 
-    chumToast: { message: string | React.ReactNode, type: 'warning' | 'normal' } | null;
-    triggerChumToast: (message: string | React.ReactNode, type?: 'warning' | 'normal') => void;
+    chumToast: { message: string | React.ReactNode, type: 'warning' | 'normal' | 'success' | 'info' } | null;
+    triggerChumToast: (message: string | React.ReactNode, type?: 'warning' | 'normal' | 'success' | 'info') => void;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -208,6 +217,19 @@ export const useStudyStore = create<StudyState>()(
         (set, get) => ({
             isInitialized: false,
             isPremiumUser: false,
+            displayName: "Guardian",
+            fullName: "",
+            userEmail: "",
+            mockInvoices: [],
+
+            setDisplayName: (name) => set({ displayName: name }),
+            setFullName: (name) => set({ fullName: name }),
+            setUserEmail: (email) => set({ userEmail: email }),
+
+            addMockInvoice: (invoice) => set((state) => ({ 
+                mockInvoices: [invoice, ...state.mockInvoices] 
+            })),
+            setPremiumStatus: (status) => set({ isPremiumUser: status }),
             checkPremiumStatus: async () => {
                 try {
                     const { data: { session } } = await supabase.auth.getSession();
@@ -280,7 +302,7 @@ export const useStudyStore = create<StudyState>()(
 
             chumToast: null,
             triggerChumToast: (message, type = 'normal') => {
-                set({ chumToast: { message, type } });
+                set({ chumToast: { message, type: type as 'warning' | 'normal' | 'success' | 'info' } });
                 // Auto-clear the bubble after 6 seconds
                 setTimeout(() => {
                     set((state) => state.chumToast?.message === message ? { chumToast: null } : state);
@@ -524,7 +546,9 @@ export const useStudyStore = create<StudyState>()(
                     }
 
                     set({
-                        userName: profileResponse.data?.display_name || profileResponse.data?.full_name || "Explorer",
+                        displayName: profileResponse.data?.display_name || "Guardian",
+                        fullName: profileResponse.data?.full_name || "",
+                        userEmail: user.email || "",
                         focusScore: statsResponse.data?.focus_score ?? 100,
                         totalSessions: statsResponse.data?.total_sessions ?? 0,
                         totalSecondsTracked: statsResponse.data?.total_seconds_tracked ?? 0,
