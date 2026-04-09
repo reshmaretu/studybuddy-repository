@@ -80,8 +80,8 @@ export default function AccountPage() {
                     setMeta({
                         firstName: m_firstName,
                         lastName: m_lastName,
-                        lastIdentityUpdate: profile.last_identity_change || 0,
-                        lastDisplayUpdate: profile.last_display_change || 0,
+                        lastIdentityUpdate: profile.last_full_name_change || 0,
+                        lastDisplayUpdate: profile.last_display_name_change || 0,
                     });
 
                     setFormData(prev => ({
@@ -210,7 +210,7 @@ export default function AccountPage() {
         const profileUpdates: any = {};
         if (isChangingDisplay) {
             profileUpdates.display_name = formData.newDisplayName;
-            profileUpdates.last_display_change = nowMs;
+            profileUpdates.last_display_name_change = nowMs;
         }
         if (isChangingIdentity) {
             profileUpdates.full_name = finalFullName;
