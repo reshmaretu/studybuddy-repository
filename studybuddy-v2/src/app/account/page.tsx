@@ -24,6 +24,12 @@ export default function AccountPage() {
         performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true }
     } = useStudyStore();
 
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     // UI States
     const [activeModal, setActiveModal] = useState<string | null>(null);
     // Deleted local isVerified (now in store)
@@ -132,7 +138,7 @@ export default function AccountPage() {
             }
         };
         syncUser();
-    }, [setUserEmail, displayName]);
+    }, []);
 
     // ⚡ SNAPSHOT & REVERT PATTERN (Placeholder for complex logic, used in identity commit)
 
@@ -494,6 +500,8 @@ export default function AccountPage() {
                 }, 3000);
             }
         };
+
+        if (!isMounted) return <div className="min-h-screen bg-black" />;
 
         return (
             <div className="min-h-screen w-full flex flex-col items-center p-6 md:p-12 overflow-y-auto bg-(--bg-dark) select-none custom-scrollbar">
