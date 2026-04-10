@@ -172,8 +172,8 @@ function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll }: any) 
                         <span className="bg-black/40 px-2 py-0.5 rounded text-[9px]">{tasks.length}</span>
                     </div>
                     {tasks.length > 5 && (
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); if(onViewAll) onViewAll(); }}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); if (onViewAll) onViewAll(); }}
                             className="text-[var(--accent-teal)] hover:text-white transition-colors flex items-center gap-1 group"
                         >
                             <span className="group-hover:underline">View All</span>
@@ -207,11 +207,11 @@ function StandardZone({ id, tasks }: any) {
 }
 
 export default function CrystalGarden() {
-    const { 
-        isPremiumUser, tasks, shards, addTask, completeTask, updateTask, 
-        activeFramework, setActiveFramework, lastPlannedDate, isInitialized, 
-        triggerChumToast, openFocusModal, openEditModal, openViewModal, 
-        protocolLimits, updateProtocolLimits 
+    const {
+        isPremiumUser, tasks, shards, addTask, completeTask, updateTask,
+        activeFramework, setActiveFramework, lastPlannedDate, isInitialized,
+        triggerChumToast, openFocusModal, openEditModal, openViewModal,
+        protocolLimits, updateProtocolLimits
     } = useStudyStore();
 
     const [searchQuery, setSearchQuery] = useState("");
@@ -643,7 +643,7 @@ export default function CrystalGarden() {
                                 <div className="flex items-center gap-3">
                                     <h2 className="text-xl font-bold text-[var(--text-main)]">Current Focus</h2>
                                     {activeFramework === '1-3-5' && (
-                                        <button 
+                                        <button
                                             onClick={() => setShowProtocolSettings(!showProtocolSettings)}
                                             className="p-1 px-2 rounded-lg bg-[var(--bg-dark)] border border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--accent-teal)] hover:border-[var(--accent-teal)] transition-all flex items-center gap-1.5"
                                         >
@@ -659,7 +659,7 @@ export default function CrystalGarden() {
 
                             <AnimatePresence>
                                 {showProtocolSettings && activeFramework === '1-3-5' && (
-                                    <motion.div 
+                                    <motion.div
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         exit={{ opacity: 0, height: 0 }}
@@ -673,7 +673,7 @@ export default function CrystalGarden() {
                                             {(['heavy', 'medium', 'light'] as const).map(l => (
                                                 <div key={l} className="space-y-1.5 text-center">
                                                     <p className="text-[9px] font-bold text-[var(--text-muted)] uppercase">{l}</p>
-                                                    <input 
+                                                    <input
                                                         type="number" min="1" max="9"
                                                         value={protocolLimits[l]}
                                                         onChange={(e) => updateProtocolLimits({ [l]: parseInt(e.target.value) || 1 })}
@@ -755,7 +755,17 @@ export default function CrystalGarden() {
                                                 </div>
                                             )}
                                         </motion.div>
-
+                                    ) : (
+                                        <motion.div
+                                            key="standard"
+                                            initial={{ opacity: 0, filter: "blur(5px)" }}
+                                            animate={{ opacity: 1, filter: "blur(0px)" }}
+                                            exit={{ opacity: 0, filter: "blur(5px)" }}
+                                            transition={{ duration: 0.3 }}
+                                            className="absolute inset-0 flex flex-col"
+                                        >
+                                            <StandardZone id="current-focus" tasks={sortedQuests} />
+                                        </motion.div>
                                     )}
                                 </AnimatePresence>
                             </div>
