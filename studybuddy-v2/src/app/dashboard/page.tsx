@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, Play, Pause, Settings, Bell, Flame, Coffee, Zap, RotateCcw, Calendar, CheckCircle2, Pin } from "lucide-react"; import { useEffect, useState } from "react";
+import { Brain, Play, Pause, Settings, Bell, Flame, Coffee, Zap, RotateCcw, Calendar, CheckCircle2, Pin } from "lucide-react"; import { useEffect, useState, useMemo } from "react";
 import { useStudyStore, Task, calculateXpRequirement, getTitleForLevel } from "@/store/useStudyStore";
 import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import { AnimatePresence, motion } from "framer-motion";

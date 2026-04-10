@@ -16,11 +16,9 @@ import DevOverlay from "./DevOverlay";
 
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const { isInitialized, initializeData, isSidebarHidden } = useStudyStore((state) => ({ 
-        isInitialized: state.isInitialized, 
-        initializeData: state.initializeData,
-        isSidebarHidden: state.isSidebarHidden
-    }));
+    const isInitialized = useStudyStore(state => state.isInitialized);
+    const initializeData = useStudyStore(state => state.initializeData);
+    const isSidebarHidden = useStudyStore(state => state.isSidebarHidden);
     const [isMounted, setIsMounted] = useState(false);
 
     // 🛡️ Ensure the component is mounted on the client
