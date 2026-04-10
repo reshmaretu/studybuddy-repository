@@ -1,30 +1,34 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+// 1. Setup CORS for your Vercel frontend
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-requested-with',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-// Fallback logic for keys: checks both prefixed and non-prefixed versions
-const getEnv = (name: string) => Deno.env.get(name) || Deno.env.get(`NEXT_PUBLIC_${name}`) || ''
-
+// 2. Initialize the Admin Client
+// Supabase automatically provides these two env vars to all functions.
+// We use these to bypass RLS and save the OTP to the database.
 const supabaseAdmin = createClient(
-    getEnv('SUPABASE_URL'),
-    getEnv('SUPABASE_SERVICE_ROLE_KEY')
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
-Deno.serve(async (req) => {
-    if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+Deno.serve(async (req: Request) => {
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+        return new Response('ok', { headers: corsHeaders })
+    }
 
     try {
         const body = await req.json()
-        // This is the most important change:
+
+        // Flexible variable mapping to prevent 422 errors
         const email = body.userEmail || body.email
         const { userId, action, type } = body
 
         if (!email) {
-            // Throwing an error here triggers your catch block (the 401 you see)
             throw new Error("Recipient email is missing from the request body")
         }
 
@@ -32,15 +36,20 @@ Deno.serve(async (req) => {
         if (action === 'send_otp') {
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
 
-            // Log this so you can see it in Supabase Logs!
-            console.log(`Sending OTP to ${email}: ${otpCode}`)
+            console.log(`Generating OTP for ${email}`)
 
+            // Save OTP to your database
             const { error: dbError } = await supabaseAdmin
                 .from('recovery_codes')
-                .upsert({ user_id: userId, code: otpCode, type: type || 'verify' })
+                .upsert({
+                    user_id: userId,
+                    code: otpCode,
+                    type: type || 'verify'
+                })
 
-            if (dbError) throw dbError
+            if (dbError) throw new Error(`Database Error: ${dbError.message}`)
 
+            // Call EmailJS API
             const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -49,18 +58,20 @@ Deno.serve(async (req) => {
                     template_id: Deno.env.get('EMAILJS_OTP_TEMPLATE_ID'),
                     user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
                     template_params: {
-                        email: email,      // Match {{email}} in EmailJS
-                        otp_code: otpCode  // Match {{otp_code}} in EmailJS
+                        email: email,
+                        otp_code: otpCode
                     },
                 }),
             })
 
             if (!emailResponse.ok) {
                 const errorText = await emailResponse.text()
-                console.error("EmailJS Error:", errorText) // This WILL show in Supabase logs
-                throw new Error(`EmailJS failed: ${errorText}`)
+                throw new Error(`EmailJS Error: ${errorText}`)
             }
-            return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+
+            return new Response(JSON.stringify({ success: true }), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+            })
         }
 
         // --- ACTION: SEND PASSWORD RESET ---
@@ -77,31 +88,38 @@ Deno.serve(async (req) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    // WRONG: Deno.env.get('service_4jxw1y4') 
-                    // RIGHT: Use the name of the secret you set in Supabase
                     service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
                     template_id: Deno.env.get('EMAILJS_RESET_TEMPLATE_ID'),
                     user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
-                    template_params: { email: email, reset_link: data.properties.action_link },
+                    template_params: {
+                        email: email,
+                        reset_link: data.properties.action_link
+                    },
                 }),
             })
 
             if (!emailResponse.ok) {
                 const errorText = await emailResponse.text()
-                console.error("EmailJS Error:", errorText) // This WILL show in Supabase logs
-                throw new Error(`EmailJS failed: ${errorText}`)
+                throw new Error(`EmailJS Error: ${errorText}`)
             }
-            return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+
+            return new Response(JSON.stringify({ success: true }), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+            })
         }
 
+        return new Response(JSON.stringify({ error: "Invalid action" }), {
+            status: 400,
+            headers: corsHeaders
+        })
+
     } catch (err: any) {
-        console.error("FUNCTION_ERROR:", err.message); // This shows up in Supabase Logs
+        console.error("Function Error:", err.message)
         return new Response(JSON.stringify({
             success: false,
-            error: err.message,
-            stack: err.stack
+            error: err.message
         }), {
-            status: 500, // Changed from 401 to 500 to clearly flag a server failure
+            status: 500, // Better for debugging than 401
             headers: { ...corsHeaders, "Content-Type": "application/json" }
         })
     }
