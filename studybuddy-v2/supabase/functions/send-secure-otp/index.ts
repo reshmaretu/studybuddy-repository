@@ -32,9 +32,9 @@ Deno.serve(async (req) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    service_id: getEnv('EMAILJS_SERVICE_ID'),
-                    template_id: getEnv('EMAILJS_OTP_TEMPLATE_ID'),
-                    user_id: getEnv('EMAILJS_PUBLIC_KEY'),
+                    service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
+                    template_id: Deno.env.get('EMAILJS_OTP_TEMPLATE_ID'),
+                    user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
                     template_params: { to_email: email, otp_code: otpCode },
                 }),
             })
@@ -57,9 +57,9 @@ Deno.serve(async (req) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    service_id: getEnv('EMAILJS_SERVICE_ID'),
-                    template_id: getEnv('EMAILJS_RESET_TEMPLATE_ID'),
-                    user_id: getEnv('EMAILJS_PUBLIC_KEY'),
+                    service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
+                    template_id: Deno.env.get('EMAILJS_RESET_TEMPLATE_ID'),
+                    user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
                     template_params: { to_email: email, reset_link: data.properties.action_link },
                 }),
             })
