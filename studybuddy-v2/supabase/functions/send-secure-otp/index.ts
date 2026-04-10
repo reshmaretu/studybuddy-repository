@@ -2,7 +2,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-requested-with',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 // Fallback logic for keys: checks both prefixed and non-prefixed versions
@@ -17,18 +18,23 @@ Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
     try {
-        const body = await req.json();
-        // Try to grab the email from any common key name
-        const email = body.userEmail || body.email;
-        const { userId, action } = body;
+        const body = await req.json()
+        // This is the most important change:
+        const email = body.userEmail || body.email
+        const { userId, action, type } = body
 
         if (!email) {
-            console.error("Payload missing email:", body);
-            return new Response(JSON.stringify({ error: "Missing recipient" }), { status: 400, headers: corsHeaders });
+            // Throwing an error here triggers your catch block (the 401 you see)
+            throw new Error("Recipient email is missing from the request body")
         }
 
+        // --- ACTION: SEND VERIFICATION OTP ---
         if (action === 'send_otp') {
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
+
+            // Log this so you can see it in Supabase Logs!
+            console.log(`Sending OTP to ${email}: ${otpCode}`)
+
             const { error: dbError } = await supabaseAdmin
                 .from('recovery_codes')
                 .upsert({ user_id: userId, code: otpCode, type: type || 'verify' })
@@ -39,12 +45,12 @@ Deno.serve(async (req) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    service_id: Deno.env.get('service_4jxw1y4'),
-                    template_id: Deno.env.get('template_651g35l'),
-                    user_id: Deno.env.get('frRtvfcT_euNuaTxx'),
+                    service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
+                    template_id: Deno.env.get('EMAILJS_OTP_TEMPLATE_ID'),
+                    user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
                     template_params: {
-                        email: email,      // Ensure this matches {{email}} in EmailJS
-                        otp_code: otpCode  // Ensure this matches {{otp_code}} in EmailJS
+                        email: email,      // Match {{email}} in EmailJS
+                        otp_code: otpCode  // Match {{otp_code}} in EmailJS
                     },
                 }),
             })
@@ -71,9 +77,11 @@ Deno.serve(async (req) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    service_id: Deno.env.get('service_4jxw1y4'),
-                    template_id: Deno.env.get('template_2pf96wo'),
-                    user_id: Deno.env.get('frRtvfcT_euNuaTxx'),
+                    // WRONG: Deno.env.get('service_4jxw1y4') 
+                    // RIGHT: Use the name of the secret you set in Supabase
+                    service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
+                    template_id: Deno.env.get('EMAILJS_RESET_TEMPLATE_ID'),
+                    user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
                     template_params: { email: email, reset_link: data.properties.action_link },
                 }),
             })
