@@ -41,7 +41,7 @@ export default function Sidebar() {
     return (
         <>
             {/* --- DESKTOP SIDEBAR --- */}
-            <nav className="fixed top-0 left-0 h-screen w-[80px] hover:w-[240px] bg-[var(--bg-sidebar)] border-r border-[var(--border-color)] transition-all duration-300 z-50 overflow-hidden group hidden md:flex flex-col">
+            <nav className="h-screen w-[80px] hover:w-[240px] bg-[var(--bg-sidebar)] border-r border-[var(--border-color)] transition-all duration-300 z-50 overflow-hidden group hidden md:flex flex-col shrink-0">
                 <div className="w-full h-full flex flex-col justify-between py-6">
                     <div className="flex flex-col gap-4">
                         <Link href="/" className="flex items-center h-12 mx-2 mb-4 cursor-pointer rounded-xl hover:bg-white/5 transition-colors overflow-hidden">

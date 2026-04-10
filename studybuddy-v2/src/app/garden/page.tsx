@@ -585,7 +585,7 @@ export default function CrystalGarden() {
                                         {[
                                             { id: null, label: 'Standard List' },
                                             { id: '1-3-5', label: '1-3-5 Method' },
-                                            { id: 'Eisenhower', label: 'Eisenhower Matrix' },
+                                            { id: 'eisenhower', label: 'Eisenhower Matrix' },
                                             { id: 'ivy', label: 'Ivy Lee Method' }
                                         ].map((fw) => (
                                             <button
@@ -603,7 +603,7 @@ export default function CrystalGarden() {
                                 )}
                             </AnimatePresence>
                         </div>
-                        <button onClick={() => setShowUnDoneModal(true)} className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-main)] hover:text-[var(--accent-teal)] hover:border-[var(--accent-teal)] transition-colors flex items-center justify-center whitespace-nowrap gap-2 shrink-0">
+                        <button onClick={() => setShowUnDoneModal(true)} className="bg-[var(--bg-sidebar)] border border-(--border-color) px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-main)] hover:text-[var(--accent-teal)] hover:border-[var(--accent-teal)] transition-colors flex items-center justify-center whitespace-nowrap gap-2 shrink-0">
                             <Moon size={16} /> Wrap Up
                         </button>
                         <button onClick={() => setIsAdding(true)} className="bg-[var(--accent-teal)] text-[#0b1211] px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 hover:brightness-110 shadow-[0_0_10px_rgba(20,184,166,0.2)] shrink-0">
@@ -617,13 +617,13 @@ export default function CrystalGarden() {
 
                     {/* LEFT Column: Active Quests (Cinematic Shape-Shifter) */}
                     <section className="h-full flex flex-col">
-                        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col h-full overflow-hidden shadow-sm">
+                        <div className="bg-[var(--bg-card)] border border-(--border-color) rounded-2xl p-5 flex flex-col h-full overflow-hidden shadow-sm">
 
                             {/* Static Header */}
                             <div className="flex justify-between items-center mb-4 shrink-0">
                                 <h2 className="text-xl font-bold text-[var(--text-main)]">Current Focus</h2>
                                 <span className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
-                                    {activeFramework === 'Eisenhower' ? 'Eisenhower Matrix' : activeFramework === '1-3-5' ? '1-3-5 Protocol' : activeFramework === 'ivy' ? 'Ivy Lee Method' : 'Standard List'}
+                                    {activeFramework === 'eisenhower' ? 'Eisenhower Matrix' : activeFramework === '1-3-5' ? '1-3-5 Protocol' : activeFramework === 'ivy' ? 'Ivy Lee Method' : 'Standard List'}
                                 </span>
                             </div>
 
@@ -631,7 +631,7 @@ export default function CrystalGarden() {
                             <div className="flex-1 relative min-h-0">
                                 <AnimatePresence mode="wait">
 
-                                    {activeFramework === 'Eisenhower' ? (
+                                    {activeFramework === 'eisenhower' ? (
                                         <motion.div
                                             key="eisenhower"
                                             initial={{ opacity: 0, scale: 0.95, filter: "blur(5px)" }}

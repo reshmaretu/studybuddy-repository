@@ -155,20 +155,20 @@ export default function Dashboard() {
             <div className="max-w-[1400px] mx-auto pb-24 md:pb-12 space-y-6 px-4 md:px-0">
 
                 {/* HEADER */}
-                <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 pt-4 md:pt-0">
-                    <div className="w-full">
+                <header className="flex justify-between items-center gap-6 mb-4 pt-4 md:pt-0">
+                    <div className="flex-1 min-w-0">
                         <h1 className="text-2xl md:text-3xl font-bold text-[var(--text-main)] truncate">
                             {greeting}, {displayName}!
                         </h1>
                     </div>
-                    <div className="flex items-center justify-between w-full md:w-auto gap-6 sm:gap-8">
-                        <div className="flex flex-col items-start md:items-end">
+                    <div className="flex items-center gap-6 sm:gap-8 shrink-0">
+                        <div className="flex flex-col items-end">
                             <span className="text-lg md:text-xl font-bold text-[var(--text-main)] leading-none">{time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
-                            <span className="text-[var(--accent-teal)] font-bold tracking-widest uppercase text-[9px] md:text-[10px] mt-1">{time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                            <span className="text-[var(--accent-teal)] font-bold tracking-widest uppercase text-[9px] md:text-[10px] mt-1 whitespace-nowrap">{time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                         </div>
-                        <button className="p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors relative">
+                        <button className="p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors relative shrink-0">
                             <Bell size={24} />
-                            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[var(--bg-dark)]"></span>
+                            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-(--bg-dark)"></span>
                         </button>
                     </div>
                 </header>
