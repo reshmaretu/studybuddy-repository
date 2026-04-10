@@ -165,8 +165,9 @@ export default function Dashboard() {
                 {/* HEADER */}
                 <header className="flex justify-between items-center gap-6 mb-4 pt-4 md:pt-0">
                     <div className="flex-1 min-w-0 pr-2">
-                        <h1 className="text-xl md:text-3xl font-black text-[var(--text-main)] truncate leading-tight">
-                            {greeting}, {displayName}!
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[var(--text-main)] leading-tight flex flex-wrap gap-x-2">
+                            <span>{greeting},</span>
+                            <span className="text-[var(--accent-teal)]">{displayName}!</span>
                         </h1>
                     </div>
                     <div className="flex items-center gap-4 sm:gap-8 shrink-0">

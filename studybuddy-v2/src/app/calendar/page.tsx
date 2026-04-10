@@ -273,10 +273,10 @@ export default function TactileCalendar() {
                 </div>
 
                 {/* MAIN CONTENT AREA */}
-                <div className="flex-1 flex gap-6 min-h-0 pt-2">
+                <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 pt-2 overflow-y-auto lg:overflow-hidden no-scrollbar">
 
                     {/* LEFT: THE STASH */}
-                    <div className="w-80 flex flex-col bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 overflow-hidden shadow-sm relative">
+                    <div className="w-full lg:w-80 h-[400px] lg:h-full flex flex-col bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 overflow-hidden shadow-sm relative shrink-0">
                         <div className="flex items-center gap-2 mb-4">
                             <Inbox size={18} className="text-[var(--accent-yellow)]" />
                             <h2 className="font-bold text-[var(--text-main)]">The Stash</h2>

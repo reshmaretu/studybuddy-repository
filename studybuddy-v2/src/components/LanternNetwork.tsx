@@ -204,6 +204,11 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                         MIDDLE: THREE.MOUSE.DOLLY,
                         RIGHT: THREE.MOUSE.PAN
                     }}
+                    touches={{
+                        ONE: is3D ? THREE.TOUCH.ROTATE : THREE.TOUCH.PAN,
+                        TWO: THREE.TOUCH.DOLLY_PAN
+                    }}
+                    enableRotate={is3D}
                 />
             </Canvas>
         </div>

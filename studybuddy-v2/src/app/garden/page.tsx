@@ -640,10 +640,10 @@ export default function CrystalGarden() {
                 </header>
 
                 {/* 3. The Strict 3-Column Layout! (Responsive stack on mobile) */}
-                <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0 pb-20 lg:pb-4">
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0 pb-20 lg:pb-4 overflow-y-auto lg:overflow-hidden no-scrollbar">
 
                     {/* LEFT Column: Active Quests (Cinematic Shape-Shifter) */}
-                    <section className="h-[600px] lg:h-full flex flex-col">
+                    <section className="h-[420px] lg:h-full flex flex-col shrink-0">
                         <div className="bg-[var(--bg-card)] border border-(--border-color) rounded-2xl p-4 sm:p-5 flex flex-col h-full overflow-hidden shadow-sm">
 
                             {/* Static Header */}

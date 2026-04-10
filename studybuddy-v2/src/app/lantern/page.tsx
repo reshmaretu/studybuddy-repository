@@ -157,6 +157,7 @@ export default function LanternNetPage() {
 
     const [isHostModalOpen, setIsHostModalOpen] = useState(false);
     const [isMaximized, setIsMaximized] = useState(false);
+    const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
 
     useEffect(() => {
         setSettings({ isSidebarHidden: isMaximized });
@@ -462,78 +463,132 @@ export default function LanternNetPage() {
                 )}
             </AnimatePresence>
 
-            {!isMaximized && (
-                <div className="hidden lg:flex w-[340px] flex-col gap-6 h-full z-10 shrink-0 min-h-0">
-                    <div className="bg-(--bg-card) border border-(--border-color) p-6 rounded-[32px] shadow-sm flex flex-col gap-5">
-                        <h1 className="text-2xl font-black text-(--text-main) flex items-center gap-2">
-                            <Radio size={24} className="text-(--accent-teal)" /> Lantern Net
-                        </h1>
+            </AnimatePresence>
 
-                        <div className="relative w-full">
-                            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-(--text-muted)" />
-                            <input
-                                type="text"
-                                placeholder="Search void..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-(--bg-dark) border border-(--border-color) rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold text-(--text-main) outline-none focus:border-(--accent-teal) transition-all"
-                            />
+            {/* MOBILE SIDEBAR TOGGLE */}
+            <div className="lg:hidden fixed bottom-24 right-6 z-50">
+                <button 
+                    onClick={() => setIsSidebarOpenMobile(!isSidebarOpenMobile)}
+                    className="w-14 h-14 bg-(--accent-teal) text-black rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all"
+                >
+                    {isSidebarOpenMobile ? <X size={24} /> : <Trophy size={24} />}
+                </button>
+            </div>
+
+            <AnimatePresence>
+                {(isSidebarOpenMobile || (!isMaximized)) && (
+                    <motion.div 
+                        initial={isSidebarOpenMobile ? { x: '100%' } : { x: 0 }}
+                        animate={{ x: 0 }}
+                        exit={{ x: '100%' }}
+                        className={`fixed lg:relative inset-0 lg:inset-auto z-40 lg:z-10 ${isSidebarOpenMobile ? 'bg-(--bg-dark)/95 backdrop-blur-xl p-6 pt-12' : 'hidden lg:flex'} w-full lg:w-[340px] flex-col gap-6 h-full shrink-0 min-h-0`}
+                    >
+                         {/* MOBILE CLOSE BUTTON */}
+                        {isSidebarOpenMobile && (
+                            <button onClick={() => setIsSidebarOpenMobile(false)} className="absolute top-6 right-6 text-(--text-muted) hover:text-(--text-main)">
+                                <X size={28} />
+                            </button>
+                        )}
+
+                        <div className="bg-(--bg-card) border border-(--border-color) p-6 rounded-[32px] shadow-sm flex flex-col gap-5">
+                            <h1 className="text-2xl font-black text-(--text-main) flex items-center gap-2">
+                                <Radio size={24} className="text-(--accent-teal)" /> Lantern Net
+                            </h1>
+
+                            <div className="relative w-full">
+                                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-(--text-muted)" />
+                                <input
+                                    type="text"
+                                    placeholder="Search void..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full bg-(--bg-dark) border border-(--border-color) rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold text-(--text-main) outline-none focus:border-(--accent-teal) transition-all"
+                                />
+                            </div>
+
+                            <button
+                                onClick={() => setIsHostModalOpen(true)}
+                                className="w-full py-3.5 bg-(--accent-teal) text-white rounded-2xl font-black text-sm shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                            >
+                                <Plus size={18} /> Host Room
+                            </button>
                         </div>
 
-                        <button
-                            onClick={() => setIsHostModalOpen(true)}
-                            className="w-full py-3.5 bg-(--accent-teal) text-white rounded-2xl font-black text-sm shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
-                        >
-                            <Plus size={18} /> Host Room
-                        </button>
-                    </div>
-
-                    <div className="bg-(--bg-card) border border-(--border-color) rounded-[32px] p-6 flex-1 flex flex-col min-h-0 shadow-sm">
-                        <h3 className="text-sm font-black text-(--text-main) flex items-center gap-2 mb-4 pb-4 border-b border-(--border-color) uppercase tracking-wide">
-                            <Trophy size={18} className="text-(--accent-yellow)" /> Hall of Focus
-                        </h3>
-                        <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                            {isNetworkLoading ? (
-                                Array.from({ length: 5 }).map((_, i) => (
-                                    <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-(--bg-dark)/30 border border-transparent animate-pulse">
-                                        <div className="w-5 h-4 bg-(--border-color) rounded" />
-                                        <div className="flex-1 space-y-2">
-                                            <div className="h-4 bg-(--border-color) rounded w-24" />
-                                        </div>
-                                        <div className="w-10 h-6 bg-(--border-color) rounded-lg" />
-                                    </div>
-                                ))
-                            ) : (
-                                filteredNetwork.sort((a, b) => b.hours - a.hours).map((user, index) => (
-                                    <div
-                                        key={user.id}
-                                        className={`group/row flex items-center gap-3 p-3 rounded-2xl border transition-all ${user.id === 'me' ? 'bg-(--accent-teal)/10 border-(--accent-teal)/20' : 'bg-transparent border-transparent hover:border-(--border-color) hover:bg-(--bg-dark)'}`}
-                                    >
-                                        <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-(--accent-yellow)' : 'text-(--text-muted)'}`}>
-                                            {index + 1}
-                                        </span>
-                                        <div className="flex-1 flex flex-col">
-                                            <span className="text-sm font-black text-(--text-main)">{user.name}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => lanternRef.current?.warpToUser(user.id)}
-                                                className="opacity-0 group-hover/row:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-(--accent-teal)/10 text-(--text-muted) hover:text-(--accent-teal)"
-                                                title="Locate on map"
+                        <div className="bg-(--bg-card) border border-(--border-color) rounded-[32px] p-6 flex-1 flex flex-col min-h-0 shadow-sm gap-6 overflow-y-auto custom-scrollbar">
+                            {/* HALL OF FOCUS */}
+                            <div className="flex flex-col min-h-0">
+                                <h3 className="text-sm font-black text-(--text-main) flex items-center gap-2 mb-4 pb-4 border-b border-(--border-color) uppercase tracking-wide">
+                                    <Trophy size={18} className="text-(--accent-yellow)" /> Hall of Focus
+                                </h3>
+                                <div className="space-y-2">
+                                    {isNetworkLoading ? (
+                                        Array.from({ length: 3 }).map((_, i) => (
+                                            <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-(--bg-dark)/30 animate-pulse">
+                                                <div className="w-5 h-4 bg-(--border-color) rounded" />
+                                                <div className="flex-1 h-4 bg-(--border-color) rounded w-24" />
+                                            </div>
+                                        ))
+                                    ) : (
+                                        filteredNetwork.sort((a, b) => b.hours - a.hours).slice(0, 10).map((user, index) => (
+                                            <div
+                                                key={user.id}
+                                                className={`group/row flex items-center gap-3 p-3 rounded-2xl border transition-all ${user.id === 'me' ? 'bg-(--accent-teal)/10 border-(--accent-teal)/20' : 'bg-transparent border-transparent hover:border-(--border-color) hover:bg-(--bg-dark)'}`}
                                             >
-                                                <Crosshair size={14} />
-                                            </button>
-                                            <span className="text-xs font-black text-(--text-muted) bg-(--bg-dark) px-2 py-1 rounded-lg">
-                                                {user.hours}h
-                                            </span>
+                                                <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-(--accent-yellow)' : 'text-(--text-muted)'}`}>
+                                                    {index + 1}
+                                                </span>
+                                                <div className="flex-1 flex flex-col overflow-hidden">
+                                                    <span className="text-sm font-black text-(--text-main) truncate">{user.name}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    <button
+                                                        onClick={() => { lanternRef.current?.warpToUser(user.id); setIsSidebarOpenMobile(false); }}
+                                                        className="lg:opacity-0 group-hover/row:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-(--accent-teal)/10 text-(--text-muted) hover:text-(--accent-teal)"
+                                                    >
+                                                        <Crosshair size={14} />
+                                                    </button>
+                                                    <span className="text-xs font-black text-(--text-muted) bg-(--bg-dark) px-2 py-1 rounded-lg">
+                                                        {user.hours}h
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* SANCTUARIES */}
+                            <div className="flex flex-col min-h-0 pb-8">
+                                <h3 className="text-sm font-black text-(--text-main) flex items-center gap-2 mb-4 pb-4 border-b border-(--border-color) uppercase tracking-wide">
+                                    <Radio size={18} className="text-(--accent-teal)" /> active Sanctuaries
+                                </h3>
+                                <div className="space-y-3">
+                                    {combinedNetwork.filter(u => (u.status === 'hosting' || u.status === 'joined' || u.status === 'cafe') && u.roomCode).map(user => (
+                                        <div key={user.roomCode} className="p-4 rounded-3xl bg-(--bg-dark)/50 border border-(--border-color) hover:border-(--accent-teal)/40 transition-all cursor-pointer group/room"
+                                            onClick={() => router.push(`/room/${user.roomCode}`)}>
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h4 className="text-xs font-black text-white group-hover/room:text-(--accent-teal) transition-colors truncate pr-2">{user.roomTitle || 'Sanctuary'}</h4>
+                                                <span className="text-[10px] bg-(--accent-teal)/10 text-(--accent-teal) px-2 py-0.5 rounded-full font-black uppercase">{user.status}</span>
+                                            </div>
+                                            {user.roomDescription && <p className="text-[10px] text-(--text-muted) italic line-clamp-1 mb-3">"{user.roomDescription}"</p>}
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-5 h-5 rounded-full bg-(--bg-dark) flex items-center justify-center text-[10px]">{user.chumLabel.split(' ')[0]}</div>
+                                                <span className="text-[10px] font-bold text-(--text-muted)">Hosted by {user.name}</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))
-                            )}
+                                    ))}
+                                    {combinedNetwork.filter(u => (u.status === 'hosting' || u.status === 'joined' || u.status === 'cafe') && u.roomCode).length === 0 && (
+                                        <div className="text-center p-8 opacity-30">
+                                            <Radio size={32} className="mx-auto mb-2" />
+                                            <p className="text-[10px] font-black uppercase tracking-widest">No active Sanctuaries</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <div className="flex-1 h-full rounded-[40px] overflow-hidden border border-(--border-color) shadow-xl relative min-h-0">
                 <ThreeLanternNet 
