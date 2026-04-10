@@ -38,28 +38,30 @@ export default function AccountPage() {
     const [showPurgePassword, setShowPurgePassword] = useState(false);
     const [showCardCvv, setShowCardCvv] = useState(false);
 
-    // --- LOGIC: EMAILJS RECOVERY ---
-    const handleForgotCipher = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user?.email) return;
+    const [recoveryStep, setRecoveryStep] = useState<'request' | 'verify'>('request');
+    const [verificationCode, setVerificationCode] = useState(''); // User input
+    const [activeRecoveryCode, setActiveRecoveryCode] = useState(''); // Generated code
 
+    const handleForgotCipher = async () => {
         setLoading(true);
         const code = Math.floor(100000 + Math.random() * 900000).toString();
+        setActiveRecoveryCode(code);
 
         try {
             await emailjs.send(
-                'service_4jxw1y4', // Your Service ID
-                'template_y9vobks', // Your Template ID
+                'service_4jxw1y4', //
+                'template_password_reset', //
                 {
-                    to_email: user.email,
-                    recovery_code: code, // Matches {{recovery_code}} in your template
-                    user_name: user.user_metadata?.display_name || "Explorer"
+                    to_email: userEmail,
+                    recovery_code: code, // This fills the {{recovery_code}} in your email
+                    user_name: displayName
                 },
-                'frRtvfcT_euNuaTxx' // Your Public Key
+                'frRtvfcT_euNuaTxx'
             );
-            alert("Recovery code dispatched to your relay.");
+            triggerChumToast("Recovery code dispatched.", "success");
+            setRecoveryStep('verify'); // Switch the UI view
         } catch (err) {
-            alert("Transmission failed.");
+            triggerChumToast("Transmission failed.", "warning");
         } finally {
             setLoading(false);
         }
@@ -950,10 +952,48 @@ export default function AccountPage() {
                             {/* Cipher Modal */}
                             {activeModal === 'password' && (
                                 <div className="space-y-8">
-                                    <div className="text-center space-y-2">
-                                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">Cipher Update</h2>
-                                        <p className="text-[10px] font-bold opacity-30 uppercase">Secure your neural connection</p>
-                                    </div>
+                                    <h2 className="text-2xl font-black uppercase italic tracking-tighter text-center">
+                                        {recoveryStep === 'request' ? "Cipher Update" : "Verify Relay"}
+                                    </h2>
+
+                                    {recoveryStep === 'request' ? (
+                                        <div className="space-y-4">
+                                            {/* Standard Password Inputs */}
+                                            <input
+                                                type="password"
+                                                placeholder="Current Cipher"
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm"
+                                            />
+                                            <button onClick={handleForgotCipher} className="text-[10px] text-(--accent-teal) uppercase font-black">
+                                                Lost cipher? Send recovery code
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-6">
+                                            <p className="text-[10px] text-center font-bold text-white/40 uppercase">Enter the 6-digit code sent to your terminal</p>
+                                            <input
+                                                type="text"
+                                                maxLength={6}
+                                                placeholder="000000"
+                                                className="w-full bg-white/5 border border-(--accent-teal) rounded-2xl p-5 text-center text-2xl tracking-[0.5em] font-black outline-none"
+                                                value={verificationCode}
+                                                onChange={(e) => setVerificationCode(e.target.value)}
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    if (verificationCode === activeRecoveryCode) {
+                                                        setRecoveryStep('request');
+                                                        triggerChumToast("Access granted. Set new cipher.", "success");
+                                                    } else {
+                                                        triggerChumToast("Invalid code.", "warning");
+                                                    }
+                                                }}
+                                                className="w-full py-5 bg-(--accent-teal) text-black rounded-2xl text-[11px] font-black uppercase"
+                                            >
+                                                Verify Identity
+                                            </button>
+                                        </div>
+                                    )}
 
                                     <div className="space-y-4">
                                         {/* Current Password */}
