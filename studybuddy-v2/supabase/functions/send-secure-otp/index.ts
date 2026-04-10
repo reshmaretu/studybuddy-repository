@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
     try {
-        const { email, userId, action, type } = await req.json()
+        const { userEmail, userId, action, type } = await req.json()
 
         // --- ACTION: SEND VERIFICATION OTP ---
         if (action === 'send_otp') {
@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
                     service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
                     template_id: Deno.env.get('EMAILJS_OTP_TEMPLATE_ID'),
                     user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
-                    template_params: { to_email: email, otp_code: otpCode },
+                    template_params: { email: userEmail, otp_code: otpCode },
                 }),
             })
 
@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
         if (action === 'reset_password') {
             const { data, error } = await supabaseAdmin.auth.admin.generateLink({
                 type: 'recovery',
-                email: email,
+                email: userEmail,
                 options: { redirectTo: 'https://studybuddy-repository.vercel.app/reset-password' }
             })
 
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
                     service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
                     template_id: Deno.env.get('EMAILJS_RESET_TEMPLATE_ID'),
                     user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
-                    template_params: { email: email, reset_link: data.properties.action_link },
+                    template_params: { email: userEmail, reset_link: data.properties.action_link },
                 }),
             })
 
