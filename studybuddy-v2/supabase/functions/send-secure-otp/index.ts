@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
                     service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
                     template_id: Deno.env.get('EMAILJS_OTP_TEMPLATE_ID'),
                     user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
-                    template_params: { email: email, otp_code: otpCode },
+                    template_params: { to_email: email, otp_code: otpCode },
                 }),
             })
 
