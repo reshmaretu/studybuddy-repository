@@ -15,6 +15,12 @@ import { useRef } from "react";
 import { useRouter } from "next/navigation";
 
 export default function AccountPage() {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     const router = useRouter();
     const {
         isPremiumUser, level, displayName, fullName, userEmail, setUserEmail, triggerChumToast,
@@ -23,12 +29,6 @@ export default function AccountPage() {
         doubleClickToComplete = true, dndEnabled = true, setSettings, handleLogout,
         performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true }
     } = useStudyStore();
-
-    const [isMounted, setIsMounted] = useState(false);
-
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
 
     // UI States
     const [activeModal, setActiveModal] = useState<string | null>(null);
