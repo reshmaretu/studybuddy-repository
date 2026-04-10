@@ -193,7 +193,6 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                 <CameraRig isFocused={isFocused} is3D={is3D} controlsRef={controlsRef} warpTarget={warpTarget} intensity={globalIntensity} onWarpComplete={() => setWarpTarget(null)} isFreeCam={isFreeCam} setIsFreeCam={setIsFreeCam} />
                 <OrbitControls
                     ref={controlsRef}
-                    enableRotate={is3D}
                     enablePan={true} // 👈 Enabled everywhere to allow panning in 2D
                     enableZoom={true}
                     enableDamping={true}

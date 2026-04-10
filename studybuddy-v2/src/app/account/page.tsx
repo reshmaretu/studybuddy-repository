@@ -4,7 +4,7 @@ import { useStudyStore } from "@/store/useStudyStore";
 import {
     User, Mail, Lock, Trash2, Crown, LogOut,
     Camera, CheckCircle2, AlertCircle, RefreshCcw, X, ShieldAlert, ShieldCheck,
-    QrCode, Download, CreditCard, Send, Fingerprint, Settings, MousePointer2, Hand, Cpu
+    QrCode, Download, CreditCard, Send, Fingerprint, Settings, MousePointer2, Hand, Cpu, Eye, EyeOff
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -20,7 +20,7 @@ export default function AccountPage() {
         isPremiumUser, level, displayName, fullName, userEmail, setUserEmail, triggerChumToast,
         setPremiumStatus, setDisplayName, setFullName, mockInvoices, addMockInvoice,
         isVerified, setIsVerified,
-        doubleClickToComplete = true, dndEnabled = true, setSettings, handleLogout, 
+        doubleClickToComplete = true, dndEnabled = true, setSettings, handleLogout,
         performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true }
     } = useStudyStore();
 
@@ -32,6 +32,11 @@ export default function AccountPage() {
     const [generatedOtp, setGeneratedOtp] = useState("");
     const otpRef = useRef("");
     const [refNumber, setRefNumber] = useState("");
+
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showPurgePassword, setShowPurgePassword] = useState(false);
+    const [showCardCvv, setShowCardCvv] = useState(false);
 
     // Cooldown/Meta States
     const [meta, setMeta] = useState({
@@ -529,7 +534,7 @@ export default function AccountPage() {
                                     <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5">Quick complete via double click</p>
                                 </div>
                             </div>
-                            <button 
+                            <button
                                 onClick={() => setSettings({ doubleClickToComplete: !doubleClickToComplete })}
                                 className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${doubleClickToComplete ? 'bg-teal-400' : 'bg-white/10'}`}
                             >
@@ -548,7 +553,7 @@ export default function AccountPage() {
                                     <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5">Enable/Disable Drag & Drop</p>
                                 </div>
                             </div>
-                            <button 
+                            <button
                                 onClick={() => setSettings({ dndEnabled: !dndEnabled })}
                                 className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${dndEnabled ? 'bg-teal-400' : 'bg-white/10'}`}
                             >
@@ -577,7 +582,7 @@ export default function AccountPage() {
                                 </div>
                                 <div className="grid grid-cols-4 gap-2">
                                     {(['auto', 'low', 'balanced', 'high'] as const).map(m => (
-                                        <button 
+                                        <button
                                             key={m}
                                             onClick={() => setSettings({ performanceSettings: { mode: m } })}
                                             className={`py-2 rounded-xl text-[9px] font-black uppercase border transition-all ${performanceSettings.mode === m ? 'bg-teal-400 border-teal-400 text-black' : 'bg-white/5 border-white/10 text-white/40 hover:text-white'}`}
@@ -589,7 +594,7 @@ export default function AccountPage() {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <button 
+                                <button
                                     onClick={() => setSettings({ performanceSettings: { showParticles: !performanceSettings.showParticles } })}
                                     className={`flex items-center justify-between p-4 rounded-2xl bg-black/20 border transition-all ${performanceSettings.showParticles ? 'border-teal-400/30' : 'border-white/5 opacity-50'}`}
                                 >
@@ -598,7 +603,7 @@ export default function AccountPage() {
                                         <div className={`w-3 h-3 rounded-full bg-black transition-all ${performanceSettings.showParticles ? 'translate-x-4' : 'translate-x-0'}`} />
                                     </div>
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => setSettings({ performanceSettings: { bloomEnabled: !performanceSettings.bloomEnabled } })}
                                     className={`flex items-center justify-between p-4 rounded-2xl bg-black/20 border transition-all ${performanceSettings.bloomEnabled ? 'border-teal-400/30' : 'border-white/5 opacity-50'}`}
                                 >
@@ -849,17 +854,22 @@ export default function AccountPage() {
 
                                                 <div className="space-y-4">
                                                     <div className="space-y-2">
-                                                        <label className="text-[8px] font-black uppercase opacity-30 ml-3">Card Name</label>
-                                                        <input value={cardData.name} onChange={e => setCardData({ ...cardData, name: e.target.value.toUpperCase() })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs outline-none focus:border-(--accent-teal)" />
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div className="space-y-2">
-                                                            <label className="text-[8px] font-black uppercase opacity-30 ml-3">Expiry</label>
-                                                            <input value={cardData.expiry} onChange={e => setCardData({ ...cardData, expiry: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs outline-none focus:border-(--accent-teal)" />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <label className="text-[8px] font-black uppercase opacity-30 ml-3">CVV</label>
-                                                            <input type="password" maxLength={3} value={cardData.cvv} onChange={e => setCardData({ ...cardData, cvv: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs outline-none focus:border-(--accent-teal)" />
+                                                        <label className="text-[8px] font-black uppercase opacity-30 ml-3">CVV</label>
+                                                        <div className="relative">
+                                                            <input
+                                                                type={showCardCvv ? "text" : "password"}
+                                                                maxLength={3}
+                                                                value={cardData.cvv}
+                                                                onChange={e => setCardData({ ...cardData, cvv: e.target.value })}
+                                                                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 pr-10 text-xs outline-none focus:border-(--accent-teal)"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowCardCvv(!showCardCvv)}
+                                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+                                                            >
+                                                                {showCardCvv ? <EyeOff size={14} /> : <Eye size={14} />}
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -915,8 +925,42 @@ export default function AccountPage() {
                                 <div className="space-y-8">
                                     <h2 className="text-2xl font-black uppercase italic tracking-tighter">Cipher Update</h2>
                                     <div className="space-y-4">
-                                        <input type="password" placeholder="Current Cipher" value={formData.currentPassword} onChange={e => setFormData({ ...formData, currentPassword: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm outline-none focus:border-(--accent-teal)" />
-                                        <input type="password" placeholder="New Neural Cipher" value={formData.newPassword} onChange={e => setFormData({ ...formData, newPassword: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm outline-none focus:border-(--accent-teal)" />
+                                        {/* Current Password */}
+                                        <div className="relative">
+                                            <input
+                                                type={showCurrentPassword ? "text" : "password"}
+                                                placeholder="Current Cipher"
+                                                value={formData.currentPassword}
+                                                onChange={e => setFormData({ ...formData, currentPassword: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 pr-12 text-sm outline-none focus:border-(--accent-teal)"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+                                            >
+                                                {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+
+                                        {/* New Password */}
+                                        <div className="relative">
+                                            <input
+                                                type={showNewPassword ? "text" : "password"}
+                                                placeholder="New Neural Cipher"
+                                                value={formData.newPassword}
+                                                onChange={e => setFormData({ ...formData, newPassword: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 pr-12 text-sm outline-none focus:border-(--accent-teal)"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowNewPassword(!showNewPassword)}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+                                            >
+                                                {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+
                                         <button onClick={handlePasswordChange} className="w-full py-5 bg-white text-black rounded-2xl text-[11px] font-black uppercase transition-all">REWRITE CIPHER</button>
                                     </div>
                                 </div>
@@ -931,13 +975,22 @@ export default function AccountPage() {
 
                                     {deletionCountdown === null ? (
                                         <>
-                                            <input
-                                                type="password"
-                                                placeholder="Password"
-                                                value={formData.purgePassword}
-                                                onChange={e => setFormData({ ...formData, purgePassword: e.target.value })}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm outline-none focus:border-red-500 text-center"
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type={showPurgePassword ? "text" : "password"}
+                                                    placeholder="Password"
+                                                    value={formData.purgePassword}
+                                                    onChange={e => setFormData({ ...formData, purgePassword: e.target.value })}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 pr-12 text-sm outline-none focus:border-red-500 text-center"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPurgePassword(!showPurgePassword)}
+                                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+                                                >
+                                                    {showPurgePassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                </button>
+                                            </div>
 
                                             <div className="flex gap-4 pt-4">
                                                 <button onClick={() => setActiveModal(null)} className="flex-1 py-5 bg-white/5 rounded-2xl text-[11px] font-black uppercase">Stay awhile</button>

@@ -1,11 +1,12 @@
-"use client"; // Required in Next.js for components that use hooks or handle user interaction
+"use client";
 
 import { useState, FormEvent } from 'react';
-import Image from 'next/image'; // Next.js optimized image component
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useStudyStore } from '@/store/useStudyStore';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
     const router = useRouter();
@@ -15,7 +16,9 @@ export default function Login() {
     const [message, setMessage] = useState<{ text: string; show: boolean }>({ text: '', show: false });
     const [loading, setLoading] = useState<boolean>(false);
 
-    // 3. Type the event parameter as a FormEvent
+    // Password visibility state
+    const [showPassword, setShowPassword] = useState(false);
+
     const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
@@ -25,7 +28,6 @@ export default function Login() {
             setMessage({ text: "Invalid email or password.", show: true });
             setLoading(false);
         } else {
-            // 🔒 SECURITY: Wipe previous session state before entering the sanctuary
             resetStore();
             router.push("/dashboard");
         }
@@ -48,13 +50,25 @@ export default function Login() {
                             required
                             onChange={(e) => setEmail(e.target.value)}
                         />
-                        <input
-                            type="password"
-                            placeholder="Password"
-                            className="input-field"
-                            required
-                            onChange={(e) => setPassword(e.target.value)}
-                        />
+
+                        {/* Password with visibility toggle */}
+                        <div className="relative">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Password"
+                                className="input-field pr-12"
+                                required
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+                            >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
+
                         <button type="submit" className="login-btn" disabled={loading}>
                             {loading ? "Logging in..." : "Login"}
                         </button>
@@ -77,14 +91,13 @@ export default function Login() {
 
             <section className="promo-section">
                 <div className="promo-inner">
-                    {/* 4. Use Next.js Image for automatic optimization */}
                     <Image
                         src="/your-illustration.png"
                         alt="Illustration"
                         className="hero-img"
                         width={400}
                         height={400}
-                        priority // Add priority since this image is visible immediately on load
+                        priority
                     />
                     <h2>Make your work easier with <strong>StudyBuddy</strong></h2>
                 </div>

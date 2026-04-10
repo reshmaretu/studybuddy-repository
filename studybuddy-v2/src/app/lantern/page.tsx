@@ -87,10 +87,10 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
 export default function LanternNetPage() {
     const [isMounted, setIsMounted] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const { 
-        totalSessions, activeMode, isTutorModeActive, isDev, devOverlayEnabled, 
-        debrisSize, debrisColor, debrisCount, debrisSpread, setDebris, 
-        mockUsers, setMockUsers, isPremiumUser, setSettings 
+    const {
+        totalSessions, activeMode, isTutorModeActive, isDev, devOverlayEnabled,
+        debrisSize, debrisColor, debrisCount, debrisSpread, setDebris,
+        mockUsers, setMockUsers, isPremiumUser, setSettings
     } = useStudyStore();
     const router = useRouter();
 
@@ -105,7 +105,7 @@ export default function LanternNetPage() {
     useEffect(() => {
         const saved = localStorage.getItem('appTheme') || 'deep-teal';
         setAppTheme(saved);
-        
+
         // Ensure HTML tag is also synced (fallback for components relying on it)
         document.documentElement.setAttribute('data-theme', saved);
     }, []);
@@ -125,10 +125,10 @@ export default function LanternNetPage() {
         const statuses: LanternUser['status'][] = ['idle', 'drafting', 'hosting', 'joined', 'flowState', 'cafe', 'mastering', 'offline'];
         const status = statuses[Math.floor(Math.random() * statuses.length)];
         const isHosting = status === 'hosting' || status === 'drafting';
-    
+
         let gridX = 6, gridY = 6;
         let attempts = 0;
-        while(attempts < 100) {
+        while (attempts < 100) {
             gridX = Math.floor(Math.random() * 24) - 6;
             gridY = Math.floor(Math.random() * 24) - 6;
             if (gridX === 6 && gridY === 6) { attempts++; continue; }
@@ -136,7 +136,7 @@ export default function LanternNetPage() {
             if (!clash) break;
             attempts++;
         }
-    
+
         return {
             id: `mock-${id}`,
             name: `Bot ${id}`,
@@ -146,7 +146,7 @@ export default function LanternNetPage() {
             hours: Math.floor(Math.random() * 500),
             isPremium: Math.random() > 0.5,
             isHosting,
-            roomCode: isHosting ? `MCK${id.substring(0,3)}` : undefined,
+            roomCode: isHosting ? `MCK${id.substring(0, 3)}` : undefined,
             roomTitle: isHosting ? `Mock Sanctuary ${id}` : undefined,
             gridX,
             gridY,
@@ -305,7 +305,7 @@ export default function LanternNetPage() {
                         className="absolute top-20 left-1/2 -translate-x-1/2 z-999 bg-(--bg-card) border-2 border-red-500/50 p-6 rounded-3xl shadow-[0_0_50px_rgba(255,0,0,0.15)] w-80">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="font-black text-red-400 text-xs tracking-widest uppercase">Dev Console</h2>
-                            <button onClick={() => setIsDevOverlayOpen(false)} className="text-(--text-muted) hover:text-white"><X size={14}/></button>
+                            <button onClick={() => setIsDevOverlayOpen(false)} className="text-(--text-muted) hover:text-white"><X size={14} /></button>
                         </div>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center bg-(--bg-dark) px-4 py-2 rounded-xl">
@@ -313,7 +313,7 @@ export default function LanternNetPage() {
                                 <div className="flex gap-2 items-center">
                                     <button onClick={() => setMockUsers(mockUsers.slice(0, Math.max(0, mockUsers.length - 1)))} className="w-6 h-6 rounded bg-(--border-color) flex items-center justify-center font-bold text-xs">-</button>
                                     <span className="text-xs font-mono">{mockUsers.length}</span>
-                                    <button onClick={() => setMockUsers([...mockUsers, generateMockUser(combinedNetwork, Math.random().toString(36).substring(2,6))])} className="w-6 h-6 rounded bg-(--border-color) flex items-center justify-center font-bold text-xs">+</button>
+                                    <button onClick={() => setMockUsers([...mockUsers, generateMockUser(combinedNetwork, Math.random().toString(36).substring(2, 6))])} className="w-6 h-6 rounded bg-(--border-color) flex items-center justify-center font-bold text-xs">+</button>
                                 </div>
                             </div>
                             <button onClick={() => {
@@ -321,7 +321,7 @@ export default function LanternNetPage() {
                             }} className="w-full py-2 bg-(--bg-dark) border border-(--border-color) rounded-xl text-xs font-bold hover:bg-(--border-color) transition-colors">
                                 Randomize Mock Users
                             </button>
-                            
+
                             <div className="pt-4 border-t border-(--border-color) space-y-3">
                                 <h3 className="text-[10px] font-black uppercase text-white/40 tracking-widest">Environment Controls</h3>
                                 <div className="space-y-2">
@@ -360,30 +360,30 @@ export default function LanternNetPage() {
             <AnimatePresence>
                 {isHostModalOpen && (
                     <div className="fixed inset-0 z-1000 flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             onClick={() => setIsHostModalOpen(false)} className="absolute inset-0 bg-black/70 backdrop-blur-sm cursor-pointer" />
                         <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 40 }}
                             className="bg-(--bg-card) border border-(--border-color) rounded-[40px] w-full max-w-4xl shadow-2xl relative z-10 overflow-hidden flex flex-col lg:flex-row h-auto max-h-[90vh]" onPointerDown={(e) => e.stopPropagation()}>
-                            
+
                             {/* LEFT SIDE: Identity */}
                             <div className="flex-1 p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-(--border-color) overflow-y-auto custom-scrollbar">
                                 <div className="flex justify-between items-center mb-8">
                                     <h2 className="text-3xl font-black text-(--text-main) flex items-center gap-3">
                                         <Plus className="text-(--accent-teal)" size={28} /> Host Room
                                     </h2>
-                                    <button onClick={() => setIsHostModalOpen(false)} className="lg:hidden text-(--text-muted) hover:text-(--text-main) p-2 hover:bg-(--bg-dark) rounded-xl transition-all"><X size={20}/></button>
+                                    <button onClick={() => setIsHostModalOpen(false)} className="lg:hidden text-(--text-muted) hover:text-(--text-main) p-2 hover:bg-(--bg-dark) rounded-xl transition-all"><X size={20} /></button>
                                 </div>
 
                                 <div className="space-y-8">
                                     <div className="space-y-3">
                                         <label className="text-[10px] font-black text-(--text-muted) uppercase tracking-[0.2em] px-1">Room Blueprint Title</label>
-                                        <input autoFocus type="text" placeholder="e.g., Deep Focus Chamber" value={roomSettings.title} onChange={e => setRoomSettings({ ...roomSettings, title: e.target.value })} 
+                                        <input autoFocus type="text" placeholder="e.g., Deep Focus Chamber" value={roomSettings.title} onChange={e => setRoomSettings({ ...roomSettings, title: e.target.value })}
                                             className="w-full bg-(--bg-dark) border border-(--border-color) rounded-2xl px-6 py-5 text-sm font-bold text-(--text-main) outline-none focus:border-(--accent-teal) transition-all placeholder:text-(--text-muted)/30" />
                                     </div>
 
                                     <div className="space-y-3">
                                         <label className="text-[10px] font-black text-(--text-muted) uppercase tracking-[0.2em] px-1">Description (Optional)</label>
-                                        <textarea placeholder="Tell the network what you're working on..." rows={4} maxLength={30} value={roomSettings.description} onChange={e => setRoomSettings({ ...roomSettings, description: e.target.value })} 
+                                        <textarea placeholder="Tell the network what you're working on..." rows={4} maxLength={30} value={roomSettings.description} onChange={e => setRoomSettings({ ...roomSettings, description: e.target.value })}
                                             className="w-full bg-(--bg-dark) border border-(--border-color) rounded-2xl px-6 py-5 text-sm font-bold text-(--text-main) outline-none focus:border-(--accent-teal) transition-all resize-none custom-scrollbar placeholder:text-(--text-muted)/30" />
                                         <div className="flex justify-end px-1">
                                             <span className={`text-[10px] font-bold ${roomSettings.description.length >= 30 ? 'text-red-500' : 'text-(--text-muted)'}`}>
@@ -401,7 +401,7 @@ export default function LanternNetPage() {
                                 <div className="space-y-10">
                                     <div className="hidden lg:flex justify-between items-center">
                                         <span className="text-[10px] font-black text-(--text-muted) uppercase tracking-widest">Architect Controls</span>
-                                        <button onClick={() => setIsHostModalOpen(false)} className="text-(--text-muted) hover:text-(--text-main) p-2 hover:bg-(--bg-dark) rounded-xl transition-all"><X size={20}/></button>
+                                        <button onClick={() => setIsHostModalOpen(false)} className="text-(--text-muted) hover:text-(--text-main) p-2 hover:bg-(--bg-dark) rounded-xl transition-all"><X size={20} /></button>
                                     </div>
 
                                     {/* Capacity Slider */}
@@ -433,7 +433,7 @@ export default function LanternNetPage() {
                                                 </span>
                                                 <span className="block text-[9px] text-(--text-muted) font-medium">Require room password</span>
                                             </div>
-                                            <div onClick={() => isPremiumUser && setRoomSettings({ ...roomSettings, isLocked: !roomSettings.isLocked })} 
+                                            <div onClick={() => isPremiumUser && setRoomSettings({ ...roomSettings, isLocked: !roomSettings.isLocked })}
                                                 className={`w-10 h-5 rounded-full p-1 flex items-center transition-all duration-300 ${roomSettings.isLocked ? 'bg-(--accent-teal)' : 'bg-(--bg-card) border border-(--border-color)'} ${!isPremiumUser ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                                                 <div className={`w-3 h-3 rounded-full transition-transform duration-300 ${roomSettings.isLocked ? 'translate-x-5 bg-white' : 'translate-x-0 bg-(--text-muted)'}`} />
                                             </div>
@@ -442,7 +442,7 @@ export default function LanternNetPage() {
                                         <AnimatePresence>
                                             {roomSettings.isLocked && isPremiumUser && (
                                                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="pt-2">
-                                                    <input type="password" placeholder="Define room password" value={roomSettings.password} onChange={e => setRoomSettings({ ...roomSettings, password: e.target.value })} 
+                                                    <input type="password" placeholder="Define room password" value={roomSettings.password} onChange={e => setRoomSettings({ ...roomSettings, password: e.target.value })}
                                                         className="w-full bg-(--bg-dark) border border-(--border-color) rounded-xl px-4 py-3 text-xs font-bold text-(--text-main) outline-none focus:border-(--accent-teal)" />
                                                 </motion.div>
                                             )}
@@ -463,11 +463,9 @@ export default function LanternNetPage() {
                 )}
             </AnimatePresence>
 
-            </AnimatePresence>
-
             {/* MOBILE SIDEBAR TOGGLE */}
             <div className="lg:hidden fixed bottom-24 right-6 z-50">
-                <button 
+                <button
                     onClick={() => setIsSidebarOpenMobile(!isSidebarOpenMobile)}
                     className="w-14 h-14 bg-(--accent-teal) text-black rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all"
                 >
@@ -477,13 +475,13 @@ export default function LanternNetPage() {
 
             <AnimatePresence>
                 {(isSidebarOpenMobile || (!isMaximized)) && (
-                    <motion.div 
+                    <motion.div
                         initial={isSidebarOpenMobile ? { x: '100%' } : { x: 0 }}
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
                         className={`fixed lg:relative inset-0 lg:inset-auto z-40 lg:z-10 ${isSidebarOpenMobile ? 'bg-(--bg-dark)/95 backdrop-blur-xl p-6 pt-12' : 'hidden lg:flex'} w-full lg:w-[340px] flex-col gap-6 h-full shrink-0 min-h-0`}
                     >
-                         {/* MOBILE CLOSE BUTTON */}
+                        {/* MOBILE CLOSE BUTTON */}
                         {isSidebarOpenMobile && (
                             <button onClick={() => setIsSidebarOpenMobile(false)} className="absolute top-6 right-6 text-(--text-muted) hover:text-(--text-main)">
                                 <X size={28} />
@@ -591,10 +589,10 @@ export default function LanternNetPage() {
             </AnimatePresence>
 
             <div className="flex-1 h-full rounded-[40px] overflow-hidden border border-(--border-color) shadow-xl relative min-h-0">
-                <ThreeLanternNet 
-                    ref={lanternRef} 
-                    users={combinedNetwork} 
-                    isInitialLoading={isNetworkLoading} 
+                <ThreeLanternNet
+                    ref={lanternRef}
+                    users={combinedNetwork}
+                    isInitialLoading={isNetworkLoading}
                     isMaximized={isMaximized}
                     onToggleMaximize={() => setIsMaximized(!isMaximized)}
                     debrisSize={debrisSize}
