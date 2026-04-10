@@ -4,7 +4,7 @@ import { useStudyStore } from "@/store/useStudyStore";
 import {
     User, Mail, Lock, Trash2, Crown, LogOut,
     Camera, CheckCircle2, AlertCircle, RefreshCcw, X, ShieldAlert, ShieldCheck,
-    QrCode, Download, CreditCard, Send, Fingerprint
+    QrCode, Download, CreditCard, Send, Fingerprint, Settings, MousePointer2, Hand
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -17,7 +17,8 @@ export default function AccountPage() {
     const {
         isPremiumUser, level, displayName, fullName, userEmail, setUserEmail, triggerChumToast,
         setPremiumStatus, setDisplayName, setFullName, mockInvoices, addMockInvoice,
-        isVerified, setIsVerified
+        isVerified, setIsVerified,
+        doubleClickToComplete, dndEnabled, setSettings
     } = useStudyStore();
 
     // UI States
@@ -475,6 +476,59 @@ export default function AccountPage() {
                                 Verify Heartbeat
                             </button>
                         )}
+                    </div>
+                </div>
+                
+                {/* ⚙️ GARDEN PROTOCOLS (Settings) */}
+                <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-[40px] p-8 mt-4 backdrop-blur-md">
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="p-3 bg-teal-400/10 rounded-2xl border border-teal-400/20">
+                            <Settings size={20} className="text-teal-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">Neural Protocols</h3>
+                            <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mt-1">Configure your garden interaction nodes</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Double Tap Toggle */}
+                        <div className="flex items-center justify-between p-6 rounded-3xl bg-black/20 border border-white/5 group hover:border-teal-400/20 transition-all">
+                            <div className="flex items-center gap-4">
+                                <div className={`p-2 rounded-xl transition-colors ${doubleClickToComplete ? 'bg-teal-400/10 text-teal-400' : 'bg-white/5 text-white/20'}`}>
+                                    <MousePointer2 size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-white">Neural Double-Tap</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5">Quick complete via double click</p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setSettings({ doubleClickToComplete: !doubleClickToComplete })}
+                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${doubleClickToComplete ? 'bg-teal-400' : 'bg-white/10'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${doubleClickToComplete ? 'translate-x-6' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+
+                        {/* Drag & Drop Toggle */}
+                        <div className="flex items-center justify-between p-6 rounded-3xl bg-black/20 border border-white/5 group hover:border-teal-400/20 transition-all">
+                            <div className="flex items-center gap-4">
+                                <div className={`p-2 rounded-xl transition-colors ${dndEnabled ? 'bg-teal-400/10 text-teal-400' : 'bg-white/5 text-white/20'}`}>
+                                    <Hand size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-white">Kinetic Relay</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5">Enable/Disable Drag & Drop</p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setSettings({ dndEnabled: !dndEnabled })}
+                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${dndEnabled ? 'bg-teal-400' : 'bg-white/10'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${dndEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
                     </div>
                 </div>
 

@@ -1,40 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, useDroppable, useDraggable } from "@dnd-kit/core";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar as CalendarIcon, Inbox, Sparkles, ChevronLeft, ChevronRight, Search, Filter } from "lucide-react";
 import { useStudyStore, Task } from "@/store/useStudyStore";
+import TaskCard from "@/components/TaskCard";
 
 // ─── HELPER COMPONENTS ────────────────────────────────────────────────────────
 
 // 1. The draggable card used for the Stash and Horizon view
 function MiniTimelineCard({ task, isOverlay = false }: { task: Task; isOverlay?: boolean }) {
-    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id, data: task });
-
-    if (isDragging && !isOverlay) {
-        return <div ref={setNodeRef} className="h-16 rounded-xl border-2 border-dashed border-[var(--border-color)] bg-[var(--bg-dark)]/30 opacity-50 mb-2" />;
-    }
-
-    const loadColors = {
-        heavy: "bg-red-500/10 text-red-400 border-red-500/20",
-        medium: "bg-[var(--accent-yellow)]/10 text-[var(--accent-yellow)] border-[var(--accent-yellow)]/20",
-        light: "bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] border-[var(--accent-teal)]/20"
-    };
-
-    return (
-        <div ref={setNodeRef} {...listeners} {...attributes}
-            className={`p-3 mb-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] shadow-sm cursor-grab active:cursor-grabbing hover:border-[var(--accent-teal)]/50 transition-colors ${isOverlay ? "scale-105 shadow-2xl rotate-2 ring-2 ring-[var(--accent-teal)]/50 z-50" : ""}`}
-        >
-            <div className="flex justify-between items-start mb-1">
-                <h4 className="text-[var(--text-main)] font-bold text-xs truncate pr-2">{task.title}</h4>
-                <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-widest uppercase border ${loadColors[task.load]}`}>
-                    {task.load}
-                </span>
-            </div>
-            <p className="text-[var(--text-muted)] text-[10px] truncate">{task.description}</p>
-        </div>
-    );
+    return <TaskCard task={task} isOverlay={isOverlay} isMinimized={true} />;
 }
 
 // 2. The compact draggable card used for the Month Grid
@@ -101,6 +78,10 @@ export default function TactileCalendar() {
     const { tasks, updateTask } = useStudyStore();
     const [activeDragTask, setActiveDragTask] = useState<Task | null>(null);
     const [isMounted, setIsMounted] = useState(false);
+    const horizonRef = useRef<HTMLDivElement>(null);
+    const [isSwiping, setIsSwiping] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const [scrollLeft, setScrollLeft] = useState(0);
 
     // UI State
     const [view, setView] = useState<'horizon' | 'month'>('month');
@@ -197,9 +178,34 @@ export default function TactileCalendar() {
         }
     };
 
+    // 🎢 Horizon Mouse Wheel & Swipe Logic
+    const handleHorizonWheel = (e: React.WheelEvent) => {
+        if (view !== 'horizon') return;
+        if (horizonRef.current) {
+            horizonRef.current.scrollLeft += e.deltaY;
+        }
+    };
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (view !== 'horizon' || !horizonRef.current) return;
+        setIsSwiping(true);
+        setStartX(e.pageX - horizonRef.current.offsetLeft);
+        setScrollLeft(horizonRef.current.scrollLeft);
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isSwiping || view !== 'horizon' || !horizonRef.current) return;
+        e.preventDefault();
+        const x = e.pageX - horizonRef.current.offsetLeft;
+        const walk = (x - startX) * 2;
+        horizonRef.current.scrollLeft = scrollLeft - walk;
+    };
+
+    const handleMouseUp = () => setIsSwiping(false);
+
     return (
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="h-[calc(100vh-4rem)] flex flex-col space-y-4">
+            <div className={`h-[calc(100vh-4rem)] flex flex-col space-y-4 pb-12 ${isSwiping ? 'cursor-grabbing' : ''}`}>
 
                 {/* HEADER */}
                 <header className="flex justify-between items-center mb-2">
@@ -303,7 +309,15 @@ export default function TactileCalendar() {
 
                         {/* ── Horizon View ── */}
                         {view === 'horizon' && (
-                            <div className="flex-1 overflow-x-auto pb-2 custom-scrollbar">
+                            <div
+                                ref={horizonRef}
+                                onWheel={handleHorizonWheel}
+                                onMouseDown={handleMouseDown}
+                                onMouseMove={handleMouseMove}
+                                onMouseUp={handleMouseUp}
+                                onMouseLeave={handleMouseUp}
+                                className="flex-1 overflow-x-auto pb-6 no-scrollbar relative select-none"
+                            >
                                 <div className="flex gap-4 min-w-max h-full">
                                     {next7Days.map((date) => {
                                         const dateStr = date.toISOString().split('T')[0];

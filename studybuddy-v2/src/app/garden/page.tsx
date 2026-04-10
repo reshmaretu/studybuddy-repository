@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useStudyStore, TaskLoad, Task } from "@/store/useStudyStore";
-import { Sprout, Plus, Search, Moon, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit } from "lucide-react";
+import { Sprout, Plus, Search, Moon, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit, Edit3, Maximize2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay } from "@dnd-kit/core";
 import TaskCard from "@/components/TaskCard";
@@ -161,14 +161,25 @@ function CapacityZone({ id, title, count, max, tasks, color, bg, border }: any) 
     );
 }
 
-function UnsortedZone({ id, tasks, title = "Unsorted Quests" }: any) {
+function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll }: any) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
         <div ref={setNodeRef} className={`h-full flex flex-col rounded-2xl border-2 border-dashed transition-all duration-300 ${isOver ? 'border-[var(--accent-teal)] bg-[var(--accent-teal)]/10 ring-1 ring-[var(--accent-teal)] brightness-125' : 'border-[var(--border-color)] bg-[var(--bg-dark)]'}`}>
             <div className="p-2 sm:p-3 border-b border-[var(--border-color)]/50 shrink-0 bg-black/20 rounded-t-xl">
-                <h3 className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] flex justify-between items-center">
-                    {title}
-                    <span className="bg-black/40 px-2 py-0.5 rounded text-[9px]">{tasks.length}</span>
+                <h3 className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] flex justify-between items-center w-full">
+                    <div className="flex items-center gap-2">
+                        {title}
+                        <span className="bg-black/40 px-2 py-0.5 rounded text-[9px]">{tasks.length}</span>
+                    </div>
+                    {tasks.length > 5 && (
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); if(onViewAll) onViewAll(); }}
+                            className="text-[var(--accent-teal)] hover:text-white transition-colors flex items-center gap-1 group"
+                        >
+                            <span className="group-hover:underline">View All</span>
+                            <Maximize2 size={10} />
+                        </button>
+                    )}
                 </h3>
             </div>
             <div style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} className="flex-1 p-2 sm:p-3 overflow-y-auto overflow-x-hidden space-y-2 [&::-webkit-scrollbar]:hidden min-h-[100px] rounded-b-xl pb-12">
@@ -209,6 +220,7 @@ export default function CrystalGarden() {
     const [showMorningModal, setShowMorningModal] = useState(false);
     const [showUnDoneModal, setShowUnDoneModal] = useState(false);
     const [showProtocolSettings, setShowProtocolSettings] = useState(false);
+    const [showUnrankedModal, setShowUnrankedModal] = useState(false);
     const [draggedToMasteryTask, setDraggedToMasteryTask] = useState<Task | null>(null);
     const [masteryTab, setMasteryTab] = useState<'tasks' | 'shards'>('tasks');
     const [draggedToGeodeTask, setDraggedToGeodeTask] = useState<Task | null>(null);
@@ -695,7 +707,7 @@ export default function CrystalGarden() {
                                             </div>
                                             {activeQuests.filter(t => !t.eisenhowerQuadrant).length > 0 && (
                                                 <div className="h-1/4 min-h-[120px] shrink-0">
-                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter(t => !t.eisenhowerQuadrant)} title="Unsorted Quests (Drag to Quadrant)" />
+                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter(t => !t.eisenhowerQuadrant)} title="Unsorted Quests (Drag to Quadrant)" onViewAll={() => setShowUnrankedModal(true)} />
                                                 </div>
                                             )}
                                         </motion.div>
@@ -739,7 +751,7 @@ export default function CrystalGarden() {
                                             </div>
                                             {activeQuests.filter(t => !t.ivyRank).length > 0 && (
                                                 <div className="h-1/3 min-h-[150px] shrink-0">
-                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter(t => !t.ivyRank)} title="Unranked Quests (Drag to Rank)" />
+                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter(t => !t.ivyRank)} title="Unranked Quests (Drag to Rank)" onViewAll={() => setShowUnrankedModal(true)} />
                                                 </div>
                                             )}
                                         </motion.div>
@@ -818,6 +830,41 @@ export default function CrystalGarden() {
                 <DragOverlay dropAnimation={null}>
                     {activeDragTask ? <TaskCard task={activeDragTask} isOverlay /> : null}
                 </DragOverlay>
+
+                {/* 🔥 UNRANKED QUESTS MODAL 🔥 */}
+                <AnimatePresence>
+                    {showUnrankedModal && (
+                        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-6">
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowUnrankedModal(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
+                            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-[var(--bg-card)] border-2 border-[var(--border-color)] rounded-[2.5rem] p-8 w-full max-w-2xl h-[80vh] flex flex-col shadow-2xl relative z-10 overflow-hidden">
+                                <div className="flex justify-between items-center mb-6 shrink-0">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-[var(--accent-teal)]/10 rounded-2xl flex items-center justify-center border border-[var(--accent-teal)]/20 shadow-[0_0_15px_rgba(20,184,166,0.1)]">
+                                            <Maximize2 size={24} className="text-[var(--accent-teal)]" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-black text-[var(--text-main)] uppercase tracking-widest">Unsorted Quests</h3>
+                                            <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Awaiting Command Initialized ({activeQuests.filter(t => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).length})</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setShowUnrankedModal(false)} className="bg-[var(--bg-dark)] border border-[var(--border-color)] p-3 rounded-2xl text-[var(--text-muted)] hover:text-white transition-all hover:scale-110 active:scale-95"><X size={20} /></button>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
+                                    {activeQuests.filter(t => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).map(task => (
+                                        <TaskCard key={task.id} task={task} />
+                                    ))}
+                                    {activeQuests.filter(t => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).length === 0 && (
+                                        <div className="col-span-full h-full flex flex-col items-center justify-center text-[var(--text-muted)] gap-4 py-20 opacity-50">
+                                            <Sprout size={48} />
+                                            <p className="text-sm font-bold uppercase tracking-widest">No unranked quests found</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
 
             </div>
         </DndContext>

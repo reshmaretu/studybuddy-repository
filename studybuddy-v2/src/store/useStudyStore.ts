@@ -228,6 +228,11 @@ interface StudyState {
     viewingTaskId: string | null;
     openViewModal: (taskId: string) => void;
     closeViewModal: () => void;
+
+    // ⚙️ SETTINGS
+    doubleClickToComplete: boolean;
+    dndEnabled: boolean;
+    setSettings: (settings: Partial<{ doubleClickToComplete: boolean; dndEnabled: boolean }>) => void;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -324,6 +329,10 @@ export const useStudyStore = create<StudyState>()(
             editingTaskId: null,
             isViewModalOpen: false,
             viewingTaskId: null,
+
+            doubleClickToComplete: false,
+            dndEnabled: true,
+            setSettings: (settings) => set((state) => ({ ...state, ...settings })),
 
             chumToast: null,
             triggerChumToast: (message, type = 'normal') => {

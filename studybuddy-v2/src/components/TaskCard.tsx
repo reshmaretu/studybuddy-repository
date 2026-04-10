@@ -14,7 +14,10 @@ interface TaskCardProps {
 }
 
 export default function TaskCard({ task, isOverlay = false, locked = false, isMinimized = false }: TaskCardProps) {
-    const { openFocusModal, deleteTask, updateTask, tasks, triggerChumToast, openEditModal, openViewModal } = useStudyStore();
+    const { 
+        openFocusModal, deleteTask, updateTask, tasks, triggerChumToast, 
+        openEditModal, openViewModal, completeTask, doubleClickToComplete, dndEnabled 
+    } = useStudyStore();
 
     const [showMenu, setShowMenu] = useState(false);
     const [showFrogReaction, setShowFrogReaction] = useState(false);
@@ -24,8 +27,15 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: task.id,
         data: { task },
-        disabled: showMenu || locked || task.isCompleted || showDeleteModal
+        disabled: showMenu || locked || task.isCompleted || showDeleteModal || !dndEnabled
     });
+
+    const handleDoubleClick = () => {
+        if (doubleClickToComplete && !task.isCompleted && !locked) {
+            completeTask(task.id);
+            triggerChumToast("Quest completed via neural double-tap!", "success");
+        }
+    };
 
     const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
 
@@ -85,11 +95,12 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
         <>
             {isMinimized ? (
                 <div
-                    ref={setNodeRef} style={style} {...(showMenu || locked ? {} : listeners)} {...(showMenu || locked ? {} : attributes)}
+                    onDoubleClick={handleDoubleClick}
+                    ref={setNodeRef} style={style} {...(showMenu || locked || !dndEnabled ? {} : listeners)} {...(showMenu || locked || !dndEnabled ? {} : attributes)}
                     className={`group relative flex items-center justify-between p-3 sm:p-4 w-full transition-all duration-300 rounded-xl border-2
                         ${isOverlay ? 'scale-105 shadow-2xl border-[var(--accent-teal)] z-50 bg-[var(--bg-card)]' : 'bg-transparent border-transparent hover:bg-black/20 hover:border-[var(--border-color)]/50'}
                         ${isDragging ? 'opacity-40' : 'opacity-100'}
-                        ${locked ? 'cursor-not-allowed grayscale opacity-50' : 'cursor-grab'}
+                        ${locked ? 'cursor-not-allowed grayscale opacity-50' : dndEnabled ? 'cursor-grab px-1' : 'cursor-default'}
                         ${task.isFrog && !task.isCompleted && !isOverlay ? 'bg-green-500/5' : ''}
                     `}
                 >
@@ -119,12 +130,13 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
                 </div>
             ) : (
                 <div
-                    ref={setNodeRef} style={style} {...(showMenu || locked ? {} : listeners)} {...(showMenu || locked ? {} : attributes)}
+                    onDoubleClick={handleDoubleClick}
+                    ref={setNodeRef} style={style} {...(showMenu || locked || !dndEnabled ? {} : listeners)} {...(showMenu || locked || !dndEnabled ? {} : attributes)}
                     className={`group relative h-fit bg-[var(--bg-card)] border-2 rounded-2xl p-4 flex flex-col gap-3 transition-all duration-300 
                         ${isOverlay ? 'scale-105 shadow-2xl border-[var(--accent-teal)] z-50 opacity-90' : 'hover:border-[var(--text-muted)] shadow-sm hover:shadow-md'}
                         ${isDragging ? 'opacity-40' : 'opacity-100'}
                         ${task.isCompleted ? 'grayscale-[0.5] opacity-70 border-[var(--border-color)]' : ''}
-                        ${locked ? 'opacity-50 grayscale select-none cursor-not-allowed border-[var(--border-color)]' : 'cursor-grab'}
+                        ${locked ? 'opacity-50 grayscale select-none cursor-not-allowed border-[var(--border-color)]' : dndEnabled ? 'cursor-grab' : 'cursor-default'}
                         ${task.isFrog && !task.isCompleted ? 'border-green-500 shadow-[0_0_25px_rgba(34,197,94,0.3)] z-10' : 'border-[var(--border-color)]'}
                     `}
                 >
