@@ -19,8 +19,11 @@ Deno.serve(async (req: Request) => {
 
     try {
         const body = await req.json()
-        const userEmail = body.userEmail || body.email
-        const { userId, action } = body
+        const userEmail = body.userEmail || body.email || body.newEmail
+        const action = body.action || body.type
+        const { userId } = body
+
+        console.log(`Action: ${action} for ${userEmail}`)
 
         if (!userEmail) throw new Error("userEmail missing in payload")
 
@@ -65,12 +68,10 @@ Deno.serve(async (req: Request) => {
 
         // ACTION: RESET PASSWORD (for Login Page)
         if (action === 'reset_password') {
-            const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-                type: 'recovery',
-                email: userEmail,
-                options: {
-                    // UPDATED: Pointing to your actual Vercel URL
-                    redirectTo: 'https://studybuddy-repository.vercel.app/reset-password'
+            const { data, error } = await supabase.functions.invoke('send-secure-otp', {
+                body: {
+                    email: emailInput,
+                    action: 'reset_password' // Must match the backend 'if' block
                 }
             });
 
@@ -94,18 +95,19 @@ Deno.serve(async (req: Request) => {
             if (!emailResponse.ok) throw new Error("Email relay failed");
 
             return new Response(JSON.stringify({ success: true }), {
-                headers: { ...corsHeaders, "Content-Type": "application/json" }
-            });
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200,
+            })
         }
 
         // Fallback for unknown action
         throw new Error("Invalid action protocol");
 
     } catch (err: any) {
-        console.error("Crash Log:", err.message)
-        return new Response(JSON.stringify({ success: false, error: err.message }), {
-            status: 400, // Use 400 for user-facing errors
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
+        // CRITICAL: You MUST return corsHeaders even in the catch block
+        return new Response(JSON.stringify({ error: err.message }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500, // Still return 500 but with HEADERS so the browser sees the error
         })
     }
 })
