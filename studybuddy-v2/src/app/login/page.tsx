@@ -19,6 +19,12 @@ export default function Login() {
     // Password visibility state
     const [showPassword, setShowPassword] = useState(false);
 
+    const triggerChumToast = (text: string, type: 'success' | 'warning') => {
+        setMessage({ text, show: true });
+        // Auto-hide after 3 seconds
+        setTimeout(() => setMessage({ text: '', show: false }), 3000);
+    };
+
     const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
@@ -96,15 +102,13 @@ export default function Login() {
                             </button>
                         </div>
 
-                        <div className="flex justify-between items-center px-2">
-                            <button
-                                type="button"
-                                onClick={() => handleForgotPassword(formData.email)}
-                                className="text-[9px] font-black uppercase tracking-widest text-(--accent-teal) hover:underline"
-                            >
-                                Lost your key? Dispatch recovery relay
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => handleForgotPassword(email)} // Changed from formData.email to email
+                            className="text-[9px] font-black uppercase tracking-widest text-(--accent-teal) hover:underline"
+                        >
+                            Lost your key? Dispatch recovery relay
+                        </button>
 
                         <button type="submit" className="login-btn" disabled={loading}>
                             {loading ? "Logging in..." : "Login"}
