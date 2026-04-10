@@ -69,6 +69,16 @@ export default function Login() {
                             </button>
                         </div>
 
+                        <div className="flex justify-between items-center px-2">
+                            <button
+                                type="button"
+                                onClick={() => handleForgotPassword(formData.email)}
+                                className="text-[9px] font-black uppercase tracking-widest text-(--accent-teal) hover:underline"
+                            >
+                                Lost your key? Dispatch recovery relay
+                            </button>
+                        </div>
+
                         <button type="submit" className="login-btn" disabled={loading}>
                             {loading ? "Logging in..." : "Login"}
                         </button>

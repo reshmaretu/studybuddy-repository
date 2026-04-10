@@ -48,32 +48,6 @@ export default function AccountPage() {
     const [verificationCode, setVerificationCode] = useState(''); // User input
     const [activeRecoveryCode, setActiveRecoveryCode] = useState(''); // Generated code
 
-    // We invoke the Edge Function instead of calling EmailJS directly
-    const handleForgotCipher = async () => {
-        setLoading(true);
-        try {
-            const { data, error } = await supabase.functions.invoke('send-secure-otp', {
-                body: {
-                    userEmail: userEmail, // CHANGED from 'email' to 'userEmail'
-                    userId: (await supabase.auth.getUser()).data.user?.id,
-                    action: 'reset_password'
-                }
-            });
-
-            if (error || !data?.success) {
-                throw new Error(data?.error || "Relay transmission failed.");
-            }
-
-            triggerChumToast("Recovery link dispatched to your coordinates.", "success");
-            // For password reset, we don't usually need a 'verify' step because 
-            // the user clicks a link in their email instead.
-        } catch (err: any) {
-            triggerChumToast(err.message, "warning");
-        } finally {
-            setLoading(false);
-        }
-    };
-
     // Cooldown/Meta States
     const [meta, setMeta] = useState({
         firstName: "",
@@ -144,6 +118,72 @@ export default function AccountPage() {
     // ⚡ SNAPSHOT & REVERT PATTERN (Placeholder for complex logic, used in identity commit)
 
     // --- IDENTITY LOGIC ---
+
+    const handleForgotPassword = async (emailInput: string) => {
+        if (!emailInput) {
+            return triggerChumToast("Email coordinate required for relay.", "warning");
+        }
+
+        setLoading(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('send-secure-otp', {
+                body: {
+                    userEmail: emailInput,
+                    action: 'reset_password'
+                }
+            });
+
+            if (error || !data?.success) {
+                throw new Error(data?.error || "Relay transmission failed.");
+            }
+
+            triggerChumToast("Recovery link dispatched to your coordinates.", "success");
+        } catch (err: any) {
+            triggerChumToast(err.message, "warning");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePasswordChange = async () => {
+        if (!formData.newPassword) return triggerChumToast("New cipher required.", "warning");
+
+        setLoading(true);
+
+        // If not in recovery bypass mode, we must check the current password
+        if (formData.currentPassword !== "RECOVERY_BYPASS") {
+            const { error: authError } = await supabase.auth.signInWithPassword({
+                email: userEmail,
+                password: formData.currentPassword,
+            });
+
+            if (authError) {
+                setLoading(false);
+                return triggerChumToast("Current cipher incorrect.", "warning");
+            }
+        }
+
+
+        // Perform update
+        const { error } = await supabase.auth.updateUser({ password: formData.newPassword });
+
+        if (error) {
+            triggerChumToast(error.message, "warning");
+        } else {
+            triggerChumToast("Cipher successfully rewritten.", "success");
+            setActiveModal(null);
+
+            // FIX: Spread the previous state to maintain other form fields
+            setFormData(prev => ({
+                ...prev,
+                currentPassword: "",
+                newPassword: ""
+            }));
+
+            setRecoveryStep('request');
+        }
+    }
+
 
     const handleSendOTP = async (purpose: 'verify' | 'email' = 'verify') => {
         setLoading(true);
@@ -262,45 +302,6 @@ export default function AccountPage() {
             setLoading(false);
         }
     };
-
-    const handlePasswordChange = async () => {
-        if (!formData.newPassword) return triggerChumToast("New cipher required.", "warning");
-
-        setLoading(true);
-
-        // If not in recovery bypass mode, we must check the current password
-        if (formData.currentPassword !== "RECOVERY_BYPASS") {
-            const { error: authError } = await supabase.auth.signInWithPassword({
-                email: userEmail,
-                password: formData.currentPassword,
-            });
-
-            if (authError) {
-                setLoading(false);
-                return triggerChumToast("Current cipher incorrect.", "warning");
-            }
-        }
-
-
-        // Perform update
-        const { error } = await supabase.auth.updateUser({ password: formData.newPassword });
-
-        if (error) {
-            triggerChumToast(error.message, "warning");
-        } else {
-            triggerChumToast("Cipher successfully rewritten.", "success");
-            setActiveModal(null);
-
-            // FIX: Spread the previous state to maintain other form fields
-            setFormData(prev => ({
-                ...prev,
-                currentPassword: "",
-                newPassword: ""
-            }));
-
-            setRecoveryStep('request');
-        }
-    }
 
     const startDeleteCountdown = async () => {
         if (!formData.purgePassword) return triggerChumToast("Password required.", "warning");
@@ -966,36 +967,50 @@ export default function AccountPage() {
                                 </div>
                             )}
 
-                            {/* Cipher Modal */}
+                            {/* Change Password Modal */}
                             {activeModal === 'password' && (
-                                <div className="space-y-8">
+                                <div className="space-y-8 animate-in fade-in zoom-in duration-200">
                                     <div className="text-center space-y-2">
                                         <h2 className="text-2xl font-black uppercase italic tracking-tighter">
                                             {recoveryStep === 'request' ? "Cipher Update" : "Verify Relay"}
                                         </h2>
                                         <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest">
-                                            {recoveryStep === 'request' ? "Secure your neural connection" : "Check your terminal for a code"}
+                                            {recoveryStep === 'request'
+                                                ? "Secure your neural connection"
+                                                : "Check your terminal for a code"}
                                         </p>
                                     </div>
 
                                     {recoveryStep === 'request' ? (
                                         <div className="space-y-4">
-                                            {/* Current Cipher Input */}
-                                            <div className="relative">
-                                                <label className="text-[8px] font-black uppercase opacity-30 ml-3 mb-1 block">Current Cipher</label>
-                                                <input
-                                                    type={showCurrentPassword ? "text" : "password"}
-                                                    placeholder="••••••••"
-                                                    value={formData.currentPassword}
-                                                    onChange={e => setFormData({ ...formData, currentPassword: e.target.value })}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 pr-12 text-sm outline-none focus:border-(--accent-teal)"
-                                                />
-                                                <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-4 bottom-5 text-white/40">
-                                                    {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                                </button>
-                                            </div>
+                                            {/* Current Password Input - Hidden if Identity is Verified via Relay */}
+                                            {formData.currentPassword !== "RECOVERY_BYPASS" ? (
+                                                <div className="relative">
+                                                    <label className="text-[8px] font-black uppercase opacity-30 ml-3 mb-1 block">Current Cipher</label>
+                                                    <input
+                                                        type={showCurrentPassword ? "text" : "password"}
+                                                        placeholder="••••••••"
+                                                        value={formData.currentPassword}
+                                                        onChange={e => setFormData({ ...formData, currentPassword: e.target.value })}
+                                                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 pr-12 text-sm outline-none focus:border-(--accent-teal) transition-all"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                                        className="absolute right-4 bottom-5 text-white/40 hover:text-(--accent-teal)"
+                                                    >
+                                                        {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="p-4 border border-(--accent-teal)/30 bg-(--accent-teal)/5 rounded-2xl border-dashed">
+                                                    <p className="text-[10px] text-(--accent-teal) font-black uppercase tracking-[0.2em] text-center">
+                                                        Neural Identity Verified: Bypass Active
+                                                    </p>
+                                                </div>
+                                            )}
 
-                                            {/* New Cipher Input */}
+                                            {/* New Password Input */}
                                             <div className="relative">
                                                 <label className="text-[8px] font-black uppercase opacity-30 ml-3 mb-1 block">New Neural Cipher</label>
                                                 <input
@@ -1003,27 +1018,34 @@ export default function AccountPage() {
                                                     placeholder="••••••••"
                                                     value={formData.newPassword}
                                                     onChange={e => setFormData({ ...formData, newPassword: e.target.value })}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 pr-12 text-sm outline-none focus:border-(--accent-teal)"
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 pr-12 text-sm outline-none focus:border-(--accent-teal) transition-all"
                                                 />
-                                                <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-4 bottom-5 text-white/40">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowNewPassword(!showNewPassword)}
+                                                    className="absolute right-4 bottom-5 text-white/40 hover:text-(--accent-teal)"
+                                                >
                                                     {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                                 </button>
                                             </div>
 
                                             <div className="flex flex-col gap-4 pt-2">
-                                                <button
-                                                    onClick={handleForgotCipher}
-                                                    disabled={loading}
-                                                    className="text-[9px] font-black uppercase tracking-widest text-(--accent-teal) hover:underline text-left ml-2"
-                                                >
-                                                    Lost your cipher? Recover via relay
-                                                </button>
+                                                {formData.currentPassword !== "RECOVERY_BYPASS" && (
+                                                    <button
+                                                        onClick={handleForgotPassword}
+                                                        disabled={loading}
+                                                        className="text-[9px] font-black uppercase tracking-widest text-(--accent-teal) hover:underline text-left ml-2 disabled:opacity-30"
+                                                    >
+                                                        Lost your password? Recover via email
+                                                    </button>
+                                                )}
+
                                                 <button
                                                     onClick={handlePasswordChange}
-                                                    disabled={loading}
-                                                    className="w-full py-5 bg-white text-black rounded-2xl text-[11px] font-black uppercase hover:bg-(--accent-teal) transition-all disabled:opacity-50"
+                                                    disabled={loading || !formData.newPassword}
+                                                    className="w-full py-5 bg-white text-black rounded-2xl text-[11px] font-black uppercase hover:bg-(--accent-teal) transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-white/5"
                                                 >
-                                                    {loading ? "Decrypting..." : "REWRITE CIPHER"}
+                                                    {loading ? "Updating..." : "UPDATE PASSWORD"}
                                                 </button>
                                             </div>
                                         </div>
@@ -1031,32 +1053,41 @@ export default function AccountPage() {
                                         <div className="space-y-6">
                                             {/* OTP Verification Input */}
                                             <div className="relative">
+                                                <label className="text-[8px] font-black uppercase opacity-30 text-center mb-3 block">Enter 6-Digit Sync Code</label>
                                                 <input
                                                     type="text"
                                                     maxLength={6}
                                                     placeholder="000000"
                                                     value={verificationCode}
-                                                    onChange={(e) => setVerificationCode(e.target.value)}
-                                                    className="w-full bg-white/5 border border-(--accent-teal) rounded-2xl p-6 text-center text-3xl tracking-[0.5em] font-black outline-none shadow-[0_0_20px_-5px_rgba(45,212,191,0.3)]"
+                                                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                                                    className="w-full bg-white/5 border border-(--accent-teal) rounded-2xl p-6 text-center text-3xl tracking-[0.5em] font-black outline-none shadow-[0_0_30px_-10px_rgba(45,212,191,0.4)]"
                                                 />
                                             </div>
 
                                             <div className="flex flex-col gap-3">
                                                 <button
-                                                    onClick={() => {
-                                                        if (verificationCode === activeRecoveryCode) {
+                                                    onClick={async () => {
+                                                        // verify-email function call
+                                                        const { data, error } = await supabase.functions.invoke('secure-verify-relay', {
+                                                            body: { code: verificationCode, userId: (await supabase.auth.getUser()).data.user?.id }
+                                                        });
+
+                                                        if (data?.success) {
                                                             setRecoveryStep('request');
                                                             setFormData({ ...formData, currentPassword: "RECOVERY_BYPASS" });
                                                             triggerChumToast("Identity verified. Enter new cipher.", "success");
                                                         } else {
-                                                            triggerChumToast("Invalid relay code.", "warning");
+                                                            triggerChumToast(error?.message || "Invalid relay code.", "warning");
                                                         }
                                                     }}
-                                                    className="w-full py-5 bg-(--accent-teal) text-black rounded-2xl text-[11px] font-black uppercase"
+                                                    className="w-full py-5 bg-(--accent-teal) text-black rounded-2xl text-[11px] font-black uppercase hover:brightness-110 transition-all shadow-lg shadow-(--accent-teal)/20"
                                                 >
                                                     Verify Identity
                                                 </button>
-                                                <button onClick={() => setRecoveryStep('request')} className="text-[9px] font-black opacity-40 uppercase text-center tracking-widest hover:opacity-100">
+                                                <button
+                                                    onClick={() => setRecoveryStep('request')}
+                                                    className="text-[9px] font-black opacity-40 uppercase text-center tracking-widest hover:opacity-100 transition-opacity"
+                                                >
                                                     Cancel Recovery
                                                 </button>
                                             </div>

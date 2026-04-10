@@ -63,7 +63,39 @@ Deno.serve(async (req: Request) => {
             })
         }
 
-        // Handle reset_password action similarly if needed...
+        if (action === 'reset_password') {
+            // 1. Generate the secure reset link from Supabase Auth
+            const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+                type: 'recovery',
+                email: userEmail,
+                options: {
+                    // The URL user lands on after clicking the email button
+                    redirectTo: 'https://your-vercel-project.vercel.app/reset-password'
+                }
+            });
+
+            if (linkError) throw linkError;
+
+            // 2. Send the HTML via EmailJS
+            const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
+                    template_id: Deno.env.get('EMAILJS_RESET_TEMPLATE_ID'),
+                    user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
+                    accessToken: Deno.env.get('EMAILJS_PRIVATE_KEY'),
+                    template_params: {
+                        email: userEmail,
+                        reset_link: data.properties.action_link
+                    },
+                }),
+            });
+
+            if (!emailResponse.ok) throw new Error("Email relay failed");
+
+            return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        }
 
     } catch (err: any) {
         console.error("Crash Log:", err.message)
