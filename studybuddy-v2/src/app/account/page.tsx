@@ -38,42 +38,30 @@ export default function AccountPage() {
     const [showPurgePassword, setShowPurgePassword] = useState(false);
     const [showCardCvv, setShowCardCvv] = useState(false);
 
-    // --- EMAIL.JS FORGOTTEN PASSWORD LOGIC ---
+    // --- LOGIC: EMAILJS RECOVERY ---
     const handleForgotCipher = async () => {
         const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.email) return;
 
-        if (!user?.email) {
-            alert("Neural signature not found. Please log in first.");
-            return;
-        }
-
-        // Generate a 6-digit verification code
-        const recoveryCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-        const templateParams = {
-            to_name: user.user_metadata?.name || "Explorer",
-            to_email: user.email,
-            recovery_code: recoveryCode,
-            app_name: "StudyBuddy"
-        };
+        setLoading(true);
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
 
         try {
-            // Your EmailJS Credentials
             await emailjs.send(
-                'YOUR_SERVICE_ID',
-                'YOUR_TEMPLATE_ID',
-                templateParams,
-                'YOUR_PUBLIC_KEY'
+                'service_4jxw1y4', // Your Service ID
+                'template_y9vobks', // Your Template ID
+                {
+                    to_email: user.email,
+                    recovery_code: code, // Matches {{recovery_code}} in your template
+                    user_name: user.user_metadata?.display_name || "Explorer"
+                },
+                'frRtvfcT_euNuaTxx' // Your Public Key
             );
-
-            // Store code in Supabase to verify later
-            await supabase.from('recovery_tokens').insert([
-                { email: user.email, code: recoveryCode, expires_at: new Date(Date.now() + 15 * 60000) }
-            ]);
-
-            alert("Cipher recovery code transmitted to your email.");
-        } catch (error) {
-            alert("Transmission failed. The network is unstable.");
+            alert("Recovery code dispatched to your relay.");
+        } catch (err) {
+            alert("Transmission failed.");
+        } finally {
+            setLoading(false);
         }
     };
 
