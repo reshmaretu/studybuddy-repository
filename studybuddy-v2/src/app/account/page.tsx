@@ -1041,7 +1041,7 @@ export default function AccountPage() {
                                                 )}
 
                                                 <button
-                                                    onClick={handlePasswordChange}
+                                                    onClick={() => handleForgotPassword(userEmail)}
                                                     disabled={loading || !formData.newPassword}
                                                     className="w-full py-5 bg-white text-black rounded-2xl text-[11px] font-black uppercase hover:bg-(--accent-teal) transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-white/5"
                                                 >
