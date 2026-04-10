@@ -2,8 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-requested-with',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 const supabaseAdmin = createClient(
@@ -11,59 +10,59 @@ const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
     try {
-        // Safety check for empty body
-        const rawBody = await req.text();
-        if (!rawBody) throw new Error("Request body is empty");
+        const body = await req.json()
+        const email = body.userEmail || body.email
+        const { userId, action } = body
 
-        const body = JSON.parse(rawBody);
-        const userEmail = body.userEmail || body.email; // Catch both naming styles
-        const { userId, action, type } = body;
-
-        if (!userEmail) throw new Error("Recipient email is missing from the payload");
+        if (!email) throw new Error("Email missing in payload")
 
         if (action === 'send_otp') {
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
 
-            // 1. Save to DB (This will work now that you created the table)
-            const { error: dbError } = await supabaseAdmin
-                .from('recovery_codes')
-                .upsert({
+            // ATTEMPT Database save, but DON'T let it crash the function
+            try {
+                await supabaseAdmin.from('recovery_codes').upsert({
                     user_id: userId,
                     code: otpCode,
                     type: 'verify'
                 })
+            } catch (dbErr) {
+                console.error("DB Save failed, continuing to email:", dbErr)
+            }
 
-            if (dbError) console.error("DB Error:", dbError.message)
-            // We don't 'throw' here so the email still sends even if DB fails during testing
+            // CALL EmailJS
+            const emailParams = {
+                service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
+                template_id: Deno.env.get('EMAILJS_OTP_TEMPLATE_ID'),
+                user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
+                template_params: {
+                    email: userEmail,
+                    otp_code: otpCode
+                },
+            }
 
-            // 2. Send via EmailJS
+            // Log this to your Supabase Console to see if secrets are null!
+            console.log("Using Service ID:", emailParams.service_id)
+
             const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
-                    template_id: Deno.env.get('EMAILJS_OTP_TEMPLATE_ID'),
-                    user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
-                    template_params: {
-                        email: userEmail,
-                        otp_code: otpCode // Matches your {{otp_code}} exactly
-                    },
-                }),
+                body: JSON.stringify(emailParams),
             })
 
-            const resText = await emailResponse.text()
-            if (!emailResponse.ok) throw new Error(`EmailJS: ${resText}`)
+            const responseText = await emailResponse.text()
+            if (!emailResponse.ok) throw new Error(`EmailJS Error: ${responseText}`)
 
             return new Response(JSON.stringify({ success: true }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" }
             })
         }
     } catch (err: any) {
-        return new Response(JSON.stringify({ error: err.message }), {
+        return new Response(JSON.stringify({ success: false, error: err.message }), {
             status: 500,
             headers: corsHeaders
         })
