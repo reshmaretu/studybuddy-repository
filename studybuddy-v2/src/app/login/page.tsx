@@ -33,6 +33,33 @@ export default function Login() {
         }
     };
 
+    const handleForgotPassword = async (emailInput: string) => {
+        if (!emailInput) {
+            return triggerChumToast("Email coordinate required for relay.", "warning");
+        }
+
+        setLoading(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('send-secure-otp', {
+                body: {
+                    userEmail: emailInput,
+                    action: 'reset_password'
+                }
+            });
+
+            if (error || !data?.success) {
+                throw new Error(data?.error || "Relay transmission failed.");
+            }
+
+            triggerChumToast("Recovery link dispatched to your coordinates.", "success");
+        } catch (err: any) {
+            triggerChumToast(err.message, "warning");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
     return (
         <div className="full-page-container">
             <main className="login-section">
