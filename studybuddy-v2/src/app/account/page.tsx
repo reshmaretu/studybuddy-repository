@@ -1032,7 +1032,7 @@ export default function AccountPage() {
                                             <div className="flex flex-col gap-4 pt-2">
                                                 {formData.currentPassword !== "RECOVERY_BYPASS" && (
                                                     <button
-                                                        onClick={handleForgotPassword}
+                                                        onClick={() => handleForgotPassword(userEmail)}
                                                         disabled={loading}
                                                         className="text-[9px] font-black uppercase tracking-widest text-(--accent-teal) hover:underline text-left ml-2 disabled:opacity-30"
                                                     >
@@ -1041,7 +1041,7 @@ export default function AccountPage() {
                                                 )}
 
                                                 <button
-                                                    onClick={() => handleForgotPassword(userEmail)}
+                                                    onClick={() => handlePasswordChange(userEmail)}
                                                     disabled={loading || !formData.newPassword}
                                                     className="w-full py-5 bg-white text-black rounded-2xl text-[11px] font-black uppercase hover:bg-(--accent-teal) transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-white/5"
                                                 >
