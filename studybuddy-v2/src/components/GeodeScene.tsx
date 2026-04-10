@@ -6,7 +6,7 @@ import { OrbitControls, Float, ContactShadows } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { Move3D, Minimize, MousePointerClick, X, Sparkles } from "lucide-react";
-import { useStudyStore } from "@/store/useStudyStore";
+import { useStudyStore, PerformanceMode } from "@/store/useStudyStore";
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
 
 
@@ -541,10 +541,16 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
     const containerRef = useRef<HTMLDivElement>(null);
     const keys = useRef({ w: false, a: false, s: false, d: false, q: false, e: false });
 
-    const { activeCrystalTheme, activeAtmosphereFilter, shards, flowerCount = 10000 } = useStudyStore();
+    const { activeCrystalTheme, activeAtmosphereFilter, shards, flowerCount = 10000, performanceSettings } = useStudyStore();
+    
+    // Performance Heuristics
+    const isPerformanceLow = performanceSettings.mode === 'low' || (performanceSettings.mode === 'auto' && typeof window !== 'undefined' && window.innerWidth < 768);
+    const resolvedFlowerCount = isPerformanceLow ? Math.min(flowerCount, 2000) : performanceSettings.mode === 'balanced' ? Math.min(flowerCount, 5000) : flowerCount;
+    const resolvedGlitterCount = isPerformanceLow ? 1000 : performanceSettings.mode === 'balanced' ? 3000 : 6000;
+    const resolvedBloomIntensity = !performanceSettings.bloomEnabled || isPerformanceLow ? 0 : performanceSettings.mode === 'balanced' ? 0.4 : 0.5 + (completionRatio * 2.0);
     const activeAtmosphere = SCENE_FILTERS[activeAtmosphereFilter as keyof typeof SCENE_FILTERS] || SCENE_FILTERS.default;
 
-    const allFlowerPositions = useMemo(() => generateTrilliums(flowerCount), [flowerCount]);
+    const allFlowerPositions = useMemo(() => generateTrilliums(resolvedFlowerCount), [resolvedFlowerCount]);
     const masteredShards = useMemo(() => shards.filter(s => s.isMastered), [shards]);
 
     useEffect(() => {
@@ -642,7 +648,7 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
                     setViewingShard={setViewingShard}
                     allFlowerPositions={allFlowerPositions}
                     masteredShards={masteredShards}
-                    flowerCount={flowerCount}
+                    flowerCount={resolvedFlowerCount}
                 />
 
                 <CameraRig
@@ -655,12 +661,12 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
                     allFlowerPositions={allFlowerPositions}
                     masteredShards={masteredShards}
                 />
-                {completionRatio > 0 && (
-                    <CylinderGlitter count={6000} completionRatio={completionRatio} />
+                {completionRatio > 0 && performanceSettings.showParticles && (
+                    <CylinderGlitter count={resolvedGlitterCount} completionRatio={completionRatio} />
                 )}
 
-                <EffectComposer>
-                    <Bloom luminanceThreshold={1} mipmapBlur intensity={0.5 + (completionRatio * 2.0)} />
+                <EffectComposer enabled={resolvedBloomIntensity > 0}>
+                    <Bloom luminanceThreshold={1} mipmapBlur intensity={resolvedBloomIntensity} />
                 </EffectComposer>
             </Canvas>
         </div>

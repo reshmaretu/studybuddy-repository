@@ -24,6 +24,15 @@ export interface Task {
     stressLevel?: number;
 }
 
+export type PerformanceMode = 'auto' | 'high' | 'balanced' | 'low';
+
+export interface PerformanceSettings {
+    mode: PerformanceMode;
+    showParticles: boolean;
+    bloomEnabled: boolean;
+    antialiasing: boolean;
+}
+
 export interface ChatMessage {
     role: 'user' | 'chum';
     text: string;
@@ -233,7 +242,9 @@ interface StudyState {
     doubleClickToComplete: boolean;
     dndEnabled: boolean;
     isSidebarHidden: boolean;
-    setSettings: (settings: Partial<{ doubleClickToComplete: boolean; dndEnabled: boolean; isSidebarHidden: boolean }>) => void;
+    performanceSettings: PerformanceSettings;
+    setSettings: (settings: Partial<{ doubleClickToComplete: boolean; dndEnabled: boolean; isSidebarHidden: boolean; performanceSettings: Partial<PerformanceSettings> }>) => void;
+    handleLogout: () => Promise<void>;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -335,7 +346,25 @@ export const useStudyStore = create<StudyState>()(
             doubleClickToComplete: true,
             dndEnabled: true,
             isSidebarHidden: false,
-            setSettings: (settings) => set((state) => ({ ...state, ...settings })),
+            performanceSettings: {
+                mode: 'auto',
+                showParticles: true,
+                bloomEnabled: true,
+                antialiasing: true
+            },
+            setSettings: (settings) => set((state) => ({ 
+                ...state, 
+                ...settings,
+                performanceSettings: settings.performanceSettings 
+                    ? { ...state.performanceSettings, ...settings.performanceSettings }
+                    : state.performanceSettings 
+            })),
+            handleLogout: async () => {
+                const { error } = await supabase.auth.signOut();
+                if (!error) {
+                    window.location.href = '/login';
+                }
+            },
 
             chumToast: null,
             triggerChumToast: (message, type = 'normal') => {

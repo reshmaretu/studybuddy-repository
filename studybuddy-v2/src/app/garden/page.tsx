@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useStudyStore, TaskLoad, Task } from "@/store/useStudyStore";
 import { Sprout, Plus, Search, Moon, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit, Edit3, Maximize2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import TaskCard from "@/components/TaskCard";
 import MorningPlanningModal from "@/components/MorningPlanningModal";
 import UnDoneModal from "@/components/UnDoneModal";
@@ -214,6 +214,14 @@ export default function CrystalGarden() {
         protocolLimits, updateProtocolLimits
     } = useStudyStore();
 
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        })
+    );
+
     const [searchQuery, setSearchQuery] = useState("");
     const [isAdding, setIsAdding] = useState(false);
     const [activeDragTask, setActiveDragTask] = useState<Task | null>(null);
@@ -409,7 +417,7 @@ export default function CrystalGarden() {
     const [activeFilter, setActiveFilter] = useState<'default' | 'dark' | 'refreshing' | 'cool'>('default');
 
     return (
-        <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             {/* Full-height container, responsive scroll logic */}
             <div className="h-full lg:h-[calc(100vh-theme(spacing.24))] flex flex-col max-w-[1600px] mx-auto space-y-4 relative overflow-y-auto lg:overflow-hidden px-4 no-scrollbar">
 

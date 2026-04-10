@@ -2,7 +2,7 @@
 
 import { Brain, Play, Pause, Settings, Bell, Flame, Coffee, Zap, RotateCcw, Calendar, CheckCircle2, Pin } from "lucide-react"; import { useEffect, useState } from "react";
 import { useStudyStore, Task, calculateXpRequirement, getTitleForLevel } from "@/store/useStudyStore";
-import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import { AnimatePresence, motion } from "framer-motion";
 import TaskCard from "@/components/TaskCard";
 import { redirect } from "next/navigation";
@@ -43,6 +43,14 @@ export default function Dashboard() {
         timeLeft, isRunning, toggleTimer, resetTimer, decrementTimer, completeTask,
         isInitialized, xp, level, pomodoroFocus
     } = useStudyStore();
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        })
+    );
 
     // Safety filter to ensure we only try to render valid tasks
     const validTasks = tasks.filter(t => t && t.id);
@@ -151,7 +159,7 @@ export default function Dashboard() {
     };
 
     return (
-        <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="max-w-[1400px] mx-auto pb-24 md:pb-12 space-y-6 px-4 md:px-0">
 
                 {/* HEADER */}

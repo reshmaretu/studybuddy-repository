@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { BoxSelect, Layers, Zap, Maximize2, Minimize2 } from "lucide-react";
 import { LanternUser } from "@/app/lantern/page";
 import { useRouter } from "next/navigation";
+import { useStudyStore } from "@/store/useStudyStore";
 import * as random from 'maath/random/dist/maath-random.esm';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 
@@ -56,6 +57,10 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
     const [is3D, setIs3D] = useState(false);
     const [warpTarget, setWarpTarget] = useState<THREE.Vector3 | null>(null);
     const controlsRef = useRef<any>(null);
+    const { performanceSettings } = useStudyStore();
+
+    const isPerformanceLow = performanceSettings.mode === 'low' || (performanceSettings.mode === 'auto' && typeof window !== 'undefined' && window.innerWidth < 768);
+    const resolvedDebrisCount = isPerformanceLow ? 500 : performanceSettings.mode === 'balanced' ? 1500 : debrisCount;
 
     const [globalIntensity, setGlobalIntensity] = useState(0);
     const [isFocused, setIsFocused] = useState(false);
@@ -159,7 +164,9 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
 
             <Canvas>
                 <PerspectiveCamera makeDefault position={[0, 0, 120]} fov={30} />
-                <FloatingParticles size={debrisSize} color={debrisColor} count={debrisCount} spread={debrisSpread} />
+                {performanceSettings.showParticles && (
+                    <FloatingParticles size={debrisSize} color={debrisColor} count={resolvedDebrisCount} spread={debrisSpread} />
+                )}
                 <GlobalPulse />
                 {/* 👇 INCREASE AMBIENT LIGHT to 0.8 to illuminate the dust and mesh shells */}
                 <ambientLight intensity={1.5} />
@@ -174,7 +181,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
 
                 <LanternConstellation users={users} is3D={is3D} onWarp={setWarpTarget} intensity={globalIntensity} />
 
-                <EffectComposer enableNormalPass={false}>
+                <EffectComposer enabled={performanceSettings.bloomEnabled && !isPerformanceLow} enableNormalPass={false}>
                     <Bloom
                         luminanceThreshold={1}
                         mipmapBlur

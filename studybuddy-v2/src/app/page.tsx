@@ -4,7 +4,11 @@ import Link from "next/link";
 import { motion, useScroll, useTransform, Variants } from "framer-motion";
 import { Sparkles, BrainCircuit, Network, Cpu, Coffee, Shield, CheckCircle2, Leaf } from "lucide-react";
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+
 export default function LandingPage() {
+  const router = useRouter();
   const { scrollYProgress } = useScroll();
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
 
@@ -51,6 +55,17 @@ export default function LandingPage() {
       window.removeEventListener("mouseover", handleMouseOver);
     };
   }, []);
+
+  // 🔄 AUTH REDIRECT
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.push("/dashboard");
+      }
+    };
+    checkUser();
+  }, [router]);
 
   return (
     <div className="relative w-full bg-[#1E1A1D] text-[#EFE6DD] font-sans selection:bg-[#789B8C] selection:text-[#141113]">

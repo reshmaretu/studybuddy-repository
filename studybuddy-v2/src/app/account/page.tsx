@@ -4,7 +4,7 @@ import { useStudyStore } from "@/store/useStudyStore";
 import {
     User, Mail, Lock, Trash2, Crown, LogOut,
     Camera, CheckCircle2, AlertCircle, RefreshCcw, X, ShieldAlert, ShieldCheck,
-    QrCode, Download, CreditCard, Send, Fingerprint, Settings, MousePointer2, Hand
+    QrCode, Download, CreditCard, Send, Fingerprint, Settings, MousePointer2, Hand, Cpu
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -12,13 +12,15 @@ import emailjs from '@emailjs/browser';
 import jsPDF from 'jspdf';
 import { motion, AnimatePresence } from "framer-motion";
 import { useRef } from "react";
+import { useRouter } from "next/navigation";
 
 export default function AccountPage() {
+    const router = useRouter();
     const {
         isPremiumUser, level, displayName, fullName, userEmail, setUserEmail, triggerChumToast,
         setPremiumStatus, setDisplayName, setFullName, mockInvoices, addMockInvoice,
         isVerified, setIsVerified,
-        doubleClickToComplete, dndEnabled, setSettings
+        doubleClickToComplete, dndEnabled, setSettings, handleLogout, performanceSettings
     } = useStudyStore();
 
     // UI States
@@ -496,7 +498,7 @@ export default function AccountPage() {
                         <Trash2 size={28} className="text-red-400 group-hover:scale-110 transition-transform" />
                         <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Deep Rest</span>
                     </button>
-                    <button onClick={() => supabase.auth.signOut()} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:border-red-500/40 hover:bg-red-500/5 transition-all group">
+                    <button onClick={handleLogout} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:border-red-500/40 hover:bg-red-500/5 transition-all group">
                         <LogOut size={28} className="text-red-500 group-hover:scale-110 transition-transform" />
                         <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/80">Depart</span>
                     </button>
@@ -551,6 +553,60 @@ export default function AccountPage() {
                             >
                                 <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${dndEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
                             </button>
+                        </div>
+                    </div>
+
+                    {/* ⚡ ENVIRONMENTAL OPTIMIZATION (Performance) */}
+                    <div className="mt-8 pt-8 border-t border-white/5">
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="p-2 bg-amber-400/10 rounded-xl border border-amber-400/20">
+                                <Cpu size={16} className="text-amber-400" />
+                            </div>
+                            <div>
+                                <h4 className="text-[11px] font-black uppercase tracking-widest text-white">Environmental Sync</h4>
+                                <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5">Performance tweaks for 3D realms</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="flex flex-col gap-3 p-4 rounded-2xl bg-black/20 border border-white/5">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Processor Mode</span>
+                                    <span className="text-[9px] font-bold text-teal-400 uppercase">{performanceSettings.mode}</span>
+                                </div>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {(['auto', 'low', 'balanced', 'high'] as const).map(m => (
+                                        <button 
+                                            key={m}
+                                            onClick={() => setSettings({ performanceSettings: { mode: m } })}
+                                            className={`py-2 rounded-xl text-[9px] font-black uppercase border transition-all ${performanceSettings.mode === m ? 'bg-teal-400 border-teal-400 text-black' : 'bg-white/5 border-white/10 text-white/40 hover:text-white'}`}
+                                        >
+                                            {m}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <button 
+                                    onClick={() => setSettings({ performanceSettings: { showParticles: !performanceSettings.showParticles } })}
+                                    className={`flex items-center justify-between p-4 rounded-2xl bg-black/20 border transition-all ${performanceSettings.showParticles ? 'border-teal-400/30' : 'border-white/5 opacity-50'}`}
+                                >
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-white">Shaders</span>
+                                    <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-all ${performanceSettings.showParticles ? 'bg-teal-400' : 'bg-white/10'}`}>
+                                        <div className={`w-3 h-3 rounded-full bg-black transition-all ${performanceSettings.showParticles ? 'translate-x-4' : 'translate-x-0'}`} />
+                                    </div>
+                                </button>
+                                <button 
+                                    onClick={() => setSettings({ performanceSettings: { bloomEnabled: !performanceSettings.bloomEnabled } })}
+                                    className={`flex items-center justify-between p-4 rounded-2xl bg-black/20 border transition-all ${performanceSettings.bloomEnabled ? 'border-teal-400/30' : 'border-white/5 opacity-50'}`}
+                                >
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-white">Bloom</span>
+                                    <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-all ${performanceSettings.bloomEnabled ? 'bg-teal-400' : 'bg-white/10'}`}>
+                                        <div className={`w-3 h-3 rounded-full bg-black transition-all ${performanceSettings.bloomEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                                    </div>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

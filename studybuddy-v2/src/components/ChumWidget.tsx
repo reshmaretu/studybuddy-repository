@@ -349,6 +349,7 @@ export default function ChumWidget() {
             <motion.div
                 drag
                 dragMomentum={false}
+                dragConstraints={{ left: -window.innerWidth + 80, right: 0, top: -window.innerHeight + 80, bottom: 0 }}
                 onDragEnd={(e, info) => setWidgetPos({
                     isLeft: info.point.x < window.innerWidth / 2,
                     isTop: info.point.y < window.innerHeight / 3 // Flips if in the top 33% of screen

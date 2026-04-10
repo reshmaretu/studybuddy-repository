@@ -28,9 +28,6 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
         id: task.id,
         data: { task },
         disabled: showMenu || locked || task.isCompleted || showDeleteModal || !dndEnabled,
-        activationConstraint: {
-            distance: 5,
-        },
     });
 
     const handleDoubleClick = () => {
