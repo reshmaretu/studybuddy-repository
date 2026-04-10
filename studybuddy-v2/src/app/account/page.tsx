@@ -48,14 +48,13 @@ export default function AccountPage() {
     const [verificationCode, setVerificationCode] = useState(''); // User input
     const [activeRecoveryCode, setActiveRecoveryCode] = useState(''); // Generated code
 
+    // We invoke the Edge Function instead of calling EmailJS directly
     const handleForgotCipher = async () => {
         setLoading(true);
-
         try {
-            // We invoke the Edge Function instead of calling EmailJS directly
             const { data, error } = await supabase.functions.invoke('send-secure-otp', {
                 body: {
-                    email: userEmail,
+                    userEmail: userEmail, // CHANGED from 'email' to 'userEmail'
                     userId: (await supabase.auth.getUser()).data.user?.id,
                     action: 'reset_password'
                 }
@@ -157,7 +156,7 @@ export default function AccountPage() {
             const { data, error } = await supabase.functions.invoke('send-secure-otp', {
                 body: {
                     action: 'send_otp',
-                    email: targetEmail,
+                    userEmail: targetEmail, // CHANGED from 'email' to 'userEmail'
                     userId: (await supabase.auth.getUser()).data.user?.id,
                 }
             });

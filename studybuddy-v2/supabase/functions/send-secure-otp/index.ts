@@ -11,21 +11,19 @@ const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
-Deno.serve(async (req: Request) => {
+Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
     try {
-        // 1. Check if there is actually a body before parsing
-        const requestText = await req.text();
-        if (!requestText) {
-            throw new Error("The request body is empty. Check your frontend fetch call.");
-        }
+        // Safety check for empty body
+        const rawBody = await req.text();
+        if (!rawBody) throw new Error("Request body is empty");
 
-        const body = JSON.parse(requestText);
-        const email = body.userEmail || body.email;
-        const { userId, action } = body;
+        const body = JSON.parse(rawBody);
+        const userEmail = body.userEmail || body.email; // Catch both naming styles
+        const { userId, action, type } = body;
 
-        if (!email) throw new Error("Recipient email is missing from the payload");
+        if (!userEmail) throw new Error("Recipient email is missing from the payload");
 
         if (action === 'send_otp') {
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
@@ -51,7 +49,7 @@ Deno.serve(async (req: Request) => {
                     template_id: Deno.env.get('EMAILJS_OTP_TEMPLATE_ID'),
                     user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
                     template_params: {
-                        email: email,
+                        email: userEmail,
                         otp_code: otpCode // Matches your {{otp_code}} exactly
                     },
                 }),
