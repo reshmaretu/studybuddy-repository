@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 const supabaseAdmin = createClient(
@@ -11,21 +12,22 @@ const supabaseAdmin = createClient(
 )
 
 Deno.serve(async (req: Request) => {
-    if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+    // 1. Handle Preflight (Browser security check)
+    if (req.method === 'OPTIONS') {
+        return new Response('ok', { headers: corsHeaders })
+    }
 
     try {
         const body = await req.json()
-
-        // Fix: Explicitly define userEmail so the rest of the code can find it
         const userEmail = body.userEmail || body.email
         const { userId, action } = body
 
         if (!userEmail) throw new Error("userEmail missing in payload")
 
+        // ACTION: SEND OTP (for Account Settings)
         if (action === 'send_otp') {
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
 
-            // Database logic (Silently fails so email still sends)
             try {
                 await supabaseAdmin.from('recovery_codes').upsert({
                     user_id: userId,
@@ -36,47 +38,44 @@ Deno.serve(async (req: Request) => {
                 console.error("DB Save failed:", dbErr)
             }
 
-            const emailParams = {
-                service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
-                template_id: Deno.env.get('EMAILJS_OTP_TEMPLATE_ID'),
-                user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
-                accessToken: Deno.env.get('EMAILJS_PRIVATE_KEY'),
-                template_params: {
-                    email: userEmail, // Uses the variable we defined above
-                    otp_code: otpCode
-                },
-            }
-
-            console.log("Attempting send to:", userEmail)
-
             const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(emailParams),
+                body: JSON.stringify({
+                    service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
+                    template_id: Deno.env.get('EMAILJS_OTP_TEMPLATE_ID'),
+                    user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
+                    accessToken: Deno.env.get('EMAILJS_PRIVATE_KEY'),
+                    template_params: {
+                        email: userEmail,
+                        otp_code: otpCode
+                    },
+                }),
             })
 
-            const responseText = await emailResponse.text()
-            if (!emailResponse.ok) throw new Error(`EmailJS Error: ${responseText}`)
+            if (!emailResponse.ok) {
+                const errorText = await emailResponse.text()
+                throw new Error(`EmailJS Error: ${errorText}`)
+            }
 
             return new Response(JSON.stringify({ success: true }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" }
             })
         }
 
+        // ACTION: RESET PASSWORD (for Login Page)
         if (action === 'reset_password') {
-            // 1. Generate the secure reset link from Supabase Auth
             const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
                 type: 'recovery',
                 email: userEmail,
                 options: {
-                    // The URL user lands on after clicking the email button
-                    redirectTo: 'https://your-vercel-project.vercel.app/reset-password'
+                    // UPDATED: Pointing to your actual Vercel URL
+                    redirectTo: 'https://studybuddy-repository.vercel.app/reset-password'
                 }
             });
 
             if (linkError) throw linkError;
 
-            // 2. Send the HTML via EmailJS
             const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -94,14 +93,19 @@ Deno.serve(async (req: Request) => {
 
             if (!emailResponse.ok) throw new Error("Email relay failed");
 
-            return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+            return new Response(JSON.stringify({ success: true }), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+            });
         }
+
+        // Fallback for unknown action
+        throw new Error("Invalid action protocol");
 
     } catch (err: any) {
         console.error("Crash Log:", err.message)
         return new Response(JSON.stringify({ success: false, error: err.message }), {
-            status: 500,
-            headers: corsHeaders
+            status: 400, // Use 400 for user-facing errors
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
         })
     }
 })
