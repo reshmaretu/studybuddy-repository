@@ -15,15 +15,17 @@ Deno.serve(async (req: Request) => {
 
     try {
         const body = await req.json()
-        const email = body.userEmail || body.email
+
+        // Fix: Explicitly define userEmail so the rest of the code can find it
+        const userEmail = body.userEmail || body.email
         const { userId, action } = body
 
-        if (!email) throw new Error("Email missing in payload")
+        if (!userEmail) throw new Error("userEmail missing in payload")
 
         if (action === 'send_otp') {
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
 
-            // ATTEMPT Database save, but DON'T let it crash the function
+            // Database logic (Silently fails so email still sends)
             try {
                 await supabaseAdmin.from('recovery_codes').upsert({
                     user_id: userId,
@@ -31,22 +33,20 @@ Deno.serve(async (req: Request) => {
                     type: 'verify'
                 })
             } catch (dbErr) {
-                console.error("DB Save failed, continuing to email:", dbErr)
+                console.error("DB Save failed:", dbErr)
             }
 
-            // CALL EmailJS
             const emailParams = {
                 service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
                 template_id: Deno.env.get('EMAILJS_OTP_TEMPLATE_ID'),
                 user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
                 template_params: {
-                    email: userEmail,
+                    email: userEmail, // Uses the variable we defined above
                     otp_code: otpCode
                 },
             }
 
-            // Log this to your Supabase Console to see if secrets are null!
-            console.log("Using Service ID:", emailParams.service_id)
+            console.log("Attempting send to:", userEmail)
 
             const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
                 method: 'POST',
@@ -54,16 +54,18 @@ Deno.serve(async (req: Request) => {
                 body: JSON.stringify(emailParams),
             })
 
-            const responseText = await emailResponse.text();
-            console.log("EmailJS Response Status:", emailResponse.status);
-            console.log("EmailJS Response Body:", responseText); // This will tell you EXACTLY what is wrong
+            const responseText = await emailResponse.text()
+            if (!emailResponse.ok) throw new Error(`EmailJS Error: ${responseText}`)
 
-            if (!emailResponse.ok) throw new Error(`EmailJS Error: ${responseText}`);
             return new Response(JSON.stringify({ success: true }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" }
             })
         }
+
+        // Handle reset_password action similarly if needed...
+
     } catch (err: any) {
+        console.error("Crash Log:", err.message)
         return new Response(JSON.stringify({ success: false, error: err.message }), {
             status: 500,
             headers: corsHeaders
