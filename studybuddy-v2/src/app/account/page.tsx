@@ -159,7 +159,6 @@ export default function AccountPage() {
                     action: 'send_otp',
                     email: targetEmail,
                     userId: (await supabase.auth.getUser()).data.user?.id,
-                    type: purpose
                 }
             });
 

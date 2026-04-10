@@ -15,11 +15,17 @@ Deno.serve(async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
     try {
-        const body = await req.json()
-        const email = body.userEmail || body.email
-        const { userId, action } = body
+        // 1. Check if there is actually a body before parsing
+        const requestText = await req.text();
+        if (!requestText) {
+            throw new Error("The request body is empty. Check your frontend fetch call.");
+        }
 
-        if (!email) throw new Error("Recipient email is missing")
+        const body = JSON.parse(requestText);
+        const email = body.userEmail || body.email;
+        const { userId, action } = body;
+
+        if (!email) throw new Error("Recipient email is missing from the payload");
 
         if (action === 'send_otp') {
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
