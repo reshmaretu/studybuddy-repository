@@ -196,7 +196,7 @@ function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll }: any) 
 function StandardZone({ id, tasks }: any) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
-        <div ref={setNodeRef} style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} className={`absolute inset-0 rounded-xl transition-all duration-300 flex flex-col gap-3 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden border-2 border-dashed p-1 pb-16 ${isOver ? "bg-[var(--accent-teal)]/10 border-[var(--accent-teal)] ring-1 ring-[var(--accent-teal)] brightness-110 z-10" : "border-transparent"}`}>
+        <div ref={setNodeRef} style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} className={`absolute inset-0 rounded-xl transition-all duration-300 flex flex-col gap-3 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden border-2 border-dashed p-1 min-h-[150px] pb-16 ${isOver ? "bg-[var(--accent-teal)]/10 border-[var(--accent-teal)] ring-1 ring-[var(--accent-teal)] brightness-110 z-10" : "border-transparent"}`}>
             {tasks.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-[var(--text-muted)] text-sm font-medium">No active quests yet</div>
             ) : (
@@ -410,8 +410,8 @@ export default function CrystalGarden() {
 
     return (
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            {/* Full-height container, overflow hidden so the page never scrolls */}
-            <div className="h-[calc(100vh-theme(spacing.24))] flex flex-col max-w-[1600px] mx-auto space-y-4 relative overflow-hidden px-4">
+            {/* Full-height container, responsive scroll logic */}
+            <div className="h-full lg:h-[calc(100vh-theme(spacing.24))] flex flex-col max-w-[1600px] mx-auto space-y-4 relative overflow-y-auto lg:overflow-hidden px-4 no-scrollbar">
 
                 <AnimatePresence>
                     {showMorningModal && <MorningPlanningModal />}
@@ -631,12 +631,12 @@ export default function CrystalGarden() {
                     </div>
                 </header>
 
-                {/* 3. The Strict 3-Column Layout! */}
-                <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0 pb-4">
+                {/* 3. The Strict 3-Column Layout! (Responsive stack on mobile) */}
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0 pb-20 lg:pb-4">
 
                     {/* LEFT Column: Active Quests (Cinematic Shape-Shifter) */}
-                    <section className="h-full flex flex-col">
-                        <div className="bg-[var(--bg-card)] border border-(--border-color) rounded-2xl p-5 flex flex-col h-full overflow-hidden shadow-sm">
+                    <section className="h-[600px] lg:h-full flex flex-col">
+                        <div className="bg-[var(--bg-card)] border border-(--border-color) rounded-2xl p-4 sm:p-5 flex flex-col h-full overflow-hidden shadow-sm">
 
                             {/* Static Header */}
                             <div className="flex justify-between items-center mb-4 shrink-0">
@@ -756,54 +756,44 @@ export default function CrystalGarden() {
                                             )}
                                         </motion.div>
 
-                                    ) : (
-                                        <motion.div
-                                            key="standard"
-                                            initial={{ opacity: 0, filter: "blur(5px)" }}
-                                            animate={{ opacity: 1, filter: "blur(0px)" }}
-                                            exit={{ opacity: 0, filter: "blur(5px)" }}
-                                            transition={{ duration: 0.3 }}
-                                            className="absolute inset-0 flex flex-col"
-                                        >
-                                            <StandardZone id="current-focus" tasks={sortedQuests} />
-                                        </motion.div>
                                     )}
-
                                 </AnimatePresence>
                             </div>
                         </div>
                     </section>
 
                     {/* MIDDLE Column: The Terrarium Drop Zone */}
-                    <div ref={setGeodeRef} className={`h-full relative flex flex-col rounded-[2.5rem] p-3 transition-colors duration-300 ${isGeodeOver ? 'bg-[var(--accent-teal)] shadow-[0_0_30px_rgba(20,184,166,0.3)]' : 'bg-[#111] shadow-[inset_0_4px_20px_rgba(0,0,0,0.6),0_0_0_1px_var(--border-color)]'}`}>
-                        <div className={`flex-1 w-full h-full rounded-[1.8rem] overflow-hidden relative shadow-[inset_0_0_60px_rgba(0,0,0,0.9)] transition-all ${isGeodeOver ? 'border-2 border-[var(--bg-dark)]' : 'border border-white/10'}`}>
+                    <div className="h-[400px] lg:h-full relative flex flex-col pt-0 shrink-0">
+                        <div ref={setGeodeRef} className={`flex-1 relative rounded-[2.5rem] p-3 transition-colors duration-300 ${isGeodeOver ? 'bg-[var(--accent-teal)] shadow-[0_0_30px_rgba(20,184,166,0.3)]' : 'bg-[#111] shadow-[inset_0_4px_20px_rgba(0,0,0,0.6),0_0_0_1px_var(--border-color)]'}`}>
+                            <div className={`w-full h-full rounded-[1.8rem] overflow-hidden relative shadow-[inset_0_0_60px_rgba(0,0,0,0.9)] transition-all ${isGeodeOver ? 'border-2 border-[var(--bg-dark)]' : 'border border-white/10'}`}>
 
-                            <div className="absolute top-5 left-5 z-10 pointer-events-none">
-                                <h2 className="text-xl font-black text-white drop-shadow-lg tracking-wide">Daily Synthesization</h2>
-                                <p className="text-xs font-bold text-white/80 uppercase tracking-widest mt-1 drop-shadow-md">
-                                    {globalArchivedQuests.length} Quests Mastered • {Math.round(completionRatio * 100)}%
-                                </p>
-                            </div>
-
-                            {isGeodeOver && (
-                                <div className="absolute inset-0 z-20 bg-[var(--accent-teal)]/20 backdrop-blur-sm flex items-center justify-center pointer-events-none transition-all">
-                                    <motion.h2 initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-4xl font-black text-white drop-shadow-2xl tracking-tight">Drop to Initialize</motion.h2>
+                                <div className="absolute top-5 left-5 z-10 pointer-events-none">
+                                    <h2 className="text-xl font-black text-white drop-shadow-lg tracking-wide">Daily Synthesization</h2>
+                                    <p className="text-xs font-bold text-white/80 uppercase tracking-widest mt-1 drop-shadow-md">
+                                        {globalArchivedQuests.length} Quests Mastered • {Math.round(completionRatio * 100)}%
+                                    </p>
                                 </div>
-                            )}
 
-                            {/* THE DROP ZONE FIX: 'pointer-events-none' ensures dnd-kit registers the drop zone! */}
-                            <div className={`w-full h-full ${activeDragTask ? 'pointer-events-none' : ''}`}>
-                                <GeodeScene
-                                    completionRatio={completionRatio}
-                                    snipingShard={snipingShard}
-                                    setSnipingShard={setSnipingShard}
-                                />
+                                {isGeodeOver && (
+                                    <div className="absolute inset-0 z-20 bg-[var(--accent-teal)]/20 backdrop-blur-sm flex items-center justify-center pointer-events-none transition-all">
+                                        <motion.h2 initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-4xl font-black text-white drop-shadow-2xl tracking-tight">Drop to Initialize</motion.h2>
+                                    </div>
+                                )}
+
+                                {/* THE DROP ZONE FIX */}
+                                <div className={`w-full h-full ${activeDragTask ? 'pointer-events-none' : ''}`}>
+                                    <GeodeScene
+                                        completionRatio={completionRatio}
+                                        snipingShard={snipingShard}
+                                        setSnipingShard={setSnipingShard}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     {/* RIGHT Column: Hall of Mastery */}
-                    <section className="h-full overflow-hidden flex flex-col">
+                    <section className="h-[500px] lg:h-full overflow-hidden flex flex-col">
                         <MasteryContainer
                             id="hall-of-mastery"
                             masteryTab={masteryTab}

@@ -478,9 +478,32 @@ export default function AccountPage() {
                         )}
                     </div>
                 </div>
-                
-                {/* ⚙️ GARDEN PROTOCOLS (Settings) */}
-                <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-[40px] p-8 mt-4 backdrop-blur-md">
+                {/* Cozy Action Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full mt-6">
+                    <button onClick={() => setActiveModal('identity')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all group">
+                        <User size={28} className="text-teal-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Garden Label</span>
+                    </button>
+                    <button onClick={() => setActiveModal('email')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all group">
+                        <Mail size={28} className="text-teal-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Coordinate</span>
+                    </button>
+                    <button onClick={() => setActiveModal('password')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all group">
+                        <Lock size={28} className="text-teal-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Hearth</span>
+                    </button>
+                    <button onClick={() => setActiveModal('delete')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:border-red-500/40 hover:bg-red-500/5 transition-all group">
+                        <Trash2 size={28} className="text-red-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Deep Rest</span>
+                    </button>
+                    <button onClick={() => supabase.auth.signOut()} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:border-red-500/40 hover:bg-red-500/5 transition-all group">
+                        <LogOut size={28} className="text-red-500 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/80">Depart</span>
+                    </button>
+                </div>
+
+                {/* ⚙️ GARDEN PROTOCOLS (Settings) - MOVED BELOW */}
+                <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-[40px] p-8 mt-6 backdrop-blur-md">
                     <div className="flex items-center gap-4 mb-8">
                         <div className="p-3 bg-teal-400/10 rounded-2xl border border-teal-400/20">
                             <Settings size={20} className="text-teal-400" />
@@ -530,30 +553,6 @@ export default function AccountPage() {
                             </button>
                         </div>
                     </div>
-                </div>
-
-                {/* Cozy Action Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full mt-6">
-                    <button onClick={() => setActiveModal('identity')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all group">
-                        <User size={28} className="text-teal-400 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Garden Label</span>
-                    </button>
-                    <button onClick={() => setActiveModal('email')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all group">
-                        <Mail size={28} className="text-teal-400 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Coordinate</span>
-                    </button>
-                    <button onClick={() => setActiveModal('password')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all group">
-                        <Lock size={28} className="text-teal-400 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Hearth</span>
-                    </button>
-                    <button onClick={() => setActiveModal('delete')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:border-red-500/40 hover:bg-red-500/5 transition-all group">
-                        <Trash2 size={28} className="text-red-400 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Deep Rest</span>
-                    </button>
-                    <button onClick={() => supabase.auth.signOut()} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:border-red-500/40 hover:bg-red-500/5 transition-all group">
-                        <LogOut size={28} className="text-red-500 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/80">Depart</span>
-                    </button>
                 </div>
 
                 {/* --- 💰 INVOICE LEDGER (If Premium) --- */}

@@ -232,7 +232,8 @@ interface StudyState {
     // ⚙️ SETTINGS
     doubleClickToComplete: boolean;
     dndEnabled: boolean;
-    setSettings: (settings: Partial<{ doubleClickToComplete: boolean; dndEnabled: boolean }>) => void;
+    isSidebarHidden: boolean;
+    setSettings: (settings: Partial<{ doubleClickToComplete: boolean; dndEnabled: boolean; isSidebarHidden: boolean }>) => void;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -330,8 +331,10 @@ export const useStudyStore = create<StudyState>()(
             isViewModalOpen: false,
             viewingTaskId: null,
 
-            doubleClickToComplete: false,
+            // ⚙️ SETTINGS
+            doubleClickToComplete: true,
             dndEnabled: true,
+            isSidebarHidden: false,
             setSettings: (settings) => set((state) => ({ ...state, ...settings })),
 
             chumToast: null,

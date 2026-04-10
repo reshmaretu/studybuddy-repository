@@ -27,7 +27,10 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: task.id,
         data: { task },
-        disabled: showMenu || locked || task.isCompleted || showDeleteModal || !dndEnabled
+        disabled: showMenu || locked || task.isCompleted || showDeleteModal || !dndEnabled,
+        activationConstraint: {
+            distance: 5,
+        },
     });
 
     const handleDoubleClick = () => {

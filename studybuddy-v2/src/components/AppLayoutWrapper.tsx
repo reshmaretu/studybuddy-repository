@@ -16,8 +16,11 @@ import DevOverlay from "./DevOverlay";
 
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const isInitialized = useStudyStore((state) => state.isInitialized);
-    const initializeData = useStudyStore((state) => state.initializeData);
+    const { isInitialized, initializeData, isSidebarHidden } = useStudyStore((state) => ({ 
+        isInitialized: state.isInitialized, 
+        initializeData: state.initializeData,
+        isSidebarHidden: state.isSidebarHidden
+    }));
     const [isMounted, setIsMounted] = useState(false);
 
     // 🛡️ Ensure the component is mounted on the client
@@ -55,9 +58,13 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
     return (
         <>
             <PresenceSync />
-            <div className="flex flex-col md:flex-row h-screen w-full overflow-hidden bg-[var(--bg-dark)]">
-                <Sidebar />
-                <main className="flex-1 min-w-0 p-4 md:p-8 pb-24 md:pb-12 h-screen overflow-y-auto no-scrollbar relative z-[1]">
+            <div className={`flex flex-col md:flex-row h-screen w-full overflow-hidden bg-[var(--bg-dark)]`}>
+                {!isSidebarHidden && <Sidebar />}
+                <main className={`flex-1 min-w-0 p-4 md:p-8 pb-24 md:pb-12 h-screen relative z-[1] 
+                    ${['/dashboard', '/insights', '/account'].includes(pathname) 
+                        ? 'overflow-y-auto no-scrollbar' 
+                        : 'overflow-hidden'}`}
+                >
                     {children}
                 </main>
                 <ChumWidget />

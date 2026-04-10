@@ -156,15 +156,15 @@ export default function Dashboard() {
 
                 {/* HEADER */}
                 <header className="flex justify-between items-center gap-6 mb-4 pt-4 md:pt-0">
-                    <div className="flex-1 min-w-0">
-                        <h1 className="text-2xl md:text-3xl font-bold text-[var(--text-main)] truncate">
+                    <div className="flex-1 min-w-0 pr-2">
+                        <h1 className="text-xl md:text-3xl font-black text-[var(--text-main)] truncate leading-tight">
                             {greeting}, {displayName}!
                         </h1>
                     </div>
-                    <div className="flex items-center gap-6 sm:gap-8 shrink-0">
+                    <div className="flex items-center gap-4 sm:gap-8 shrink-0">
                         <div className="flex flex-col items-end">
-                            <span className="text-lg md:text-xl font-bold text-[var(--text-main)] leading-none">{time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
-                            <span className="text-[var(--accent-teal)] font-bold tracking-widest uppercase text-[9px] md:text-[10px] mt-1 whitespace-nowrap">{time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                            <span className="text-base md:text-xl font-black text-[var(--text-main)] leading-none">{time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
+                            <span className="text-[var(--accent-teal)] font-bold tracking-widest uppercase text-[8px] md:text-[10px] mt-1 whitespace-nowrap">{time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                         </div>
                         <button className="p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors relative shrink-0">
                             <Bell size={24} />

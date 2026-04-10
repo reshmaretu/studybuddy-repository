@@ -87,7 +87,11 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
 export default function LanternNetPage() {
     const [isMounted, setIsMounted] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const { totalSessions, activeMode, isTutorModeActive, isDev, devOverlayEnabled, debrisSize, debrisColor, debrisCount, debrisSpread, setDebris, mockUsers, setMockUsers, isPremiumUser } = useStudyStore();
+    const { 
+        totalSessions, activeMode, isTutorModeActive, isDev, devOverlayEnabled, 
+        debrisSize, debrisColor, debrisCount, debrisSpread, setDebris, 
+        mockUsers, setMockUsers, isPremiumUser, setSettings 
+    } = useStudyStore();
     const router = useRouter();
 
     const [fullNetwork, setFullNetwork] = useState<LanternUser[]>([]);
@@ -153,6 +157,10 @@ export default function LanternNetPage() {
 
     const [isHostModalOpen, setIsHostModalOpen] = useState(false);
     const [isMaximized, setIsMaximized] = useState(false);
+
+    useEffect(() => {
+        setSettings({ isSidebarHidden: isMaximized });
+    }, [isMaximized, setSettings]);
     const [roomSettings, setRoomSettings] = useState({
         title: "Deep Work Session",
         description: "",
@@ -455,20 +463,20 @@ export default function LanternNetPage() {
             </AnimatePresence>
 
             {!isMaximized && (
-                <div className="w-full lg:w-[340px] flex flex-col gap-6 h-full z-10 shrink-0 min-h-0">
+                <div className="hidden lg:flex w-[340px] flex-col gap-6 h-full z-10 shrink-0 min-h-0">
                     <div className="bg-(--bg-card) border border-(--border-color) p-6 rounded-[32px] shadow-sm flex flex-col gap-5">
                         <h1 className="text-2xl font-black text-(--text-main) flex items-center gap-2">
                             <Radio size={24} className="text-(--accent-teal)" /> Lantern Net
                         </h1>
 
-                        <div className="relative">
+                        <div className="relative w-full">
                             <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-(--text-muted)" />
                             <input
                                 type="text"
-                                placeholder="Search the void or room code..."
+                                placeholder="Search void..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="flex-1 bg-(--bg-dark) border border-(--border-color) rounded-2xl pl-12 pr-12 py-3.5 text-sm font-bold text-(--text-main) outline-none focus:border-(--accent-teal) transition-all resize-none custom-scrollbar"
+                                className="w-full bg-(--bg-dark) border border-(--border-color) rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold text-(--text-main) outline-none focus:border-(--accent-teal) transition-all"
                             />
                         </div>
 

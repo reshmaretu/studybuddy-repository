@@ -210,8 +210,8 @@ export default function TactileCalendar() {
                 {/* HEADER */}
                 <header className="flex justify-between items-center mb-2">
                     <div>
-                        <h1 className="text-3xl font-bold text-[var(--text-main)] flex items-center gap-3">
-                            <CalendarIcon className="text-[var(--accent-teal)]" size={32} />
+                        <h1 className="text-xl md:text-3xl font-black text-[var(--text-main)] flex items-center gap-3">
+                            <CalendarIcon className="text-[var(--accent-teal)]" size={24} />
                             Tactile Horizon
                         </h1>
                         <p className="text-[var(--text-muted)] mt-1">
@@ -220,11 +220,11 @@ export default function TactileCalendar() {
                     </div>
 
                     {/* View Toggle */}
-                    <div className="flex bg-[var(--bg-card)] border border-[var(--border-color)] p-1 rounded-xl shadow-sm">
-                        <button onClick={() => setView('horizon')} className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${view === 'horizon' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5'}`}>
+                    <div className="flex bg-[var(--bg-card)] border border-[var(--border-color)] p-1 rounded-xl shadow-sm shrink-0 scale-90 sm:scale-100">
+                        <button onClick={() => setView('horizon')} className={`px-2 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${view === 'horizon' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5'}`}>
                             Horizon
                         </button>
-                        <button onClick={() => setView('month')} className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${view === 'month' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5'}`}>
+                        <button onClick={() => setView('month')} className={`px-2 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${view === 'month' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5'}`}>
                             Month
                         </button>
                     </div>
