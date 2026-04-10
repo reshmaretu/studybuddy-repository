@@ -17,13 +17,14 @@ Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
     try {
-        const body = await req.json()
-        // Try both common names to ensure the variable is captured
-        const email = body.userEmail || body.email
-        const { userId, action, type } = body
+        const body = await req.json();
+        // Try to grab the email from any common key name
+        const email = body.userEmail || body.email;
+        const { userId, action } = body;
 
         if (!email) {
-            throw new Error("Recipient email is missing from the request")
+            console.error("Payload missing email:", body);
+            return new Response(JSON.stringify({ error: "Missing recipient" }), { status: 400, headers: corsHeaders });
         }
 
         if (action === 'send_otp') {
@@ -48,7 +49,11 @@ Deno.serve(async (req) => {
                 }),
             })
 
-            if (!emailResponse.ok) throw new Error(await emailResponse.text())
+            if (!emailResponse.ok) {
+                const errorText = await emailResponse.text()
+                console.error("EmailJS Error:", errorText) // This WILL show in Supabase logs
+                throw new Error(`EmailJS failed: ${errorText}`)
+            }
             return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
         }
 
@@ -73,7 +78,11 @@ Deno.serve(async (req) => {
                 }),
             })
 
-            if (!emailResponse.ok) throw new Error(await emailResponse.text())
+            if (!emailResponse.ok) {
+                const errorText = await emailResponse.text()
+                console.error("EmailJS Error:", errorText) // This WILL show in Supabase logs
+                throw new Error(`EmailJS failed: ${errorText}`)
+            }
             return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
         }
 
