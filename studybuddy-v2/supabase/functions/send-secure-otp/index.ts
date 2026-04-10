@@ -17,9 +17,15 @@ Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
     try {
-        const { userEmail, userId, action, type } = await req.json()
+        const body = await req.json()
+        // Try both common names to ensure the variable is captured
+        const email = body.userEmail || body.email
+        const { userId, action, type } = body
 
-        // --- ACTION: SEND VERIFICATION OTP ---
+        if (!email) {
+            throw new Error("Recipient email is missing from the request")
+        }
+
         if (action === 'send_otp') {
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
             const { error: dbError } = await supabaseAdmin
@@ -32,10 +38,13 @@ Deno.serve(async (req) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
-                    template_id: Deno.env.get('EMAILJS_OTP_TEMPLATE_ID'),
-                    user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
-                    template_params: { email: userEmail, otp_code: otpCode },
+                    service_id: Deno.env.get('service_4jxw1y4'),
+                    template_id: Deno.env.get('template_651g35l'),
+                    user_id: Deno.env.get('frRtvfcT_euNuaTxx'),
+                    template_params: {
+                        email: email,      // Ensure this matches {{email}} in EmailJS
+                        otp_code: otpCode  // Ensure this matches {{otp_code}} in EmailJS
+                    },
                 }),
             })
 
@@ -47,7 +56,7 @@ Deno.serve(async (req) => {
         if (action === 'reset_password') {
             const { data, error } = await supabaseAdmin.auth.admin.generateLink({
                 type: 'recovery',
-                email: userEmail,
+                email: email,
                 options: { redirectTo: 'https://studybuddy-repository.vercel.app/reset-password' }
             })
 
@@ -57,10 +66,10 @@ Deno.serve(async (req) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
-                    template_id: Deno.env.get('EMAILJS_RESET_TEMPLATE_ID'),
-                    user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
-                    template_params: { email: userEmail, reset_link: data.properties.action_link },
+                    service_id: Deno.env.get('service_4jxw1y4'),
+                    template_id: Deno.env.get('template_2pf96wo'),
+                    user_id: Deno.env.get('frRtvfcT_euNuaTxx'),
+                    template_params: { email: email, reset_link: data.properties.action_link },
                 }),
             })
 
@@ -69,8 +78,13 @@ Deno.serve(async (req) => {
         }
 
     } catch (err: any) {
-        return new Response(JSON.stringify({ success: false, error: err.message }), {
-            status: 401,
+        console.error("FUNCTION_ERROR:", err.message); // This shows up in Supabase Logs
+        return new Response(JSON.stringify({
+            success: false,
+            error: err.message,
+            stack: err.stack
+        }), {
+            status: 500, // Changed from 401 to 500 to clearly flag a server failure
             headers: { ...corsHeaders, "Content-Type": "application/json" }
         })
     }
