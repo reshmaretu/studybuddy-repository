@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
             const { data, error } = await supabaseAdmin.auth.admin.generateLink({
                 type: 'recovery',
                 email: email,
-                options: { redirectTo: 'https://studybuddy-v2.vercel.app/reset-password' }
+                options: { redirectTo: 'https://studybuddy-repository.vercel.app/reset-password' }
             })
 
             if (error) throw error
@@ -85,4 +85,10 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" }
         })
     }
+
+    console.log("Checking Keys:", {
+        service: !!Deno.env.get('EMAILJS_SERVICE_ID'),
+        public: !!Deno.env.get('EMAILJS_PUBLIC_KEY'),
+        role: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    });
 })
