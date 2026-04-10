@@ -38,6 +38,45 @@ export default function AccountPage() {
     const [showPurgePassword, setShowPurgePassword] = useState(false);
     const [showCardCvv, setShowCardCvv] = useState(false);
 
+    // --- EMAIL.JS FORGOTTEN PASSWORD LOGIC ---
+    const handleForgotCipher = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user?.email) {
+            alert("Neural signature not found. Please log in first.");
+            return;
+        }
+
+        // Generate a 6-digit verification code
+        const recoveryCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+        const templateParams = {
+            to_name: user.user_metadata?.name || "Explorer",
+            to_email: user.email,
+            recovery_code: recoveryCode,
+            app_name: "StudyBuddy"
+        };
+
+        try {
+            // Your EmailJS Credentials
+            await emailjs.send(
+                'YOUR_SERVICE_ID',
+                'YOUR_TEMPLATE_ID',
+                templateParams,
+                'YOUR_PUBLIC_KEY'
+            );
+
+            // Store code in Supabase to verify later
+            await supabase.from('recovery_tokens').insert([
+                { email: user.email, code: recoveryCode, expires_at: new Date(Date.now() + 15 * 60000) }
+            ]);
+
+            alert("Cipher recovery code transmitted to your email.");
+        } catch (error) {
+            alert("Transmission failed. The network is unstable.");
+        }
+    };
+
     // Cooldown/Meta States
     const [meta, setMeta] = useState({
         firstName: "",
@@ -923,13 +962,18 @@ export default function AccountPage() {
                             {/* Cipher Modal */}
                             {activeModal === 'password' && (
                                 <div className="space-y-8">
-                                    <h2 className="text-2xl font-black uppercase italic tracking-tighter">Cipher Update</h2>
+                                    <div className="text-center space-y-2">
+                                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">Cipher Update</h2>
+                                        <p className="text-[10px] font-bold opacity-30 uppercase">Secure your neural connection</p>
+                                    </div>
+
                                     <div className="space-y-4">
                                         {/* Current Password */}
                                         <div className="relative">
+                                            <label className="text-[8px] font-black uppercase opacity-30 ml-3 mb-1 block">Current Cipher</label>
                                             <input
                                                 type={showCurrentPassword ? "text" : "password"}
-                                                placeholder="Current Cipher"
+                                                placeholder="••••••••"
                                                 value={formData.currentPassword}
                                                 onChange={e => setFormData({ ...formData, currentPassword: e.target.value })}
                                                 className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 pr-12 text-sm outline-none focus:border-(--accent-teal)"
@@ -937,7 +981,7 @@ export default function AccountPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+                                                className="absolute right-4 bottom-5 text-white/40 hover:text-white/70 transition-colors"
                                             >
                                                 {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                             </button>
@@ -945,9 +989,10 @@ export default function AccountPage() {
 
                                         {/* New Password */}
                                         <div className="relative">
+                                            <label className="text-[8px] font-black uppercase opacity-30 ml-3 mb-1 block">New Neural Cipher</label>
                                             <input
                                                 type={showNewPassword ? "text" : "password"}
-                                                placeholder="New Neural Cipher"
+                                                placeholder="••••••••"
                                                 value={formData.newPassword}
                                                 onChange={e => setFormData({ ...formData, newPassword: e.target.value })}
                                                 className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 pr-12 text-sm outline-none focus:border-(--accent-teal)"
@@ -955,13 +1000,29 @@ export default function AccountPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowNewPassword(!showNewPassword)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+                                                className="absolute right-4 bottom-5 text-white/40 hover:text-white/70 transition-colors"
                                             >
                                                 {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                             </button>
                                         </div>
 
-                                        <button onClick={handlePasswordChange} className="w-full py-5 bg-white text-black rounded-2xl text-[11px] font-black uppercase transition-all">REWRITE CIPHER</button>
+                                        <div className="flex flex-col gap-4 pt-2">
+                                            <button
+                                                onClick={handleForgotCipher}
+                                                disabled={loading}
+                                                className="text-[9px] font-black uppercase tracking-widest text-(--accent-teal) hover:underline text-left ml-2"
+                                            >
+                                                Lost your cipher? Recover via relay
+                                            </button>
+
+                                            <button
+                                                onClick={handlePasswordChange}
+                                                disabled={loading}
+                                                className="w-full py-5 bg-white text-black rounded-2xl text-[11px] font-black uppercase transition-all hover:bg-(--accent-teal) disabled:opacity-50"
+                                            >
+                                                {loading ? "Decrypting..." : "REWRITE CIPHER"}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
