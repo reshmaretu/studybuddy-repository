@@ -54,9 +54,11 @@ Deno.serve(async (req: Request) => {
                 body: JSON.stringify(emailParams),
             })
 
-            const responseText = await emailResponse.text()
-            if (!emailResponse.ok) throw new Error(`EmailJS Error: ${responseText}`)
+            const responseText = await emailResponse.text();
+            console.log("EmailJS Response Status:", emailResponse.status);
+            console.log("EmailJS Response Body:", responseText); // This will tell you EXACTLY what is wrong
 
+            if (!emailResponse.ok) throw new Error(`EmailJS Error: ${responseText}`);
             return new Response(JSON.stringify({ success: true }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" }
             })
