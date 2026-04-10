@@ -541,7 +541,13 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
     const containerRef = useRef<HTMLDivElement>(null);
     const keys = useRef({ w: false, a: false, s: false, d: false, q: false, e: false });
 
-    const { activeCrystalTheme, activeAtmosphereFilter, shards, flowerCount = 10000, performanceSettings } = useStudyStore();
+    const { 
+        activeCrystalTheme, 
+        activeAtmosphereFilter, 
+        shards, 
+        flowerCount = 10000, 
+        performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true } 
+    } = useStudyStore();
     
     // Performance Heuristics
     const isPerformanceLow = performanceSettings.mode === 'low' || (performanceSettings.mode === 'auto' && typeof window !== 'undefined' && window.innerWidth < 768);

@@ -20,7 +20,8 @@ export default function AccountPage() {
         isPremiumUser, level, displayName, fullName, userEmail, setUserEmail, triggerChumToast,
         setPremiumStatus, setDisplayName, setFullName, mockInvoices, addMockInvoice,
         isVerified, setIsVerified,
-        doubleClickToComplete, dndEnabled, setSettings, handleLogout, performanceSettings
+        doubleClickToComplete = true, dndEnabled = true, setSettings, handleLogout, 
+        performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true }
     } = useStudyStore();
 
     // UI States

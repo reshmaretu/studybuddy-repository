@@ -57,7 +57,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
     const [is3D, setIs3D] = useState(false);
     const [warpTarget, setWarpTarget] = useState<THREE.Vector3 | null>(null);
     const controlsRef = useRef<any>(null);
-    const { performanceSettings } = useStudyStore();
+    const { performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true } } = useStudyStore();
 
     const isPerformanceLow = performanceSettings.mode === 'low' || (performanceSettings.mode === 'auto' && typeof window !== 'undefined' && window.innerWidth < 768);
     const resolvedDebrisCount = isPerformanceLow ? 500 : performanceSettings.mode === 'balanced' ? 1500 : debrisCount;

@@ -16,7 +16,8 @@ interface TaskCardProps {
 export default function TaskCard({ task, isOverlay = false, locked = false, isMinimized = false }: TaskCardProps) {
     const { 
         openFocusModal, deleteTask, updateTask, tasks, triggerChumToast, 
-        openEditModal, openViewModal, completeTask, doubleClickToComplete, dndEnabled 
+        openEditModal, openViewModal, completeTask, 
+        doubleClickToComplete = true, dndEnabled = true 
     } = useStudyStore();
 
     const [showMenu, setShowMenu] = useState(false);
