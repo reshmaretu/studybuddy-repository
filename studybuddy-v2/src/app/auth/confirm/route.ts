@@ -5,13 +5,13 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
     const token_hash = searchParams.get('token_hash')
-    const type = searchParams.get('type') as any // e.g., 'recovery' or 'signup'
+    const type = searchParams.get('type') as any
     const next = searchParams.get('next') ?? '/reset-password'
 
     if (token_hash && type) {
-        const cookieStore = cookies()
+        // ADD 'await' HERE to fix the Type Error
+        const cookieStore = await cookies()
 
-        // Create the client directly here to avoid the "Module not found" error
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -36,11 +36,9 @@ export async function GET(request: Request) {
         })
 
         if (!error) {
-            // Redirect to the reset password page or home
             return NextResponse.redirect(new URL(next, origin))
         }
     }
 
-    // Redirect to an error page if verification fails
     return NextResponse.redirect(new URL('/auth/auth-error', origin))
 }
