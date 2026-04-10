@@ -10,6 +10,8 @@ import FocusModal from "./FocusModal";
 import FlowStateOverlay from "./FlowStateOverlay";
 import StudyCafeOverlay from "./StudyCafeOverlay";
 import MindDumpPad from "./MindDumpPad";
+import TaskEditModal from "./TaskEditModal";
+import TaskViewModal from "./TaskViewModal";
 import DevOverlay from "./DevOverlay";
 
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
@@ -63,6 +65,8 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
                 <FlowStateOverlay />
                 <StudyCafeOverlay />
                 <MindDumpPad />
+                <TaskEditModal />
+                <TaskViewModal />
                 <DevOverlay />
             </div>
         </>

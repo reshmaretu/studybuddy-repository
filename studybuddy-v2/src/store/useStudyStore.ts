@@ -212,6 +212,22 @@ interface StudyState {
 
     chumToast: { message: string | React.ReactNode, type: 'warning' | 'normal' | 'success' | 'info' } | null;
     triggerChumToast: (message: string | React.ReactNode, type?: 'warning' | 'normal' | 'success' | 'info') => void;
+
+    // 🏆 PROTOCOL LIMITS
+    protocolLimits: { heavy: number; medium: number; light: number };
+    updateProtocolLimits: (limits: Partial<{ heavy: number; medium: number; light: number }>) => void;
+
+    // ✏️ EDIT MODAL
+    isEditModalOpen: boolean;
+    editingTaskId: string | null;
+    openEditModal: (taskId: string) => void;
+    closeEditModal: () => void;
+
+    // 👁️ VIEW MODAL
+    isViewModalOpen: boolean;
+    viewingTaskId: string | null;
+    openViewModal: (taskId: string) => void;
+    closeViewModal: () => void;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -303,6 +319,11 @@ export const useStudyStore = create<StudyState>()(
             lastPlannedDate: null,
             isDev: false,
             devOverlayEnabled: true,
+            protocolLimits: { heavy: 1, medium: 3, light: 5 },
+            isEditModalOpen: false,
+            editingTaskId: null,
+            isViewModalOpen: false,
+            viewingTaskId: null,
 
             chumToast: null,
             triggerChumToast: (message, type = 'normal') => {
@@ -312,6 +333,12 @@ export const useStudyStore = create<StudyState>()(
                     set((state) => state.chumToast?.message === message ? { chumToast: null } : state);
                 }, 6000);
             },
+
+            updateProtocolLimits: (limits) => set((state) => ({ protocolLimits: { ...state.protocolLimits, ...limits } })),
+            openEditModal: (taskId) => set({ isEditModalOpen: true, editingTaskId: taskId }),
+            closeEditModal: () => set({ isEditModalOpen: false, editingTaskId: null }),
+            openViewModal: (taskId) => set({ isViewModalOpen: true, viewingTaskId: taskId }),
+            closeViewModal: () => set({ isViewModalOpen: false, viewingTaskId: null }),
 
             setActiveFramework: async (framework) => {
                 set({ activeFramework: framework });
@@ -444,14 +471,32 @@ export const useStudyStore = create<StudyState>()(
                 const task = get().tasks.find(t => t.id === id);
                 const now = new Date().toISOString();
 
-                set((state) => ({
-                    tasks: state.tasks.map((t) => t.id === id ? {
+                set((state) => {
+                    // 🔥 IVY LEE SHIFTING LOGIC 🔥
+                    let updatedTasks = state.tasks.map((t) => t.id === id ? {
                         ...t,
                         isCompleted: true,
                         completedAt: now,
-                        ...premiumStats // Inject the modal stats!
-                    } : t),
-                }));
+                        ...premiumStats
+                    } : t);
+
+                    if (task?.ivyRank && state.activeFramework === 'ivy') {
+                        const completedRank = task.ivyRank;
+                        updatedTasks = updatedTasks.map(t => {
+                            if (!t.isCompleted && t.ivyRank && t.ivyRank > completedRank) {
+                                const newRank = t.ivyRank - 1;
+                                // PERSIST TO DB
+                                if (!t.id.startsWith('temp-')) {
+                                    supabase.from('tasks').update({ ivy_rank: newRank }).eq('id', t.id).then();
+                                }
+                                return { ...t, ivyRank: newRank };
+                            }
+                            return t;
+                        });
+                    }
+
+                    return { tasks: updatedTasks };
+                });
 
                 get().modifyFocusScore(5);
 
@@ -465,7 +510,17 @@ export const useStudyStore = create<StudyState>()(
                     if (premiumStats?.actualPomos !== undefined) dbUpdate.actual_pomodoros = premiumStats.actualPomos;
                     if (premiumStats?.stressLevel !== undefined) dbUpdate.stress_level = premiumStats.stressLevel;
 
+                    // Bulk update for Ivy shifts is harder, so we just do the task for now
+                    // In a real app we'd trigger a cloud function or batch update
                     supabase.from('tasks').update(dbUpdate).eq('id', id).then();
+                    
+                    // IF Ivy, we should ideally sync all ranks
+                    if (task?.ivyRank && get().activeFramework === 'ivy') {
+                        const activeIvy = get().tasks.filter(t => !t.isCompleted && t.ivyRank);
+                        for (const it of activeIvy) {
+                            supabase.from('tasks').update({ ivy_rank: it.ivyRank }).eq('id', it.id).then();
+                        }
+                    }
                 }
             },
 

@@ -196,13 +196,20 @@ function StandardZone({ id, tasks }: any) {
 }
 
 export default function CrystalGarden() {
-    const { isPremiumUser, tasks, shards, addTask, completeTask, updateTask, activeFramework, setActiveFramework, lastPlannedDate, isInitialized, triggerChumToast, openFocusModal } = useStudyStore();
+    const { 
+        isPremiumUser, tasks, shards, addTask, completeTask, updateTask, 
+        activeFramework, setActiveFramework, lastPlannedDate, isInitialized, 
+        triggerChumToast, openFocusModal, openEditModal, openViewModal, 
+        protocolLimits, updateProtocolLimits 
+    } = useStudyStore();
+
     const [searchQuery, setSearchQuery] = useState("");
     const [isAdding, setIsAdding] = useState(false);
     const [activeDragTask, setActiveDragTask] = useState<Task | null>(null);
     const [showMorningModal, setShowMorningModal] = useState(false);
     const [showUnDoneModal, setShowUnDoneModal] = useState(false);
-    const [draggedToMasteryTask, setDraggedToMasteryTask] = useState<Task | null>(null); // <-- ADD THIS
+    const [showProtocolSettings, setShowProtocolSettings] = useState(false);
+    const [draggedToMasteryTask, setDraggedToMasteryTask] = useState<Task | null>(null);
     const [masteryTab, setMasteryTab] = useState<'tasks' | 'shards'>('tasks');
     const [draggedToGeodeTask, setDraggedToGeodeTask] = useState<Task | null>(null);
     const [snipingShard, setSnipingShard] = useState<any>(null);
@@ -621,11 +628,51 @@ export default function CrystalGarden() {
 
                             {/* Static Header */}
                             <div className="flex justify-between items-center mb-4 shrink-0">
-                                <h2 className="text-xl font-bold text-[var(--text-main)]">Current Focus</h2>
+                                <div className="flex items-center gap-3">
+                                    <h2 className="text-xl font-bold text-[var(--text-main)]">Current Focus</h2>
+                                    {activeFramework === '1-3-5' && (
+                                        <button 
+                                            onClick={() => setShowProtocolSettings(!showProtocolSettings)}
+                                            className="p-1 px-2 rounded-lg bg-[var(--bg-dark)] border border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--accent-teal)] hover:border-[var(--accent-teal)] transition-all flex items-center gap-1.5"
+                                        >
+                                            <Edit3 size={12} />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Adjust</span>
+                                        </button>
+                                    )}
+                                </div>
                                 <span className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
                                     {activeFramework === 'eisenhower' ? 'Eisenhower Matrix' : activeFramework === '1-3-5' ? '1-3-5 Protocol' : activeFramework === 'ivy' ? 'Ivy Lee Method' : 'Standard List'}
                                 </span>
                             </div>
+
+                            <AnimatePresence>
+                                {showProtocolSettings && activeFramework === '1-3-5' && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="mb-4 bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl p-4 overflow-hidden"
+                                    >
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--accent-teal)]">Protocol Limits</h4>
+                                            <button onClick={() => setShowProtocolSettings(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)]"><X size={14} /></button>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {(['heavy', 'medium', 'light'] as const).map(l => (
+                                                <div key={l} className="space-y-1.5 text-center">
+                                                    <p className="text-[9px] font-bold text-[var(--text-muted)] uppercase">{l}</p>
+                                                    <input 
+                                                        type="number" min="1" max="9"
+                                                        value={protocolLimits[l]}
+                                                        onChange={(e) => updateProtocolLimits({ [l]: parseInt(e.target.value) || 1 })}
+                                                        className="w-full bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-xl py-1 text-center text-xs font-bold text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
                             {/* Dynamic Morphing Arena */}
                             <div className="flex-1 relative min-h-0">
@@ -663,9 +710,9 @@ export default function CrystalGarden() {
                                             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                                             className="absolute inset-0 flex flex-col gap-4 overflow-y-auto [&::-webkit-scrollbar]:hidden pr-1 pb-1"
                                         >
-                                            <CapacityZone id="zone-heavy" title="1 Heavy Quest" count={activeQuests.filter(t => t.load === 'heavy').length} max={1} tasks={activeQuests.filter(t => t.load === 'heavy')} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" />
-                                            <CapacityZone id="zone-medium" title="3 Medium Quests" count={activeQuests.filter(t => t.load === 'medium').length} max={3} tasks={activeQuests.filter(t => t.load === 'medium')} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" />
-                                            <CapacityZone id="zone-light" title="5 Light Quests" count={activeQuests.filter(t => t.load === 'light').length} max={5} tasks={activeQuests.filter(t => t.load === 'light')} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" />
+                                            <CapacityZone id="zone-heavy" title={`${protocolLimits.heavy} Heavy Quest${protocolLimits.heavy > 1 ? 's' : ''}`} count={activeQuests.filter(t => t.load === 'heavy').length} max={protocolLimits.heavy} tasks={activeQuests.filter(t => t.load === 'heavy')} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" />
+                                            <CapacityZone id="zone-medium" title={`${protocolLimits.medium} Medium Quest${protocolLimits.medium > 1 ? 's' : ''}`} count={activeQuests.filter(t => t.load === 'medium').length} max={protocolLimits.medium} tasks={activeQuests.filter(t => t.load === 'medium')} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" />
+                                            <CapacityZone id="zone-light" title={`${protocolLimits.light} Light Quest${protocolLimits.light > 1 ? 's' : ''}`} count={activeQuests.filter(t => t.load === 'light').length} max={protocolLimits.light} tasks={activeQuests.filter(t => t.load === 'light')} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" />
                                         </motion.div>
 
                                     ) : activeFramework === 'ivy' ? (

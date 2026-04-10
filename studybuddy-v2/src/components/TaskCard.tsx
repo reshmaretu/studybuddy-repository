@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { Task, TaskLoad, useStudyStore } from "@/store/useStudyStore";
+import { Task, useStudyStore } from "@/store/useStudyStore";
 import { MoreHorizontal, Pin, Clock, Edit2, Trash2, X, Check, Zap, Lock, Eye, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -10,32 +10,21 @@ interface TaskCardProps {
     task: Task;
     isOverlay?: boolean;
     locked?: boolean;
-    isMinimized?: boolean; // 🔥 NEW PROP FOR IVY LEE
+    isMinimized?: boolean;
 }
 
 export default function TaskCard({ task, isOverlay = false, locked = false, isMinimized = false }: TaskCardProps) {
-    const { openFocusModal, deleteTask, updateTask, tasks, triggerChumToast } = useStudyStore();
+    const { openFocusModal, deleteTask, updateTask, tasks, triggerChumToast, openEditModal, openViewModal } = useStudyStore();
 
-    // UI States
     const [showMenu, setShowMenu] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
     const [showFrogReaction, setShowFrogReaction] = useState(false);
     const [showFrogHover, setShowFrogHover] = useState(false);
-
-    // Modal States
-    const [showViewModal, setShowViewModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-    // Edit States
-    const [editTitle, setEditTitle] = useState(task.title);
-    const [editDescription, setEditDescription] = useState(task.description || "");
-    const [editLoad, setEditLoad] = useState<TaskLoad>(task.load);
-    const [editDeadline, setEditDeadline] = useState(task.deadline || "");
 
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: task.id,
         data: { task },
-        disabled: isEditing || showMenu || locked || task.isCompleted || showViewModal || showDeleteModal
+        disabled: showMenu || locked || task.isCompleted || showDeleteModal
     });
 
     const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
@@ -44,16 +33,6 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
         light: "text-[var(--accent-teal)] border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/10",
         medium: "text-[var(--accent-yellow)] border-[var(--accent-yellow)]/30 bg-[var(--accent-yellow)]/10",
         heavy: "text-red-400 border-red-400/30 bg-red-400/10"
-    };
-
-    const handleSaveEdit = () => {
-        if (!editTitle.trim()) return;
-        updateTask(task.id, {
-            title: editTitle, description: editDescription,
-            load: editLoad, deadline: editDeadline || undefined
-        });
-        setIsEditing(false);
-        setShowMenu(false);
     };
 
     const handleFrogToggle = () => {
@@ -78,7 +57,6 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
         setShowMenu(false);
     };
 
-    // 🔥 EXTRACTED ACTION MENU FOR CLEAN CODE REUSE 🔥
     const ActionMenu = (
         <AnimatePresence>
             {showMenu && (
@@ -86,11 +64,11 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
                     initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
                     className="absolute right-0 top-8 w-36 bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-xl shadow-xl overflow-hidden z-[100] origin-top-right"
                 >
-                    <button onClick={() => { setShowViewModal(true); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-[var(--text-main)] hover:bg-[var(--bg-dark)] flex items-center gap-2 transition-colors border-b border-[var(--border-color)]">
+                    <button onClick={() => { openViewModal(task.id); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-[var(--text-main)] hover:bg-[var(--bg-dark)] flex items-center gap-2 transition-colors border-b border-[var(--border-color)]">
                         <Eye size={12} className="text-[var(--accent-teal)]" /> View Details
                     </button>
-                    <button onClick={() => { setIsEditing(true); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-[var(--text-main)] hover:bg-[var(--bg-dark)] flex items-center gap-2 transition-colors border-b border-[var(--border-color)]">
-                        <Edit2 size={12} className="text-[var(--accent-teal)]" /> Tend the Bloom
+                    <button onClick={() => { openEditModal(task.id); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-[var(--text-main)] hover:bg-[var(--bg-dark)] flex items-center gap-2 transition-colors border-b border-[var(--border-color)]">
+                        <Edit2 size={12} className="text-[var(--accent-teal)]" /> Edit Task
                     </button>
                     <button onClick={handleFrogToggle} className={`w-full px-3 py-2 text-xs font-bold flex items-center gap-2 transition-colors border-b border-[var(--border-color)] ${task.isFrog ? 'text-[var(--accent-teal)] hover:bg-[var(--accent-teal)]/10' : 'text-[var(--text-muted)] hover:bg-[var(--bg-dark)]'}`}>
                         <Zap size={12} fill={task.isFrog ? "currentColor" : "none"} /> {task.isFrog ? 'Unmark Frog' : 'Eat the Frog'}
@@ -105,10 +83,9 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
 
     return (
         <>
-            {/* 🔥 NEW: THE SLEEK MINIMIZED LAYOUT 🔥 */}
             {isMinimized ? (
                 <div
-                    ref={setNodeRef} style={style} {...(isEditing || showMenu || locked ? {} : listeners)} {...(isEditing || showMenu || locked ? {} : attributes)}
+                    ref={setNodeRef} style={style} {...(showMenu || locked ? {} : listeners)} {...(showMenu || locked ? {} : attributes)}
                     className={`group relative flex items-center justify-between p-3 sm:p-4 w-full transition-all duration-300 rounded-xl border-2
                         ${isOverlay ? 'scale-105 shadow-2xl border-[var(--accent-teal)] z-50 bg-[var(--bg-card)]' : 'bg-transparent border-transparent hover:bg-black/20 hover:border-[var(--border-color)]/50'}
                         ${isDragging ? 'opacity-40' : 'opacity-100'}
@@ -141,9 +118,8 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
                     </div>
                 </div>
             ) : (
-                /* 🔥 EXISTING: THE STANDARD BLOCKY LAYOUT 🔥 */
                 <div
-                    ref={setNodeRef} style={style} {...(isEditing || showMenu || locked ? {} : listeners)} {...(isEditing || showMenu || locked ? {} : attributes)}
+                    ref={setNodeRef} style={style} {...(showMenu || locked ? {} : listeners)} {...(showMenu || locked ? {} : attributes)}
                     className={`group relative h-fit bg-[var(--bg-card)] border-2 rounded-2xl p-4 flex flex-col gap-3 transition-all duration-300 
                         ${isOverlay ? 'scale-105 shadow-2xl border-[var(--accent-teal)] z-50 opacity-90' : 'hover:border-[var(--text-muted)] shadow-sm hover:shadow-md'}
                         ${isDragging ? 'opacity-40' : 'opacity-100'}
@@ -204,15 +180,7 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
                     )}
 
                     <div className="flex justify-between items-start">
-                        {isEditing ? (
-                            <div className="flex gap-1 w-full mr-4">
-                                {(['light', 'medium', 'heavy'] as const).map(l => (
-                                    <button key={l} onClick={() => setEditLoad(l)} className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${editLoad === l ? loadColors[l] : 'text-[var(--text-muted)] border-[var(--border-color)]'}`}>{l}</button>
-                                ))}
-                            </div>
-                        ) : (
-                            <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${loadColors[task.load]}`}>{task.load}</span>
-                        )}
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${loadColors[task.load]}`}>{task.load}</span>
 
                         <div className="relative z-30">
                             <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setShowMenu(!showMenu)} disabled={locked} className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 rounded-md transition-colors disabled:opacity-50">
@@ -222,47 +190,32 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
                         </div>
                     </div>
 
-                    {isEditing ? (
-                        <div className="flex flex-col gap-2 z-30" onPointerDown={(e) => e.stopPropagation()}>
-                            <input autoFocus type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Quest Name" className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
-                            <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Field notes..." rows={2} className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] resize-none" />
-                            <input type="datetime-local" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-muted)] outline-none focus:border-[var(--accent-teal)]" />
-                            <div className="flex justify-end gap-2 mt-1">
-                                <button onClick={() => setIsEditing(false)} className="px-3 py-1.5 text-xs font-bold text-[var(--text-muted)] hover:text-red-400 bg-[var(--bg-dark)] rounded-md border border-[var(--border-color)]">Cancel</button>
-                                <button onClick={handleSaveEdit} className="px-3 py-1.5 text-xs font-bold text-[#0b1211] bg-[var(--accent-teal)] rounded-md border border-[var(--accent-teal)] hover:brightness-110">Save</button>
+                    <div onClick={() => openViewModal(task.id)} className="cursor-pointer group/content">
+                        <h3 className="text-base font-bold text-[var(--text-main)] leading-tight group-hover/content:text-[var(--accent-teal)] transition-colors">{task.title}</h3>
+                        {task.description && <p className="text-xs text-[var(--text-muted)] line-clamp-2 mt-2">{task.description}</p>}
+                    </div>
+
+                    <div className="flex justify-between items-end mt-2">
+                        {task.deadline ? (
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--accent-teal)]">
+                                <Clock size={12} /><span>Best Before: {new Date(task.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
                             </div>
-                        </div>
-                    ) : (
-                        <>
-                            <h3 className="text-base font-bold text-[var(--text-main)] leading-tight">{task.title}</h3>
-                            {task.description && <p className="text-xs text-[var(--text-muted)] line-clamp-2">{task.description}</p>}
-                        </>
-                    )}
+                        ) : (
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Unscheduled</span>
+                        )}
 
-                    {!isEditing && (
-                        <div className="flex justify-between items-end mt-2">
-                            {task.deadline ? (
-                                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--accent-teal)]">
-                                    <Clock size={12} /><span>Best Before: {new Date(task.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
-                                </div>
-                            ) : (
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Unscheduled</span>
-                            )}
-
-                            {!locked && !showMenu && (
-                                <button onPointerDown={(e) => e.stopPropagation()} onClick={() => openFocusModal(task.id)} className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-[var(--bg-dark)] border border-[var(--border-color)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)] text-[var(--text-main)] px-2 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-sm absolute bottom-4 right-4 z-20">
-                                    <Pin size={12} /> Focus
-                                </button>
-                            )}
-                        </div>
-                    )}
+                        {!locked && !showMenu && (
+                            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => openFocusModal(task.id)} className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-[var(--bg-dark)] border border-[var(--border-color)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)] text-[var(--text-main)] px-2 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-sm absolute bottom-4 right-4 z-20">
+                                <Pin size={12} /> Focus
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
 
-            {/* --- Modals --- */}
             <AnimatePresence>
                 {showDeleteModal && (
-                    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowDeleteModal(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 max-w-sm w-full relative z-10 shadow-2xl flex flex-col items-center text-center">
                             <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mb-4 text-red-400"><AlertTriangle size={24} /></div>
@@ -271,42 +224,6 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
                             <div className="flex gap-3 w-full">
                                 <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-2.5 rounded-xl bg-[var(--bg-dark)] border border-[var(--border-color)] text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">Cancel</button>
                                 <button onClick={() => { deleteTask(task.id); setShowDeleteModal(false); }} className="flex-1 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-sm font-bold text-red-400 hover:bg-red-500 hover:text-white transition-colors">Release</button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-                {showViewModal && (
-                    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowViewModal(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
-                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl w-full max-w-md relative z-10 shadow-2xl overflow-hidden">
-                            <div className="p-4 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--bg-sidebar)]">
-                                <div className="flex items-center gap-3">
-                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${loadColors[task.load]}`}>{task.load}</span>
-                                    {task.isFrog && <span className="text-sm">🐸</span>}
-                                </div>
-                                <button onClick={() => setShowViewModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 bg-[var(--bg-dark)] rounded-lg border border-[var(--border-color)]"><X size={16} /></button>
-                            </div>
-                            <div className="p-6 space-y-4">
-                                <h2 className="text-xl font-bold text-[var(--text-main)]">{task.title}</h2>
-                                {task.deadline && (
-                                    <div className="flex items-center gap-2 text-xs font-bold text-[var(--accent-teal)] bg-[var(--accent-teal)]/10 w-fit px-3 py-1.5 rounded-lg border border-[var(--accent-teal)]/20">
-                                        <Clock size={14} /> Due: {new Date(task.deadline).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                                    </div>
-                                )}
-                                <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl p-4 min-h-[100px]">
-                                    <h4 className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] mb-2">Field Notes</h4>
-                                    <p className="text-sm text-[var(--text-main)] whitespace-pre-wrap leading-relaxed">
-                                        {task.description || <span className="italic text-[var(--text-muted)]">No description provided.</span>}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="p-4 border-t border-[var(--border-color)] bg-[var(--bg-sidebar)] flex justify-end">
-                                <button onClick={() => { setShowViewModal(false); setIsEditing(true); }} className="px-6 py-2 rounded-xl bg-[var(--accent-teal)] text-[#0b1211] font-bold text-sm hover:brightness-110 flex items-center gap-2">
-                                    <Edit2 size={14} /> Tend the Bloom
-                                </button>
                             </div>
                         </motion.div>
                     </div>
