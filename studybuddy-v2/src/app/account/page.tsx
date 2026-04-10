@@ -74,8 +74,6 @@ export default function AccountPage() {
     const [checkoutMethod, setCheckoutMethod] = useState<'manual' | 'qrph' | 'card'>('qrph');
     const [otpPurpose, setOtpPurpose] = useState<'verify' | 'email'>('verify');
 
-    const [loading, setLoading] = useState(false);
-
     // MOCK CARD DATA
     const [cardData, setCardData] = useState({
         number: "4242 4242 4242 4242",
