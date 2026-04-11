@@ -342,7 +342,7 @@ function StandardZone({ id, tasks, onToggleSelect, selectedIds }: any) {
 
 export default function CrystalGarden() {
     const {
-        isPremiumUser, tasks, shards, addTask, completeTask, updateTask,
+        isPremiumUser, tasks, shards, addTask, completeTask, updateTask, deleteTask,
         activeFramework, setActiveFramework, lastPlannedDate, isInitialized,
         triggerChumToast, openFocusModal, openEditModal, openViewModal,
         protocolLimits, updateProtocolLimits
