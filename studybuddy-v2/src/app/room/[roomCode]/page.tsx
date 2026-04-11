@@ -236,6 +236,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
     const [resolvedName, setResolvedName] = useState("Chum");
     const [resolvedAvatar, setResolvedAvatar] = useState("👻");
+    const [resolvedAvatarUrl, setResolvedAvatarUrl] = useState<string | null>(null);
     const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
 
     // --- BROADCAST SETTINGS (Must come FIRST) ---
@@ -345,8 +346,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
             // 2. ⚡ FETCH CURRENT USER DETAILS (For Presence)
             const [profileRes, statsRes, wardrobeRes] = await Promise.all([
-                supabase.from('profiles').select('display_name, full_name, is_premium').eq('id', user.id).single(),
-                supabase.from('user_stats').select('focus_score').eq('user_id', user.id).single(), // Removed is_premium
+                supabase.from('profiles').select('display_name, full_name, is_premium, avatar_url').eq('id', user.id).single(),
+                supabase.from('user_stats').select('focus_score').eq('user_id', user.id).single(),
                 supabase.from('chum_wardrobe').select('base_emoji, hat_emoji').eq('user_id', user.id).single()
             ]);
 
@@ -361,6 +362,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
             setResolvedName(finalName);
             setResolvedAvatar(finalAvatar);
+            const finalAvatarUrl = myProfile.avatar_url;
+            setResolvedAvatarUrl(finalAvatarUrl);
 
             // 3. ⚡ FETCH HOST PREMIUM STATUS (For Room Capabilities)
             if (isActuallyHost) {
@@ -453,6 +456,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             id: user.id,
                             name: finalName,
                             chumAvatar: finalAvatar,
+                            avatarUrl: finalAvatarUrl,
                             status: isActuallyHost ? (roomData?.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
                             roomCode: roomCode,
                             roomTitle: finalRoomTitle
@@ -477,12 +481,13 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 id: currentUserId,
                 name: resolvedName,
                 chumAvatar: resolvedAvatar,
+                avatarUrl: resolvedAvatarUrl,
                 status: isHost ? ((status === 'ACTIVE' || status === 'LAUNCHING') ? 'hosting' : 'drafting') : 'joined',
                 roomCode: roomCode,
                 roomTitle: settings.name || "Sanctuary"
             });
         }
-    }, [status, resolvedName, resolvedAvatar, isHost, roomCode, settings.name, currentUserId]);
+    }, [status, resolvedName, resolvedAvatar, resolvedAvatarUrl, isHost, roomCode, settings.name, currentUserId]);
 
     useEffect(() => {
         const handleUnload = () => {
@@ -1050,9 +1055,11 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     }`}
                                 >
                                     {/* ⚡ Avatar Circle: Forced 40x40px, no shrinking, no overflowing */}
-                                    <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg overflow-hidden ${isRoomHost ? 'bg-[var(--accent-teal)]/20' : 'bg-[var(--bg-sidebar)]'
+                                    <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg overflow-hidden border border-(--border-color) ${isRoomHost ? 'bg-[var(--accent-teal)]/20 shadow-[0_0_10px_rgba(45,212,191,0.2)]' : 'bg-black/20'
                                         }`}>
-                                        {isRoomHost ? '👑' : avatarEmoji}
+                                        {p.avatarUrl ? (
+                                            <img src={p.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                                        ) : isRoomHost ? '👑' : avatarEmoji}
                                     </div>
 
                                     {/* ⚡ Text Container: Flex-col, min-w-0 prevents breaking parent width */}

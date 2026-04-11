@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, FormEvent } from 'react';
+import PasswordValidator from '@/components/PasswordValidator';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -21,6 +22,7 @@ export default function Register() {
     // Password visibility states
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isPasswordFocused, setIsPasswordFocused] = useState(false);
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (formData.password !== formData.confirmPassword) {
@@ -102,7 +104,10 @@ export default function Register() {
                                 required
                                 className="w-full bg-[#111111] border border-white/5 rounded-xl px-4 py-3 pr-12 outline-none focus:border-[#84ccb9]/50 transition-all"
                                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                onFocus={() => setIsPasswordFocused(true)}
+                                onBlur={() => setIsPasswordFocused(false)}
                             />
+                            <PasswordValidator password={formData.password} isVisible={isPasswordFocused} />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}

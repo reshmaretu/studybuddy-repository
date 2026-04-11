@@ -838,7 +838,7 @@ export default function CrystalGarden() {
                                                 <MatrixZone id="quadrant-4" title="Don't Do" subtitle="Not Urgent, Not Imp." tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 4)} color="text-[var(--text-muted)]" bg="bg-[var(--bg-dark)]" border="border-[var(--border-color)]" activeBorder="border-[var(--text-muted)]" />
                                             </div>
                                             {activeQuests.filter(t => !t.eisenhowerQuadrant).length > 0 && (
-                                                <div className="h-1/4 min-h-[120px] shrink-0">
+                                                <div className="h-[30%] min-h-[160px] shrink-0">
                                                     <UnsortedZone id="seed-bank" tasks={activeQuests.filter(t => !t.eisenhowerQuadrant)} title="Unsorted Quests (Drag to Quadrant)" onViewAll={() => setShowUnrankedModal(true)} />
                                                 </div>
                                             )}

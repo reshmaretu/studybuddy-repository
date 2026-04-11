@@ -12,6 +12,8 @@ import StudyCafeOverlay from "./StudyCafeOverlay";
 import MindDumpPad from "./MindDumpPad";
 import TaskEditModal from "./TaskEditModal";
 import TaskViewModal from "./TaskViewModal";
+import ProfileModal from "./ProfileModal";
+import ExperienceOverlay from "./ExperienceOverlay";
 import DevOverlay from "./DevOverlay";
 
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
@@ -30,7 +32,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
     }, [isInitialized, initializeData]);
 
     const isRoomPage = pathname.startsWith("/room/");
-    const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/register" || isRoomPage;
+    const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/register" || pathname === "/reset-password" || pathname === "/error" || isRoomPage;
 
     // 🕰️ Loading State: Prevent the "Default Theme" flash
     if (!isMounted || (!isPublicPage && !isInitialized)) {
@@ -72,6 +74,8 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
                 <MindDumpPad />
                 <TaskEditModal />
                 <TaskViewModal />
+                <ProfileModal />
+                <ExperienceOverlay />
                 <DevOverlay />
             </div>
         </>

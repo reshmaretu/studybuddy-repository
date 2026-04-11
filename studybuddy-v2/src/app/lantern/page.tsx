@@ -24,6 +24,7 @@ export interface LanternUser {
     gridY: number;
     jitterX: number;
     jitterY: number;
+    avatarUrl?: string;
 }
 
 const getStableRandom = (id: string, seed: string) => {
@@ -69,7 +70,7 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
         id: isMe ? 'me' : p.id,
         name: (p.display_name && p.display_name.trim() !== "") ? p.display_name : (p.full_name && p.full_name.trim() !== "") ? p.full_name : "Anonymous",
         status: currentStatus,
-        hours: stats ? Math.floor((stats.total_seconds_tracked || 0) / 3600) : 0,
+        hours: stats ? Number(((stats.total_seconds_tracked || 0) / 3600).toFixed(1)) : 0,
         focusScore: stats ? (stats.focus_score || 0) : 0,
         isHosting: !!hostedRoom,
         roomCode: relevantRoom?.room_code,
@@ -81,6 +82,7 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
         gridY,
         jitterX: isMe ? 0 : (getStableRandom(p.id, "jitterX") - 0.5) * 40,
         jitterY: isMe ? 0 : (getStableRandom(p.id, "jitterY") - 0.5) * 40,
+        avatarUrl: p.avatar_url
     };
 };
 
@@ -556,6 +558,13 @@ export default function LanternNetPage() {
                                                                 <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-(--accent-yellow)' : 'text-(--text-muted)'}`}>
                                                                     {index + 1}
                                                                 </span>
+                                                                <div className="w-8 h-8 rounded-full border border-(--border-color) shrink-0 bg-(--bg-dark) overflow-hidden flex items-center justify-center">
+                                                                    {user.avatarUrl ? (
+                                                                        <img src={user.avatarUrl} alt="PFP" className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        <span className="text-sm">{user.chumLabel.split(' ')[0]}</span>
+                                                                    )}
+                                                                </div>
                                                                 <div className="flex-1 flex flex-col overflow-hidden">
                                                                     <span className="text-sm font-black text-(--text-main) truncate">{user.name}</span>
                                                                 </div>

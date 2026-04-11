@@ -85,11 +85,15 @@ interface StudyState {
     fullName: string;
     userEmail: string;
     isVerified: boolean;
+    avatarUrl: string | null;
+    isProfileModalOpen: boolean;
 
     setDisplayName: (name: string) => void;
     setFullName: (name: string) => void;
     setUserEmail: (email: string) => void;
     setIsVerified: (val: boolean) => void;
+    setAvatarUrl: (url: string | null) => void;
+    setProfileModalOpen: (open: boolean) => void;
 
     // 🌐 CLOUD SYNC STATE
     isInitialized: boolean;
@@ -133,10 +137,13 @@ interface StudyState {
     aiTier: 'cloud' | 'local' | 'offline';
     aiKeys: { groq: string; gemini: string; openrouter: string };
     selectedModel: string;
+    setSelectedModel: (model: string) => void;
     ollamaUrl: string;
 
     xp: number;
     level: number;
+    lastLevelUp: number | null;
+    lastXpGain: number | null;
     modifyFocusScore: (amount: number) => Promise<void>;
     gainXp: (amount: number) => Promise<void>;
     completeStudySession: () => Promise<void>;
@@ -257,12 +264,19 @@ export const useStudyStore = create<StudyState>()(
             displayName: "",
             fullName: "",
             userEmail: "",
+            isVerified: false,
+            avatarUrl: null,
+            isProfileModalOpen: false,
+            lastLevelUp: null,
+            lastXpGain: null,
             mockInvoices: [],
 
             setDisplayName: (name) => set({ displayName: name }),
             setFullName: (name) => set({ fullName: name }),
             setUserEmail: (email) => set({ userEmail: email }),
             setIsVerified: (val) => set({ isVerified: val }),
+            setAvatarUrl: (url) => set({ avatarUrl: url }),
+            setProfileModalOpen: (open) => set({ isProfileModalOpen: open }),
 
             addMockInvoice: (invoice) => set((state) => ({
                 mockInvoices: [invoice, ...state.mockInvoices]
@@ -457,8 +471,17 @@ export const useStudyStore = create<StudyState>()(
                         didLevelUp = true;
                     }
 
-                    if (didLevelUp && state.triggerChumToast) {
-                        state.triggerChumToast(`Level Up! You earned the title: ${getTitleForLevel(currentLevel)}.`, 'normal');
+                    if (didLevelUp) {
+                        set({ lastLevelUp: currentLevel });
+                        setTimeout(() => set({ lastLevelUp: null }), 5000);
+                        if (state.triggerChumToast) {
+                            state.triggerChumToast(`Level Up! You earned the title: ${getTitleForLevel(currentLevel)}.`, 'normal');
+                        }
+                    }
+
+                    if (finalAmount > 0) {
+                        set({ lastXpGain: finalAmount });
+                        setTimeout(() => set({ lastXpGain: null }), 3000);
                     }
 
                     if (user) {
@@ -497,7 +520,6 @@ export const useStudyStore = create<StudyState>()(
 
                 // Intercept the timer exactly when it hits 0
                 if (state.timeLeft === 1) {
-                    state.completeStudySession();
                     set({ timeLeft: 0, isRunning: false });
                     get().completeStudySession();
                 } else {
@@ -610,8 +632,8 @@ export const useStudyStore = create<StudyState>()(
                     const [tasksResponse, shardsResponse, profileResponse, statsResponse, wardrobeResponse, sessionsResponse] = await Promise.all([
                         supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                        supabase.from('profiles').select('display_name, full_name, is_premium, is_dev, active_framework, last_planned_date, is_verified, openrouter_key, gemini_key, groq_key').eq('id', user.id).maybeSingle(),
-                        supabase.from('user_stats').select('focus_score, total_sessions, total_seconds_tracked').eq('user_id', user.id).maybeSingle(),
+                        supabase.from('profiles').select('display_name, full_name, is_premium, is_dev, active_framework, last_planned_date, is_verified, openrouter_key, gemini_key, groq_key, avatar_url').eq('id', user.id).maybeSingle(),
+                        supabase.from('user_stats').select('focus_score, total_sessions, total_seconds_tracked, xp, level').eq('user_id', user.id).maybeSingle(),
                         supabase.from('chum_wardrobe').select('active_theme').eq('user_id', user.id).maybeSingle(),
                         supabase.from('ai_sessions').select('*, shards(title)').eq('user_id', user.id).order('created_at', { ascending: false })
                     ]);
@@ -657,6 +679,9 @@ export const useStudyStore = create<StudyState>()(
                         focusScore: statsResponse.data?.focus_score ?? 100,
                         totalSessions: statsResponse.data?.total_sessions ?? 0,
                         totalSecondsTracked: statsResponse.data?.total_seconds_tracked ?? 0,
+                        xp: statsResponse.data?.xp ?? 0,
+                        level: statsResponse.data?.level ?? 1,
+                        avatarUrl: profileResponse.data?.avatar_url || null,
                         isPremiumUser: profileResponse.data?.is_premium || false,
                         isDev: profileResponse.data?.is_dev || false,
                         activeFramework: profileResponse.data?.active_framework || null,

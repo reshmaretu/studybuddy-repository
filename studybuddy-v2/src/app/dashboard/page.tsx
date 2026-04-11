@@ -164,7 +164,19 @@ export default function Dashboard() {
 
                 {/* HEADER */}
                 <header className="flex justify-between items-center gap-6 mb-4 pt-4 md:pt-0">
-                    <div className="flex-1 min-w-0 pr-2">
+                    <div className="flex-1 min-w-0 pr-2 flex items-center gap-4">
+                        <button 
+                            onClick={() => useStudyStore.getState().setProfileModalOpen(true)}
+                            className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-[var(--border-color)] bg-[var(--bg-dark)] flex-shrink-0 overflow-hidden group/avatar hover:border-[var(--accent-teal)] transition-all"
+                        >
+                            {useStudyStore.getState().avatarUrl ? (
+                                <img src={useStudyStore.getState().avatarUrl!} alt="PFP" className="w-full h-full object-cover group-hover/avatar:scale-110 transition-transform" />
+                            ) : (
+                                <div className="w-full h-full p-2 bg-gradient-to-br from-[var(--bg-sidebar)] to-[var(--bg-dark)]">
+                                    <ChumRenderer size="w-full h-full" />
+                                </div>
+                            )}
+                        </button>
                         <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[var(--text-main)] leading-tight flex flex-wrap gap-x-2">
                             <span>{greeting},</span>
                             <span className="text-[var(--accent-teal)]">{displayName}!</span>

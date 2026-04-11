@@ -1,6 +1,7 @@
 "use client";
 
 import { useStudyStore } from "@/store/useStudyStore";
+import PasswordValidator from "@/components/PasswordValidator";
 import {
     User, Mail, Lock, Trash2, Crown, LogOut,
     Camera, CheckCircle2, AlertCircle, RefreshCcw, X, ShieldAlert, ShieldCheck,
@@ -29,6 +30,8 @@ export default function AccountPage() {
         doubleClickToComplete = true, dndEnabled = true, setSettings, handleLogout,
         performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true }
     } = useStudyStore();
+
+    const [isNewPasswordFocused, setIsNewPasswordFocused] = useState(false);
 
     // UI States
     const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -1018,8 +1021,11 @@ export default function AccountPage() {
                                                     placeholder="••••••••"
                                                     value={formData.newPassword}
                                                     onChange={e => setFormData({ ...formData, newPassword: e.target.value })}
+                                                    onFocus={() => setIsNewPasswordFocused(true)}
+                                                    onBlur={() => setIsNewPasswordFocused(false)}
                                                     className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 pr-12 text-sm outline-none focus:border-(--accent-teal) transition-all"
                                                 />
+                                                <PasswordValidator password={formData.newPassword} isVisible={isNewPasswordFocused} />
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowNewPassword(!showNewPassword)}

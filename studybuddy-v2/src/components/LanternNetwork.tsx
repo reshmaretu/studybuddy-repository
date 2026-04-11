@@ -369,7 +369,16 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                         ● {user.status}
                                     </p>
                                 </div>
-                                <div className="text-2xl">{user.chumLabel.split(' ')[0]}</div>
+                                </div>
+                                <div className="w-12 h-12 rounded-full border border-(--border-color) overflow-hidden flex-shrink-0 bg-black/40">
+                                    {(user as any).avatarUrl ? (
+                                        <img src={(user as any).avatarUrl} alt="PFP" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-2xl">
+                                            {user.chumLabel.split(' ')[0]}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-3 bg-black/40 p-3 rounded-2xl border border-(--border-color)">
                                 <div className="flex flex-col"><span className="text-[8px] uppercase font-black opacity-40">Total Hours</span><span className="text-xs font-mono font-bold text-(--accent-teal)">{user.hours}h</span></div>

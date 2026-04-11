@@ -71,6 +71,21 @@ export default function Sidebar() {
                     </div>
 
                     <div className="flex flex-col gap-2">
+                        <button 
+                            onClick={() => useStudyStore.getState().setProfileModalOpen(true)}
+                            className="flex items-center h-12 mx-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5 transition-colors overflow-hidden whitespace-nowrap"
+                        >
+                            <div className="w-[64px] flex-shrink-0 flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full border border-[var(--border-color)] overflow-hidden bg-[var(--bg-dark)]">
+                                    {useStudyStore.getState().avatarUrl ? (
+                                        <img src={useStudyStore.getState().avatarUrl!} alt="PFP" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-[10px]">✨</div>
+                                    )}
+                                </div>
+                            </div>
+                            <span className="font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">Identity Mask</span>
+                        </button>
                         <Link href="/account" className={`flex items-center h-12 mx-2 rounded-lg transition-colors overflow-hidden whitespace-nowrap ${pathname === '/account' ? 'bg-[var(--bg-card)] text-[var(--text-main)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5'}`}>
                             <div className="w-[64px] flex-shrink-0 flex items-center justify-center"><Settings size={20} /></div>
                             <span className="font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">Settings</span>
