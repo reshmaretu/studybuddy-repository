@@ -570,14 +570,15 @@ export default function LanternNetPage() {
                                                                         <img 
                                                                             src={user.avatarUrl} 
                                                                             alt="PFP" 
-                                                                            className="w-full h-full object-cover" 
+                                                                            className="w-full h-full object-cover z-20 relative rounded-full" 
                                                                             onError={(e) => {
                                                                                 (e.target as HTMLImageElement).style.display = 'none';
-                                                                                (e.target as HTMLImageElement).parentElement?.classList.add('hide-pfp');
+                                                                                const fallback = (e.target as HTMLImageElement).parentElement?.querySelector('.fallback-chum');
+                                                                                if (fallback) fallback.classList.remove('invisible');
                                                                             }}
                                                                         />
                                                                     ) : null}
-                                                                    <div className="absolute inset-0 flex items-center justify-center p-0.5 fallback-chum">
+                                                                    <div className={`absolute inset-0 flex items-center justify-center p-0.5 fallback-chum ${user.avatarUrl ? 'invisible' : ''}`}>
                                                                         <ChumRenderer 
                                                                             size="w-full h-full" 
                                                                             activeAccessoriesOverride={user.activeAccessories}

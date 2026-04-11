@@ -375,14 +375,15 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                         <img 
                                             src={(user as any).avatarUrl} 
                                             alt="PFP" 
-                                            className="w-full h-full object-cover z-10 relative" 
+                                            className="w-full h-full object-cover z-20 relative" 
                                             onError={(e) => {
                                                 (e.target as HTMLImageElement).style.display = 'none';
-                                                (e.target as HTMLImageElement).parentElement?.classList.add('hide-pfp');
+                                                const fallback = (e.target as HTMLImageElement).parentElement?.querySelector('.fallback-chum');
+                                                if (fallback) fallback.classList.remove('invisible');
                                             }}
                                         />
                                     ) : null}
-                                    <div className="absolute inset-0 flex items-center justify-center p-1 bg-(--bg-dark) fallback-chum">
+                                    <div className={`absolute inset-0 flex items-center justify-center p-1 bg-(--bg-dark) fallback-chum ${(user as any).avatarUrl ? 'invisible' : ''}`}>
                                         <ChumRenderer 
                                             size="w-full h-full" 
                                             activeAccessoriesOverride={(user as any).activeAccessories} 
