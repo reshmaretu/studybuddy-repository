@@ -110,7 +110,7 @@ interface StudyState {
     setProfileModalOpen: (open: boolean) => void;
     setIsBrainResetOpen: (open: boolean) => void;
     lastResetHighlightAt: string | null;
-    setLastLevelUp: (date: string | null) => void;
+    setLastLevelUp: (level: number | null) => void;
 
     // 🌐 CLOUD SYNC STATE
     isInitialized: boolean;
@@ -159,7 +159,7 @@ interface StudyState {
 
     xp: number;
     level: number;
-    lastLevelUp: string | null;
+    lastLevelUp: number | null;
     lastXpGain: number | null;
     modifyFocusScore: (amount: number) => Promise<void>;
     gainXp: (amount: number) => Promise<void>;
