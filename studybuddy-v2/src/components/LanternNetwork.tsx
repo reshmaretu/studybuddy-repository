@@ -8,6 +8,7 @@ import { BoxSelect, Layers, Zap, Maximize2, Minimize2 } from "lucide-react";
 import { LanternUser } from "@/app/lantern/page";
 import { useRouter } from "next/navigation";
 import { useStudyStore } from "@/store/useStudyStore";
+import ChumRenderer from "./ChumRenderer";
 import * as random from 'maath/random/dist/maath-random.esm';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 
