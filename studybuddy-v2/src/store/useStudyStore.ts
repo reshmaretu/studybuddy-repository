@@ -264,7 +264,6 @@ export const useStudyStore = create<StudyState>()(
             displayName: "",
             fullName: "",
             userEmail: "",
-            isVerified: false,
             avatarUrl: null,
             isProfileModalOpen: false,
             lastLevelUp: null,
