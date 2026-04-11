@@ -1,3 +1,4 @@
+import React from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '@/lib/supabase';
@@ -6,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 export type TaskLoad = 'light' | 'medium' | 'heavy';
 
 export interface ChumToast {
-    message: string;
+    message: string | React.ReactNode;
     type?: 'info' | 'success' | 'warning' | 'error';
     action?: () => void;
 }
@@ -237,7 +238,7 @@ interface StudyState {
     setPremiumStatus: (status: boolean) => void;
 
     chumToast: ChumToast | null;
-    triggerChumToast: (message: string, type?: 'info' | 'success' | 'warning', action?: () => void) => void;
+    triggerChumToast: (message: string | React.ReactNode, type?: 'info' | 'success' | 'warning', action?: () => void) => void;
 
     // 🏆 PROTOCOL LIMITS
     protocolLimits: { heavy: number; medium: number; light: number };
