@@ -422,12 +422,19 @@ export default function LanternNetPage() {
                                             </label>
                                             <span className="text-xl font-black text-(--accent-teal)">{roomSettings.capacity}</span>
                                         </div>
-                                        <div className={`relative px-1 ${!isPremiumUser ? 'pointer-events-none' : ''}`}>
-                                            <input type="range" min="2" max="12" step="1" value={roomSettings.capacity} onChange={e => setRoomSettings({ ...roomSettings, capacity: parseInt(e.target.value) })}
-                                                className={`w-full h-1.5 bg-(--border-color) rounded-full appearance-none cursor-pointer accent-(--accent-teal) ${!isPremiumUser ? 'grayscale opacity-40 animate-[shake_0.5s_infinite]' : ''}`} />
+                                        <div className="relative px-1">
+                                            <input 
+                                                type="range" 
+                                                min="2" 
+                                                max={isPremiumUser ? 9 : 3} 
+                                                step="1" 
+                                                value={roomSettings.capacity > (isPremiumUser ? 9 : 3) ? (isPremiumUser ? 9 : 3) : roomSettings.capacity} 
+                                                onChange={e => setRoomSettings({ ...roomSettings, capacity: parseInt(e.target.value) })}
+                                                className="w-full h-1.5 bg-(--border-color) rounded-full appearance-none cursor-pointer accent-(--accent-teal)" 
+                                            />
                                             <div className="flex justify-between mt-2 px-0.5">
                                                 <span className="text-[9px] font-black text-(--text-muted)">MIN 2</span>
-                                                <span className="text-[9px] font-black text-(--text-muted)">MAX 12</span>
+                                                <span className="text-[9px] font-black text-(--text-muted)">MAX {isPremiumUser ? 9 : 3}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -609,9 +616,16 @@ export default function LanternNetPage() {
                                         <motion.div
                                             key="rooms"
                                             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                                            className="space-y-3"
+                                            className="space-y-3 flex flex-col h-full"
                                         >
-                                            <div className="flex flex-col min-h-0 pb-8">
+                                            <button
+                                                onClick={() => setIsHostModalOpen(true)}
+                                                className="w-full py-3.5 bg-(--accent-teal)/10 border-2 border-dashed border-(--accent-teal)/30 rounded-2xl text-(--accent-teal) text-xs font-black uppercase tracking-widest hover:bg-(--accent-teal)/20 hover:border-(--accent-teal) transition-all flex items-center justify-center gap-2 mb-2"
+                                            >
+                                                <Plus size={16} /> Host Sanctuary
+                                            </button>
+
+                                            <div className="flex flex-col min-h-0 pb-8 flex-1 overflow-y-auto custom-scrollbar">
                                                 <h3 className="text-sm font-black text-(--text-main) flex items-center gap-2 mb-4 pb-4 border-b border-(--border-color) uppercase tracking-wide">
                                                     <Radio size={18} className="text-(--accent-teal)" /> active Sanctuaries
                                                 </h3>
