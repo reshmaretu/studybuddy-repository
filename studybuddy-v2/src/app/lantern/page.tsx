@@ -92,7 +92,7 @@ export default function LanternNetPage() {
     const {
         totalSessions, activeMode, isTutorModeActive, isDev, devOverlayEnabled,
         debrisSize, debrisColor, debrisCount, debrisSpread, setDebris,
-        mockUsers, setMockUsers, isPremiumUser, setSettings
+        mockUsers, setMockUsers, isPremiumUser, setSettings, totalSecondsTracked
     } = useStudyStore();
     const router = useRouter();
 
@@ -216,6 +216,10 @@ export default function LanternNetPage() {
                         if (p.id === currentUserId) {
                             return formatUser({
                                 ...mergedProfile,
+                                user_stats: {
+                                    ...(mergedProfile.user_stats || {}),
+                                    total_seconds_tracked: totalSecondsTracked // Use local real-time value
+                                },
                                 is_in_flowstate: activeMode === 'flowState',
                                 active_session_type: isTutorModeActive ? 'AI_TUTOR' : null,
                                 status: activeMode === 'none' ? 'idle' : activeMode

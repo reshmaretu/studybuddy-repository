@@ -23,6 +23,12 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
     const userEmail = useStudyStore(state => state.userEmail);
     const router = useRouter();
     const [isMounted, setIsMounted] = useState(false);
+    const { accessibilitySettings } = useStudyStore();
+
+    const isRoomPage = pathname.startsWith("/room/");
+    const appPages = ["/dashboard", "/garden", "/insights", "/lantern", "/account", "/cafe"];
+    const isAppPage = appPages.includes(pathname);
+    const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/register" || pathname === "/reset-password" || pathname === "/error" || isRoomPage || !isAppPage;
 
     // 🛡️ Ensure the component is mounted on the client
     useEffect(() => {
@@ -41,11 +47,6 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
             }
         }
     }, [isMounted, isInitialized, isPublicPage, userEmail, router, pathname]);
-
-    const isRoomPage = pathname.startsWith("/room/");
-    const appPages = ["/dashboard", "/garden", "/insights", "/lantern", "/account", "/cafe"];
-    const isAppPage = appPages.includes(pathname);
-    const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/register" || pathname === "/reset-password" || pathname === "/error" || isRoomPage || !isAppPage;
 
     // 🕰️ Loading State: Prevent the "Default Theme" flash
     if (!isMounted || (!isPublicPage && !isInitialized)) {
@@ -69,7 +70,11 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
     }
 
     return (
-        <>
+        <div className={`
+            ${accessibilitySettings.highContrast ? 'high-contrast' : ''} 
+            ${accessibilitySettings.largeText ? 'large-text' : ''} 
+            ${accessibilitySettings.reducedMotion ? 'reduced-motion' : ''}
+        `}>
             <PresenceSync />
             <div className={`flex flex-col md:flex-row h-screen w-full overflow-hidden bg-[var(--bg-dark)]`}>
                 {!isSidebarHidden && <Sidebar />}
@@ -90,6 +95,6 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
                 <ProfileModal />
                 <DevOverlay />
             </div>
-        </>
+        </div>
     );
 }

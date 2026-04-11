@@ -688,9 +688,8 @@ export default function ChumWidget() {
                                                 chumToast.type === 'info' ? 'text-sky-400' :
                                                     'text-[var(--accent-teal)]'
                                             }`}>
-                                            {chumToast.type === 'warning' ? '⚠️ Burnout Warning' : chumToast.type === 'success' ? '✨ Celebration' : chumToast.type === 'info' ? 'ℹ️ Guidance' : 'Chum Says:'}
+                                            {chumToast.type === 'warning' ? '⚠️ Burnout Warning' : chumToast.type === 'success' ? '✨ Mastery Pulse' : chumToast.type === 'info' ? 'ℹ️ Guidance' : 'Chum Says:'}
                                         </p>
-                                        {/* 👇 Upgraded text-sm, added font-bold, and applied line-clamp-2 */}
                                         <div className="text-sm text-[var(--text-main)] leading-relaxed font-bold">
                                             {chumToast.message}
                                         </div>
@@ -708,6 +707,23 @@ export default function ChumWidget() {
                                         </div>
                                     </>
                                 )}
+
+                                {/* 🖋️ THE INTERACTIVE TAIL (Instagram Style) */}
+                                <div 
+                                    className={`absolute w-4 h-4 rotate-45 border-2 z-[-1] ${widgetPos.isTop ? '-top-2' : '-bottom-2'} ${widgetPos.isLeft ? 'left-6' : 'right-6'} ${
+                                        chumToast?.type === 'warning' ? 'bg-black border-red-500/50' :
+                                        chumToast?.type === 'success' ? 'bg-black border-emerald-500/50' :
+                                        chumToast?.type === 'info' ? 'bg-black border-sky-500/50' :
+                                        'bg-[var(--bg-card)] border-[var(--border-color)]'
+                                    }`}
+                                    style={{ 
+                                        clipPath: widgetPos.isTop ? 'polygon(0 0, 100% 0, 0 100%)' : 'polygon(100% 100%, 100% 0, 0 100%)',
+                                        borderTopColor: widgetPos.isTop ? 'inherit' : 'transparent',
+                                        borderLeftColor: widgetPos.isLeft ? 'inherit' : 'transparent',
+                                        borderRightColor: !widgetPos.isLeft ? 'inherit' : 'transparent',
+                                        borderBottomColor: !widgetPos.isTop ? 'inherit' : 'transparent'
+                                    }}
+                                />
                             </div>
                         </motion.div>
                     )}

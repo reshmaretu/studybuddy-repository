@@ -5,7 +5,7 @@ import PasswordValidator from "@/components/PasswordValidator";
 import {
     User, Mail, Lock, Trash2, Crown, LogOut,
     Camera, CheckCircle2, AlertCircle, RefreshCcw, X, ShieldAlert, ShieldCheck,
-    QrCode, Download, CreditCard, Send, Fingerprint, Settings, MousePointer2, Hand, Cpu, Eye, EyeOff
+    QrCode, Download, CreditCard, Send, Fingerprint, Settings, MousePointer2, Hand, Cpu, Eye, EyeOff, Waves, Maximize2
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -29,7 +29,8 @@ export default function AccountPage() {
         setPremiumStatus, setDisplayName, setFullName, mockInvoices, addMockInvoice,
         isVerified, setIsVerified, avatarUrl, setProfileModalOpen,
         doubleClickToComplete = true, dndEnabled = true, setSettings, handleLogout,
-        performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true }
+        performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true },
+        accessibilitySettings = { highContrast: false, largeText: false, reducedMotion: false }
     } = useStudyStore();
 
     const [isNewPasswordFocused, setIsNewPasswordFocused] = useState(false);
@@ -674,6 +675,31 @@ export default function AccountPage() {
                                     <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-all ${performanceSettings.bloomEnabled ? 'bg-teal-400' : 'bg-white/10'}`}>
                                         <div className={`w-3 h-3 rounded-full bg-black transition-all ${performanceSettings.bloomEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
                                     </div>
+                                </button>
+                            </div>
+
+                            {/* ♿ ACCESSIBILITY CONTROLS */}
+                            <div className="grid grid-cols-3 gap-4 border-t border-white/5 pt-4 mt-2">
+                                <button
+                                    onClick={() => setSettings({ accessibilitySettings: { highContrast: !accessibilitySettings.highContrast } })}
+                                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/20 border transition-all ${accessibilitySettings.highContrast ? 'border-teal-400/30 bg-teal-400/5' : 'border-white/5 opacity-50'}`}
+                                >
+                                    <Eye size={16} className={accessibilitySettings.highContrast ? 'text-teal-400' : 'text-white/40'} />
+                                    <span className="text-[8px] font-black uppercase tracking-widest text-white">High Contrast</span>
+                                </button>
+                                <button
+                                    onClick={() => setSettings({ accessibilitySettings: { largeText: !accessibilitySettings.largeText } })}
+                                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/20 border transition-all ${accessibilitySettings.largeText ? 'border-teal-400/30 bg-teal-400/5' : 'border-white/5 opacity-50'}`}
+                                >
+                                    <Maximize2 size={16} className={accessibilitySettings.largeText ? 'text-teal-400' : 'text-white/40'} />
+                                    <span className="text-[8px] font-black uppercase tracking-widest text-white">Large Text</span>
+                                </button>
+                                <button
+                                    onClick={() => setSettings({ accessibilitySettings: { reducedMotion: !accessibilitySettings.reducedMotion } })}
+                                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/20 border transition-all ${accessibilitySettings.reducedMotion ? 'border-teal-400/30 bg-teal-400/5' : 'border-white/5 opacity-50'}`}
+                                >
+                                    <Waves size={16} className={accessibilitySettings.reducedMotion ? 'text-teal-400' : 'text-white/40'} />
+                                    <span className="text-[8px] font-black uppercase tracking-widest text-white">Soft Motion</span>
                                 </button>
                             </div>
                         </div>

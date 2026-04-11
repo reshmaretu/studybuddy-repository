@@ -18,7 +18,17 @@ export const CHUM_QUOTES = [
     "One chapter at a time. One bloom at a time. One breath at a time.",
     "The sanctuary is always here for you, no matter how chaotic the outside world feels.",
     "You are the architect of your own focus. Build it with kindness for yourself.",
-    "Stay cozy, stay focused, and most importantly, stay you. I'm proud of you."
+    "Stay cozy, stay focused, and most importantly, stay you. I'm proud of you.",
+    "The tea is warm, the music is soft, and the world can wait until your quest is finished.",
+    "Your potential isn't a destination; it's the beautiful path you're walking right now.",
+    "Deep work is a quiet form of bravery. You're doing great, Guardian.",
+    "Like a seedling reaching for the light, your growth happens in the quiet moments of effort.",
+    "Don't rush the bloom. Every second you spend focused is a petal unfolding.",
+    "The rhythm of your typing is the heartbeat of your progress. Keep the tempo steady.",
+    "You've brought so much light to the sanctuary today. Let's finish this together.",
+    "A cluttered mind needs a soft place to land. Breathe out the noise, breathe in the flow.",
+    "Your focus is a gentle flame. Keep it steady, and it will light the way to your dreams.",
+    "Even the tallest trees in the void grew from small, focused seeds of intention."
 ];
 
 export const getRandomQuote = () => {

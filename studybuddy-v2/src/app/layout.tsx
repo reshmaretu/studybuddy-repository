@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import AppLayoutWrapper from "@/components/AppLayoutWrapper";
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
+const outfit = Outfit({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 export const metadata: Metadata = {
   title: "StudyBuddy",
@@ -29,7 +30,7 @@ export default function RootLayout({
             })();
           `}} />
       </head>
-      <body className={`${inter.className} bg-(--bg-dark) text-(--text-main)`}>
+      <body className={`${outfit.className} bg-(--bg-dark) text-(--text-main)`}>
         <AppLayoutWrapper>
           {children}
           <Toaster 

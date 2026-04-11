@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createGroq } from '@ai-sdk/groq';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { streamText } from 'ai';
+import { streamText, generateText } from 'ai';
 
 export const maxDuration = 60;
 
@@ -65,19 +65,27 @@ export async function POST(req: Request) {
         });
 
         // ==========================================
-        // STEP 2: THE STREAMING WATERFALL (OR MANUAL SELECTION)
+        // STEP 2: THE WATERFALL ENGINE (OR MANUAL)
         // ==========================================
-        let streamResult;
+        let result = null;
         let usedNode = "";
+        const shouldStream = req.body ? (await req.clone().json()).stream !== false : true;
 
         // 🎯 PRIORITY: Manual Model Selection via OpenRouter
         if (selected_model && orKey) {
             try {
                 const openrouter = createOpenRouter({ apiKey: orKey });
-                streamResult = await streamText({
+                const config = {
                     model: openrouter(selected_model),
                     messages: formattedMessages
-                });
+                };
+
+                if (shouldStream) {
+                    result = await streamText(config);
+                } else {
+                    const textRes = await generateText(config);
+                    result = textRes.text;
+                }
                 usedNode = `Neural Link: ${selected_model}`;
             } catch (e: any) {
                 console.warn(`Manual selection failed: ${e.message}. Falling back to waterfall...`);
@@ -85,14 +93,20 @@ export async function POST(req: Request) {
         }
 
         // 🌊 FALLBACK 1: OpenRouter (Llama 3.1)
-        if (!streamResult && orKey) {
+        if (!result && orKey) {
             try {
                 const openrouter = createOpenRouter({ apiKey: orKey });
-
-                streamResult = await streamText({
+                const config = {
                     model: openrouter("meta-llama/llama-3.1-8b-instruct:free"),
                     messages: formattedMessages
-                });
+                };
+
+                if (shouldStream) {
+                    result = await streamText(config);
+                } else {
+                    const textRes = await generateText(config);
+                    result = textRes.text;
+                }
                 usedNode = "OpenRouter (Llama 3.1)";
             } catch (e: any) {
                 console.warn(`OpenRouter waterfall failed: ${e.message}.`);
@@ -100,14 +114,20 @@ export async function POST(req: Request) {
         }
 
         // 🌊 FALLBACK 2: Groq (Llama 3.3)
-        if (!streamResult && groqKey) {
+        if (!result && groqKey) {
             try {
                 const groq = createGroq({ apiKey: groqKey });
-
-                streamResult = await streamText({
+                const config = {
                     model: groq("llama-3.3-70b-versatile"),
                     messages: formattedMessages
-                });
+                };
+
+                if (shouldStream) {
+                    result = await streamText(config);
+                } else {
+                    const textRes = await generateText(config);
+                    result = textRes.text;
+                }
                 usedNode = "Groq (Llama 3.3)";
             } catch (e: any) {
                 console.warn(`Groq waterfall failed: ${e.message}.`);
@@ -115,28 +135,37 @@ export async function POST(req: Request) {
         }
 
         // 🌊 FALLBACK 3: Gemini (Native)
-        if (!streamResult && geminiKey) {
+        if (!result && geminiKey) {
             try {
                 const google = createGoogleGenerativeAI({ apiKey: geminiKey });
-
-                streamResult = await streamText({
+                const config = {
                     model: google('gemini-2.0-flash'),
                     messages: formattedMessages
-                });
+                };
+
+                if (shouldStream) {
+                    result = await streamText(config);
+                } else {
+                    const textRes = await generateText(config);
+                    result = textRes.text;
+                }
                 usedNode = "Gemini 2.0 (Direct)";
             } catch (e: any) {
                 console.warn(`Gemini waterfall failed: ${e.message}.`);
             }
         }
 
-        if (!streamResult) {
+        if (!result) {
             throw new Error("All Cloud AI nodes failed or keys are missing. Check Settings.");
         }
 
-        // Send the stream back to ChumWidget
-        return streamResult.toTextStreamResponse({
-            headers: { 'X-Node-Used': usedNode }
-        });
+        if (shouldStream && typeof result !== 'string') {
+            return (result as any).toTextStreamResponse({
+                headers: { 'X-Node-Used': usedNode }
+            });
+        }
+
+        return NextResponse.json({ response: result, node: usedNode });
 
     } catch (error: any) {
         console.error("Chat API Error:", error.message);

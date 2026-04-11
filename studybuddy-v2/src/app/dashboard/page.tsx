@@ -41,7 +41,7 @@ export default function Dashboard() {
     const {
         tasks, focusScore, dailyStreak, totalSessions, totalSecondsTracked,
         timeLeft, isRunning, toggleTimer, resetTimer, decrementTimer, completeTask,
-        isInitialized, xp, level, pomodoroFocus, isBrainResetOpen, setIsBrainResetOpen
+        isInitialized, xp, level, pomodoroFocus, isBrainResetOpen, setIsBrainResetOpen, lastResetHighlightAt
     } = useStudyStore();
 
     const sensors = useSensors(
@@ -92,7 +92,10 @@ export default function Dashboard() {
                 const res = await fetch("/api/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ messages: [{ role: "user", content: prompt }] })
+                    body: JSON.stringify({ 
+                        messages: [{ role: "user", content: prompt }],
+                        stream: false 
+                    })
                 });
                 const data = await res.json();
                 if (!res.ok || data.error) throw new Error("Cloud failed");
@@ -139,6 +142,13 @@ export default function Dashboard() {
     // Attempt to grab the user's name from the store, falling back to "Guardian"
     const store = useStudyStore();
     const displayName = store.displayName || store.fullName || "Guardian";
+    
+    // Check if we should highlight the brain reset button (10 minute window)
+    const isResetHighlighted = useMemo(() => {
+        if (!lastResetHighlightAt) return false;
+        const diff = (new Date().getTime() - new Date(lastResetHighlightAt).getTime()) / 60000;
+        return diff < 10;
+    }, [lastResetHighlightAt]);
     // 👆 END OF GREETING LOGIC
 
     // Drag and Drop Handlers
@@ -245,19 +255,19 @@ export default function Dashboard() {
 
                     <button
                         onClick={() => setIsBrainResetOpen(true)}
-                        className={`bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer group relative overflow-hidden transition-all duration-700 w-full ${totalSessions > 0 && totalSessions % 4 === 0
+                        className={`bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer group relative overflow-hidden transition-all duration-700 w-full ${isResetHighlighted
                                 ? "border-[var(--accent-teal)] shadow-[0_0_30px_rgba(45,212,191,0.2)]"
                                 : "hover:border-[var(--accent-teal)]/50"
                             }`}
                     >
-                        {totalSessions > 0 && totalSessions % 4 === 0 && (
+                        {isResetHighlighted && (
                             <div className="absolute inset-0 bg-gradient-to-t from-[var(--accent-teal)]/10 to-transparent animate-pulse" />
                         )}
                         <div className="absolute inset-0 bg-[var(--accent-teal)] opacity-0 group-hover:opacity-5 transition-opacity duration-700"></div>
-                        <Brain size={48} className={`text-[var(--accent-teal)] mb-3 group-hover:scale-110 transition-transform duration-500 ${totalSessions > 0 && totalSessions % 4 === 0 ? "animate-bounce" : ""}`} style={{ filter: 'drop-shadow(0px 0px 10px var(--accent-teal))' }} />
+                        <Brain size={48} className={`text-[var(--accent-teal)] mb-3 group-hover:scale-110 transition-transform duration-500 ${isResetHighlighted ? "animate-bounce" : ""}`} style={{ filter: 'drop-shadow(0px 0px 10px var(--accent-teal))' }} />
                         <h2 className="text-lg font-bold text-[var(--text-main)] mb-1">Mindful Reset</h2>
                         <p className="text-[var(--text-muted)] text-xs font-medium">
-                            {totalSessions > 0 && totalSessions % 4 === 0 ? "Time for a brain reset!" : "Breathe deeply"}
+                            {isResetHighlighted ? "Time for a brain reset!" : "Breathe deeply"}
                         </p>
                     </button>
 

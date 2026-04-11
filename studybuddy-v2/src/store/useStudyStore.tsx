@@ -33,6 +33,12 @@ export interface Task {
 
 export type PerformanceMode = 'auto' | 'high' | 'balanced' | 'low';
 
+export interface AccessibilitySettings {
+    highContrast: boolean;
+    largeText: boolean;
+    reducedMotion: boolean;
+}
+
 export interface PerformanceSettings {
     mode: PerformanceMode;
     showParticles: boolean;
@@ -103,6 +109,7 @@ interface StudyState {
     setAvatarUrl: (url: string | null) => void;
     setProfileModalOpen: (open: boolean) => void;
     setIsBrainResetOpen: (open: boolean) => void;
+    lastResetHighlightAt: string | null;
     setLastLevelUp: (date: string | null) => void;
 
     // 🌐 CLOUD SYNC STATE
@@ -261,7 +268,8 @@ interface StudyState {
     dndEnabled: boolean;
     isSidebarHidden: boolean;
     performanceSettings: PerformanceSettings;
-    setSettings: (settings: Partial<{ doubleClickToComplete: boolean; dndEnabled: boolean; isSidebarHidden: boolean; performanceSettings: Partial<PerformanceSettings> }>) => void;
+    accessibilitySettings: AccessibilitySettings;
+    setSettings: (settings: Partial<{ doubleClickToComplete: boolean; dndEnabled: boolean; isSidebarHidden: boolean; performanceSettings: Partial<PerformanceSettings>; accessibilitySettings: Partial<AccessibilitySettings> }>) => void;
     handleLogout: () => Promise<void>;
 }
 
@@ -277,6 +285,7 @@ export const useStudyStore = create<StudyState>()(
             avatarUrl: null,
             isProfileModalOpen: false,
             isBrainResetOpen: false,
+            lastResetHighlightAt: null,
             lastLevelUp: null,
             lastXpGain: null,
             mockInvoices: [],
@@ -381,12 +390,20 @@ export const useStudyStore = create<StudyState>()(
                 bloomEnabled: true,
                 antialiasing: true
             },
+            accessibilitySettings: {
+                highContrast: false,
+                largeText: false,
+                reducedMotion: false
+            },
             setSettings: (settings) => set((state) => ({
                 ...state,
                 ...settings,
                 performanceSettings: settings.performanceSettings
                     ? { ...state.performanceSettings, ...settings.performanceSettings }
-                    : state.performanceSettings
+                    : state.performanceSettings,
+                accessibilitySettings: settings.accessibilitySettings
+                    ? { ...state.accessibilitySettings, ...settings.accessibilitySettings }
+                    : state.accessibilitySettings
             })),
             handleLogout: async () => {
                 const { error } = await supabase.auth.signOut();
@@ -487,7 +504,10 @@ export const useStudyStore = create<StudyState>()(
                         set({ lastLevelUp: currentLevel });
                         setTimeout(() => set({ lastLevelUp: null }), 5000);
                         if (state.triggerChumToast) {
-                            state.triggerChumToast(`🌟 ASCENSION! You've reached Level ${currentLevel}. New Title: ${getTitleForLevel(currentLevel)}`, 'info');
+                            state.triggerChumToast(
+                                <span><strong className="text-(--accent-yellow)">🌟 ASCENSION REACHED!</strong><br />Level {currentLevel} achieved. You are now: <span className="text-(--accent-teal)">{getTitleForLevel(currentLevel)}</span></span>, 
+                                'info'
+                            );
                         }
                     }
 
@@ -495,7 +515,10 @@ export const useStudyStore = create<StudyState>()(
                         set({ lastXpGain: finalAmount });
                         setTimeout(() => set({ lastXpGain: null }), 3000);
                         if (state.triggerChumToast && !didLevelUp) {
-                            state.triggerChumToast(`✨ ${finalAmount} XP Essence gained! Your Spirit grows stronger.`, 'success');
+                            state.triggerChumToast(
+                                <span><strong className="text-(--accent-teal)">✨ Essence Absorbed!</strong><br />+{finalAmount} XP added to your neural network.</span>, 
+                                'success'
+                            );
                         }
                     }
 
@@ -520,7 +543,12 @@ export const useStudyStore = create<StudyState>()(
                 set({ totalSessions: newTotal });
 
                 if (newTotal % 4 === 0) {
-                    get().triggerChumToast("🧠 Your neurons are firing fast! Time for a Brain Reset to clear the mental fog?", "info", () => get().setIsBrainResetOpen(true));
+                    set({ lastResetHighlightAt: new Date().toISOString() });
+                    get().triggerChumToast(
+                        <span><strong className="text-(--accent-yellow)">🧠 Neural Fog Detected!</strong><br />You've completed 4 flows. Time for a Brain Reset?</span>, 
+                        "info", 
+                        () => get().setIsBrainResetOpen(true)
+                    );
                 }
 
                 if (user) {

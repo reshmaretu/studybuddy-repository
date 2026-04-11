@@ -231,6 +231,47 @@ body {
     color: var(--text-main);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-weight: 400;
+    transition: background-color 0.5s ease;
+}
+
+/* 🎨 LO-FI COZY VIBES: SOFTER BOLDS */
+h1, h2, h3, h4, .font-bold {
+    font-weight: 600; /* Softer than 700/800 for cozy vibe */
+    letter-spacing: -0.01em;
+}
+
+.font-black {
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+/* ♿ ACCESSIBILITY OVERRIDES */
+.high-contrast {
+    --text-main: #ffffff !important;
+    --text-muted: #cdcdcd !important;
+    --border-color: #ffffff !important;
+}
+
+.high-contrast .bg-\[var\(--bg-card\)\] {
+    background: #000000 !important;
+    border: 2px solid #ffffff !important;
+}
+
+.large-text {
+    font-size: 1.15em !important;
+}
+
+.large-text h1 { font-size: 1.5em !important; }
+.large-text h2 { font-size: 1.3em !important; }
+.large-text p, .large-text span, .large-text button { font-size: 1.1em !important; }
+
+.reduced-motion * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
 }
 
 /* ─── Study Cafe: True Frosted Glass ───────────────────────────────────────── */
