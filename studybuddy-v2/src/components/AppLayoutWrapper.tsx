@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react"; // ⚡ Add useState
 import { useStudyStore } from "@/store/useStudyStore"; // ⚡ Import store
 import Sidebar from "./Sidebar";
@@ -20,6 +20,8 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
     const isInitialized = useStudyStore(state => state.isInitialized);
     const initializeData = useStudyStore(state => state.initializeData);
     const isSidebarHidden = useStudyStore(state => state.isSidebarHidden);
+    const userEmail = useStudyStore(state => state.userEmail);
+    const router = useRouter();
     const [isMounted, setIsMounted] = useState(false);
 
     // 🛡️ Ensure the component is mounted on the client
@@ -29,6 +31,16 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
             initializeData();
         }
     }, [isInitialized, initializeData]);
+    
+    // 🚪 Protection: Redirect if not logged in and trying to access app pages
+    useEffect(() => {
+        if (isMounted && isInitialized) {
+            const isProtected = !isPublicPage && pathname !== '/';
+            if (isProtected && !userEmail) {
+                router.push('/register');
+            }
+        }
+    }, [isMounted, isInitialized, isPublicPage, userEmail, router, pathname]);
 
     const isRoomPage = pathname.startsWith("/room/");
     const appPages = ["/dashboard", "/garden", "/insights", "/lantern", "/account", "/cafe"];

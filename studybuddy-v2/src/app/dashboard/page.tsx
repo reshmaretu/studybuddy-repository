@@ -275,7 +275,8 @@ export default function Dashboard() {
                             {/* Bulletproof wrapper */}
                             <div className="absolute inset-0 flex items-center justify-center rounded-2xl overflow-hidden pointer-events-none">
                                 <ChumRenderer size="w-14 h-14 md:w-16 md:h-16 scale-125 translate-y-1.5" />
-                            </                            <motion.div 
+                            </div>
+                            <motion.div 
                                 key={level}
                                 initial={{ scale: 0.5, rotate: -20, opacity: 0 }}
                                 animate={{ scale: 1, rotate: 0, opacity: 1 }}
