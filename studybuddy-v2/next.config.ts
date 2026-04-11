@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
               // 🔥 Added Stripe JS
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://js.stripe.com;",
               "style-src 'self' 'unsafe-inline';",
-              "img-src 'self' blob: data: https://*.tldraw.com https://cdn.tldraw.com https://grainy-gradients.vercel.app;",
+              "img-src 'self' blob: data: https://*.supabase.co https://*.tldraw.com https://cdn.tldraw.com https://grainy-gradients.vercel.app;",
               "font-src 'self' data: https://*.tldraw.com;",
               "worker-src 'self' blob:;",
               // 🔥 Added Stripe API
