@@ -565,7 +565,7 @@ export default function LanternNetPage() {
                                                                 <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-(--accent-yellow)' : 'text-(--text-muted)'}`}>
                                                                     {index + 1}
                                                                 </span>
-                                                                <div className="w-8 h-8 rounded-full border border-(--border-color) shrink-0 bg-(--bg-dark) overflow-hidden flex items-center justify-center p-0.5">
+                                                                <div className="w-8 h-8 rounded-full border border-(--border-color) shrink-0 bg-(--bg-dark) overflow-hidden flex items-center justify-center p-0.5 relative">
                                                                     {user.avatarUrl ? (
                                                                         <img 
                                                                             src={user.avatarUrl} 

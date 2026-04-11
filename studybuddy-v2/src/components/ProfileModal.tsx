@@ -120,7 +120,7 @@ export default function ProfileModal() {
             // Upload
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
-                .upload(filePath, file);
+                .upload(filePath, file, { upsert: true });
 
             if (uploadError) throw uploadError;
 
@@ -128,12 +128,15 @@ export default function ProfileModal() {
                 .from('avatars')
                 .getPublicUrl(filePath);
 
+            // Add cache busting
+            const finalUrl = `${publicUrl}?v=${Date.now()}`;
+
             await supabase
                 .from('profiles')
-                .update({ avatar_url: publicUrl })
+                .update({ avatar_url: finalUrl })
                 .eq('id', user.id);
 
-            setAvatarUrl(publicUrl);
+            setAvatarUrl(finalUrl);
             triggerChumToast("Identity appearance harmonized.", "success");
             setImage(null);
             setActiveTab('custom');
