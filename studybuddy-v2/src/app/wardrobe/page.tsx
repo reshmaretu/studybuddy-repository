@@ -131,8 +131,9 @@ export default function WardrobePage() {
             // Remove accessory
             newAccessories = (activeAccessories || []).filter(acc => acc.id !== accessory.id);
         } else {
-            // Add accessory
-            newAccessories = [...(activeAccessories || []), {
+            // Add accessory, but first remove any existing accessory in the same slot (zIndex category)
+            const filtered = (activeAccessories || []).filter(acc => acc.zIndex !== accessory.zIndex);
+            newAccessories = [...filtered, {
                 id: accessory.id,
                 fileName: accessory.fileName,
                 zIndex: accessory.zIndex,
@@ -417,7 +418,7 @@ function AccessoryButton({ accessory, isActive, isLocked, isShaking, onClick }: 
             {/* Accessory Icon Preview - PATH UPDATED to /assets/accessories/ */}
             <div className="w-8 h-8 rounded-lg mr-3 shadow-sm shrink-0 relative overflow-hidden bg-[var(--bg-dark)]/50 border border-[var(--border-color)] flex items-center justify-center p-0.5">
                 <img
-                    src={`/assets/accessories/${accessory.fileName}`}
+                    src={`/assets/chum/${accessory.fileName}`}
                     alt={accessory.name}
                     className="w-full h-full object-contain drop-shadow-md"
                 />

@@ -173,7 +173,8 @@ interface StudyState {
 
     activeAccessories: { id: string; fileName: string; zIndex: number; name?: string }[];
     toggleAccessory: (acc: any) => void;
-    setActiveAccessories: (accessories: { id: string; fileName: string; zIndex: number; name?: string }[]) => void;
+    setActiveAccessories: (accessories: { id: string; fileName: string; zIndex: number; name?: string }[]) => Promise<void>;
+    syncWardrobe: () => Promise<void>;
 
     windSpeed: number;
     swayAmount: number;
@@ -666,13 +667,37 @@ export const useStudyStore = create<StudyState>()(
                     : [...state.activeAccessories, acc] // Add if not active
             })),
 
-            setActiveAccessories: (accessories) => {
+            setActiveAccessories: async (accessories) => {
                 set({ activeAccessories: accessories });
-                localStorage.setItem('activeAccessories', JSON.stringify(accessories));
+                await get().syncWardrobe();
             },
 
-            setActiveCrystalTheme: (themeId) => set({ activeCrystalTheme: themeId }),
-            setActiveAtmosphereFilter: (filter) => set({ activeAtmosphereFilter: filter }),
+            setActiveCrystalTheme: async (themeId) => {
+                set({ activeCrystalTheme: themeId });
+                await get().syncWardrobe();
+            },
+
+            setActiveAtmosphereFilter: async (filter) => {
+                set({ activeAtmosphereFilter: filter });
+                await get().syncWardrobe();
+            },
+
+            syncWardrobe: async () => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const state = get();
+                const wardrobeData = {
+                    active_accessories: state.activeAccessories,
+                    active_crystal_theme: state.activeCrystalTheme,
+                    active_atmosphere_filter: state.activeAtmosphereFilter,
+                    active_app_theme: localStorage.getItem('appTheme') || 'default'
+                };
+
+                await supabase
+                    .from('chum_wardrobe')
+                    .upsert({ user_id: user.id, ...wardrobeData }, { onConflict: 'user_id' });
+            },
 
             windSpeed: 2.0,
             swayAmount: 0.15,
@@ -700,7 +725,7 @@ export const useStudyStore = create<StudyState>()(
                         supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('profiles').select('display_name, full_name, is_premium, is_dev, active_framework, last_planned_date, is_verified, openrouter_key, gemini_key, groq_key, avatar_url').eq('id', user.id).maybeSingle(),
                         supabase.from('user_stats').select('focus_score, total_sessions, total_seconds_tracked, xp, level').eq('user_id', user.id).maybeSingle(),
-                        supabase.from('chum_wardrobe').select('active_theme').eq('user_id', user.id).maybeSingle(),
+                        supabase.from('chum_wardrobe').select('*').eq('user_id', user.id).maybeSingle(),
                         supabase.from('ai_sessions').select('*, shards(title)').eq('user_id', user.id).order('created_at', { ascending: false })
                     ]);
 
@@ -760,9 +785,17 @@ export const useStudyStore = create<StudyState>()(
                     });
                     console.log(`[NEURAL] Profile Loaded: ${profileResponse.data?.display_name || "Unknown"} (${user.email})`);
 
-                    const activeTheme = wardrobeResponse.data?.active_theme || 'default';
-                    document.documentElement.setAttribute("data-theme", activeTheme);
-                    localStorage.setItem("appTheme", activeTheme);
+                    const wardrobe = wardrobeResponse.data;
+                    if (wardrobe) {
+                        set({
+                            activeAccessories: wardrobe.active_accessories || [],
+                            activeCrystalTheme: wardrobe.active_crystal_theme || 'quartz',
+                            activeAtmosphereFilter: wardrobe.active_atmosphere_filter || 'default'
+                        });
+                        const appTheme = wardrobe.active_app_theme || 'default';
+                        document.documentElement.setAttribute("data-theme", appTheme);
+                        localStorage.setItem("appTheme", appTheme);
+                    }
 
                 } catch (error) {
                     console.error("Initialization failed:", error);

@@ -77,12 +77,7 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
         roomTitle: (relevantRoom?.name && relevantRoom.name !== "undefined") ? relevantRoom.name : "Sanctuary",
         roomDescription: (relevantRoom?.description && relevantRoom.description !== "undefined") ? relevantRoom.description : undefined,
         isPremium: p.is_premium || false,
-        chumLabel: (() => {
-            if (wardrobe) return `${wardrobe.base_emoji || "👻"}${wardrobe.hat_emoji || ""}`;
-            const emojis = ["🌿", "🍃", "🍄", "🎐", "🏮", "🕯️", "🧊", "🌊", "🌙", "⭐", "🌺", "🍵"];
-            const idx = Math.floor(getStableRandom(p.id, "emoji") * emojis.length);
-            return `${emojis[idx]} Spirit`;
-        })(),
+        chumLabel: wardrobe ? `${wardrobe.base_emoji || "👻"}${wardrobe.hat_emoji || ""}` : "Chum",
         gridX,
         gridY,
         jitterX: isMe ? 0 : (getStableRandom(p.id, "jitterX") - 0.5) * 40,
@@ -567,11 +562,11 @@ export default function LanternNetPage() {
                                                                 <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-(--accent-yellow)' : 'text-(--text-muted)'}`}>
                                                                     {index + 1}
                                                                 </span>
-                                                                <div className="w-8 h-8 rounded-full border border-(--border-color) shrink-0 bg-(--bg-dark) overflow-hidden flex items-center justify-center">
+                                                                <div className="w-8 h-8 rounded-full border border-(--border-color) shrink-0 bg-(--bg-dark) overflow-hidden flex items-center justify-center p-0.5">
                                                                     {user.avatarUrl ? (
                                                                         <img src={user.avatarUrl} alt="PFP" className="w-full h-full object-cover" />
                                                                     ) : (
-                                                                        <span className="text-sm">{user.chumLabel.split(' ')[0]}</span>
+                                                                        <img src="/assets/chum/chum.png" alt="Chum" className="w-full h-full object-contain" />
                                                                     )}
                                                                 </div>
                                                                 <div className="flex-1 flex flex-col overflow-hidden">

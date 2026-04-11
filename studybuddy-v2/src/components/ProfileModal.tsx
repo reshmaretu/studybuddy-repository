@@ -1,66 +1,141 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Upload, Camera, Image as ImageIcon, Check, Ghost, Loader2 } from "lucide-react";
+import { X, Upload, Camera, Image as ImageIcon, Check, Ghost, Loader2, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
 import { useStudyStore } from "@/store/useStudyStore";
 import { supabase } from "@/lib/supabase";
 import ChumRenderer from "./ChumRenderer";
+import Cropper from 'react-easy-crop';
+
+// --- UTILS FOR CANVAS CROP ---
+const createImage = (url: string): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+        const image = new Image();
+        image.addEventListener('load', () => resolve(image));
+        image.addEventListener('error', (error) => reject(error));
+        image.setAttribute('crossOrigin', 'anonymous');
+        image.src = url;
+    });
+
+const getCroppedImg = async (
+    imageSrc: string,
+    pixelCrop: { x: number; y: number; width: number; height: number },
+    rotation = 0
+): Promise<Blob> => {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) throw new Error('No 2d context');
+
+    const rotRad = (rotation * Math.PI) / 180;
+    const { width: bBoxWidth, height: bBoxHeight } = {
+        width: Math.abs(Math.cos(rotRad) * image.width) + Math.abs(Math.sin(rotRad) * image.height),
+        height: Math.abs(Math.sin(rotRad) * image.width) + Math.abs(Math.cos(rotRad) * image.height),
+    };
+
+    canvas.width = bBoxWidth;
+    canvas.height = bBoxHeight;
+
+    ctx.translate(bBoxWidth / 2, bBoxHeight / 2);
+    ctx.rotate(rotRad);
+    ctx.translate(-image.width / 2, -image.height / 2);
+
+    ctx.drawImage(image, 0, 0);
+
+    const data = ctx.getImageData(
+        pixelCrop.x,
+        pixelCrop.y,
+        pixelCrop.width,
+        pixelCrop.height
+    );
+
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+
+    ctx.putImageData(data, 0, 0);
+
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+            if (!blob) return reject(new Error('Canvas is empty'));
+            resolve(blob);
+        }, 'image/jpeg');
+    });
+};
 
 export default function ProfileModal() {
     const { 
         isProfileModalOpen, setProfileModalOpen, 
         avatarUrl, setAvatarUrl, 
-        displayName, triggerChumToast 
+        triggerChumToast 
     } = useStudyStore();
     
     const [activeTab, setActiveTab] = useState<'custom' | 'chum'>('chum');
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Crop States
+    const [image, setImage] = useState<string | null>(null);
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [rotation, setRotation] = useState(0);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+
+    const onCropComplete = useCallback((_: any, pixelArea: any) => {
+        setCroppedAreaPixels(pixelArea);
+    }, []);
+
     if (!isProfileModalOpen) return null;
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Limit size to 2MB
         if (file.size > 2 * 1024 * 1024) {
             triggerChumToast("Avatar too heavy (Max 2MB).", "warning");
             return;
         }
+
+        const reader = new FileReader();
+        reader.onload = () => setImage(reader.result as string);
+        reader.readAsDataURL(file);
+    };
+
+    const handleUpload = async () => {
+        if (!image || !croppedAreaPixels) return;
 
         setUploading(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("Unauthenticated");
 
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+            // Perform Crop
+            const blob = await getCroppedImg(image, croppedAreaPixels, rotation);
+            const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+
+            const fileName = `${user.id}-${Date.now()}.jpg`;
             const filePath = `${fileName}`;
 
-            // Upload to Supabase Storage
+            // Upload
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
                 .upload(filePath, file);
 
             if (uploadError) throw uploadError;
 
-            // Get Public URL
             const { data: { publicUrl } } = supabase.storage
                 .from('avatars')
                 .getPublicUrl(filePath);
 
-            // Update Profile
-            const { error: updateError } = await supabase
+            await supabase
                 .from('profiles')
                 .update({ avatar_url: publicUrl })
                 .eq('id', user.id);
 
-            if (updateError) throw updateError;
-
             setAvatarUrl(publicUrl);
             triggerChumToast("Identity appearance harmonized.", "success");
+            setImage(null);
             setActiveTab('custom');
         } catch (err: any) {
             console.error(err);
@@ -75,12 +150,10 @@ export default function ProfileModal() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const { error } = await supabase
+            await supabase
                 .from('profiles')
                 .update({ avatar_url: null })
                 .eq('id', user.id);
-
-            if (error) throw error;
 
             setAvatarUrl(null);
             triggerChumToast("Returned to Chum form.", "success");
@@ -118,6 +191,73 @@ export default function ProfileModal() {
                         <X size={20} />
                     </button>
                 </div>
+
+                {/* Cropping UI Overlay */}
+                <AnimatePresence>
+                    {image && (
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 z-50 bg-[var(--bg-card)] flex flex-col"
+                        >
+                            <div className="p-4 border-b border-[var(--border-color)] flex justify-between items-center">
+                                <h4 className="text-xs font-black uppercase tracking-widest text-[var(--text-main)]">Harmonize Shard</h4>
+                                <button onClick={() => setImage(null)} className="text-[var(--text-muted)] hover:text-white"><X size={18} /></button>
+                            </div>
+                            
+                            <div className="flex-1 relative bg-black">
+                                <Cropper
+                                    image={image}
+                                    crop={crop}
+                                    zoom={zoom}
+                                    rotation={rotation}
+                                    aspect={1}
+                                    cropShape="round"
+                                    showGrid={false}
+                                    onCropChange={setCrop}
+                                    onZoomChange={setZoom}
+                                    onRotationChange={setRotation}
+                                    onCropComplete={onCropComplete}
+                                />
+                            </div>
+
+                            <div className="p-6 bg-[var(--bg-sidebar)]/50 border-t border-[var(--border-color)] space-y-6">
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-4">
+                                        <ZoomOut size={16} className="text-[var(--text-muted)]" />
+                                        <input 
+                                            type="range" value={zoom} min={1} max={3} step={0.1}
+                                            onChange={(e) => setZoom(parseFloat(e.target.value))}
+                                            className="flex-1 h-1 bg-[var(--border-color)] rounded-full appearance-none cursor-pointer accent-[var(--accent-teal)]"
+                                        />
+                                        <ZoomIn size={16} className="text-[var(--text-muted)]" />
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <RotateCw size={16} className="text-[var(--text-muted)]" />
+                                        <input 
+                                            type="range" value={rotation} min={0} max={360} step={1}
+                                            onChange={(e) => setRotation(parseFloat(e.target.value))}
+                                            className="flex-1 h-1 bg-[var(--border-color)] rounded-full appearance-none cursor-pointer accent-[var(--accent-teal)]"
+                                        />
+                                    </div>
+                                </div>
+
+                                <button 
+                                    onClick={handleUpload}
+                                    disabled={uploading}
+                                    className="w-full py-4 rounded-2xl bg-[var(--accent-teal)] text-black text-[10px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2"
+                                >
+                                    {uploading ? (
+                                        <><Loader2 size={14} className="animate-spin" /> Engraving Persona...</>
+                                    ) : (
+                                        "Save and Harmonize"
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* Tabs */}
                 <div className="flex p-2 bg-[var(--bg-dark)]/50 mx-6 mt-6 rounded-2xl border border-[var(--border-color)]">
@@ -196,7 +336,7 @@ export default function ProfileModal() {
                                 <input 
                                     type="file" 
                                     ref={fileInputRef} 
-                                    onChange={handleFileUpload} 
+                                    onChange={handleFileChange} 
                                     accept="image/*" 
                                     className="hidden" 
                                 />

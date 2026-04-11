@@ -373,8 +373,8 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                     {(user as any).avatarUrl ? (
                                         <img src={(user as any).avatarUrl} alt="PFP" className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-2xl">
-                                            {user.chumLabel.split(' ')[0]}
+                                        <div className="w-full h-full flex items-center justify-center p-1 bg-(--bg-dark)">
+                                            <img src="/assets/chum/chum.png" alt="Chum" className="w-full h-full object-contain" />
                                         </div>
                                     )}
                                 </div>
