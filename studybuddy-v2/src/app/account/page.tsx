@@ -505,13 +505,20 @@ export default function AccountPage() {
                     >
                         <div className="w-40 h-40 rounded-full border-4 border-teal-500/20 p-1.5 bg-(--bg-card) flex items-center justify-center relative transition-all duration-500 group-hover:border-teal-400 group-hover:shadow-[0_0_30px_rgba(45,212,191,0.3)] shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden">
                             {avatarUrl ? (
-                                <img src={avatarUrl} alt="PFP" className="w-full h-full object-cover rounded-full" />
-                            ) : (
-                                <div className="p-6 w-full h-full flex items-center justify-center">
-                                    <ChumRenderer size="w-full h-full scale-150" />
-                                </div>
-                            )}
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                                <img 
+                                    src={avatarUrl} 
+                                    alt="PFP" 
+                                    className="w-full h-full object-cover rounded-full z-10 relative" 
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        (e.target as HTMLImageElement).parentElement?.classList.add('hide-pfp');
+                                    }}
+                                />
+                            ) : null}
+                            <div className="absolute inset-0 p-6 flex items-center justify-center fallback-chum">
+                                <ChumRenderer size="w-full h-full scale-150" />
+                            </div>
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 z-20">
                                 <Camera size={24} className="text-white" />
                                 <span className="text-[8px] font-black uppercase tracking-widest text-white">Reflect Identity</span>
                             </div>
