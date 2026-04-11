@@ -9,7 +9,7 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
     try {
-        const { messages, user_id, openrouter_key, groq_key, gemini_key } = await req.json();
+        const { messages, user_id, openrouter_key, groq_key, gemini_key, selected_model } = await req.json();
 
         // 🗝️ Centralized Key Logic
         const orKey = (openrouter_key?.trim() || process.env.OPENROUTER_AI_API_KEY)?.trim();
@@ -65,12 +65,26 @@ export async function POST(req: Request) {
         });
 
         // ==========================================
-        // STEP 2: THE STREAMING WATERFALL
+        // STEP 2: THE STREAMING WATERFALL (OR MANUAL SELECTION)
         // ==========================================
         let streamResult;
         let usedNode = "";
 
-        // 🌊 PRIMARY: OpenRouter (Using Native Provider)
+        // 🎯 PRIORITY: Manual Model Selection via OpenRouter
+        if (selected_model && orKey) {
+            try {
+                const openrouter = createOpenRouter({ apiKey: orKey });
+                streamResult = await streamText({
+                    model: openrouter(selected_model),
+                    messages: formattedMessages
+                });
+                usedNode = `Neural Link: ${selected_model}`;
+            } catch (e: any) {
+                console.warn(`Manual selection failed: ${e.message}. Falling back to waterfall...`);
+            }
+        }
+
+        // 🌊 FALLBACK 1: OpenRouter (Llama 3.1)
         if (!streamResult && orKey) {
             try {
                 const openrouter = createOpenRouter({ apiKey: orKey });
@@ -81,11 +95,11 @@ export async function POST(req: Request) {
                 });
                 usedNode = "OpenRouter (Llama 3.1)";
             } catch (e: any) {
-                console.warn(`OpenRouter failed: ${e.message}. Falling back to Groq...`);
+                console.warn(`OpenRouter waterfall failed: ${e.message}.`);
             }
         }
 
-        // 🌊 SECONDARY: Groq (Using Native Provider)
+        // 🌊 FALLBACK 2: Groq (Llama 3.3)
         if (!streamResult && groqKey) {
             try {
                 const groq = createGroq({ apiKey: groqKey });
@@ -96,11 +110,11 @@ export async function POST(req: Request) {
                 });
                 usedNode = "Groq (Llama 3.3)";
             } catch (e: any) {
-                console.warn(`Groq failed: ${e.message}. Falling back to Gemini...`);
+                console.warn(`Groq waterfall failed: ${e.message}.`);
             }
         }
 
-        // 🌊 TERTIARY: Gemini (Using Native Provider)
+        // 🌊 FALLBACK 3: Gemini (Native)
         if (!streamResult && geminiKey) {
             try {
                 const google = createGoogleGenerativeAI({ apiKey: geminiKey });
@@ -109,9 +123,9 @@ export async function POST(req: Request) {
                     model: google('gemini-2.0-flash'),
                     messages: formattedMessages
                 });
-                usedNode = "Gemini 2.0";
+                usedNode = "Gemini 2.0 (Direct)";
             } catch (e: any) {
-                console.warn(`Gemini failed: ${e.message}.`);
+                console.warn(`Gemini waterfall failed: ${e.message}.`);
             }
         }
 

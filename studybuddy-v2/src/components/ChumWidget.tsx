@@ -24,7 +24,7 @@ export default function ChumWidget() {
 
     const {
         activeMode, exitMode, isTutorModeActive, activeShardId, exitTutorMode,
-        shards, updateShardMastery, aiTier, setAITier, aiKeys, updateAIKeys, ollamaUrl, setOllamaUrl,
+        shards, updateShardMastery, aiTier, setAITier, aiKeys, updateAIKeys, selectedModel, setSelectedModel, ollamaUrl, setOllamaUrl,
         normalChatHistory, tutorChatHistory, setNormalChatHistory, setTutorChatHistory,
         tutorSessionState, updateTutorSessionState, completeTutorSession, pastTutorSessions, toggleMindDump,
         showNodeBadge, setShowNodeBadge, chumToast, addTask, isPremiumUser
@@ -197,21 +197,26 @@ export default function ChumWidget() {
                     { role: "user", content: messageText }
                 ];
 
-                const res = await fetch("/api/chat", {
+                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+                const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+                const res = await fetch(`${supabaseUrl}/functions/v1/chum-chat`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "Authorization": `Bearer ${session?.access_token}`
+                        "Authorization": `Bearer ${session?.access_token}`,
+                        "apikey": anonKey!
                     },
                     body: JSON.stringify({
                         messages: messagesPayload,
-                        user_id: session?.user?.id,
-                        openrouter_key: aiKeys.openrouter,
-                        gemini_key: aiKeys.gemini
+                        selected_model: selectedModel
                     })
                 });
 
-                if (!res.ok) throw new Error("Cloud failed");
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || "Edge Function failed");
+                }
                 if (!res.body) throw new Error("No stream body available");
 
                 usedNode = res.headers.get('X-Node-Used') || "Cloud Stream";
@@ -400,9 +405,30 @@ export default function ChumWidget() {
                                     </div>
                                     {aiTier === 'cloud' && (
                                         <div className="flex flex-col gap-3">
-                                            <input type="password" placeholder="OpenRouter API Key" value={aiKeys.openrouter} onChange={e => updateAIKeys({ openrouter: e.target.value })} className="w-full bg-(--bg-card) border border-(--border-color) rounded-lg px-4 py-2 text-xs text-(--text-main) outline-none focus:border-(--accent-teal)" />
-                                            <input type="password" placeholder="Groq API Key" value={aiKeys.groq} onChange={e => updateAIKeys({ groq: e.target.value })} className="w-full bg-(--bg-card) border border-(--border-color) rounded-lg px-4 py-2 text-xs text-(--text-main) outline-none focus:border-(--accent-teal)" />
-                                            <input type="password" placeholder="Gemini API Key" value={aiKeys.gemini} onChange={e => updateAIKeys({ gemini: e.target.value })} className="w-full bg-(--bg-card) border border-(--border-color) rounded-lg px-4 py-2 text-xs text-(--text-main) outline-none focus:border-(--accent-teal)" />
+                                            {/* --- MODEL SWITCHER START --- */}
+                                            <label className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-1">Neural Core Override</label>
+                                            <div className="grid grid-cols-1 gap-2 mb-2">
+                                                {[
+                                                    { id: "google/gemini-2.0-flash-001", name: "Gemini 2.0 Flash", icon: <Cpu size={12} /> },
+                                                    { id: "anthropic/claude-3-haiku", name: "Claude 3 Haiku", icon: <BrainCircuit size={12} /> },
+                                                    { id: "meta-llama/llama-3.1-8b-instruct", name: "Llama 3.1", icon: <Network size={12} /> }
+                                                ].map((m) => (
+                                                    <button
+                                                        key={m.id}
+                                                        onClick={() => setSelectedModel(m.id)} // Assuming you added this state
+                                                        className={`flex justify-between items-center p-2.5 rounded-xl border transition-all ${selectedModel === m.id
+                                                            ? "border-(--accent-teal) bg-(--accent-teal)/10 text-(--accent-teal)"
+                                                            : "border-white/5 bg-white/5 text-(--text-muted) hover:border-white/20"
+                                                            }`}
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            {m.icon}
+                                                            <span className="text-[11px] font-bold">{m.name}</span>
+                                                        </div>
+                                                        {selectedModel === m.id && <div className="w-1.5 h-1.5 rounded-full bg-(--accent-teal) animate-pulse" />}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                     {aiTier === 'local' && (
@@ -516,12 +542,11 @@ export default function ChumWidget() {
                                                     exit={{ opacity: 0, scale: 1.05, filter: "brightness(1.5) blur(4px)", transition: { duration: 0.3 } }}
                                                     className="flex justify-start flex-col mt-2 overflow-hidden"
                                                 >
-                                                    <div className={`relative p-4 text-sm max-w-[85%] shadow-md whitespace-pre-wrap rounded-2xl rounded-tl-none overflow-hidden ${
-                                                        ephemeralMsg.type === 'warning' ? 'bg-red-500/10 border border-red-500/30 text-red-200' : 
+                                                    <div className={`relative p-4 text-sm max-w-[85%] shadow-md whitespace-pre-wrap rounded-2xl rounded-tl-none overflow-hidden ${ephemeralMsg.type === 'warning' ? 'bg-red-500/10 border border-red-500/30 text-red-200' :
                                                         ephemeralMsg.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' :
-                                                        ephemeralMsg.type === 'info' ? 'bg-sky-500/10 border border-sky-500/30 text-sky-400' :
-                                                        'bg-[var(--accent-teal)]/10 border border-[var(--accent-teal)]/30 text-[var(--accent-teal)]'
-                                                    }`}>
+                                                            ephemeralMsg.type === 'info' ? 'bg-sky-500/10 border border-sky-500/30 text-sky-400' :
+                                                                'bg-[var(--accent-teal)]/10 border border-[var(--accent-teal)]/30 text-[var(--accent-teal)]'
+                                                        }`}>
 
                                                         <div className="flex items-center gap-1.5 mb-2 opacity-70">
                                                             <span className="text-[10px] font-black uppercase tracking-wider">
@@ -544,12 +569,11 @@ export default function ChumWidget() {
                                                                 transition={{ duration: 8, ease: "linear" }}
                                                                 // Triggers the flashy exit the exact millisecond the bar hits 0
                                                                 onAnimationComplete={() => setEphemeralMsg(null)}
-                                                                className={`h-full shadow-[0_0_10px_currentColor] ${
-                                                                    ephemeralMsg.type === 'warning' ? 'bg-red-500 text-red-500' : 
+                                                                className={`h-full shadow-[0_0_10px_currentColor] ${ephemeralMsg.type === 'warning' ? 'bg-red-500 text-red-500' :
                                                                     ephemeralMsg.type === 'success' ? 'bg-emerald-500 text-emerald-500' :
-                                                                    ephemeralMsg.type === 'info' ? 'bg-sky-500 text-sky-500' :
-                                                                    'bg-[var(--accent-teal)] text-[var(--accent-teal)]'
-                                                                }`}
+                                                                        ephemeralMsg.type === 'info' ? 'bg-sky-500 text-sky-500' :
+                                                                            'bg-[var(--accent-teal)] text-[var(--accent-teal)]'
+                                                                    }`}
                                                             />
                                                         </div>
                                                     </div>
@@ -614,22 +638,20 @@ export default function ChumWidget() {
                                 }
                             }}
                             // 👇 Changed sizing to w-[320px] to make it longer!
-                            className={`absolute ${bubbleXPos} ${bubbleYPos} ${tailCorner} w-[320px] min-h-[80px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer transition-colors group z-50 pointer-events-auto flex flex-col justify-center ${
-                                chumToast?.type === 'warning' ? 'border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]' : 
+                            className={`absolute ${bubbleXPos} ${bubbleYPos} ${tailCorner} w-[320px] min-h-[80px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer transition-colors group z-50 pointer-events-auto flex flex-col justify-center ${chumToast?.type === 'warning' ? 'border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]' :
                                 chumToast?.type === 'success' ? 'border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.2)]' :
-                                chumToast?.type === 'info' ? 'border-sky-500/50 shadow-[0_0_30px_rgba(14,165,233,0.2)]' :
-                                'border-[var(--border-color)] hover:border-[var(--accent-teal)]'
-                            }`}
+                                    chumToast?.type === 'info' ? 'border-sky-500/50 shadow-[0_0_30px_rgba(14,165,233,0.2)]' :
+                                        'border-[var(--border-color)] hover:border-[var(--accent-teal)]'
+                                }`}
                         >
                             <div className="relative">
                                 {chumToast ? (
                                     <>
-                                        <p className={`text-[10px] font-black uppercase tracking-wider mb-1 ${
-                                            chumToast.type === 'warning' ? 'text-red-400' : 
+                                        <p className={`text-[10px] font-black uppercase tracking-wider mb-1 ${chumToast.type === 'warning' ? 'text-red-400' :
                                             chumToast.type === 'success' ? 'text-emerald-400' :
-                                            chumToast.type === 'info' ? 'text-sky-400' :
-                                            'text-[var(--accent-teal)]'
-                                        }`}>
+                                                chumToast.type === 'info' ? 'text-sky-400' :
+                                                    'text-[var(--accent-teal)]'
+                                            }`}>
                                             {chumToast.type === 'warning' ? '⚠️ Burnout Warning' : chumToast.type === 'success' ? '✨ Celebration' : chumToast.type === 'info' ? 'ℹ️ Guidance' : 'Chum Says:'}
                                         </p>
                                         {/* 👇 Upgraded text-sm, added font-bold, and applied line-clamp-2 */}

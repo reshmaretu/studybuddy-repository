@@ -132,6 +132,8 @@ interface StudyState {
 
     aiTier: 'cloud' | 'local' | 'offline';
     aiKeys: { groq: string; gemini: string; openrouter: string };
+    selectedModel: string;
+    setSelectedModel: (model: string) => void;
     ollamaUrl: string;
 
     xp: number;
@@ -183,6 +185,7 @@ interface StudyState {
     updateTutorSessionState: (state: Partial<StudyState['tutorSessionState']>) => void;
     setAITier: (tier: 'cloud' | 'local' | 'offline') => void;
     updateAIKeys: (keys: Partial<StudyState['aiKeys']>) => void;
+    setSelectedModel: (model: string) => void;
     setOllamaUrl: (url: string) => void;
     showNodeBadge: boolean;
     setShowNodeBadge: (val: boolean) => void;
@@ -328,6 +331,8 @@ export const useStudyStore = create<StudyState>()(
 
             aiTier: 'cloud',
             aiKeys: { groq: '', gemini: '', openrouter: '' },
+            selectedModel: 'google/gemini-2.0-flash-001',
+            setSelectedModel: (model) => set({ selectedModel: model }),
             ollamaUrl: 'http://localhost:11434',
             showNodeBadge: true,
             setShowNodeBadge: (showNodeBadge) => set({ showNodeBadge }),
@@ -607,7 +612,7 @@ export const useStudyStore = create<StudyState>()(
                     const [tasksResponse, shardsResponse, profileResponse, statsResponse, wardrobeResponse, sessionsResponse] = await Promise.all([
                         supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                        supabase.from('profiles').select('display_name, full_name, is_premium, is_dev, active_framework, last_planned_date, is_verified').eq('id', user.id).maybeSingle(),
+                        supabase.from('profiles').select('display_name, full_name, is_premium, is_dev, active_framework, last_planned_date, is_verified, openrouter_key, gemini_key, groq_key').eq('id', user.id).maybeSingle(),
                         supabase.from('user_stats').select('focus_score, total_sessions, total_seconds_tracked').eq('user_id', user.id).maybeSingle(),
                         supabase.from('chum_wardrobe').select('active_theme').eq('user_id', user.id).maybeSingle(),
                         supabase.from('ai_sessions').select('*, shards(title)').eq('user_id', user.id).order('created_at', { ascending: false })
@@ -657,7 +662,12 @@ export const useStudyStore = create<StudyState>()(
                         isPremiumUser: profileResponse.data?.is_premium || false,
                         isDev: profileResponse.data?.is_dev || false,
                         activeFramework: profileResponse.data?.active_framework || null,
-                        lastPlannedDate: profileResponse.data?.last_planned_date || null
+                        lastPlannedDate: profileResponse.data?.last_planned_date || null,
+                        aiKeys: {
+                            openrouter: profileResponse.data?.openrouter_key || "",
+                            gemini: profileResponse.data?.gemini_key || "",
+                            groq: profileResponse.data?.groq_key || ""
+                        }
                     });
                     console.log(`[NEURAL] Profile Loaded: ${profileResponse.data?.display_name || "Unknown"} (${user.email})`);
 
@@ -898,7 +908,17 @@ export const useStudyStore = create<StudyState>()(
             setTutorChatHistory: (history) => set((state) => ({ tutorChatHistory: typeof history === 'function' ? history(state.tutorChatHistory) : history })),
             updateTutorSessionState: (update) => set((state) => ({ tutorSessionState: { ...state.tutorSessionState, ...update } })),
             setAITier: (tier) => set({ aiTier: tier }),
-            updateAIKeys: (keys) => set((state) => ({ aiKeys: { ...state.aiKeys, ...keys } })),
+            updateAIKeys: async (keys) => {
+                const { data: { user } } = await supabase.auth.getUser();
+                set((state) => ({ aiKeys: { ...state.aiKeys, ...keys } }));
+                if (user) {
+                    const dbUpdates: any = {};
+                    if (keys.openrouter !== undefined) dbUpdates.openrouter_key = keys.openrouter;
+                    if (keys.gemini !== undefined) dbUpdates.gemini_key = keys.gemini;
+                    if (keys.groq !== undefined) dbUpdates.groq_key = keys.groq;
+                    await supabase.from('profiles').update(dbUpdates).eq('id', user.id);
+                }
+            },
             setOllamaUrl: (url) => set({ ollamaUrl: url }),
 
             // --- 🧥 COSMETICS ---
