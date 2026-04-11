@@ -369,14 +369,24 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                         ● {user.status}
                                     </p>
                                 </div>
-                                <div className="w-12 h-12 rounded-full border border-(--border-color) overflow-hidden flex-shrink-0 bg-black/40">
+                                <div className="w-12 h-12 rounded-full border border-(--border-color) overflow-hidden flex-shrink-0 bg-black/40 relative">
                                     {(user as any).avatarUrl ? (
-                                        <img src={(user as any).avatarUrl} alt="PFP" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center p-1 bg-(--bg-dark)">
-                                            <img src="/assets/chum/chum.png" alt="Chum" className="w-full h-full object-contain" />
-                                        </div>
-                                    )}
+                                        <img 
+                                            src={(user as any).avatarUrl} 
+                                            alt="PFP" 
+                                            className="w-full h-full object-cover z-10 relative" 
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = 'none';
+                                                (e.target as HTMLImageElement).parentElement?.classList.add('hide-pfp');
+                                            }}
+                                        />
+                                    ) : null}
+                                    <div className="absolute inset-0 flex items-center justify-center p-1 bg-(--bg-dark) fallback-chum">
+                                        <ChumRenderer 
+                                            size="w-full h-full" 
+                                            activeAccessoriesOverride={(user as any).activeAccessories} 
+                                        />
+                                    </div>
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-3 bg-black/40 p-3 rounded-2xl border border-(--border-color)">

@@ -25,6 +25,7 @@ export interface LanternUser {
     jitterX: number;
     jitterY: number;
     avatarUrl?: string;
+    activeAccessories?: any[];
 }
 
 const getStableRandom = (id: string, seed: string) => {
@@ -82,7 +83,8 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
         gridY,
         jitterX: isMe ? 0 : (getStableRandom(p.id, "jitterX") - 0.5) * 40,
         jitterY: isMe ? 0 : (getStableRandom(p.id, "jitterY") - 0.5) * 40,
-        avatarUrl: p.avatar_url
+        avatarUrl: p.avatar_url,
+        activeAccessories: wardrobe?.active_accessories || []
     };
 };
 
@@ -196,7 +198,7 @@ export default function LanternNetPage() {
                     supabase.from('profiles').select('id, display_name, full_name, status, is_in_flowstate, active_session_type, is_premium, avatar_url'),
                     supabase.from('rooms').select('*'),
                     supabase.from('user_stats').select('user_id, focus_score, total_seconds_tracked'),
-                    supabase.from('chum_wardrobe').select('user_id, base_emoji, hat_emoji')
+                    supabase.from('chum_wardrobe').select('user_id, active_accessories'),
                 ]);
 
                 const [profilesRes, roomsRes, statsRes, wardrobeRes] = results;
@@ -564,10 +566,22 @@ export default function LanternNetPage() {
                                                                 </span>
                                                                 <div className="w-8 h-8 rounded-full border border-(--border-color) shrink-0 bg-(--bg-dark) overflow-hidden flex items-center justify-center p-0.5">
                                                                     {user.avatarUrl ? (
-                                                                        <img src={user.avatarUrl} alt="PFP" className="w-full h-full object-cover" />
-                                                                    ) : (
-                                                                        <img src="/assets/chum/chum.png" alt="Chum" className="w-full h-full object-contain" />
-                                                                    )}
+                                                                        <img 
+                                                                            src={user.avatarUrl} 
+                                                                            alt="PFP" 
+                                                                            className="w-full h-full object-cover" 
+                                                                            onError={(e) => {
+                                                                                (e.target as HTMLImageElement).style.display = 'none';
+                                                                                (e.target as HTMLImageElement).parentElement?.classList.add('hide-pfp');
+                                                                            }}
+                                                                        />
+                                                                    ) : null}
+                                                                    <div className="absolute inset-0 flex items-center justify-center p-0.5 fallback-chum">
+                                                                        <ChumRenderer 
+                                                                            size="w-full h-full" 
+                                                                            activeAccessoriesOverride={user.activeAccessories}
+                                                                        />
+                                                                    </div>
                                                                 </div>
                                                                 <div className="flex-1 flex flex-col overflow-hidden">
                                                                     <span className="text-sm font-black text-(--text-main) truncate">{user.name}</span>

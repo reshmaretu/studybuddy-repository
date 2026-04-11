@@ -5,14 +5,16 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface ChumRendererProps {
     size?: string;
+    activeAccessoriesOverride?: any[];
 }
 
-export default function ChumRenderer({ size = "w-64 h-64" }: ChumRendererProps) {
-    // Pull the current look from your store
-    const { activeAccessories } = useStudyStore();
+export default function ChumRenderer({ size = "w-64 h-64", activeAccessoriesOverride }: ChumRendererProps) {
+    // Pull the current look from your store (fallback if no override)
+    const storeAccessories = useStudyStore((state) => state.activeAccessories);
+    const accessories = activeAccessoriesOverride || storeAccessories;
 
     // Sort accessories by zIndex so they layer correctly
-    const sortedAccessories = [...(activeAccessories || [])].sort((a, b) => a.zIndex - b.zIndex);
+    const sortedAccessories = [...(accessories || [])].sort((a, b) => a.zIndex - b.zIndex);
 
     return (
         <div className={`relative ${size} flex items-center justify-center`}>
