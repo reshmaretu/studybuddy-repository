@@ -11,9 +11,11 @@ interface TaskCardProps {
     isOverlay?: boolean;
     locked?: boolean;
     isMinimized?: boolean;
+    onToggleSelect?: (id: string) => void;
+    selected?: boolean;
 }
 
-export default function TaskCard({ task, isOverlay = false, locked = false, isMinimized = false }: TaskCardProps) {
+export default function TaskCard({ task, isOverlay = false, locked = false, isMinimized = false, onToggleSelect, selected = false }: TaskCardProps) {
     const { 
         openFocusModal, deleteTask, updateTask, tasks, triggerChumToast, 
         openEditModal, openViewModal, completeTask, 
@@ -24,6 +26,9 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
     const [showFrogReaction, setShowFrogReaction] = useState(false);
     const [showFrogHover, setShowFrogHover] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+    const isSelectable = !!onToggleSelect;
+    const isSelected = !!selected;
 
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: task.id,
@@ -75,6 +80,11 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
                     initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
                     className="absolute right-0 top-8 w-36 bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-xl shadow-xl overflow-hidden z-[100] origin-top-right"
                 >
+                    {!task.isCompleted && (
+                        <button onClick={() => { completeTask(task.id); setShowMenu(false); triggerChumToast("Quest completed via manual override!", "success"); }} className="w-full px-3 py-2 text-xs font-bold text-[var(--text-main)] hover:bg-[var(--accent-teal)]/10 flex items-center gap-2 transition-colors border-b border-[var(--border-color)]">
+                            <Check size={12} className="text-[var(--accent-teal)]" /> Finish Quest
+                        </button>
+                    )}
                     <button onClick={() => { openViewModal(task.id); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-[var(--text-main)] hover:bg-[var(--bg-dark)] flex items-center gap-2 transition-colors border-b border-[var(--border-color)]">
                         <Eye size={12} className="text-[var(--accent-teal)]" /> View Details
                     </button>
@@ -106,6 +116,14 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
                     `}
                 >
                     <div className="flex items-center gap-3 min-w-0 flex-1 pr-4">
+                        {onToggleSelect && (
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onToggleSelect(task.id); }}
+                                className={`shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${selected ? 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black' : 'border-[var(--border-color)] bg-black/20 hover:border-[var(--accent-teal)]'}`}
+                            >
+                                {selected && <Check size={10} strokeWidth={4} />}
+                            </button>
+                        )}
                         <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${loadColors[task.load]}`}>
                             {task.load}
                         </span>
@@ -193,7 +211,17 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
                     )}
 
                     <div className="flex justify-between items-start">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${loadColors[task.load]}`}>{task.load}</span>
+                        <div className="flex items-center gap-2">
+                            {onToggleSelect && (
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); onToggleSelect(task.id); }}
+                                    className={`shrink-0 w-5 h-5 rounded-lg border flex items-center justify-center transition-colors ${selected ? 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black' : 'border-[var(--border-color)] bg-black/20 hover:border-[var(--accent-teal)]'}`}
+                                >
+                                    {selected && <Check size={12} strokeWidth={4} />}
+                                </button>
+                            )}
+                            <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${loadColors[task.load]}`}>{task.load}</span>
+                        </div>
 
                         <div className="relative z-30">
                             <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setShowMenu(!showMenu)} disabled={locked} className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 rounded-md transition-colors disabled:opacity-50">

@@ -41,7 +41,7 @@ export default function Dashboard() {
     const {
         tasks, focusScore, dailyStreak, totalSessions, totalSecondsTracked,
         timeLeft, isRunning, toggleTimer, resetTimer, decrementTimer, completeTask,
-        isInitialized, xp, level, pomodoroFocus
+        isInitialized, xp, level, pomodoroFocus, isBrainResetOpen, setIsBrainResetOpen
     } = useStudyStore();
 
     const sensors = useSensors(
@@ -86,6 +86,7 @@ export default function Dashboard() {
     // Dynamic Sparks Feed Fetcher
     useEffect(() => {
         const fetchSpark = async () => {
+            const { getRandomQuote } = await import("@/lib/quotes");
             const prompt = "You are Chum, a cozy, lo-fi loving study buddy. Give me exactly one short, inspiring sentence about focus, time management, or well-being to start the day. Do not use quotation marks.";
             try {
                 const res = await fetch("/api/chat", {
@@ -107,7 +108,7 @@ export default function Dashboard() {
                     const data = await res.json();
                     setSparkQuote(data.message.content);
                 } catch (err) {
-                    setSparkQuote("Take a deep breath in, and let the sound of your lo-fi beats wash over you as you refocus your mind.");
+                    setSparkQuote(getRandomQuote());
                 }
             }
         };
@@ -165,18 +166,9 @@ export default function Dashboard() {
                 {/* HEADER */}
                 <header className="flex justify-between items-center gap-6 mb-4 pt-4 md:pt-0">
                     <div className="flex-1 min-w-0 pr-2 flex items-center gap-4">
-                        <button 
-                            onClick={() => useStudyStore.getState().setProfileModalOpen(true)}
-                            className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-[var(--border-color)] bg-[var(--bg-dark)] flex-shrink-0 overflow-hidden group/avatar hover:border-[var(--accent-teal)] transition-all"
-                        >
-                            {useStudyStore.getState().avatarUrl ? (
-                                <img src={useStudyStore.getState().avatarUrl!} alt="PFP" className="w-full h-full object-cover group-hover/avatar:scale-110 transition-transform" />
-                            ) : (
-                                <div className="w-full h-full p-2 bg-gradient-to-br from-[var(--bg-sidebar)] to-[var(--bg-dark)]">
-                                    <ChumRenderer size="w-full h-full" />
-                                </div>
-                            )}
-                        </button>
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-[var(--border-color)] bg-[var(--bg-dark)] flex-shrink-0 overflow-hidden shadow-inner flex items-center justify-center">
+                            <ChumRenderer size="w-10 h-10 md:w-12 md:h-12 scale-1 project-125 translate-y-1" />
+                        </div>
                         <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[var(--text-main)] leading-tight flex flex-wrap gap-x-2">
                             <span>{greeting},</span>
                             <span className="text-[var(--accent-teal)]">{displayName}!</span>
@@ -254,12 +246,21 @@ export default function Dashboard() {
 
                     <button
                         onClick={() => setIsBrainResetOpen(true)}
-                        className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer group relative overflow-hidden hover:border-[var(--accent-teal)]/50 transition-colors w-full"
+                        className={`bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer group relative overflow-hidden transition-all duration-700 w-full ${
+                            totalSessions > 0 && totalSessions % 4 === 0 
+                            ? "border-[var(--accent-teal)] shadow-[0_0_30px_rgba(45,212,191,0.2)]" 
+                            : "hover:border-[var(--accent-teal)]/50"
+                        }`}
                     >
+                        {totalSessions > 0 && totalSessions % 4 === 0 && (
+                            <div className="absolute inset-0 bg-gradient-to-t from-[var(--accent-teal)]/10 to-transparent animate-pulse" />
+                        )}
                         <div className="absolute inset-0 bg-[var(--accent-teal)] opacity-0 group-hover:opacity-5 transition-opacity duration-700"></div>
-                        <Brain size={48} className="text-[var(--accent-teal)] mb-3 group-hover:scale-110 transition-transform duration-500" style={{ filter: 'drop-shadow(0px 0px 10px var(--accent-teal))' }} />
+                        <Brain size={48} className={`text-[var(--accent-teal)] mb-3 group-hover:scale-110 transition-transform duration-500 ${totalSessions > 0 && totalSessions % 4 === 0 ? "animate-bounce" : ""}`} style={{ filter: 'drop-shadow(0px 0px 10px var(--accent-teal))' }} />
                         <h2 className="text-lg font-bold text-[var(--text-main)] mb-1">Mindful Reset</h2>
-                        <p className="text-[var(--text-muted)] text-xs font-medium">Breathe deeply</p>
+                        <p className="text-[var(--text-muted)] text-xs font-medium">
+                            {totalSessions > 0 && totalSessions % 4 === 0 ? "Time for a brain reset!" : "Breathe deeply"}
+                        </p>
                     </button>
 
                 </section>
@@ -274,21 +275,46 @@ export default function Dashboard() {
                             {/* Bulletproof wrapper */}
                             <div className="absolute inset-0 flex items-center justify-center rounded-2xl overflow-hidden pointer-events-none">
                                 <ChumRenderer size="w-14 h-14 md:w-16 md:h-16 scale-125 translate-y-1.5" />
-                            </div>
-
-                            <div className="absolute -bottom-3 bg-[var(--accent-yellow)] text-black text-[9px] md:text-[10px] font-bold px-3 py-1 rounded-full shadow-lg z-10">LVL {level}</div>
+                            </                            <motion.div 
+                                key={level}
+                                initial={{ scale: 0.5, rotate: -20, opacity: 0 }}
+                                animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                                className="absolute -bottom-3 bg-gradient-to-r from-[var(--accent-yellow)] to-orange-400 text-black text-[9px] md:text-[10px] font-black px-3 py-1 rounded-full shadow-[0_0_15px_rgba(250,204,21,0.5)] z-10"
+                            >
+                                LVL {level}
+                            </motion.div>
                         </div>
 
                         {/* Added min-w-0 here to ensure the text doesn't overflow */}
                         <div className="flex-1 min-w-0 w-full">
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-2 gap-2 sm:gap-0">
                                 <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                                    <h3 className="text-lg md:text-xl font-bold text-[var(--text-main)] truncate max-w-[200px] md:max-w-none">{getTitleForLevel(level)}</h3>
+                                    <AnimatePresence mode="wait">
+                                        <motion.h3 
+                                            key={level}
+                                            initial={{ y: 20, opacity: 0, filter: 'blur(10px)' }}
+                                            animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
+                                            exit={{ y: -20, opacity: 0, filter: 'blur(10px)' }}
+                                            transition={{ duration: 0.5, ease: "backOut" }}
+                                            className="text-lg md:text-xl font-black bg-gradient-to-r from-[var(--text-main)] via-[var(--accent-teal)] to-[var(--text-main)] bg-[length:200%_auto] animate-gradient-x bg-clip-text text-transparent truncate max-w-[200px] md:max-w-none"
+                                        >
+                                            {getTitleForLevel(level)}
+                                        </motion.h3>
+                                    </AnimatePresence>
                                     <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--accent-yellow)]/10 border border-[var(--accent-yellow)]/20 text-[var(--accent-yellow)] font-bold text-[9px] md:text-[10px] uppercase tracking-wide whitespace-nowrap">
                                         <Flame size={12} /> {dailyStreak} Day Streak
                                     </div>
                                 </div>
-                                <span className="text-[9px] md:text-[10px] font-mono text-[var(--text-muted)] font-bold tracking-widest whitespace-nowrap">Spirit: {xp}/{calculateXpRequirement(level)}</span>
+                                <motion.span 
+                                    key={xp}
+                                    initial={{ scale: 1.1, color: "var(--accent-teal)" }}
+                                    animate={{ scale: 1, color: "var(--text-muted)" }}
+                                    className="text-[9px] md:text-[10px] font-mono text-[var(--text-muted)] font-bold tracking-widest whitespace-nowrap"
+                                >
+                                    Spirit: {xp}/{calculateXpRequirement(level)}
+                                </motion.span>
+/span>
                             </div>
                             <div className="h-2 w-full bg-black/30 rounded-full overflow-hidden mb-2">
                                 <div className="h-full bg-[var(--accent-teal)] rounded-full transition-all duration-1000" style={{ width: `${(xp / calculateXpRequirement(level)) * 100}%` }}></div>

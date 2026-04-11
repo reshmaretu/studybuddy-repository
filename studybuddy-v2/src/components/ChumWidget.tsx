@@ -180,9 +180,8 @@ export default function ChumWidget() {
         let aiResponse = "";
         let usedNode = "";
 
-        try {
-            if (aiTier === 'offline') throw new Error("Offline mode");
-
+        // --- CLOUD CHAT WATERFALL ENGINE ---
+        const tryCloudChat = async (providers: ('openrouter' | 'groq' | 'gemini')[]) => {
             const { data: { session } } = await supabase.auth.getSession();
             const activeHistory = isTutorModeActive ? tutorChatHistory : normalChatHistory;
             const historyToSend = activeHistory.map(msg => ({
@@ -190,66 +189,79 @@ export default function ChumWidget() {
                 content: msg.text
             }));
 
-            if (aiTier === 'cloud') {
-                const messagesPayload = [
-                    { role: "system", content: systemPrompt },
-                    ...historyToSend,
-                    { role: "user", content: messageText }
-                ];
+            const messagesPayload = [
+                { role: "system", content: systemPrompt },
+                ...historyToSend,
+                { role: "user", content: messageText }
+            ];
 
-                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-                const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-                const res = await fetch(`${supabaseUrl}/functions/v1/chum-chat`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${session?.access_token}`,
-                        "apikey": anonKey!
-                    },
-                    body: JSON.stringify({
-                        messages: messagesPayload,
-                        selected_model: selectedModel
-                    })
-                });
+            for (const provider of providers) {
+                // Check if key exists for this provider
+                if (!aiKeys[provider]) continue;
 
-                if (!res.ok) {
-                    const err = await res.json();
-                    throw new Error(err.error || "Edge Function failed");
-                }
-                if (!res.body) throw new Error("No stream body available");
-
-                usedNode = res.headers.get('X-Node-Used') || "Cloud Stream";
-
-                // 🔥 1. Inject an empty message into the chat immediately
-                setCurrentHistory([...newHistory, { role: 'chum', text: "", node: usedNode }]);
-
-                // 🔥 2. Set up the stream reader
-                const reader = res.body.getReader();
-                const decoder = new TextDecoder();
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-
-                    // Decode the raw text chunk and append it
-                    const textChunk = decoder.decode(value, { stream: true });
-                    aiResponse += textChunk;
-
-                    // 🔥 3. Real-time typewriter effect: Update the very last message
-                    setCurrentHistory((prev: ChatMessage[]) => {
-                        const updated = [...prev];
-                        updated[updated.length - 1] = { ...updated[updated.length - 1], text: aiResponse };
-                        return updated;
+                try {
+                    const res = await fetch(`${supabaseUrl}/functions/v1/chum-chat`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${session?.access_token}`,
+                            "apikey": anonKey!
+                        },
+                        body: JSON.stringify({
+                            messages: messagesPayload,
+                            selected_model: useStudyStore.getState().selectedModel, // The backend can override if provider mismatch
+                            provider_override: provider // Pass hint to backend
+                        })
                     });
+
+                    if (!res.ok) throw new Error(`${provider} failed`);
+                    if (!res.body) throw new Error("No stream body");
+
+                    usedNode = res.headers.get('X-Node-Used') || `${provider.toUpperCase()} (Cloud)`;
+                    
+                    // Inject empty message
+                    setCurrentHistory([...newHistory, { role: 'chum', text: "", node: usedNode }]);
+
+                    const reader = res.body.getReader();
+                    const decoder = new TextDecoder();
+                    let fullText = "";
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const textChunk = decoder.decode(value, { stream: true });
+                        fullText += textChunk;
+                        setCurrentHistory((prev: ChatMessage[]) => {
+                            const updated = [...prev];
+                            updated[updated.length - 1] = { ...updated[updated.length - 1], text: fullText };
+                            return updated;
+                        });
+                    }
+                    aiResponse = fullText;
+                    return true; // SUCCESS!
+                } catch (e) {
+                    console.warn(`[WATERFALL] ${provider} failed, trying next...`, e);
                 }
+            }
+            return false; // All providers failed
+        };
 
+        try {
+            if (aiTier === 'offline') throw new Error("Offline mode");
+
+            if (aiTier === 'cloud') {
+                setIsTyping(true);
+                const waterfallRes = await tryCloudChat(['openrouter', 'groq', 'gemini']);
+                if (!waterfallRes) throw new Error("Full Waterfall Depleted");
                 setIsTyping(false);
-
             } else {
                 throw new Error("Local mode active");
             }
         } catch (err) {
+            // ... fallback to local or error message ...
             if (aiTier === 'offline') {
                 aiResponse = "I'm currently resting in offline mode. Let's study together again when you're back online!";
             } else {
@@ -396,47 +408,66 @@ export default function ChumWidget() {
                             </div>
 
                             {showSettings && !isFlowState ? (
-                                <div className="flex-1 p-4 bg-(--bg-dark) overflow-y-auto custom-scrollbar flex flex-col gap-4">
-                                    <h3 className="text-sm font-bold text-(--text-main) mb-2">Neural Link Settings</h3>
+                                <div className="flex-1 p-4 bg-(--bg-dark) overflow-y-auto custom-scrollbar flex flex-col gap-5">
+                                    <div className="flex justify-between items-center bg-(--bg-card) border border-(--border-color) rounded-xl p-3 mb-2">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black uppercase text-(--accent-teal) tracking-widest">Waterfall Active</span>
+                                            <span className="text-[9px] text-(--text-muted) italic">OpenRouter → Groq → Gemini</span>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            {['openrouter', 'groq', 'gemini'].map((provider) => (
+                                                <div key={provider} className={`w-1.5 h-1.5 rounded-full ${aiKeys[provider as keyof typeof aiKeys] ? 'bg-(--accent-teal)' : 'bg-(--text-muted)/20'}`} />
+                                            ))}
+                                        </div>
+                                    </div>
+
                                     <div className="flex bg-(--bg-sidebar) p-1 rounded-lg border border-(--border-color)">
                                         {(['cloud', 'local', 'offline'] as const).map(tier => (
                                             <button key={tier} onClick={() => setAITier(tier)} className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors ${aiTier === tier ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}>{tier}</button>
                                         ))}
                                     </div>
+
                                     {aiTier === 'cloud' && (
-                                        <div className="flex flex-col gap-3">
-                                            {/* --- MODEL SWITCHER START --- */}
-                                            <label className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-1">Neural Core Override</label>
-                                            <div className="grid grid-cols-1 gap-2 mb-2">
-                                                {[
-                                                    { id: "google/gemini-2.0-flash-001", name: "Gemini 2.0 Flash", icon: <Cpu size={12} /> },
-                                                    { id: "anthropic/claude-3-haiku", name: "Claude 3 Haiku", icon: <BrainCircuit size={12} /> },
-                                                    { id: "meta-llama/llama-3.1-8b-instruct", name: "Llama 3.1", icon: <Network size={12} /> }
-                                                ].map((m) => (
-                                                    <button
-                                                        key={m.id}
-                                                        onClick={() => setSelectedModel(m.id)} // Assuming you added this state
-                                                        className={`flex justify-between items-center p-2.5 rounded-xl border transition-all ${selectedModel === m.id
-                                                            ? "border-(--accent-teal) bg-(--accent-teal)/10 text-(--accent-teal)"
-                                                            : "border-white/5 bg-white/5 text-(--text-muted) hover:border-white/20"
-                                                            }`}
-                                                    >
-                                                        <div className="flex items-center gap-2">
-                                                            {m.icon}
-                                                            <span className="text-[11px] font-bold">{m.name}</span>
-                                                        </div>
-                                                        {selectedModel === m.id && <div className="w-1.5 h-1.5 rounded-full bg-(--accent-teal) animate-pulse" />}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                        <div className="flex flex-col gap-5">
+                                            {/* PROVIDER SETS */}
+                                            {[
+                                                { id: 'openrouter', label: 'OpenRouter', placeholder: 'sk-or-v1-...', defaultModel: 'google/gemini-2.0-flash-001' },
+                                                { id: 'groq', label: 'Groq', placeholder: 'gsk_...', defaultModel: 'llama-3.3-70b-versatile' },
+                                                { id: 'gemini', label: 'Gemini (Direct)', placeholder: 'AIza...', defaultModel: 'gemini-2.0-flash' }
+                                            ].map((prov) => (
+                                                <div key={prov.id} className="space-y-2 bg-(--bg-sidebar)/50 p-3 rounded-xl border border-(--border-color)/50">
+                                                    <div className="flex justify-between items-center">
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-(--text-main)">{prov.label}</label>
+                                                        {prov.id === 'openrouter' && <span className="text-[8px] bg-(--accent-teal)/20 text-(--accent-teal) px-1.5 py-0.5 rounded font-black">PRIORITY</span>}
+                                                    </div>
+                                                    <input 
+                                                        type="password" 
+                                                        placeholder={prov.placeholder} 
+                                                        value={aiKeys[prov.id as keyof typeof aiKeys]} 
+                                                        onChange={(e) => updateAIKeys({ [prov.id]: e.target.value })} 
+                                                        className="w-full bg-(--bg-dark) border border-(--border-color) rounded-lg px-3 py-1.5 text-[10px] text-(--text-main) outline-none focus:border-(--accent-teal)" 
+                                                    />
+                                                    <div className="flex items-center justify-between mt-1">
+                                                        <span className="text-[9px] text-(--text-muted) font-mono">{prov.defaultModel}</span>
+                                                        <button 
+                                                            onClick={() => setSelectedModel(prov.defaultModel)}
+                                                            className={`text-[8px] px-2 py-0.5 rounded border transition-colors ${selectedModel === prov.defaultModel ? 'bg-(--accent-teal) text-black border-transparent' : 'border-(--border-color) text-(--text-muted) hover:text-(--text-main)'}`}
+                                                        >
+                                                            Select
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     )}
+
                                     {aiTier === 'local' && (
                                         <div className="flex flex-col gap-3">
                                             <label className="text-xs text-(--text-muted) font-bold">Ollama Endpoint URL</label>
                                             <input type="text" value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)} className="w-full bg-(--bg-card) border border-(--border-color) rounded-lg px-4 py-2 text-xs text-(--text-main) outline-none focus:border-(--accent-teal)" />
                                         </div>
                                     )}
+
                                     <div className="flex items-center justify-between bg-(--bg-card) border border-(--border-color) rounded-lg p-3">
                                         <span className="text-xs font-bold text-(--text-main)">Show Model Badge</span>
                                         <div onClick={() => setShowNodeBadge(!showNodeBadge)} className="flex items-center gap-2 cursor-pointer group">
@@ -627,14 +658,19 @@ export default function ChumWidget() {
                             transition={{ type: "spring", stiffness: 450, damping: 12 }}
                             exit={{ opacity: 0, scale: 0, transition: { duration: 0.2 } }}
                             onClick={() => {
-                                setIsOpen(true);
-                                // If it's a system toast, capture it as an ephemeral message!
-                                if (chumToast) {
-                                    setEphemeralMsg({
-                                        text: chumToast.message,
-                                        type: chumToast.type || 'info',
-                                        id: Date.now() // Unique ID to force re-renders if clicked multiple times
-                                    });
+                                // If it's a system toast AND has an action, run it!
+                                if (chumToast?.action) {
+                                    chumToast.action();
+                                    useStudyStore.setState({ chumToast: null });
+                                } else {
+                                    setIsOpen(true);
+                                    if (chumToast) {
+                                        setEphemeralMsg({
+                                            text: chumToast.message,
+                                            type: chumToast.type || 'info',
+                                            id: Date.now()
+                                        });
+                                    }
                                 }
                             }}
                             // 👇 Changed sizing to w-[320px] to make it longer!

@@ -14,6 +14,7 @@ import jsPDF from 'jspdf';
 import { motion, AnimatePresence } from "framer-motion";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
+import ChumRenderer from "@/components/ChumRenderer";
 
 export default function AccountPage() {
     const [isMounted, setIsMounted] = useState(false);
@@ -26,7 +27,7 @@ export default function AccountPage() {
     const {
         isPremiumUser, level, displayName, fullName, userEmail, setUserEmail, triggerChumToast,
         setPremiumStatus, setDisplayName, setFullName, mockInvoices, addMockInvoice,
-        isVerified, setIsVerified,
+        isVerified, setIsVerified, avatarUrl, setProfileModalOpen,
         doubleClickToComplete = true, dndEnabled = true, setSettings, handleLogout,
         performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true }
     } = useStudyStore();
@@ -497,12 +498,24 @@ export default function AccountPage() {
 
                 {/* Centered Profile Section (Cozy/Refined) */}
                 <div className="flex flex-col items-center text-center gap-6 mt-4">
-                    <div className="relative group">
-                        <div className="w-40 h-40 rounded-full border-4 border-teal-500/20 p-1.5 bg-(--bg-card) flex items-center justify-center relative transition-all duration-500 group-hover:border-teal-400 group-hover:scale-[1.02] shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
-                            <User size={80} className="text-teal-400" />
-                            <div className="absolute inset-0 rounded-full bg-teal-400/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <button 
+                        onClick={() => setProfileModalOpen(true)}
+                        className="relative group cursor-pointer active:scale-95 transition-transform"
+                    >
+                        <div className="w-40 h-40 rounded-full border-4 border-teal-500/20 p-1.5 bg-(--bg-card) flex items-center justify-center relative transition-all duration-500 group-hover:border-teal-400 group-hover:shadow-[0_0_30px_rgba(45,212,191,0.3)] shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden">
+                            {avatarUrl ? (
+                                <img src={avatarUrl} alt="PFP" className="w-full h-full object-cover rounded-full" />
+                            ) : (
+                                <div className="p-6 w-full h-full flex items-center justify-center">
+                                    <ChumRenderer size="w-full h-full scale-150" />
+                                </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                                <Camera size={24} className="text-white" />
+                                <span className="text-[8px] font-black uppercase tracking-widest text-white">Reflect Identity</span>
+                            </div>
                         </div>
-                    </div>
+                    </button>
 
                     <div className="space-y-1">
                         <div className="flex items-center justify-center gap-3">

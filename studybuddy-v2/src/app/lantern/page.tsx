@@ -193,7 +193,7 @@ export default function LanternNetPage() {
             try {
                 // Fetch all data in parallel
                 const results = await Promise.all([
-                    supabase.from('profiles').select('id, display_name, full_name, status, is_in_flowstate, active_session_type, is_premium'),
+                    supabase.from('profiles').select('id, display_name, full_name, status, is_in_flowstate, active_session_type, is_premium, avatar_url'),
                     supabase.from('rooms').select('*'),
                     supabase.from('user_stats').select('user_id, focus_score, total_seconds_tracked'),
                     supabase.from('chum_wardrobe').select('user_id, base_emoji, hat_emoji')

@@ -37,7 +37,8 @@ export default function InsightsPage() {
         level = 1,
         flowBreaks = 0,
         tabSwitches = 0,
-        dailyFocusScores = {}
+        dailyFocusScores = {},
+        totalSecondsTracked = 0
     } = useStudyStore();
 
     useEffect(() => setIsMounted(true), []);
@@ -73,12 +74,15 @@ export default function InsightsPage() {
     const lightCount = filteredTasks.filter(t => t.load === 'light').length;
 
     const actualTotalHours = useMemo(() => {
+        if (timeRange === 'all') {
+            return (totalSecondsTracked / 3600).toFixed(1);
+        }
         const totalPomos = filteredTasks.reduce((sum, task) => {
             const pomos = task.actualPomos ?? task.estimatedPomos ?? (task.load === 'heavy' ? 4 : task.load === 'medium' ? 2 : 1);
             return sum + pomos;
         }, 0);
         return (totalPomos * 25 / 60).toFixed(1);
-    }, [filteredTasks]);
+    }, [filteredTasks, timeRange, totalSecondsTracked]);
 
     const displayCompleted = filteredTasks.length;
 

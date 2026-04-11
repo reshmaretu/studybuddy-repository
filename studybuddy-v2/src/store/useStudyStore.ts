@@ -5,6 +5,12 @@ import { supabase } from '@/lib/supabase';
 // 1. Explicitly export the TaskLoad type
 export type TaskLoad = 'light' | 'medium' | 'heavy';
 
+export interface ChumToast {
+    message: string;
+    type?: 'info' | 'success' | 'warning' | 'error';
+    action?: () => void;
+}
+
 export interface Task {
     id: string;
     title: string;
@@ -87,6 +93,7 @@ interface StudyState {
     isVerified: boolean;
     avatarUrl: string | null;
     isProfileModalOpen: boolean;
+    isBrainResetOpen: boolean;
 
     setDisplayName: (name: string) => void;
     setFullName: (name: string) => void;
@@ -94,6 +101,8 @@ interface StudyState {
     setIsVerified: (val: boolean) => void;
     setAvatarUrl: (url: string | null) => void;
     setProfileModalOpen: (open: boolean) => void;
+    setIsBrainResetOpen: (open: boolean) => void;
+    setLastLevelUp: (date: string | null) => void;
 
     // 🌐 CLOUD SYNC STATE
     isInitialized: boolean;
@@ -142,7 +151,7 @@ interface StudyState {
 
     xp: number;
     level: number;
-    lastLevelUp: number | null;
+    lastLevelUp: string | null;
     lastXpGain: number | null;
     modifyFocusScore: (amount: number) => Promise<void>;
     gainXp: (amount: number) => Promise<void>;
@@ -227,8 +236,8 @@ interface StudyState {
     addMockInvoice: (invoice: any) => void;
     setPremiumStatus: (status: boolean) => void;
 
-    chumToast: { message: string | React.ReactNode, type: 'warning' | 'normal' | 'success' | 'info' } | null;
-    triggerChumToast: (message: string | React.ReactNode, type?: 'warning' | 'normal' | 'success' | 'info') => void;
+    chumToast: ChumToast | null;
+    triggerChumToast: (message: string, type?: 'info' | 'success' | 'warning', action?: () => void) => void;
 
     // 🏆 PROTOCOL LIMITS
     protocolLimits: { heavy: number; medium: number; light: number };
@@ -266,6 +275,7 @@ export const useStudyStore = create<StudyState>()(
             userEmail: "",
             avatarUrl: null,
             isProfileModalOpen: false,
+            isBrainResetOpen: false,
             lastLevelUp: null,
             lastXpGain: null,
             mockInvoices: [],
@@ -276,6 +286,8 @@ export const useStudyStore = create<StudyState>()(
             setIsVerified: (val) => set({ isVerified: val }),
             setAvatarUrl: (url) => set({ avatarUrl: url }),
             setProfileModalOpen: (open) => set({ isProfileModalOpen: open }),
+            setIsBrainResetOpen: (open) => set({ isBrainResetOpen: open }),
+            setLastLevelUp: (val) => set({ lastLevelUp: val }),
 
             addMockInvoice: (invoice) => set((state) => ({
                 mockInvoices: [invoice, ...state.mockInvoices]
@@ -383,12 +395,12 @@ export const useStudyStore = create<StudyState>()(
             },
 
             chumToast: null,
-            triggerChumToast: (message, type = 'normal') => {
-                set({ chumToast: { message, type: type as 'warning' | 'normal' | 'success' | 'info' } });
-                // Auto-clear the bubble after 6 seconds
+            triggerChumToast: (message, type = 'info', action) => {
+                set({ chumToast: { message, type, action } });
                 setTimeout(() => {
-                    set((state) => state.chumToast?.message === message ? { chumToast: null } : state);
-                }, 6000);
+                    const current = get().chumToast;
+                    if (current?.message === message) set({ chumToast: null });
+                }, 8000);
             },
 
             updateProtocolLimits: (limits) => set((state) => ({ protocolLimits: { ...state.protocolLimits, ...limits } })),
@@ -474,13 +486,16 @@ export const useStudyStore = create<StudyState>()(
                         set({ lastLevelUp: currentLevel });
                         setTimeout(() => set({ lastLevelUp: null }), 5000);
                         if (state.triggerChumToast) {
-                            state.triggerChumToast(`Level Up! You earned the title: ${getTitleForLevel(currentLevel)}.`, 'normal');
+                            state.triggerChumToast(`🌟 ASCENSION! You've reached Level ${currentLevel}. New Title: ${getTitleForLevel(currentLevel)}`, 'info');
                         }
                     }
 
                     if (finalAmount > 0) {
                         set({ lastXpGain: finalAmount });
                         setTimeout(() => set({ lastXpGain: null }), 3000);
+                        if (state.triggerChumToast && !didLevelUp) {
+                            state.triggerChumToast(`✨ ${finalAmount} XP Essence gained! Your Spirit grows stronger.`, 'success');
+                        }
                     }
 
                     if (user) {
@@ -500,12 +515,17 @@ export const useStudyStore = create<StudyState>()(
                 // Time-based XP (e.g. 50 XP for finishing a full timer block)
                 get().gainXp(50);
 
-                set((state) => ({ totalSessions: state.totalSessions + 1 }));
+                const newTotal = get().totalSessions + 1;
+                set({ totalSessions: newTotal });
+
+                if (newTotal % 4 === 0) {
+                    get().triggerChumToast("🧠 Your neurons are firing fast! Time for a Brain Reset to clear the mental fog?", "info", () => get().setIsBrainResetOpen(true));
+                }
 
                 if (user) {
                     // 👇 Add total_seconds_tracked to the update payload
                     supabase.from('user_stats').update({
-                        total_sessions: get().totalSessions,
+                        total_sessions: newTotal,
                         total_seconds_tracked: get().totalSecondsTracked
                     }).eq('user_id', user.id).then();
                 }
@@ -571,6 +591,16 @@ export const useStudyStore = create<StudyState>()(
                 }
 
                 if (!id.startsWith('temp-') && user) {
+                    // If task was completed in a focus mode, increment sessions
+                    if (get().activeMode === 'flowState' || get().activeMode === 'studyCafe') {
+                        const newTotal = get().totalSessions + 1;
+                        set({ totalSessions: newTotal });
+                        if (newTotal % 4 === 0) {
+                            get().triggerChumToast("🧠 Focus flow peak! Your brain might need a quick reset. Hover over the dashboard to see more.", "info", () => get().setIsBrainResetOpen(true));
+                        }
+                        supabase.from('user_stats').update({ total_sessions: newTotal }).eq('user_id', user.id).then();
+                    }
+
                     const dbUpdate: any = { is_completed: true, completed_at: now };
                     if (premiumStats?.actualPomos !== undefined) dbUpdate.actual_pomodoros = premiumStats.actualPomos;
                     if (premiumStats?.stressLevel !== undefined) dbUpdate.stress_level = premiumStats.stressLevel;

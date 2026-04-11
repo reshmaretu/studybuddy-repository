@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useStudyStore, TaskLoad, Task } from "@/store/useStudyStore";
-import { Sprout, Plus, Search, Moon, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit, Edit3, Maximize2 } from "lucide-react";
+import { Sprout, Plus, Search, Moon, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit, Edit3, Maximize2, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import TaskCard from "@/components/TaskCard";
@@ -95,7 +95,7 @@ function MasteredShardCard({ shard, onSnipe }: { shard: any, onSnipe: () => void
 // 🎨 FRAMEWORK UI COMPONENTS
 // ==========================================
 
-function MatrixZone({ id, title, subtitle, tasks, color, bg, border, activeBorder }: any) {
+function MatrixZone({ id, title, subtitle, tasks, color, bg, border, activeBorder, onToggleSelect, selectedIds }: any) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
         <div ref={setNodeRef} className={`flex flex-col rounded-2xl border-2 transition-all duration-300 ${isOver ? activeBorder + ' bg-black/40 ring-1 ring-current brightness-125 shadow-[inset_0_0_30px_rgba(255,255,255,0.05)] z-10' : border + ' ' + bg}`}>
@@ -106,13 +106,20 @@ function MatrixZone({ id, title, subtitle, tasks, color, bg, border, activeBorde
                 <p className="text-[8px] sm:text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mt-0.5 hidden sm:block">{subtitle}</p>
             </div>
             <div style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} className="flex-1 p-2 sm:p-3 overflow-y-auto overflow-x-hidden space-y-2 [&::-webkit-scrollbar]:hidden rounded-b-xl pb-12">
-                {tasks.map((task: any) => <TaskCard key={task.id} task={task} />)}
+                {tasks.map((task: any) => (
+                    <TaskCard 
+                        key={task.id} 
+                        task={task} 
+                        onToggleSelect={onToggleSelect}
+                        selected={selectedIds.includes(task.id)}
+                    />
+                ))}
             </div>
         </div>
     );
 }
 
-function IvySlot({ rank, task, isLocked, isActive }: any) {
+function IvySlot({ rank, task, isLocked, isActive, onToggleSelect, selectedIds }: any) {
     const id = `ivy-${rank}`;
     const { isOver, setNodeRef } = useDroppable({ id, disabled: isLocked && !!task });
     return (
@@ -130,7 +137,13 @@ function IvySlot({ rank, task, isLocked, isActive }: any) {
             <div className="flex-1 min-w-0 flex flex-col justify-center">
                 {/* THE MINIMIZED FIX: Passing the new prop to the TaskCard! */}
                 {task ? (
-                    <TaskCard task={task} locked={isLocked} isMinimized={true} />
+                    <TaskCard 
+                        task={task} 
+                        locked={isLocked} 
+                        isMinimized={true} 
+                        onToggleSelect={onToggleSelect}
+                        selected={selectedIds.includes(task.id)}
+                    />
                 ) : (
                     <div className="px-4 py-2 text-xs font-bold text-[var(--text-muted)] italic">Awaiting Assignment...</div>
                 )}
@@ -143,7 +156,7 @@ function IvySlot({ rank, task, isLocked, isActive }: any) {
     );
 }
 
-function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, border, updateTask }: any) {
+function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, border, updateTask, onToggleSelect, selectedIds }: any) {
     const [isOpen, setIsOpen] = useState(false);
 
     // 1. Filter all tasks by cognitive load (Heavy/Medium/Light)
@@ -239,7 +252,11 @@ function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, borde
                     <div key={task.id} className="relative group animate-in fade-in zoom-in duration-300">
                         {/* 🎨 Wrapped the equipped TaskCard in a thematic border to match the zone */}
                         <div className={`rounded-xl border-2 p-1 bg-black/20 transition-all ${theme.wrapperBorder}`}>
-                            <TaskCard task={task} />
+                            <TaskCard 
+                                task={task} 
+                                onToggleSelect={onToggleSelect}
+                                selected={selectedIds.includes(task.id)}
+                            />
                         </div>
                         {/* X Button to un-equip */}
                         <button
@@ -264,7 +281,7 @@ function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, borde
     );
 }
 
-function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll }: any) {
+function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll, onToggleSelect, selectedIds }: any) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
         <div ref={setNodeRef} className={`h-full flex flex-col rounded-2xl border-2 border-dashed transition-all duration-300 ${isOver ? 'border-[var(--accent-teal)] bg-[var(--accent-teal)]/10 ring-1 ring-[var(--accent-teal)] brightness-125' : 'border-[var(--border-color)] bg-[var(--bg-dark)]'}`}>
@@ -289,21 +306,35 @@ function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll }: any) 
                 {tasks.length === 0 ? (
                     <div className="h-full flex items-center justify-center text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest italic opacity-50">All Quests Assigned</div>
                 ) : (
-                    tasks.map((task: any) => <TaskCard key={task.id} task={task} />)
+                    tasks.map((task: any) => (
+                        <TaskCard 
+                            key={task.id} 
+                            task={task} 
+                            onToggleSelect={onToggleSelect}
+                            selected={selectedIds.includes(task.id)}
+                        />
+                    ))
                 )}
             </div>
         </div>
     );
 }
 
-function StandardZone({ id, tasks }: any) {
+function StandardZone({ id, tasks, onToggleSelect, selectedIds }: any) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
         <div ref={setNodeRef} style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} className={`absolute inset-0 rounded-xl transition-all duration-300 flex flex-col gap-3 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden border-2 border-dashed p-1 min-h-[150px] pb-16 ${isOver ? "bg-[var(--accent-teal)]/10 border-[var(--accent-teal)] ring-1 ring-[var(--accent-teal)] brightness-110 z-10" : "border-transparent"}`}>
             {tasks.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-[var(--text-muted)] text-sm font-medium">No active quests yet</div>
             ) : (
-                tasks.map((task: any) => <TaskCard key={task.id} task={task} />)
+                tasks.map((task: any) => (
+                    <TaskCard 
+                        key={task.id} 
+                        task={task} 
+                        onToggleSelect={onToggleSelect}
+                        selected={selectedIds.includes(task.id)}
+                    />
+                ))
             )}
         </div>
     );
@@ -336,6 +367,32 @@ export default function CrystalGarden() {
     const [masteryTab, setMasteryTab] = useState<'tasks' | 'shards'>('tasks');
     const [draggedToGeodeTask, setDraggedToGeodeTask] = useState<Task | null>(null);
     const [snipingShard, setSnipingShard] = useState<any>(null);
+
+    const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+
+    const handleToggleSelect = (id: string) => {
+        setSelectedTaskIds((prev) =>
+            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+        );
+    };
+
+    const handleBulkComplete = async () => {
+        if (selectedTaskIds.length === 0) return;
+        for (const id of selectedTaskIds) {
+            completeTask(id);
+        }
+        setSelectedTaskIds([]);
+        triggerChumToast(`${selectedTaskIds.length} quests archived!`);
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedTaskIds.length === 0) return;
+        for (const id of selectedTaskIds) {
+            deleteTask(id);
+        }
+        setSelectedTaskIds([]);
+        triggerChumToast(`${selectedTaskIds.length} quests recycled.`);
+    };
 
     const validTasks = tasks.filter(t => t && t.id);
     const filteredTasks = validTasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.description?.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -558,6 +615,9 @@ export default function CrystalGarden() {
                                     <div className="space-y-4">
                                         <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl p-3">
                                             <label className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2 block">Cognitive Load</label>
+                                            <div className="flex-1 relative min-h-[300px]">
+                                                <StandardZone id="active-list" tasks={activeQuests} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                            </div>
                                             <div className="flex gap-2">
                                                 {['light', 'medium', 'heavy'].map((weight) => (
                                                     <button key={weight} type="button" onClick={() => setNewTask({ ...newTask, load: weight as TaskLoad })} className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase border transition-colors ${newTask.load === weight ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>{weight}</button>
@@ -832,14 +892,14 @@ export default function CrystalGarden() {
                                             className="absolute inset-0 flex flex-col gap-4"
                                         >
                                             <div className="grid grid-cols-2 grid-rows-2 gap-3 flex-1 min-h-0">
-                                                <MatrixZone id="quadrant-1" title="Do First" subtitle="Urgent & Important" tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 1)} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" activeBorder="border-red-400" />
-                                                <MatrixZone id="quadrant-2" title="Schedule" subtitle="Not Urgent, Important" tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 2)} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" activeBorder="border-[var(--accent-teal)]" />
-                                                <MatrixZone id="quadrant-3" title="Delegate" subtitle="Urgent, Not Imp." tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 3)} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" activeBorder="border-[var(--accent-yellow)]" />
-                                                <MatrixZone id="quadrant-4" title="Don't Do" subtitle="Not Urgent, Not Imp." tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 4)} color="text-[var(--text-muted)]" bg="bg-[var(--bg-dark)]" border="border-[var(--border-color)]" activeBorder="border-[var(--text-muted)]" />
+                                                <MatrixZone id="quadrant-1" title="Do First" subtitle="Urgent & Important" tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 1)} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" activeBorder="border-red-400" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                <MatrixZone id="quadrant-2" title="Schedule" subtitle="Not Urgent, Important" tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 2)} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" activeBorder="border-[var(--accent-teal)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                <MatrixZone id="quadrant-3" title="Delegate" subtitle="Urgent, Not Imp." tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 3)} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" activeBorder="border-[var(--accent-yellow)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                <MatrixZone id="quadrant-4" title="Don't Do" subtitle="Not Urgent, Not Imp." tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 4)} color="text-[var(--text-muted)]" bg="bg-[var(--bg-dark)]" border="border-[var(--border-color)]" activeBorder="border-[var(--text-muted)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
                                             </div>
                                             {activeQuests.filter(t => !t.eisenhowerQuadrant).length > 0 && (
                                                 <div className="h-[30%] min-h-[160px] shrink-0">
-                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter(t => !t.eisenhowerQuadrant)} title="Unsorted Quests (Drag to Quadrant)" onViewAll={() => setShowUnrankedModal(true)} />
+                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter(t => !t.eisenhowerQuadrant)} title="Unsorted Quests (Drag to Quadrant)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
                                                 </div>
                                             )}
                                         </motion.div>
@@ -855,9 +915,9 @@ export default function CrystalGarden() {
                                             className="absolute inset-0 flex flex-col gap-4 overflow-y-auto [&::-webkit-scrollbar]:hidden pr-1 pb-1"
                                         >
                                             {/* ✅ Using the new interactive dropdown slots! */}
-                                            <DropdownCapacityZone loadType="heavy" title="1 Heavy Quest" max={1} allTasks={activeQuests} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" updateTask={updateTask} />
-                                            <DropdownCapacityZone loadType="medium" title="3 Medium Quests" max={3} allTasks={activeQuests} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" updateTask={updateTask} />
-                                            <DropdownCapacityZone loadType="light" title="5 Light Quests" max={5} allTasks={activeQuests} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" updateTask={updateTask} />
+                                            <DropdownCapacityZone loadType="heavy" title="1 Heavy Quest" max={1} allTasks={activeQuests} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                            <DropdownCapacityZone loadType="medium" title="3 Medium Quests" max={3} allTasks={activeQuests} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                            <DropdownCapacityZone loadType="light" title="5 Light Quests" max={5} allTasks={activeQuests} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
                                         </motion.div>
 
                                     ) : activeFramework === 'ivy' ? (
@@ -879,12 +939,12 @@ export default function CrystalGarden() {
                                                     }) || 1;
                                                     const isLocked = task && rank > activeRank;
 
-                                                    return <IvySlot key={rank} rank={rank} task={task} isLocked={isLocked} isActive={rank === activeRank} />;
+                                                    return <IvySlot key={rank} rank={rank} task={task} isLocked={isLocked} isActive={rank === activeRank} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />;
                                                 })}
                                             </div>
                                             {activeQuests.filter(t => !t.ivyRank).length > 0 && (
                                                 <div className="h-1/3 min-h-[150px] shrink-0">
-                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter(t => !t.ivyRank)} title="Unranked Quests (Drag to Rank)" onViewAll={() => setShowUnrankedModal(true)} />
+                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter(t => !t.ivyRank)} title="Unranked Quests (Drag to Rank)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
                                                 </div>
                                             )}
                                         </motion.div>
@@ -999,6 +1059,45 @@ export default function CrystalGarden() {
                     )}
                 </AnimatePresence>
 
+                {/* BULK ACTION BAR */}
+                <AnimatePresence>
+                    {selectedTaskIds.length > 0 && (
+                        <motion.div
+                            initial={{ y: 100, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 100, opacity: 0 }}
+                            className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[var(--bg-card)] border-2 border-[var(--accent-teal)] rounded-2xl px-6 py-4 shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex items-center gap-6 z-[1000] backdrop-blur-md"
+                        >
+                            <div className="flex items-center gap-3 pr-6 border-r border-[var(--border-color)]">
+                                <span className="bg-[var(--accent-teal)] text-black text-xs font-black px-2 py-1 rounded-md">
+                                    {selectedTaskIds.length}
+                                </span>
+                                <span className="text-xs font-bold text-[var(--text-main)] uppercase tracking-wider">Quests Selected</span>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={handleBulkComplete}
+                                    className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[var(--accent-teal)] transition-all active:scale-95 shadow-lg"
+                                >
+                                    <CheckCircle2 size={14} /> Complete
+                                </button>
+                                <button
+                                    onClick={handleBulkDelete}
+                                    className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/30 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all active:scale-95"
+                                >
+                                    <X size={14} /> Delete
+                                </button>
+                                <button
+                                    onClick={() => setSelectedTaskIds([])}
+                                    className="text-xs font-bold text-[var(--text-muted)] hover:text-white transition-colors ml-2"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </DndContext>
     );
