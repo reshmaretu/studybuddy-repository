@@ -369,7 +369,6 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                         ● {user.status}
                                     </p>
                                 </div>
-                                </div>
                                 <div className="w-12 h-12 rounded-full border border-(--border-color) overflow-hidden flex-shrink-0 bg-black/40">
                                     {(user as any).avatarUrl ? (
                                         <img src={(user as any).avatarUrl} alt="PFP" className="w-full h-full object-cover" />
