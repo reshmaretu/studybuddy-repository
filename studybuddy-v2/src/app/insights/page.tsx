@@ -74,9 +74,12 @@ export default function InsightsPage() {
     const lightCount = filteredTasks.filter(t => t.load === 'light').length;
 
     const actualTotalHours = useMemo(() => {
-        if (timeRange === 'all') {
+        // If 'all' or if totalSecondsTracked is significant, use the absolute store value
+        if (timeRange === 'all' || totalSecondsTracked > 0) {
             return (totalSecondsTracked / 3600).toFixed(1);
         }
+        
+        // Fallback for new accounts without deep tracking history
         const totalPomos = filteredTasks.reduce((sum, task) => {
             const pomos = task.actualPomos ?? task.estimatedPomos ?? (task.load === 'heavy' ? 4 : task.load === 'medium' ? 2 : 1);
             return sum + pomos;

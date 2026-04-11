@@ -27,7 +27,7 @@ export default function ChumWidget() {
         shards, updateShardMastery, aiTier, setAITier, aiKeys, updateAIKeys, selectedModel, setSelectedModel, ollamaUrl, setOllamaUrl,
         normalChatHistory, tutorChatHistory, setNormalChatHistory, setTutorChatHistory,
         tutorSessionState, updateTutorSessionState, completeTutorSession, pastTutorSessions, toggleMindDump,
-        showNodeBadge, setShowNodeBadge, chumToast, addTask, isPremiumUser
+        showNodeBadge, setShowNodeBadge, chumToasts, addTask, isPremiumUser
     } = useStudyStore();
 
     const [widgetPos, setWidgetPos] = useState({ isLeft: false, isTop: false });
@@ -68,17 +68,21 @@ export default function ChumWidget() {
         if (isOpen) {
             setShowBubble(false); // Always hide the floating hover bubble
 
-            // If a system toast fires WHILE the chat is open (or was pending), route it inside!
-            if (chumToast) {
+            // If system toasts fire WHILE the chat is open, route them inside as ephemeral messages!
+            if (chumToasts && chumToasts.length > 0) {
+                const toast = chumToasts[0];
                 setEphemeralMsg({
-                    text: chumToast.message,
-                    type: chumToast.type || 'info',
+                    text: toast.message,
+                    type: toast.type || 'info',
                     id: Date.now()
                 });
-                useStudyStore.setState({ chumToast: undefined });
+                // Remove it from the store queue since we're displaying it internally
+                useStudyStore.setState((state) => ({ 
+                    chumToasts: state.chumToasts.filter((t: any) => t.id !== (toast as any).id) 
+                }));
             }
         }
-    }, [isOpen, chumToast]); // Now listens to chumToast updates!
+    }, [isOpen, chumToasts]); // Now listens to chumToasts queue updates!
 
     const handleToggleSchedule = (checked: boolean) => {
         setIsScheduled(checked);
@@ -648,86 +652,80 @@ export default function ChumWidget() {
                     )}
                 </AnimatePresence>
 
-                {/* 🗣️ CHUM FLOATING BUBBLE (Now handles Chat AND System Toasts!) */}
-                <AnimatePresence>
-                    {(showBubble || chumToast) && !isOpen && (
-                        <motion.div
-                            // 👇 Safe scale animation that respects screen edges
-                            initial={{ opacity: 0, scale: 0.3 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ type: "spring", stiffness: 450, damping: 12 }}
-                            exit={{ opacity: 0, scale: 0, transition: { duration: 0.2 } }}
-                            onClick={() => {
-                                // If it's a system toast AND has an action, run it!
-                                if (chumToast?.action) {
-                                    chumToast.action();
-                                    useStudyStore.setState({ chumToast: null });
-                                } else {
-                                    setIsOpen(true);
-                                    if (chumToast) {
-                                        setEphemeralMsg({
-                                            text: chumToast.message,
-                                            type: chumToast.type || 'info',
-                                            id: Date.now()
-                                        });
+                {/* 🗣️ CHUM FLOATING BUBBLES (Stacking!) */}
+                <div className={`absolute ${bubbleXPos} ${bubbleYPos} flex flex-col-reverse gap-3 items-end pointer-events-none`}>
+                    <AnimatePresence>
+                        {/* 1. System Toasts (Stacked) */}
+                        {!isOpen && chumToasts?.map((toast: any, idx) => (
+                            <motion.div
+                                key={toast.id}
+                                initial={{ opacity: 0, scale: 0.3, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                transition={{ type: "spring", stiffness: 450, damping: 12, delay: idx * 0.1 }}
+                                exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
+                                onClick={() => {
+                                    if (toast.action) {
+                                        toast.action();
+                                        useStudyStore.setState((state) => ({ 
+                                            chumToasts: state.chumToasts.filter((t: any) => t.id !== toast.id) 
+                                        }));
+                                    } else {
+                                        setIsOpen(true);
                                     }
-                                }
-                            }}
-                            // 👇 Changed sizing to w-[320px] to make it longer!
-                            className={`absolute ${bubbleXPos} ${bubbleYPos} ${tailCorner} w-[320px] min-h-[80px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer transition-colors group z-50 pointer-events-auto flex flex-col justify-center ${chumToast?.type === 'warning' ? 'border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]' :
-                                chumToast?.type === 'success' ? 'border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.2)]' :
-                                    chumToast?.type === 'info' ? 'border-sky-500/50 shadow-[0_0_30px_rgba(14,165,233,0.2)]' :
-                                        'border-[var(--border-color)] hover:border-[var(--accent-teal)]'
+                                }}
+                                className={`w-[320px] min-h-[60px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_15px_40px_rgba(0,0,0,0.4)] cursor-pointer pointer-events-auto flex flex-col justify-center relative ${
+                                    toast.type === 'warning' ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.15)]' :
+                                    toast.type === 'success' ? 'border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]' :
+                                    toast.type === 'info' ? 'border-sky-500/50 shadow-[0_0_20px_rgba(14,165,233,0.15)]' :
+                                    'border-[var(--border-color)]'
                                 }`}
-                        >
-                            <div className="relative">
-                                {chumToast ? (
-                                    <>
-                                        <p className={`text-[10px] font-black uppercase tracking-wider mb-1 ${chumToast.type === 'warning' ? 'text-red-400' :
-                                            chumToast.type === 'success' ? 'text-emerald-400' :
-                                                chumToast.type === 'info' ? 'text-sky-400' :
-                                                    'text-[var(--accent-teal)]'
-                                            }`}>
-                                            {chumToast.type === 'warning' ? '⚠️ Burnout Warning' : chumToast.type === 'success' ? '✨ Mastery Pulse' : chumToast.type === 'info' ? 'ℹ️ Guidance' : 'Chum Says:'}
-                                        </p>
-                                        <div className="text-sm text-[var(--text-main)] leading-relaxed font-bold">
-                                            {chumToast.message}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <p className="text-sm text-[var(--text-main)] leading-relaxed font-bold line-clamp-2">
-                                            {currentHistory[currentHistory.length - 1]?.text}
-                                        </p>
-                                        <div className="mt-3 pt-3 border-t border-[var(--border-color)]/30 flex items-center justify-between">
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)] animate-pulse" />
-                                                <span className="text-[10px] font-black uppercase tracking-tighter text-[var(--accent-teal)]">Neural Link</span>
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-
-                                {/* 🖋️ THE INTERACTIVE TAIL (Instagram Style) */}
-                                <div 
-                                    className={`absolute w-4 h-4 rotate-45 border-2 z-[-1] ${widgetPos.isTop ? '-top-2' : '-bottom-2'} ${widgetPos.isLeft ? 'left-6' : 'right-6'} ${
-                                        chumToast?.type === 'warning' ? 'bg-black border-red-500/50' :
-                                        chumToast?.type === 'success' ? 'bg-black border-emerald-500/50' :
-                                        chumToast?.type === 'info' ? 'bg-black border-sky-500/50' :
+                            >
+                                <p className={`text-[10px] font-black uppercase tracking-wider mb-1 ${
+                                    toast.type === 'warning' ? 'text-red-400' :
+                                    toast.type === 'success' ? 'text-emerald-400' :
+                                    toast.type === 'info' ? 'text-sky-400' :
+                                    'text-[var(--accent-teal)]'
+                                }`}>
+                                    {toast.type === 'warning' ? '⚠️ Alert' : toast.type === 'success' ? '✨ Mastery Pulse' : 'ℹ️ Guidance'}
+                                </p>
+                                <div className="text-sm text-[var(--text-main)] leading-relaxed font-bold">
+                                    {toast.message}
+                                </div>
+                                {idx === 0 && (
+                                    <div className={`absolute w-4 h-4 rotate-45 border-2 z-[-1] -bottom-2 ${widgetPos.isLeft ? 'left-6' : 'right-6'} ${
+                                        toast.type === 'warning' ? 'bg-black border-red-500/50' :
+                                        toast.type === 'success' ? 'bg-black border-emerald-500/50' :
+                                        toast.type === 'info' ? 'bg-black border-sky-500/50' :
                                         'bg-[var(--bg-card)] border-[var(--border-color)]'
                                     }`}
-                                    style={{ 
-                                        clipPath: widgetPos.isTop ? 'polygon(0 0, 100% 0, 0 100%)' : 'polygon(100% 100%, 100% 0, 0 100%)',
-                                        borderTopColor: widgetPos.isTop ? 'inherit' : 'transparent',
-                                        borderLeftColor: widgetPos.isLeft ? 'inherit' : 'transparent',
-                                        borderRightColor: !widgetPos.isLeft ? 'inherit' : 'transparent',
-                                        borderBottomColor: !widgetPos.isTop ? 'inherit' : 'transparent'
-                                    }}
-                                />
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                                    style={{ clipPath: 'polygon(100% 100%, 100% 0, 0 100%)' }} />
+                                )}
+                            </motion.div>
+                        ))}
+
+                        {/* 2. Last Chat Message (Only if no active toasts) */}
+                        {showBubble && !isOpen && (!chumToasts || chumToasts.length === 0) && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.3 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ type: "spring", stiffness: 450, damping: 12 }}
+                                exit={{ opacity: 0, scale: 0 }}
+                                onClick={() => setIsOpen(true)}
+                                className="w-[320px] min-h-[60px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 border-[var(--border-color)] p-4 rounded-[28px] shadow-[0_15px_40px_rgba(0,0,0,0.4)] cursor-pointer pointer-events-auto flex flex-col justify-center hover:border-[var(--accent-teal)] transition-colors relative"
+                            >
+                                <p className="text-sm text-[var(--text-main)] leading-relaxed font-bold line-clamp-2">
+                                    {currentHistory[currentHistory.length - 1]?.text}
+                                </p>
+                                <div className="mt-2 pt-2 border-t border-[var(--border-color)]/30 flex items-center gap-1.5 opacity-40">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)] animate-pulse" />
+                                    <span className="text-[9px] font-black uppercase tracking-tighter text-[var(--accent-teal)]">Neural Link</span>
+                                </div>
+                                <div className={`absolute w-4 h-4 rotate-45 border-2 border-[var(--border-color)] bg-[var(--bg-card)] z-[-1] -bottom-2 ${widgetPos.isLeft ? 'left-6' : 'right-6'}`}
+                                     style={{ clipPath: 'polygon(100% 100%, 100% 0, 0 100%)' }} />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
 
                 <motion.button onClick={() => setIsOpen(!isOpen)} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="w-16 h-16 rounded-full bg-(--bg-card) border-2 border-(--border-color) shadow-xl flex items-center justify-center relative hover:border-(--accent-teal) transition-colors overflow-hidden">
                     <div className="absolute inset-0 rounded-full blur-md -z-10" style={{ backgroundColor: `color-mix(in srgb, ${themeColor} 15%, transparent)` }}></div>

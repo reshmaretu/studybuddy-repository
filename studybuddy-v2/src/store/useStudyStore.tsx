@@ -129,6 +129,7 @@ interface StudyState {
     resetFlowStats: () => void;
     dailyStreak: number;
     totalSessions: number;
+    sessionsSinceLastReset: number;
     totalSecondsTracked: number;
     timeLeft: number;
     isRunning: boolean;
@@ -244,7 +245,7 @@ interface StudyState {
     addMockInvoice: (invoice: any) => void;
     setPremiumStatus: (status: boolean) => void;
 
-    chumToast: ChumToast | null;
+    chumToasts: ChumToast[];
     triggerChumToast: (message: string | React.ReactNode, type?: 'info' | 'success' | 'warning', action?: () => void) => void;
 
     // 🏆 PROTOCOL LIMITS
@@ -335,6 +336,7 @@ export const useStudyStore = create<StudyState>()(
             resetFlowStats: () => set({ flowBreaks: 0, tabSwitches: 0 }),
             dailyStreak: 3,
             totalSessions: 0,
+            sessionsSinceLastReset: 0,
             totalSecondsTracked: 0,
             timeLeft: 1500,
             isRunning: false,
@@ -412,12 +414,16 @@ export const useStudyStore = create<StudyState>()(
                 }
             },
 
-            chumToast: null,
+            chumToasts: [],
             triggerChumToast: (message, type = 'info', action) => {
-                set({ chumToast: { message, type, action } });
+                const id = Math.random().toString(36).substring(7);
+                const newToast = { message, type, action, id } as any;
+                set((state) => ({ chumToasts: [...state.chumToasts, newToast] }));
+                
                 setTimeout(() => {
-                    const current = get().chumToast;
-                    if (current?.message === message) set({ chumToast: null });
+                    set((state) => ({
+                        chumToasts: state.chumToasts.filter((t: any) => t.id !== id)
+                    }));
                 }, 8000);
             },
 
@@ -540,12 +546,13 @@ export const useStudyStore = create<StudyState>()(
                 get().gainXp(50);
 
                 const newTotal = get().totalSessions + 1;
-                set({ totalSessions: newTotal });
+                const newSinceReset = get().sessionsSinceLastReset + 1;
+                set({ totalSessions: newTotal, sessionsSinceLastReset: newSinceReset });
 
-                if (newTotal % 4 === 0) {
+                if (newSinceReset >= 4) {
                     set({ lastResetHighlightAt: new Date().toISOString() });
                     get().triggerChumToast(
-                        <span><strong className="text-(--accent-yellow)">🧠 Neural Fog Detected!</strong><br />You've completed 4 flows. Time for a Brain Reset?</span>, 
+                        <span><strong className="text-(--accent-yellow)">🧠 Neural Fog Detected!</strong><br />You've completed {newSinceReset} flows without a break. Time for a Brain Reset?</span>, 
                         "info", 
                         () => get().setIsBrainResetOpen(true)
                     );
@@ -623,9 +630,10 @@ export const useStudyStore = create<StudyState>()(
                     // If task was completed in a focus mode, increment sessions
                     if (get().activeMode === 'flowState' || get().activeMode === 'studyCafe') {
                         const newTotal = get().totalSessions + 1;
-                        set({ totalSessions: newTotal });
-                        if (newTotal % 4 === 0) {
-                            get().triggerChumToast("🧠 Focus flow peak! Your brain might need a quick reset. Hover over the dashboard to see more.", "info", () => get().setIsBrainResetOpen(true));
+                        const newSinceReset = get().sessionsSinceLastReset + 1;
+                        set({ totalSessions: newTotal, sessionsSinceLastReset: newSinceReset });
+                        if (newSinceReset >= 4) {
+                            get().triggerChumToast("🧠 Focus flow peak! Your brain might need a quick reset. Click to start the ritual.", "info", () => get().setIsBrainResetOpen(true));
                         }
                         supabase.from('user_stats').update({ total_sessions: newTotal }).eq('user_id', user.id).then();
                     }
@@ -878,7 +886,15 @@ export const useStudyStore = create<StudyState>()(
                 timeLeft: state.pomodoroFocus * 60, isRunning: true
             })),
 
-            exitMode: () => set({ activeMode: 'none', activeTaskId: null, isRunning: false }),
+            exitMode: () => {
+                const { totalSecondsTracked } = get();
+                set({ activeMode: 'none', activeTaskId: null, isRunning: false });
+                
+                // 🔥 IMMEDIATE SAVE ON EXIT
+                supabase.auth.getUser().then(({ data: { user } }) => {
+                    if (user) supabase.from('user_stats').update({ total_seconds_tracked: totalSecondsTracked }).eq('user_id', user.id).then();
+                });
+            },
 
             updatePomodoroSettings: (settings) => set((state) => ({ ...state, ...settings })),
 

@@ -77,7 +77,12 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
         roomTitle: (relevantRoom?.name && relevantRoom.name !== "undefined") ? relevantRoom.name : "Sanctuary",
         roomDescription: (relevantRoom?.description && relevantRoom.description !== "undefined") ? relevantRoom.description : undefined,
         isPremium: p.is_premium || false,
-        chumLabel: wardrobe ? `${wardrobe.base_emoji || "👻"}${wardrobe.hat_emoji || ""}` : "👻 Ghost",
+        chumLabel: (() => {
+            if (wardrobe) return `${wardrobe.base_emoji || "👻"}${wardrobe.hat_emoji || ""}`;
+            const emojis = ["🌿", "🍃", "🍄", "🎐", "🏮", "🕯️", "🧊", "🌊", "🌙", "⭐", "🌺", "🍵"];
+            const idx = Math.floor(getStableRandom(p.id, "emoji") * emojis.length);
+            return `${emojis[idx]} Spirit`;
+        })(),
         gridX,
         gridY,
         jitterX: isMe ? 0 : (getStableRandom(p.id, "jitterX") - 0.5) * 40,

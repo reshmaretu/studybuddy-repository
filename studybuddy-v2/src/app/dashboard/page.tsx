@@ -175,9 +175,6 @@ export default function Dashboard() {
                 {/* HEADER */}
                 <header className="flex justify-between items-center gap-6 mb-4 pt-4 md:pt-0">
                     <div className="flex-1 min-w-0 pr-2 flex items-center gap-4">
-                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-[var(--border-color)] bg-[var(--bg-dark)] flex-shrink-0 overflow-hidden shadow-inner flex items-center justify-center">
-                            <ChumRenderer size="w-10 h-10 md:w-12 md:h-12 scale-1 project-125 translate-y-1" />
-                        </div>
                         <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[var(--text-main)] leading-tight flex flex-wrap gap-x-2">
                             <span>{greeting},</span>
                             <span className="text-[var(--accent-teal)]">{displayName}!</span>

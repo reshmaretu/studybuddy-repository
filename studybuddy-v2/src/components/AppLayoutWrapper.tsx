@@ -26,7 +26,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
     const { accessibilitySettings } = useStudyStore();
 
     const isRoomPage = pathname.startsWith("/room/");
-    const appPages = ["/dashboard", "/garden", "/insights", "/lantern", "/account", "/cafe"];
+    const appPages = ["/dashboard", "/garden", "/insights", "/lantern", "/account", "/cafe", "/canvas", "/wardrobe", "/archive", "/calendar"];
     const isAppPage = appPages.includes(pathname);
     const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/register" || pathname === "/reset-password" || pathname === "/error" || isRoomPage || !isAppPage;
 
@@ -79,7 +79,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
             <div className={`flex flex-col md:flex-row h-screen w-full overflow-hidden bg-[var(--bg-dark)]`}>
                 {!isSidebarHidden && <Sidebar />}
                 <main className={`flex-1 min-w-0 p-4 md:p-8 pb-24 md:pb-12 h-screen relative z-[1] 
-                    ${['/dashboard', '/insights', '/account'].includes(pathname) 
+                    ${['/dashboard', '/insights', '/account', '/wardrobe', '/archive', '/calendar'].includes(pathname) 
                         ? 'overflow-y-auto no-scrollbar' 
                         : 'overflow-hidden'}`}
                 >
