@@ -203,21 +203,16 @@ export default function ChumWidget() {
             const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
             for (const provider of providers) {
-                // Check if key exists for this provider
-                if (!aiKeys[provider]) continue;
-
                 try {
-                    const res = await fetch(`${supabaseUrl}/functions/v1/chum-chat`, {
+                    const res = await fetch(`/api/chat`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
-                            "Authorization": `Bearer ${session?.access_token}`,
-                            "apikey": anonKey!
                         },
                         body: JSON.stringify({
                             messages: messagesPayload,
-                            selected_model: useStudyStore.getState().selectedModel, // The backend can override if provider mismatch
-                            provider_override: provider // Pass hint to backend
+                            user_id: (session as any).user.id,
+                            selected_model: useStudyStore.getState().selectedModel,
                         })
                     });
 
