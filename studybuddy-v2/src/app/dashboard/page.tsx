@@ -246,11 +246,10 @@ export default function Dashboard() {
 
                     <button
                         onClick={() => setIsBrainResetOpen(true)}
-                        className={`bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer group relative overflow-hidden transition-all duration-700 w-full ${
-                            totalSessions > 0 && totalSessions % 4 === 0 
-                            ? "border-[var(--accent-teal)] shadow-[0_0_30px_rgba(45,212,191,0.2)]" 
-                            : "hover:border-[var(--accent-teal)]/50"
-                        }`}
+                        className={`bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer group relative overflow-hidden transition-all duration-700 w-full ${totalSessions > 0 && totalSessions % 4 === 0
+                                ? "border-[var(--accent-teal)] shadow-[0_0_30px_rgba(45,212,191,0.2)]"
+                                : "hover:border-[var(--accent-teal)]/50"
+                            }`}
                     >
                         {totalSessions > 0 && totalSessions % 4 === 0 && (
                             <div className="absolute inset-0 bg-gradient-to-t from-[var(--accent-teal)]/10 to-transparent animate-pulse" />
@@ -276,7 +275,7 @@ export default function Dashboard() {
                             <div className="absolute inset-0 flex items-center justify-center rounded-2xl overflow-hidden pointer-events-none">
                                 <ChumRenderer size="w-14 h-14 md:w-16 md:h-16 scale-125 translate-y-1.5" />
                             </div>
-                            <motion.div 
+                            <motion.div
                                 key={level}
                                 initial={{ scale: 0.5, rotate: -20, opacity: 0 }}
                                 animate={{ scale: 1, rotate: 0, opacity: 1 }}
@@ -292,7 +291,7 @@ export default function Dashboard() {
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-2 gap-2 sm:gap-0">
                                 <div className="flex flex-wrap items-center gap-2 md:gap-3">
                                     <AnimatePresence mode="wait">
-                                        <motion.h3 
+                                        <motion.h3
                                             key={level}
                                             initial={{ y: 20, opacity: 0, filter: 'blur(10px)' }}
                                             animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
@@ -307,7 +306,7 @@ export default function Dashboard() {
                                         <Flame size={12} /> {dailyStreak} Day Streak
                                     </div>
                                 </div>
-                                <motion.span 
+                                <motion.span
                                     key={xp}
                                     initial={{ scale: 1.1, color: "var(--accent-teal)" }}
                                     animate={{ scale: 1, color: "var(--text-muted)" }}
@@ -315,7 +314,6 @@ export default function Dashboard() {
                                 >
                                     Spirit: {xp}/{calculateXpRequirement(level)}
                                 </motion.span>
-/span>
                             </div>
                             <div className="h-2 w-full bg-black/30 rounded-full overflow-hidden mb-2">
                                 <div className="h-full bg-[var(--accent-teal)] rounded-full transition-all duration-1000" style={{ width: `${(xp / calculateXpRequirement(level)) * 100}%` }}></div>
