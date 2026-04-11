@@ -12,7 +12,7 @@ const supabaseAdmin = createClient(
 )
 
 Deno.serve(async (req: Request) => {
-    // 1. Handle Preflight (Browser security check)
+    // 1. Handle Preflight for CORS
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
     }
@@ -23,23 +23,17 @@ Deno.serve(async (req: Request) => {
         const action = body.action || body.type
         const { userId } = body
 
-        console.log(`Action: ${action} for ${userEmail}`)
-
         if (!userEmail) throw new Error("userEmail missing in payload")
 
         // ACTION: SEND OTP (for Account Settings)
         if (action === 'send_otp') {
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
 
-            try {
-                await supabaseAdmin.from('recovery_codes').upsert({
-                    user_id: userId,
-                    code: otpCode,
-                    type: 'verify'
-                })
-            } catch (dbErr) {
-                console.error("DB Save failed:", dbErr)
-            }
+            await supabaseAdmin.from('recovery_codes').upsert({
+                user_id: userId,
+                code: otpCode,
+                type: 'verify'
+            })
 
             const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
                 method: 'POST',
@@ -56,10 +50,7 @@ Deno.serve(async (req: Request) => {
                 }),
             })
 
-            if (!emailResponse.ok) {
-                const errorText = await emailResponse.text()
-                throw new Error(`EmailJS Error: ${errorText}`)
-            }
+            if (!emailResponse.ok) throw new Error("Email relay failed");
 
             return new Response(JSON.stringify({ success: true }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -68,10 +59,12 @@ Deno.serve(async (req: Request) => {
 
         // ACTION: RESET PASSWORD (for Login Page)
         if (action === 'reset_password') {
-            const { data, error } = await supabase.functions.invoke('send-secure-otp', {
-                body: {
-                    email: emailInput,
-                    action: 'reset_password' // Must match the backend 'if' block
+            // FIX: Generate the link using Admin Auth, do not call .invoke() again!
+            const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+                type: 'recovery',
+                email: userEmail,
+                options: {
+                    redirectTo: 'https://studybuddy-repository.vercel.app/reset-password'
                 }
             });
 
@@ -87,7 +80,7 @@ Deno.serve(async (req: Request) => {
                     accessToken: Deno.env.get('EMAILJS_PRIVATE_KEY'),
                     template_params: {
                         email: userEmail,
-                        reset_link: data.properties.action_link
+                        reset_link: data.properties.action_link // The actual magic link
                     },
                 }),
             });
@@ -95,19 +88,16 @@ Deno.serve(async (req: Request) => {
             if (!emailResponse.ok) throw new Error("Email relay failed");
 
             return new Response(JSON.stringify({ success: true }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             })
         }
 
-        // Fallback for unknown action
         throw new Error("Invalid action protocol");
 
     } catch (err: any) {
-        // CRITICAL: You MUST return corsHeaders even in the catch block
         return new Response(JSON.stringify({ error: err.message }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500, // Still return 500 but with HEADERS so the browser sees the error
+            status: 400,
         })
     }
 })

@@ -320,24 +320,43 @@ export default function StudyCafeOverlay() {
     return (
         <>
             <style>{`
+                body[data-cafe="true"] {
+                    transition: background-color 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+                }
                 body[data-cafe="true"] section.pt-2 { border: none !important; background: transparent !important; box-shadow: none !important; }
-                body[data-cafe="true"] section.pt-2 > div:first-child { border: none !important; background: transparent !important; box-shadow: none !important; }
-                body[data-cafe="true"] section .grid .border-\\[3px\\], body[data-cafe="true"] section .grid .bg-\\[var\\(--bg-card\\)\\], body[data-cafe="true"] section .bg-\\[var\\(--bg-card\\)\\].p-8 {
-                    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-                    background: rgba(255,255,255, 0.02) !important;
+                body[data-cafe="true"] .bg-\\[var\\(--bg-card\\)\\] {
+                    background: rgba(255, 255, 255, 0.03) !important;
+                    backdrop-filter: blur(12px) saturate(1.5) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.02), 0 10px 30px rgba(0,0,0,0.3) !important;
+                }
+                @keyframes cafe-breathe {
+                    0%, 100% { opacity: 0.85; filter: saturate(1.1); }
+                    50% { opacity: 1; filter: saturate(1.3); }
                 }
             `}</style>
 
             <div
                 className="fixed inset-0 pointer-events-none transition-all duration-1000"
-                style={{ background: atmo.css, backgroundSize: 'cover', backgroundPosition: 'center', animation: 'cafe-breathe 12s ease infinite', zIndex: -1 }}
+                style={{
+                    backgroundImage: atmo.css, // ✅ Use specific longhand
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    animation: 'cafe-breathe 12s ease infinite',
+                    zIndex: -1
+                }}
             />
 
             <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
                 <div className="absolute flex items-center justify-center opacity-80" style={{ bottom: '25%', left: 'calc(50% + 40px)', transform: 'translateX(-50%)', filter: 'drop-shadow(0 0 12px var(--atmo-glow))' }}>
                     <CenteredVisualizer accent={atmo.accent} isRunning={isRunning} />
                 </div>
-                <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.85, 0.5] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }} className="absolute bottom-[-10%] left-[-5%] w-[50vw] h-[50vw] rounded-full blur-[140px]" style={{ backgroundColor: atmo.glow }} />
+                <motion.div
+                    animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.85, 0.5] }}
+                    transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute bottom-[-10%] left-[-5%] w-[50vw] h-[50vw] rounded-full blur-[140px]"
+                    style={{ background: `radial-gradient(circle, ${atmo.glow} 0%, transparent 70%)` }} // ✅ Use a single property for the glow
+                />
                 <motion.div animate={{ scale: [1, 1.08, 1], opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 13, repeat: Infinity, ease: "easeInOut", delay: 3 }} className="absolute top-[-10%] right-[-5%] w-[40vw] h-[40vw] rounded-full blur-[120px]" style={{ backgroundColor: atmo.glow }} />
             </div>
 
@@ -358,7 +377,9 @@ export default function StudyCafeOverlay() {
                             style={{ background: "rgba(12,12,14,0.92)", backdropFilter: "blur(24px)", border: `1px solid ${atmo.accent}30`, boxShadow: `0 0 0 1px rgba(255,255,255,0.06), 0 8px 40px rgba(0,0,0,0.7), 0 0 40px ${atmo.glow}` }}
                         >
                             <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: atmo.accent }} />
-                            <span className="font-mono font-bold text-xl text-white tracking-widest">{formatTime(timeLeft)}</span>
+                            <span className="font-mono font-bold text-[clamp(1.75rem,5vw,1rem)] text-white tracking-widest leading-none relative z-10" style={{ textShadow: `0 0 30px ${atmo.accent}80` }}>
+                                {formatTime(timeLeft)}
+                            </span>
                             <button onClick={toggleTimer} className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ backgroundColor: `${atmo.accent}20`, color: atmo.accent, border: `1px solid ${atmo.accent}40` }}>
                                 {isRunning ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
                             </button>
@@ -397,48 +418,74 @@ export default function StudyCafeOverlay() {
                                 })}
                             </div>
 
-                            <div className="flex-1 flex flex-col items-center justify-center py-6 px-4 gap-4">
-                                <div className="flex gap-2">
+                            {/* ========================================== */}
+                            {/* CENTER COLUMN */}
+                            {/* ========================================== */}
+                            <div className="flex-1 flex flex-col items-center justify-between py-6 px-4 relative overflow-hidden min-h-[340px]">
+                                {/* Subtle inner glow based on atmosphere */}
+                                <div className="absolute inset-0 pointer-events-none opacity-20" style={{ background: `radial-gradient(circle at center, ${atmo.accent}44 0%, transparent 70%)` }} />
+
+                                {/* 1. TOP: Equal width responsive buttons */}
+                                <div className="flex gap-1 bg-black/40 p-1 rounded-xl border border-white/5 relative z-10 w-full max-w-[240px] h-9">
                                     {(["focus", "short", "long"] as Phase[]).map(p => (
-                                        <span key={p} className="text-[8px] font-black tracking-[0.18em] uppercase px-2.5 py-1 rounded-full transition-all" style={phase === p ? { background: `${atmo.accent}20`, color: atmo.accent, border: `1px solid ${atmo.accent}40` } : { color: "rgba(255,255,255,0.2)", border: "1px solid transparent" }}>
-                                            {PHASE_LABELS[p]}
-                                        </span>
+                                        <button key={p} onClick={() => setPhase(p)} className="flex-1 text-[8px] font-bold tracking-widest uppercase rounded-lg transition-all duration-300 flex items-center justify-center whitespace-nowrap"
+                                            style={phase === p
+                                                ? { background: atmo.accent, color: '#000', boxShadow: `0 0 15px ${atmo.glow}` }
+                                                : { color: "rgba(255,255,255,0.3)" }
+                                            }>
+                                            {PHASE_LABELS[p].split(' ')[0]} {/* Automatically shortens to "Focus", "Short", "Long" */}
+                                        </button>
                                     ))}
                                 </div>
 
-                                <div className="relative flex items-center justify-center">
-                                    <svg width="130" height="130" viewBox="0 0 100 100" className="absolute">
+                                {/* 2. CENTER: Fixed-size container so it physically pushes buttons away */}
+                                <div className="relative flex items-center justify-center w-[150px] h-[150px] my-auto">
+                                    <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full overflow-visible">
                                         <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
                                         <circle cx="50" cy="50" r="44" fill="none" stroke={atmo.accent} strokeWidth="2.5" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress / 100)} style={{ transform: "rotate(-90deg)", transformOrigin: "50px 50px", transition: "stroke-dashoffset 1s linear", filter: `drop-shadow(0 0 6px ${atmo.accent})` }} />
                                     </svg>
-                                    <span className="font-mono font-bold text-4xl text-white tracking-widest relative" style={{ textShadow: `0 0 30px ${atmo.accent}60` }}>{formatTime(timeLeft)}</span>
+                                    <span className="font-mono font-bold text-[clamp(1.75rem,4vw,2.5rem)] text-white tracking-widest leading-none relative z-10" style={{ textShadow: `0 0 30px ${atmo.accent}80` }}>
+                                        {formatTime(timeLeft)}
+                                    </span>
                                 </div>
 
-                                <div className="flex items-center gap-3">
-                                    <button onClick={toggleTimer} className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: `${atmo.accent}15`, border: `1px solid ${atmo.accent}40`, color: atmo.accent, boxShadow: isRunning ? `0 0 20px ${atmo.glow}` : "none" }}>
-                                        {isRunning ? <Pause size={20} /> : <Play size={20} className="ml-0.5" />}
-                                    </button>
-                                    <button onClick={() => setPhase(p => p === "focus" ? "short" : "focus")} className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ color: "rgba(255,255,255,0.35)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                                        <SkipForward size={15} />
-                                    </button>
-                                </div>
+                                {/* 3. BOTTOM: Stacked Controls & Dots */}
+                                <div className="flex flex-col items-center gap-4 mt-auto z-10 w-full">
+                                    <div className="flex items-center gap-4">
+                                        <button onClick={toggleTimer} className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95" style={{ background: `${atmo.accent}15`, border: `1px solid ${atmo.accent}40`, color: atmo.accent, boxShadow: isRunning ? `0 0 20px ${atmo.glow}` : "none" }}>
+                                            {isRunning ? <Pause size={20} /> : <Play size={20} className="ml-0.5" />}
+                                        </button>
+                                        <button onClick={() => setPhase(p => p === "focus" ? "short" : "focus")} className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95" style={{ color: "rgba(255,255,255,0.35)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                                            <SkipForward size={16} />
+                                        </button>
+                                    </div>
 
-                                <div className="flex items-center gap-1.5">
-                                    {Array.from({ length: pomodoroCycles }).map((_, i) => (
-                                        <div key={i} className="w-1.5 h-1.5 rounded-full transition-all" style={{ backgroundColor: i < (cycleCount % pomodoroCycles) ? atmo.accent : "rgba(255,255,255,0.15)" }} />
-                                    ))}
+                                    <div className="flex items-center gap-2">
+                                        {Array.from({ length: pomodoroCycles }).map((_, i) => (
+                                            <div key={i} className="w-1.5 h-1.5 rounded-full transition-all duration-500" style={{ backgroundColor: i < (cycleCount % pomodoroCycles) ? atmo.accent : "rgba(255,255,255,0.15)", boxShadow: i < (cycleCount % pomodoroCycles) ? `0 0 8px ${atmo.accent}` : 'none' }} />
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="flex flex-col justify-between p-4" style={{ width: "165px", borderLeft: "1px solid rgba(255,255,255,0.06)" }}>
-                                <div>
-                                    <p className="text-[9px] font-black tracking-[0.2em] uppercase mb-3" style={{ color: `${atmo.accent}80` }}>Current Chapter</p>
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/10" />
+                                        <p className="text-[8px] font-black tracking-[0.3em] uppercase text-white/40 whitespace-nowrap">Neural Link</p>
+                                        <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/10" />
+                                    </div>
                                     {task ? (
-                                        <div>
-                                            <span className="text-[9px] uppercase tracking-widest font-extrabold mb-2 block" style={{ color: atmo.accent }}>{task.load} Load</span>
-                                            <h3 className="text-white font-bold text-sm leading-snug mb-2">{task.title}</h3>
-                                            <p className="text-xs text-white/40 line-clamp-3 leading-relaxed">{task.description}</p>
-                                        </div>
+                                        <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}>
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="text-[8px] uppercase tracking-widest font-black px-2 py-0.5 rounded bg-white/5 border border-white/10" style={{ color: atmo.accent }}>{task.load}</span>
+                                                <div className="h-1 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                                    <motion.div className="h-full" style={{ backgroundColor: atmo.accent }} animate={{ width: ['0%', '100%'] }} transition={{ duration: 2 }} />
+                                                </div>
+                                            </div>
+                                            <h3 className="text-white font-bold text-xs leading-snug mb-1 line-clamp-2">{task.title}</h3>
+                                            <p className="text-[10px] text-white/40 line-clamp-3 leading-relaxed font-medium italic">"{task.description}"</p>
+                                        </motion.div>
                                     ) : (
                                         <p className="text-xs text-white/30 italic">Free session — no chapter set.</p>
                                     )}

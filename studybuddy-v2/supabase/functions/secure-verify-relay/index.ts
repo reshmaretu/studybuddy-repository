@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 const supabaseAdmin = createClient(
@@ -11,13 +12,19 @@ const supabaseAdmin = createClient(
 )
 
 Deno.serve(async (req: Request) => {
-    // Handle CORS pre-flight
-    if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+    // 1. Handle Preflight immediately
+    if (req.method === 'OPTIONS') {
+        return new Response('ok', { headers: corsHeaders })
+    }
 
     try {
         const { code, userId } = await req.json()
 
-        // 1. Check the database for a matching code
+        if (!userId || !code) {
+            throw new Error("Missing credentials in the neural relay.")
+        }
+
+        // 2. Database verification
         const { data, error } = await supabaseAdmin
             .from('recovery_codes')
             .select('*')
@@ -26,26 +33,31 @@ Deno.serve(async (req: Request) => {
             .single()
 
         if (error || !data) {
-            throw new Error("Neural match failed. The code is incorrect or has expired.")
+            throw new Error("Neural match failed. Incorrect or expired code.")
         }
 
-        // 2. Success! Update the user profile
-        await supabaseAdmin
+        // 3. Success Logic
+        const { error: updateError } = await supabaseAdmin
             .from('profiles')
             .update({ is_verified: true })
             .eq('id', userId)
 
-        // 3. Cleanup: Remove the used code
+        if (updateError) throw updateError
+
+        // 4. Cleanup
         await supabaseAdmin.from('recovery_codes').delete().eq('id', data.id)
 
         return new Response(JSON.stringify({ success: true }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
         })
 
     } catch (err: any) {
+        console.error("Verification Error:", err.message)
         return new Response(JSON.stringify({ success: false, error: err.message }), {
             status: 400,
-            headers: corsHeaders
+            // Ensure headers are sent even on failure to prevent CORS blocks
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
     }
 })

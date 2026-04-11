@@ -143,19 +143,122 @@ function IvySlot({ rank, task, isLocked, isActive }: any) {
     );
 }
 
-function CapacityZone({ id, title, count, max, tasks, color, bg, border }: any) {
-    const { isOver, setNodeRef } = useDroppable({ id });
-    const isFull = count >= max;
+function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, border, updateTask }: any) {
+    const [isOpen, setIsOpen] = useState(false);
+
+    // 1. Filter all tasks by cognitive load (Heavy/Medium/Light)
+    const categoryTasks = allTasks.filter((t: any) => t.load === loadType);
+
+    // 2. Separate into "Equipped" (Pinned) and "Backlog" (Unpinned)
+    const selectedTasks = categoryTasks.filter((t: any) => t.isPinned);
+    const availableTasks = categoryTasks.filter((t: any) => !t.isPinned);
+
+    const isFull = selectedTasks.length >= max;
+
+    // 🎨 THE FIX: Hardcoded standard colors to bypass the CSS Variable Opacity bug
+    // Added 'cardBase' and 'wrapperBorder' to theme the actual task containers!
+    const themeMap = {
+        heavy: {
+            btnBg: 'bg-red-400/20', btnText: 'text-red-400', btnHover: 'hover:bg-red-400 hover:text-black',
+            cardBase: 'border-red-400/30 bg-red-400/5',
+            cardHover: 'hover:border-red-400/60 hover:bg-red-400/10',
+            dropdownBg: 'bg-red-400/5',
+            wrapperBorder: 'border-red-400/30'
+        },
+        medium: {
+            btnBg: 'bg-yellow-400/20', btnText: 'text-yellow-400', btnHover: 'hover:bg-yellow-400 hover:text-black',
+            cardBase: 'border-yellow-400/30 bg-yellow-400/5',
+            cardHover: 'hover:border-yellow-400/60 hover:bg-yellow-400/10',
+            dropdownBg: 'bg-yellow-400/5',
+            wrapperBorder: 'border-yellow-400/30'
+        },
+        light: {
+            btnBg: 'bg-teal-400/20', btnText: 'text-teal-400', btnHover: 'hover:bg-teal-400 hover:text-black',
+            cardBase: 'border-teal-400/30 bg-teal-400/5',
+            cardHover: 'hover:border-teal-400/60 hover:bg-teal-400/10',
+            dropdownBg: 'bg-teal-400/5',
+            wrapperBorder: 'border-teal-400/30'
+        }
+    };
+    const theme = themeMap[loadType as keyof typeof themeMap] || themeMap.light;
+
     return (
-        <div ref={setNodeRef} className={`flex flex-col rounded-2xl border-2 transition-all duration-300 ${isOver && !isFull ? `border-current ring-1 ring-current bg-black/40 brightness-125 shadow-[inset_0_0_30px_rgba(255,255,255,0.05)] z-10 ${color}` : isOver && isFull ? 'border-red-500 bg-red-500/10 z-10' : border + ' ' + bg}`}>
-            <div className="p-3 sm:p-4 flex justify-between items-center shrink-0 border-b border-inherit bg-black/10 rounded-t-xl">
+        <div className={`flex flex-col rounded-2xl border-2 transition-all duration-300 ${border} ${bg}`}>
+            {/* Header / Click to Expand */}
+            <div
+                className={`p-3 sm:p-4 flex justify-between items-center shrink-0 border-b border-inherit bg-black/10 cursor-pointer hover:bg-black/20 transition-colors ${isOpen ? 'rounded-t-xl' : 'rounded-xl'}`}
+                onClick={() => setIsOpen(!isOpen)}
+            >
                 <h3 className={`text-xs sm:text-sm font-black uppercase tracking-wider ${color}`}>{title}</h3>
-                <div className={`text-xs font-black px-2 py-1 rounded-md transition-colors ${isFull ? 'bg-red-500/20 text-red-400 border border-red-500/50' : 'bg-black/30 text-[var(--text-muted)] border border-white/5'}`}>
-                    {count} / {max}
+                <div className="flex items-center gap-3">
+                    <div className={`text-xs font-black px-2 py-1 rounded-md transition-colors ${isFull ? 'bg-red-500/20 text-red-400 border border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]' : 'bg-black/30 text-[var(--text-muted)] border border-white/5'}`}>
+                        {selectedTasks.length} / {max}
+                    </div>
+                    <ChevronDown className={`transition-transform duration-300 text-[var(--text-muted)] ${isOpen ? 'rotate-180' : ''}`} size={16} />
                 </div>
             </div>
-            <div style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} className="flex-1 p-3 sm:p-4 overflow-y-auto overflow-x-hidden space-y-3 [&::-webkit-scrollbar]:hidden min-h-[100px] rounded-b-xl pb-16">
-                {tasks.map((task: any) => <TaskCard key={task.id} task={task} />)}
+
+            {/* Dropdown Menu (Available Tasks Backlog) */}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className={`overflow-hidden border-b border-inherit bg-black/60 ${theme.dropdownBg}`}
+                    >
+                        <div className="p-3 max-h-48 overflow-y-auto space-y-2 [&::-webkit-scrollbar]:hidden">
+                            {availableTasks.length === 0 ? (
+                                <div className="text-center text-xs text-[var(--text-muted)] italic py-4">No unassigned {loadType} quests.</div>
+                            ) : (
+                                availableTasks.map((task: any) => (
+                                    // 🎨 Task Container inside dropdown now uses thematic base colors!
+                                    <div key={task.id} className={`flex items-center justify-between p-2.5 rounded-lg border transition-all duration-300 cursor-default ${theme.cardBase} ${theme.cardHover}`}>
+                                        <span className="text-xs font-bold text-white truncate max-w-[75%] pr-2">{task.title}</span>
+                                        <button
+                                            disabled={isFull}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                updateTask(task.id, { isPinned: true }); // Marks as "Equipped"
+                                            }}
+                                            className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded transition-all shadow-md ${isFull ? 'bg-gray-800 text-gray-500 cursor-not-allowed shadow-none' : `${theme.btnBg} ${theme.btnText} ${theme.btnHover}`}`}
+                                        >
+                                            Select
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Equipped Tasks Display */}
+            <div style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} className={`flex-1 p-3 sm:p-4 overflow-y-auto overflow-x-hidden space-y-3 [&::-webkit-scrollbar]:hidden min-h-[120px] rounded-b-xl ${isOpen ? 'pb-4' : 'pb-8'}`}>
+                {selectedTasks.map((task: any) => (
+                    <div key={task.id} className="relative group animate-in fade-in zoom-in duration-300">
+                        {/* 🎨 Wrapped the equipped TaskCard in a thematic border to match the zone */}
+                        <div className={`rounded-xl border-2 p-1 bg-black/20 transition-all ${theme.wrapperBorder}`}>
+                            <TaskCard task={task} />
+                        </div>
+                        {/* X Button to un-equip */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                updateTask(task.id, { isPinned: false }); // Un-equips task
+                            }}
+                            className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-500/90 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all hover:scale-110 hover:bg-red-500 shadow-lg z-10"
+                            title="Remove from today's plan"
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+                ))}
+                {selectedTasks.length === 0 && !isOpen && (
+                    <div className="h-full flex items-center justify-center text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest italic opacity-50">
+                        Click header to equip
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -315,6 +418,16 @@ export default function CrystalGarden() {
 
     const [newTask, setNewTask] = useState<{ title: string, description: string, load: TaskLoad, deadline: string, estimatedPomos?: number }>({ title: "", description: "", load: "medium", deadline: "" });
     const [isScheduled, setIsScheduled] = useState(false);
+
+    // 👇 ADD THIS BLOCK: Auto-turns on the Scheduled toggle and sets the time to "now" when the modal opens
+    useEffect(() => {
+        if (isAdding) {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            setNewTask(prev => ({ ...prev, deadline: now.toISOString().slice(0, 16) }));
+            setIsScheduled(true);
+        }
+    }, [isAdding]);
 
     const handleDragStart = (event: DragStartEvent) => {
         const task = tasks.find(t => t.id === event.active.id);
@@ -537,9 +650,20 @@ export default function CrystalGarden() {
                                     <button
                                         onClick={() => {
                                             const wasFrog = draggedToMasteryTask?.isFrog;
+                                            const completedIvyRank = draggedToMasteryTask?.ivyRank; // 👈 1. Capture its rank before we complete it!
 
                                             // 🔥 PASS THE PREMIUM STATS HERE
                                             completeTask(draggedToMasteryTask!.id, isPremiumUser ? { actualPomos, stressLevel } : undefined);
+
+                                            // 🔥 2. IVY LEE AUTO-SHIFT LOGIC 🔥
+                                            if (activeFramework === 'ivy' && completedIvyRank) {
+                                                activeQuests.forEach(t => {
+                                                    // If a remaining task has a rank higher than the one we just finished, shift it up by 1
+                                                    if (t.ivyRank && t.ivyRank > completedIvyRank && t.id !== draggedToMasteryTask!.id) {
+                                                        updateTask(t.id, { ivyRank: t.ivyRank - 1 });
+                                                    }
+                                                });
+                                            }
 
                                             setDraggedToMasteryTask(null);
                                             if (wasFrog) triggerChumToast("🐸 BOOM! Frog crushed! You just gained a massive amount of momentum for the day. Keep it up!");
@@ -730,9 +854,10 @@ export default function CrystalGarden() {
                                             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                                             className="absolute inset-0 flex flex-col gap-4 overflow-y-auto [&::-webkit-scrollbar]:hidden pr-1 pb-1"
                                         >
-                                            <CapacityZone id="zone-heavy" title={`${protocolLimits.heavy} Heavy Quest${protocolLimits.heavy > 1 ? 's' : ''}`} count={activeQuests.filter(t => t.load === 'heavy').length} max={protocolLimits.heavy} tasks={activeQuests.filter(t => t.load === 'heavy')} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" />
-                                            <CapacityZone id="zone-medium" title={`${protocolLimits.medium} Medium Quest${protocolLimits.medium > 1 ? 's' : ''}`} count={activeQuests.filter(t => t.load === 'medium').length} max={protocolLimits.medium} tasks={activeQuests.filter(t => t.load === 'medium')} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" />
-                                            <CapacityZone id="zone-light" title={`${protocolLimits.light} Light Quest${protocolLimits.light > 1 ? 's' : ''}`} count={activeQuests.filter(t => t.load === 'light').length} max={protocolLimits.light} tasks={activeQuests.filter(t => t.load === 'light')} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" />
+                                            {/* ✅ Using the new interactive dropdown slots! */}
+                                            <DropdownCapacityZone loadType="heavy" title="1 Heavy Quest" max={1} allTasks={activeQuests} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" updateTask={updateTask} />
+                                            <DropdownCapacityZone loadType="medium" title="3 Medium Quests" max={3} allTasks={activeQuests} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" updateTask={updateTask} />
+                                            <DropdownCapacityZone loadType="light" title="5 Light Quests" max={5} allTasks={activeQuests} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" updateTask={updateTask} />
                                         </motion.div>
 
                                     ) : activeFramework === 'ivy' ? (

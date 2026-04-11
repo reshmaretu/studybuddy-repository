@@ -212,17 +212,17 @@ export default function TactileCalendar() {
                     <div>
                         <h1 className="text-xl md:text-3xl font-black text-[var(--text-main)] flex items-center gap-3">
                             <CalendarIcon className="text-[var(--accent-teal)]" size={24} />
-                            Tactile Horizon
+                            Quest Forecast
                         </h1>
                         <p className="text-[var(--text-muted)] mt-1">
-                            Drag chapters from your stash to chart your roadmap.
+                            Plant quests from your Seed Bank to cultivate the days ahead.
                         </p>
                     </div>
 
                     {/* View Toggle */}
                     <div className="flex bg-[var(--bg-card)] border border-[var(--border-color)] p-1 rounded-xl shadow-sm shrink-0 scale-90 sm:scale-100">
                         <button onClick={() => setView('horizon')} className={`px-2 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${view === 'horizon' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5'}`}>
-                            Horizon
+                            Forecast
                         </button>
                         <button onClick={() => setView('month')} className={`px-2 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${view === 'month' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5'}`}>
                             Month
@@ -238,7 +238,7 @@ export default function TactileCalendar() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
                         <input
                             type="text"
-                            placeholder="Query your chapters..."
+                            placeholder=" Search your quests..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] text-[var(--text-main)] text-sm rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:border-[var(--accent-teal)] transition-colors placeholder:text-[var(--text-muted)]/70"
@@ -279,7 +279,7 @@ export default function TactileCalendar() {
                     <div className="w-full lg:w-80 h-[400px] lg:h-full flex flex-col bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 overflow-hidden shadow-sm relative shrink-0">
                         <div className="flex items-center gap-2 mb-4">
                             <Inbox size={18} className="text-[var(--accent-yellow)]" />
-                            <h2 className="font-bold text-[var(--text-main)]">The Stash</h2>
+                            <h2 className="font-bold text-[var(--text-main)]">Seed Bank</h2>
                             <span className="ml-auto bg-[var(--bg-dark)] px-2 py-0.5 rounded-md text-xs font-bold text-[var(--text-muted)]">
                                 {stashedTasks.length}
                             </span>

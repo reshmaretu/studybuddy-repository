@@ -233,7 +233,7 @@ export default function TheForge() {
                     onClick={() => setIsForgeModalOpen(true)}
                     className="bg-(--accent-yellow)/10 text-(--accent-yellow) border border-(--accent-yellow)/30 px-6 py-3 rounded-2xl font-bold hover:bg-(--accent-yellow) hover:text-[#0b1211] transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(250,204,21,0.15)]"
                 >
-                    <Sparkles size={18} /> Strike Anvil
+                    <Sparkles size={18} /> Extract Shards
                 </button>
             </header>
 
@@ -242,9 +242,9 @@ export default function TheForge() {
                 {shards.length === 0 ? (
                     <div className="flex flex-col items-center justify-center border-2 border-dashed border-(--border-color) rounded-3xl p-12 text-center opacity-60 bg-(--bg-card)/50">
                         <Hammer size={48} className="text-(--text-muted) mb-4" />
-                        <h3 className="text-xl font-bold text-(--text-main) mb-2">The fire is cold.</h3>
+                        <h3 className="text-xl font-bold text-(--text-main) mb-2">The prism is dormant.</h3>
                         <p className="text-(--text-muted) max-w-sm">
-                            You haven't forged any shards yet. Strike the anvil to begin.
+                            You haven't extracted any shards yet. Begin extraction to start."
                         </p>
                     </div>
                 ) : (

@@ -370,7 +370,7 @@ export default function LanternNetPage() {
                             <div className="flex-1 p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-(--border-color) overflow-y-auto custom-scrollbar">
                                 <div className="flex justify-between items-center mb-8">
                                     <h2 className="text-3xl font-black text-(--text-main) flex items-center gap-3">
-                                        <Plus className="text-(--accent-teal)" size={28} /> Host Room
+                                        <Plus className="text-(--accent-teal)" size={28} /> Cast a Lantern
                                     </h2>
                                     <button onClick={() => setIsHostModalOpen(false)} className="lg:hidden text-(--text-muted) hover:text-(--text-main) p-2 hover:bg-(--bg-dark) rounded-xl transition-all"><X size={20} /></button>
                                 </div>

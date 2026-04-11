@@ -22,7 +22,7 @@ export default function Sidebar() {
         { name: "Zen Canvas", href: "/canvas", icon: Palette },
         { name: "Calendar", href: "/calendar", icon: Calendar },
         { name: "Archive", href: "/archive", icon: BookOpen },
-        { name: "Wisdom", href: "/insights", icon: BarChart3 },
+        { name: "Insights", href: "/insights", icon: BarChart3 },
         { name: "Wardrobe", href: "/wardrobe", icon: Shirt },
     ];
 
@@ -73,11 +73,11 @@ export default function Sidebar() {
                     <div className="flex flex-col gap-2">
                         <Link href="/account" className={`flex items-center h-12 mx-2 rounded-lg transition-colors overflow-hidden whitespace-nowrap ${pathname === '/account' ? 'bg-[var(--bg-card)] text-[var(--text-main)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5'}`}>
                             <div className="w-[64px] flex-shrink-0 flex items-center justify-center"><Settings size={20} /></div>
-                            <span className="font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">Hearth</span>
+                            <span className="font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">Settings</span>
                         </Link>
                         <button onClick={async () => { await supabase.auth.signOut(); useStudyStore.getState().reset(); window.location.href = "/login"; }} className="flex w-full items-center h-12 mx-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-colors overflow-hidden whitespace-nowrap" style={{ padding: 0 }}>
                             <div className="w-[64px] flex-shrink-0 flex items-center justify-center"><LogOut size={20} /></div>
-                            <span className="font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">Depart</span>
+                            <span className="font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">Logout</span>
                         </button>
                     </div>
                 </div>

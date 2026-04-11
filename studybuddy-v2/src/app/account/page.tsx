@@ -528,7 +528,7 @@ export default function AccountPage() {
                                 className="mt-4 px-6 py-2.5 rounded-full bg-white text-black text-[10px] font-bold uppercase hover:bg-teal-400 transition-all flex items-center gap-2 mx-auto active:scale-95 shadow-xl"
                             >
                                 {loading ? <RefreshCcw size={14} className="animate-spin" /> : <Fingerprint size={14} />}
-                                Verify Heartbeat
+                                Verify Email
                             </button>
                         )}
                     </div>
@@ -537,28 +537,28 @@ export default function AccountPage() {
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full mt-6">
                     <button onClick={() => setActiveModal('identity')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all group">
                         <User size={28} className="text-teal-400 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Garden Label</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Identity</span>
                     </button>
                     <button onClick={() => setActiveModal('email')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all group">
                         <Mail size={28} className="text-teal-400 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Coordinate</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Email</span>
                     </button>
                     <button onClick={() => setActiveModal('password')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all group">
                         <Lock size={28} className="text-teal-400 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Hearth</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Password</span>
                     </button>
                     <button onClick={() => setActiveModal('delete')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:border-red-500/40 hover:bg-red-500/5 transition-all group">
                         <Trash2 size={28} className="text-red-400 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Deep Rest</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Delete Account</span>
                     </button>
                     <button onClick={handleLogout} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:border-red-500/40 hover:bg-red-500/5 transition-all group">
                         <LogOut size={28} className="text-red-500 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/80">Depart</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/80">Logout</span>
                     </button>
                 </div>
 
                 {/* ⚙️ GARDEN PROTOCOLS (Settings) - MOVED BELOW */}
-                <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-[40px] p-8 mt-6 backdrop-blur-md">
+                <div className="w-full bg-white/5 border border-white/10 rounded-[40px] p-8 mt-6 backdrop-blur-md">
                     <div className="flex items-center gap-4 mb-8">
                         <div className="p-3 bg-teal-400/10 rounded-2xl border border-teal-400/20">
                             <Settings size={20} className="text-teal-400" />
