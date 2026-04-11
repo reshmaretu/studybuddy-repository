@@ -85,7 +85,7 @@ interface StudyState {
     fullName: string;
     userEmail: string;
     isVerified: boolean;
-    
+
     setDisplayName: (name: string) => void;
     setFullName: (name: string) => void;
     setUserEmail: (email: string) => void;
@@ -133,7 +133,6 @@ interface StudyState {
     aiTier: 'cloud' | 'local' | 'offline';
     aiKeys: { groq: string; gemini: string; openrouter: string };
     selectedModel: string;
-    setSelectedModel: (model: string) => void;
     ollamaUrl: string;
 
     xp: number;
@@ -185,7 +184,6 @@ interface StudyState {
     updateTutorSessionState: (state: Partial<StudyState['tutorSessionState']>) => void;
     setAITier: (tier: 'cloud' | 'local' | 'offline') => void;
     updateAIKeys: (keys: Partial<StudyState['aiKeys']>) => void;
-    setSelectedModel: (model: string) => void;
     setOllamaUrl: (url: string) => void;
     showNodeBadge: boolean;
     setShowNodeBadge: (val: boolean) => void;
@@ -266,8 +264,8 @@ export const useStudyStore = create<StudyState>()(
             setUserEmail: (email) => set({ userEmail: email }),
             setIsVerified: (val) => set({ isVerified: val }),
 
-            addMockInvoice: (invoice) => set((state) => ({ 
-                mockInvoices: [invoice, ...state.mockInvoices] 
+            addMockInvoice: (invoice) => set((state) => ({
+                mockInvoices: [invoice, ...state.mockInvoices]
             })),
             setPremiumStatus: (status) => set({ isPremiumUser: status }),
             checkPremiumStatus: async () => {
@@ -357,12 +355,12 @@ export const useStudyStore = create<StudyState>()(
                 bloomEnabled: true,
                 antialiasing: true
             },
-            setSettings: (settings) => set((state) => ({ 
-                ...state, 
+            setSettings: (settings) => set((state) => ({
+                ...state,
                 ...settings,
-                performanceSettings: settings.performanceSettings 
+                performanceSettings: settings.performanceSettings
                     ? { ...state.performanceSettings, ...settings.performanceSettings }
-                    : state.performanceSettings 
+                    : state.performanceSettings
             })),
             handleLogout: async () => {
                 const { error } = await supabase.auth.signOut();
@@ -559,7 +557,7 @@ export const useStudyStore = create<StudyState>()(
                     // Bulk update for Ivy shifts is harder, so we just do the task for now
                     // In a real app we'd trigger a cloud function or batch update
                     supabase.from('tasks').update(dbUpdate).eq('id', id).then();
-                    
+
                     // IF Ivy, we should ideally sync all ranks
                     if (task?.ivyRank && get().activeFramework === 'ivy') {
                         const activeIvy = get().tasks.filter(t => !t.isCompleted && t.ivyRank);
