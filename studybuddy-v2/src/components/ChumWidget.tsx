@@ -347,8 +347,15 @@ export default function ChumWidget() {
     return (
         <>
             <motion.div
+                drag
+                dragMomentum={false}
+                dragConstraints={{ left: -window.innerWidth + 80, right: 0, top: -window.innerHeight + 80, bottom: 0 }}
+                onDragEnd={(e, info) => setWidgetPos({
+                    isLeft: info.point.x < window.innerWidth / 2,
+                    isTop: info.point.y < window.innerHeight / 3 // Flips if in the top 33% of screen
+                })}
                 style={{ zIndex: 100000 }}
-                className="fixed bottom-8 right-8 flex flex-col items-end justify-end relative"
+                className="fixed bottom-8 right-8 flex flex-col items-end justify-end cursor-grab active:cursor-grabbing relative"
             >
                 <AnimatePresence>
                     {isOpen && (
@@ -509,11 +516,12 @@ export default function ChumWidget() {
                                                     exit={{ opacity: 0, scale: 1.05, filter: "brightness(1.5) blur(4px)", transition: { duration: 0.3 } }}
                                                     className="flex justify-start flex-col mt-2 overflow-hidden"
                                                 >
-                                                    <div className={`relative p-4 text-sm max-w-[85%] shadow-md whitespace-pre-wrap rounded-2xl rounded-tl-none overflow-hidden ${ephemeralMsg.type === 'warning' ? 'bg-red-500/10 border border-red-500/30 text-red-200' :
-                                                            ephemeralMsg.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' :
-                                                                ephemeralMsg.type === 'info' ? 'bg-sky-500/10 border border-sky-500/30 text-sky-400' :
-                                                                    'bg-[var(--accent-teal)]/10 border border-[var(--accent-teal)]/30 text-[var(--accent-teal)]'
-                                                        }`}>
+                                                    <div className={`relative p-4 text-sm max-w-[85%] shadow-md whitespace-pre-wrap rounded-2xl rounded-tl-none overflow-hidden ${
+                                                        ephemeralMsg.type === 'warning' ? 'bg-red-500/10 border border-red-500/30 text-red-200' : 
+                                                        ephemeralMsg.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' :
+                                                        ephemeralMsg.type === 'info' ? 'bg-sky-500/10 border border-sky-500/30 text-sky-400' :
+                                                        'bg-[var(--accent-teal)]/10 border border-[var(--accent-teal)]/30 text-[var(--accent-teal)]'
+                                                    }`}>
 
                                                         <div className="flex items-center gap-1.5 mb-2 opacity-70">
                                                             <span className="text-[10px] font-black uppercase tracking-wider">
@@ -536,11 +544,12 @@ export default function ChumWidget() {
                                                                 transition={{ duration: 8, ease: "linear" }}
                                                                 // Triggers the flashy exit the exact millisecond the bar hits 0
                                                                 onAnimationComplete={() => setEphemeralMsg(null)}
-                                                                className={`h-full shadow-[0_0_10px_currentColor] ${ephemeralMsg.type === 'warning' ? 'bg-red-500 text-red-500' :
-                                                                        ephemeralMsg.type === 'success' ? 'bg-emerald-500 text-emerald-500' :
-                                                                            ephemeralMsg.type === 'info' ? 'bg-sky-500 text-sky-500' :
-                                                                                'bg-[var(--accent-teal)] text-[var(--accent-teal)]'
-                                                                    }`}
+                                                                className={`h-full shadow-[0_0_10px_currentColor] ${
+                                                                    ephemeralMsg.type === 'warning' ? 'bg-red-500 text-red-500' : 
+                                                                    ephemeralMsg.type === 'success' ? 'bg-emerald-500 text-emerald-500' :
+                                                                    ephemeralMsg.type === 'info' ? 'bg-sky-500 text-sky-500' :
+                                                                    'bg-[var(--accent-teal)] text-[var(--accent-teal)]'
+                                                                }`}
                                                             />
                                                         </div>
                                                     </div>
@@ -605,20 +614,22 @@ export default function ChumWidget() {
                                 }
                             }}
                             // 👇 Changed sizing to w-[320px] to make it longer!
-                            className={`absolute ${bubbleXPos} ${bubbleYPos} ${tailCorner} w-[320px] min-h-[80px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer transition-colors group z-50 pointer-events-auto flex flex-col justify-center ${chumToast?.type === 'warning' ? 'border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]' :
-                                    chumToast?.type === 'success' ? 'border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.2)]' :
-                                        chumToast?.type === 'info' ? 'border-sky-500/50 shadow-[0_0_30px_rgba(14,165,233,0.2)]' :
-                                            'border-[var(--border-color)] hover:border-[var(--accent-teal)]'
-                                }`}
+                            className={`absolute ${bubbleXPos} ${bubbleYPos} ${tailCorner} w-[320px] min-h-[80px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer transition-colors group z-50 pointer-events-auto flex flex-col justify-center ${
+                                chumToast?.type === 'warning' ? 'border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]' : 
+                                chumToast?.type === 'success' ? 'border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.2)]' :
+                                chumToast?.type === 'info' ? 'border-sky-500/50 shadow-[0_0_30px_rgba(14,165,233,0.2)]' :
+                                'border-[var(--border-color)] hover:border-[var(--accent-teal)]'
+                            }`}
                         >
                             <div className="relative">
                                 {chumToast ? (
                                     <>
-                                        <p className={`text-[10px] font-black uppercase tracking-wider mb-1 ${chumToast.type === 'warning' ? 'text-red-400' :
-                                                chumToast.type === 'success' ? 'text-emerald-400' :
-                                                    chumToast.type === 'info' ? 'text-sky-400' :
-                                                        'text-[var(--accent-teal)]'
-                                            }`}>
+                                        <p className={`text-[10px] font-black uppercase tracking-wider mb-1 ${
+                                            chumToast.type === 'warning' ? 'text-red-400' : 
+                                            chumToast.type === 'success' ? 'text-emerald-400' :
+                                            chumToast.type === 'info' ? 'text-sky-400' :
+                                            'text-[var(--accent-teal)]'
+                                        }`}>
                                             {chumToast.type === 'warning' ? '⚠️ Burnout Warning' : chumToast.type === 'success' ? '✨ Celebration' : chumToast.type === 'info' ? 'ℹ️ Guidance' : 'Chum Says:'}
                                         </p>
                                         {/* 👇 Upgraded text-sm, added font-bold, and applied line-clamp-2 */}
