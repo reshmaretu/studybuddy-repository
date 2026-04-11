@@ -121,7 +121,6 @@ export default function Dashboard() {
         return `${m}:${s}`;
     };
 
-    const [isBrainResetOpen, setIsBrainResetOpen] = useState(false);
 
     const totalSeconds = 1500;
     const strokeOffset = 283 - (283 * (timeLeft / totalSeconds));
