@@ -6,6 +6,7 @@ import { Timer, Info, LogOut, Users, Play, Pause, RotateCcw, Sparkles, Shield, L
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useStudyStore } from "@/store/useStudyStore";
+import { DEV_AUDIO_TRACKS, DEV_LIVE_BGS, DEV_STATIC_BGS } from "@/config/devRoomAssets";
 
 // --- RESOURCE DICTIONARIES ---
 const ROOM_THEMES = [
@@ -70,20 +71,24 @@ const CustomSelect = ({ options, value, onChange, disabled = false, isPremiumUse
 
 // --- REUSEABLE COMPONENTS ---
 const AtmosphereVisuals = ({ settings }: { settings: any }) => {
+    const devAsset = [...DEV_LIVE_BGS, ...DEV_STATIC_BGS].find(t => t.name === settings.vibeAsset);
+    
     if (settings.vibeCategory === 'Live Lo-Fi (Pro)') {
         const videoName = settings.vibeAsset.replace(' (Pro)', '').toLowerCase().replace(/ /g, '_');
+        const videoSrc = (devAsset as any)?.url || `/assets/bgs/live/${videoName}.mp4`;
+        
         return (
             <video
-                key={videoName}
+                key={videoSrc}
                 autoPlay loop muted playsInline
                 className="w-full h-full object-cover opacity-70 transition-all duration-1000"
-                src={`/assets/bgs/live/${videoName}.mp4`}
+                src={videoSrc}
             />
         );
     }
     const bgUrl = settings.vibeAsset.includes('Void')
         ? 'none'
-        : `url(/assets/bgs/${settings.vibeCategory === 'Static Lo-Fi' ? 'static/' : ''}${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.jpg)`;
+        : `url(${(devAsset as any)?.url || `/assets/bgs/${settings.vibeCategory === 'Static Lo-Fi' ? 'static/' : ''}${settings.vibeAsset.toLowerCase().replace(/ /g, '_')}.jpg`})`;
     return <div className="w-full h-full bg-cover bg-center opacity-70 transition-all duration-1000" style={{ backgroundImage: bgUrl }} />;
 };
 
@@ -93,8 +98,9 @@ const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any,
     const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
     const analyzerRef = useRef<AnalyserNode | null>(null);
 
+    const devTrack = DEV_AUDIO_TRACKS.find(t => t.name === settings.audioTrack);
     const fileName = settings.audioTrack === 'None' ? '' : settings.audioTrack.toLowerCase().replace(/ /g, '_');
-    const targetSrc = fileName ? `/assets/audio/${fileName}.ogg` : '';
+    const targetSrc = devTrack?.url || (fileName ? `/assets/audio/${fileName}.ogg` : '');
     const currentSrcRef = useRef(targetSrc);
 
     // Fade and Play/Pause logic
@@ -879,7 +885,11 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                 ) : (
                                     <CustomSelect
                                         value={settings.vibeAsset}
-                                        options={settings.vibeCategory === 'Static Lo-Fi' ? STATIC_BGS : LIVE_BGS}
+                                        options={
+                                            (settings.vibeCategory === 'Live Lo-Fi (Pro)' && enableDevRoomOptions) ? [...LIVE_BGS, ...DEV_LIVE_BGS] : 
+                                            (settings.vibeCategory === 'Static Lo-Fi' && enableDevRoomOptions) ? [...STATIC_BGS, ...DEV_STATIC_BGS] :
+                                            (settings.vibeCategory === 'Static Lo-Fi' ? STATIC_BGS : LIVE_BGS)
+                                        }
                                         isOpen={openDropdown === 'asset'}
                                         onToggle={() => setOpenDropdown(openDropdown === 'asset' ? null : 'asset')}
                                         isPremiumUser={isRoomPremium}
@@ -896,7 +906,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                 />
                                 <CustomSelect
                                     value={settings.audioTrack}
-                                    options={enableDevRoomOptions ? [...AUDIO_TRACKS, { name: 'Dev: Deep Space', pro: true }, { name: 'Dev: Cybernetic Pulse', pro: true }] : AUDIO_TRACKS}
+                                    options={enableDevRoomOptions ? [...AUDIO_TRACKS, ...DEV_AUDIO_TRACKS] : AUDIO_TRACKS}
                                     isOpen={openDropdown === 'audio'}
                                     onToggle={() => setOpenDropdown(openDropdown === 'audio' ? null : 'audio')}
                                     isPremiumUser={isRoomPremium}

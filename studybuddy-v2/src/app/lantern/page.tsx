@@ -119,7 +119,7 @@ export default function LanternNetPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const {
         totalSessions, activeMode, isTutorModeActive, isDev, devOverlayEnabled,
-        debrisSize, debrisColor, debrisCount, debrisSpread,
+        debrisSize, debrisColor, debrisCount, debrisSpread, setDebris,
         mockUsers, setMockUsers, isPremiumUser, setSettings, totalSecondsTracked
     } = useStudyStore();
     const router = useRouter();
