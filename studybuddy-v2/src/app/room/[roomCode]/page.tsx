@@ -176,13 +176,17 @@ const Visualizer = ({
     isActive, 
     color = "rgba(255, 250, 240, 0.9)", 
     mirrored = false, 
-    scale = 1.0 
+    scale = 1.0,
+    width = 800,
+    height = 200
 }: { 
     analyser: AnalyserNode | null, 
     isActive: boolean,
     color?: string,
     mirrored?: boolean,
-    scale?: number
+    scale?: number,
+    width?: number,
+    height?: number
 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     useEffect(() => {
@@ -200,7 +204,7 @@ const Visualizer = ({
 
             const barCount = 48;
             const gap = 6;
-            const barWidth = ((800 / (mirrored ? 2 : 1)) - gap * barCount) / barCount;
+            const barWidth = ((width / (mirrored ? 2 : 1)) - gap * barCount) / barCount;
             const opacity = isActive ? 0.9 : 0.2;
 
             const renderBars = (baseX: number, direction: number) => {
@@ -208,10 +212,10 @@ const Visualizer = ({
                 for (let i = 0; i < barCount; i++) {
                     const index = Math.floor(i * (bufferLength * 0.7) / barCount);
                     const dataVal = dataArray[index] || 0;
-                    const barHeight = Math.max(4, (dataVal / 255) * (canvas.height / 1.5) * scale);
+                    const barHeight = Math.max(4, (dataVal / 255) * (height / 1.5) * scale);
 
                     ctx.save();
-                    ctx.translate(x + (barWidth / 2) * direction, canvas.height / 2);
+                    ctx.translate(x + (barWidth / 2) * direction, height / 2);
                     
                     // Handle both hex and rgba colors for dev customization
                     if (color && color.startsWith('#')) {
@@ -232,8 +236,8 @@ const Visualizer = ({
             };
 
             if (mirrored) {
-                renderBars(canvas.width / 2, 1);
-                renderBars(canvas.width / 2, -1);
+                renderBars(width / 2, 1);
+                renderBars(width / 2, -1);
             } else {
                 renderBars(0, 1);
             }
@@ -241,9 +245,9 @@ const Visualizer = ({
 
         draw();
         return () => cancelAnimationFrame(animationId);
-    }, [analyser, isActive, color, mirrored, scale]);
+    }, [analyser, isActive, color, mirrored, scale, width, height]);
 
-    return <canvas ref={canvasRef} width={800} height={200} className="w-full h-full opacity-50 mix-blend-overlay pointer-events-none filter blur-[1px]" />;
+    return <canvas ref={canvasRef} width={width} height={height} className="max-w-full opacity-50 mix-blend-overlay pointer-events-none filter blur-[1px]" />;
 };
 
 export default function StudyRoom({ params }: { params: Promise<{ roomCode: string }> }) {
@@ -286,6 +290,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         visualizerColor: '#fffaf0',
         visualizerMirrored: false,
         visualizerScale: 1.0,
+        visualizerWidth: 800,
+        visualizerHeight: 200,
         isGhostMode: false,
     });
 
@@ -313,6 +319,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         visualizerColor: settings.visualizerColor,
         visualizerMirrored: settings.visualizerMirrored,
         visualizerScale: settings.visualizerScale,
+        visualizerWidth: settings.visualizerWidth,
+        visualizerHeight: settings.visualizerHeight,
         isGhostMode: settings.isGhostMode,
         roomTheme: settings.roomTheme
     });
@@ -331,6 +339,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             visualizerColor: settings.visualizerColor,
             visualizerMirrored: settings.visualizerMirrored,
             visualizerScale: settings.visualizerScale,
+            visualizerWidth: settings.visualizerWidth,
+            visualizerHeight: settings.visualizerHeight,
             isGhostMode: settings.isGhostMode,
             roomTheme: settings.roomTheme
         };
@@ -485,6 +495,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             visualizerColor: payload.visualizerColor,
                             visualizerMirrored: payload.visualizerMirrored,
                             visualizerScale: payload.visualizerScale,
+                            visualizerWidth: payload.visualizerWidth,
+                            visualizerHeight: payload.visualizerHeight,
                             isGhostMode: payload.isGhostMode,
                             roomTheme: payload.roomTheme
                         }));
@@ -912,28 +924,6 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     isPremiumUser={isRoomPremium}
                                     onChange={(track: string) => updateSettings({ audioTrack: track })}
                                 />
-                                {enableDevRoomOptions && (
-                                    <div className="pt-2 space-y-3">
-                                        <div className="flex justify-between items-center bg-red-500/5 p-3 rounded-xl border border-red-500/20">
-                                            <span className="text-[10px] font-black text-red-400 uppercase">Visualizer Theme</span>
-                                            <input 
-                                                type="color" 
-                                                value={settings.visualizerColor || '#fffaf0'} 
-                                                onChange={(e) => updateSettings({ visualizerColor: e.target.value })}
-                                                className="w-6 h-6 bg-transparent border-none cursor-pointer"
-                                            />
-                                        </div>
-                                        <div 
-                                            onClick={() => updateSettings({ visualizerMirrored: !settings.visualizerMirrored })}
-                                            className="flex justify-between items-center bg-red-500/5 p-3 rounded-xl border border-red-500/20 cursor-pointer"
-                                        >
-                                            <span className="text-[10px] font-black text-red-400 uppercase">Mirror Rails</span>
-                                            <div className={`w-8 h-4 rounded-full relative transition-colors ${settings.visualizerMirrored ? 'bg-red-500' : 'bg-white/10'}`}>
-                                                <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${settings.visualizerMirrored ? 'left-4.5' : 'left-0.5'}`} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                             </section>
 
                             {/* PREMIUM TOGGLES */}
@@ -952,6 +942,75 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                         <motion.div layout className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" animate={{ x: settings.showVisualizer ? 20 : 0 }} />
                                     </div>
                                 </div>
+
+                                <AnimatePresence>
+                                    {settings.showVisualizer && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="overflow-hidden space-y-3"
+                                        >
+                                            <div className="flex justify-between items-center bg-[var(--bg-main)]/30 p-3 rounded-xl border border-[var(--border-color)]">
+                                                <span className="text-[10px] font-black text-[var(--accent-teal)] uppercase tracking-widest">Glow Color</span>
+                                                <input 
+                                                    type="color" 
+                                                    value={settings.visualizerColor || '#fffaf0'} 
+                                                    onChange={(e) => updateSettings({ visualizerColor: e.target.value })}
+                                                    className="w-6 h-6 bg-transparent border-none cursor-pointer rounded-full"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-4 p-4 bg-[var(--bg-main)]/30 rounded-xl border border-[var(--border-color)]">
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between items-center text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">
+                                                        <span>Scale Factor ({settings.visualizerScale.toFixed(1)}x)</span>
+                                                    </div>
+                                                    <input
+                                                        type="range" min="0.1" max="3" step="0.1"
+                                                        value={settings.visualizerScale}
+                                                        onChange={(e) => updateSettings({ visualizerScale: parseFloat(e.target.value) })}
+                                                        className="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-yellow)]"
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between items-center text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">
+                                                        <span>Width ({settings.visualizerWidth}px)</span>
+                                                    </div>
+                                                    <input
+                                                        type="range" min="200" max="1200" step="10"
+                                                        value={settings.visualizerWidth}
+                                                        onChange={(e) => updateSettings({ visualizerWidth: parseInt(e.target.value) })}
+                                                        className="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-yellow)]"
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between items-center text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">
+                                                        <span>Height ({settings.visualizerHeight}px)</span>
+                                                    </div>
+                                                    <input
+                                                        type="range" min="50" max="600" step="10"
+                                                        value={settings.visualizerHeight}
+                                                        onChange={(e) => updateSettings({ visualizerHeight: parseInt(e.target.value) })}
+                                                        className="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-yellow)]"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div 
+                                                onClick={() => updateSettings({ visualizerMirrored: !settings.visualizerMirrored })}
+                                                className="flex justify-between items-center bg-[var(--bg-main)]/30 p-3 rounded-xl border border-[var(--border-color)] cursor-pointer hover:border-[var(--accent-yellow)]/40 transition-colors"
+                                            >
+                                                <span className="text-[10px] font-black text-[var(--accent-teal)] uppercase tracking-widest">Mirror Rails</span>
+                                                <div className={`w-8 h-4 rounded-full relative transition-colors ${settings.visualizerMirrored ? 'bg-[var(--accent-yellow)]' : 'bg-[var(--text-muted)]/20'}`}>
+                                                    <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${settings.visualizerMirrored ? 'left-4.5' : 'left-0.5'}`} />
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
 
                                 {/* Ghost Mode Toggle */}
                                 <div
@@ -1026,6 +1085,8 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                 color={settings.visualizerColor}
                                 mirrored={settings.visualizerMirrored}
                                 scale={settings.visualizerScale}
+                                width={settings.visualizerWidth}
+                                height={settings.visualizerHeight}
                             />
                         </div>
                     )}
