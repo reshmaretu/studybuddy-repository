@@ -277,10 +277,8 @@ export default function AccountPage() {
         }
 
         setLoading(true);
-        const nowISO = new Date().toISOString();
-        const profileUpdates: any = {
-            updated_at: nowISO
-        };
+        const nowISO = new Date().toISOString(); 
+        const profileUpdates: any = {};
         if (isChangingDisplay) {
             profileUpdates.display_name = formData.newDisplayName;
             profileUpdates.last_display_name_change = nowISO;

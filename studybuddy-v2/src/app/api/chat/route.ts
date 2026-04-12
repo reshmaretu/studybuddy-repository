@@ -76,11 +76,17 @@ export async function POST(req: Request) {
         const modelToUse = selected_model || "mistralai/mistral-7b-instruct:free";
         if (modelToUse && orKey) {
             try {
-                const openrouter = createOpenRouter({ apiKey: orKey });
+                const openrouter = createOpenRouter({ 
+                    apiKey: orKey,
+                    headers: {
+                        "HTTP-Referer": "https://studybuddy-v2.vercel.app",
+                        "X-Title": "StudyBuddy"
+                    }
+                });
                 const config = {
                     model: openrouter(modelToUse),
                     messages: formattedMessages,
-                    maxTokens: 600, // Balanced for speed and detail
+                    maxTokens: 600,
                     temperature: 0.7,
                 };
 
@@ -90,7 +96,7 @@ export async function POST(req: Request) {
                     const textRes = await generateText(config);
                     result = textRes.text;
                 }
-                usedNode = `Neural Link: ${selected_model}`;
+                usedNode = `Neural Link: ${modelToUse}`;
             } catch (e: any) {
                 console.warn(`Manual selection failed: ${e.message}. Falling back to waterfall...`);
             }
@@ -99,7 +105,13 @@ export async function POST(req: Request) {
         // 🌊 FALLBACK 1: OpenRouter (Llama 3.1)
         if (!result && orKey) {
             try {
-                const openrouter = createOpenRouter({ apiKey: orKey });
+                const openrouter = createOpenRouter({ 
+                    apiKey: orKey,
+                    headers: {
+                        "HTTP-Referer": "https://studybuddy-v2.vercel.app",
+                        "X-Title": "StudyBuddy"
+                    }
+                });
                 const config = {
                     model: openrouter("meta-llama/llama-3.1-8b-instruct:free"),
                     messages: formattedMessages
