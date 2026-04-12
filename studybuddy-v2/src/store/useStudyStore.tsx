@@ -31,6 +31,17 @@ export interface Task {
     stressLevel?: number;
 }
 
+export interface AppNotification {
+    id: string;
+    category: 'activity' | 'system';
+    type: 'info' | 'success' | 'warning' | 'error';
+    title: string;
+    message: string;
+    timestamp: string;
+    isRead: boolean;
+    link?: string;
+}
+
 export type PerformanceMode = 'auto' | 'high' | 'balanced' | 'low';
 
 export interface AccessibilitySettings {
@@ -101,6 +112,7 @@ interface StudyState {
     avatarUrl: string | null;
     isProfileModalOpen: boolean;
     isBrainResetOpen: boolean;
+    isNotificationCenterOpen: boolean;
 
     setDisplayName: (name: string) => void;
     setFullName: (name: string) => void;
@@ -109,6 +121,7 @@ interface StudyState {
     setAvatarUrl: (url: string | null) => void;
     setProfileModalOpen: (open: boolean) => void;
     setIsBrainResetOpen: (open: boolean) => void;
+    setIsNotificationCenterOpen: (open: boolean) => void;
     lastResetHighlightAt: string | null;
     setLastLevelUp: (level: number | null) => void;
 
@@ -142,6 +155,16 @@ interface StudyState {
     pomodoroShortBreak: number;
     pomodoroLongBreak: number;
     pomodoroCycles: number;
+
+    // 🔔 NOTIFICATIONS
+    notifications: AppNotification[];
+    addNotification: (notif: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => void;
+    markNotificationRead: (id: string) => void;
+    clearNotifications: (category?: 'activity' | 'system') => void;
+
+    // 🎓 TUTORIAL
+    hasCompletedTutorial: boolean;
+    setCompletedTutorial: (val: boolean) => void;
 
     shards: Shard[];
     isTutorModeActive: boolean;
@@ -290,6 +313,7 @@ export const useStudyStore = create<StudyState>()(
             avatarUrl: null,
             isProfileModalOpen: false,
             isBrainResetOpen: false,
+            isNotificationCenterOpen: false,
             lastResetHighlightAt: null,
             lastLevelUp: null,
             lastXpGain: null,
@@ -302,6 +326,7 @@ export const useStudyStore = create<StudyState>()(
             setAvatarUrl: (url) => set({ avatarUrl: url }),
             setProfileModalOpen: (open) => set({ isProfileModalOpen: open }),
             setIsBrainResetOpen: (open) => set({ isBrainResetOpen: open }),
+            setIsNotificationCenterOpen: (open) => set({ isNotificationCenterOpen: open }),
             setLastLevelUp: (val) => set({ lastLevelUp: val }),
 
             addMockInvoice: (invoice) => set((state) => ({
@@ -410,6 +435,24 @@ export const useStudyStore = create<StudyState>()(
                 largeText: false,
                 reducedMotion: false
             },
+            notifications: [],
+            addNotification: (notif) => {
+                const id = Math.random().toString(36).substring(7);
+                const timestamp = new Date().toISOString();
+                set((state) => ({
+                    notifications: [{ ...notif, id, timestamp, isRead: false }, ...state.notifications].slice(0, 50)
+                }));
+            },
+            markNotificationRead: (id) => set((state) => ({
+                notifications: state.notifications.map(n => n.id === id ? { ...n, isRead: true } : n)
+            })),
+            clearNotifications: (category) => set((state) => ({
+                notifications: category 
+                    ? state.notifications.filter(n => n.category !== category)
+                    : []
+            })),
+            hasCompletedTutorial: false,
+            setCompletedTutorial: (val) => set({ hasCompletedTutorial: val }),
             setSettings: (settings) => set((state) => ({
                 ...state,
                 ...settings,
@@ -820,6 +863,32 @@ export const useStudyStore = create<StudyState>()(
                         localStorage.setItem("appTheme", appTheme);
                     }
 
+                    // 🎁 PRE-UPLOADED FORGE (Check if blank)
+                    if (tasksResponse.data?.length === 0 && shardsResponse.data?.length === 0) {
+                        console.log("[NEURAL] New consciousness detected. Initializing starter forge...");
+                        // Add a welcome task
+                        await get().addTask({
+                            title: "Tend your first bloom",
+                            description: "Welcome to StudyBuddy. Complete this task by dragging it to the completion zone.",
+                            load: "light",
+                            deadline: new Date(Date.now() + 86400000).toISOString(),
+                            estimatedPomos: 1
+                        });
+                        // Add an info shard
+                        await get().forgeShard({
+                            title: "The Garden Philosophy",
+                            content: "In this digital sanctuary, your focus is the rain that feeds the garden. Each completed task is a bloom, and each studied shard is a crystal. Respect your rhythm, and the garden will grow with you.",
+                            files: []
+                        });
+                        // Add a welcome notification
+                        get().addNotification({
+                            category: "system",
+                            type: "info",
+                            title: "Welcome, Guardian",
+                            message: "The garden is now linked to your neural network. Complete the intro tutorial to begin your journey."
+                        });
+                    }
+
                 } catch (error) {
                     console.error("Initialization failed:", error);
                 } finally {
@@ -1128,6 +1197,8 @@ export const useStudyStore = create<StudyState>()(
                 tabSwitches: state.tabSwitches,
                 sessionsSinceLastReset: state.sessionsSinceLastReset,
                 lastResetHighlightAt: state.lastResetHighlightAt,
+                notifications: state.notifications,
+                hasCompletedTutorial: state.hasCompletedTutorial,
             })
         }
     )

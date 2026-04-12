@@ -14,6 +14,9 @@ import TaskEditModal from "./TaskEditModal";
 import TaskViewModal from "./TaskViewModal";
 import ProfileModal from "./ProfileModal";
 import DevOverlay from "./DevOverlay";
+import NotificationCenter from "./NotificationCenter";
+import BrainResetModal from "./BrainResetModal";
+import TutorialIntro from "./TutorialIntro";
 
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -93,6 +96,9 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
                 <TaskEditModal />
                 <TaskViewModal />
                 <ProfileModal />
+                <NotificationCenter />
+                <BrainResetModal isOpen={useStudyStore.getState().isBrainResetOpen} onClose={() => useStudyStore.getState().setIsBrainResetOpen(false)} />
+                <TutorialIntro />
                 <DevOverlay />
             </div>
         </div>

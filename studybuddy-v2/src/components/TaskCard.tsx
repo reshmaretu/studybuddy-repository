@@ -51,6 +51,9 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
         heavy: "text-red-400 border-red-400/30 bg-red-400/10"
     };
 
+    const isOverdue = task.deadline && new Date(task.deadline) < new Date() && !task.isCompleted;
+    const isImminent = task.deadline && !isOverdue && !task.isCompleted && (new Date(task.deadline).getTime() - new Date().getTime()) < 3600000 * 2;
+
     const handleFrogToggle = () => {
         if (task.isCompleted || locked) return;
         const currentFrog = tasks.find(t => t.isFrog && t.id !== task.id);
@@ -236,10 +239,11 @@ export default function TaskCard({ task, isOverlay = false, locked = false, isMi
                         {task.description && <p className="text-xs text-[var(--text-muted)] line-clamp-2 mt-2">{task.description}</p>}
                     </div>
 
-                    <div className="flex justify-between items-end mt-2">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mt-2 gap-2">
                         {task.deadline ? (
-                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--accent-teal)]">
-                                <Clock size={12} /><span>Best Before: {new Date(task.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                            <div className={`flex items-center gap-1.5 text-[9px] md:text-[10px] font-black uppercase tracking-wider ${isOverdue ? 'text-rose-400' : isImminent ? 'text-(--accent-yellow)' : 'text-(--accent-teal)'}`}>
+                                {isOverdue || isImminent ? <AlertTriangle size={12} /> : <Clock size={12} />}
+                                <span>{isOverdue ? 'Overdue' : 'Due'}: {new Date(task.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
                             </div>
                         ) : (
                             <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Unscheduled</span>

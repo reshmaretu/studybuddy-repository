@@ -41,7 +41,8 @@ export default function Dashboard() {
     const {
         tasks, focusScore, dailyStreak, totalSessions, totalSecondsTracked,
         timeLeft, isRunning, toggleTimer, resetTimer, decrementTimer, completeTask,
-        isInitialized, xp, level, pomodoroFocus, isBrainResetOpen, setIsBrainResetOpen, lastResetHighlightAt
+        isInitialized, xp, level, pomodoroFocus, isBrainResetOpen, setIsBrainResetOpen, lastResetHighlightAt,
+        notifications, setIsNotificationCenterOpen, addNotification
     } = useStudyStore();
 
     const sensors = useSensors(
@@ -118,6 +119,44 @@ export default function Dashboard() {
         fetchSpark();
     }, []);
 
+    // 🕵️ Task Deadline Enforcement Check
+    useEffect(() => {
+        if (!isInitialized || tasks.length === 0) return;
+        
+        const now = new Date();
+        const overdueTasks = tasks.filter(t => !t.isCompleted && t.deadline && new Date(t.deadline) < now);
+        const upcomingTasks = tasks.filter(t => !t.isCompleted && t.deadline && 
+            new Date(t.deadline) > now && 
+            (new Date(t.deadline).getTime() - now.getTime()) < 3600000 * 2 // within 2 hours
+        );
+
+        overdueTasks.forEach(t => {
+            const alreadyNotified = notifications.some(n => n.title.includes(t.title) && n.type === 'error');
+            if (!alreadyNotified) {
+                addNotification({
+                    category: 'system',
+                    type: 'error',
+                    title: `Overdue: ${t.title}`,
+                    message: "This bloom has withered! Complete it immediately to restore garden harmony."
+                });
+            }
+        });
+
+        upcomingTasks.forEach(t => {
+            const alreadyNotified = notifications.some(n => n.title.includes(t.title) && n.type === 'warning');
+            if (!alreadyNotified) {
+                addNotification({
+                    category: 'activity',
+                    type: 'warning',
+                    title: `Approaching: ${t.title}`,
+                    message: "The sun is setting on this quest. Finalize it within 2 hours!"
+                });
+            }
+        });
+    }, [isInitialized, tasks.length]);
+
+    const unreadCount = notifications.filter(n => !n.isRead).length;
+
     const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60).toString().padStart(2, '0');
         const s = (seconds % 60).toString().padStart(2, '0');
@@ -185,9 +224,16 @@ export default function Dashboard() {
                             <span className="text-base md:text-xl font-black text-[var(--text-main)] leading-none">{time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
                             <span className="text-[var(--accent-teal)] font-bold tracking-widest uppercase text-[8px] md:text-[10px] mt-1 whitespace-nowrap">{time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                         </div>
-                        <button className="p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors relative shrink-0">
+                        <button 
+                            onClick={() => setIsNotificationCenterOpen(true)}
+                            className="p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors relative shrink-0"
+                        >
                             <Bell size={24} />
-                            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-(--bg-dark)"></span>
+                            {unreadCount > 0 && (
+                                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 rounded-full border-2 border-(--bg-dark) flex items-center justify-center">
+                                    <span className="text-[8px] font-black text-white">{unreadCount}</span>
+                                </span>
+                            )}
                         </button>
                     </div>
                 </header>
@@ -420,7 +466,14 @@ export default function Dashboard() {
                     {activeDragTask ? <TaskCard task={activeDragTask as Task} isOverlay /> : null}
                 </DragOverlay>
 
-                <BrainResetModal isOpen={isBrainResetOpen} onClose={() => setIsBrainResetOpen(false)} />
+                <footer className="pt-12 pb-8 border-t border-(--border-color) flex flex-col items-center gap-4">
+                    <div className="flex gap-6 text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">
+                        <button className="hover:text-(--accent-teal) transition-colors">Terms of Service</button>
+                        <button className="hover:text-(--accent-teal) transition-colors">Privacy & Cookies</button>
+                        <button onClick={() => useStudyStore.getState().setCompletedTutorial(false)} className="hover:text-(--accent-teal) transition-colors text-(--accent-teal)">Replay Tutorial</button>
+                    </div>
+                    <p className="text-[9px] text-(--text-muted) opacity-50 uppercase tracking-[0.3em] font-black">Neural Link Established © 2026 StudyBuddy</p>
+                </footer>
             </div>
         </DndContext>
     );
