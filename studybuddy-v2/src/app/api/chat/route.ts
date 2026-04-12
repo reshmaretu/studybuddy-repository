@@ -68,106 +68,56 @@ export async function POST(req: Request) {
         // ==========================================
         // STEP 2: THE WATERFALL ENGINE (OR MANUAL)
         // ==========================================
+        // ==========================================
+        // STEP 2: DYNAMIC WATERFALL ENGINE
+        // ==========================================
         let result = null;
         let usedNode = "";
         const shouldStream = stream !== false;
+        const primaryNode = body.primary_node || 'openrouter';
 
-        // 🎯 PRIORITY: Manual Model Selection via OpenRouter
-        const modelToUse = selected_model || "mistralai/mistral-7b-instruct:free";
-        if (modelToUse && orKey) {
+        // Define the attempts in order: Primary first, then others.
+        const order = [primaryNode];
+        if (!order.includes('openrouter')) order.push('openrouter');
+        if (!order.includes('groq')) order.push('groq');
+        if (!order.includes('gemini')) order.push('gemini');
+
+        for (const node of order) {
+            if (result) break;
+
             try {
-                const openrouter = createOpenRouter({ 
-                    apiKey: orKey,
-                    headers: {
-                        "HTTP-Referer": "https://studybuddy-v2.vercel.app",
-                        "X-Title": "StudyBuddy"
-                    }
-                });
-                const config = {
-                    model: openrouter(modelToUse),
-                    messages: formattedMessages,
-                    maxTokens: 600,
-                    temperature: 0.7,
-                };
-
-                if (shouldStream) {
-                    result = await streamText(config);
-                } else {
-                    const textRes = await generateText(config);
-                    result = textRes.text;
+                if (node === 'openrouter' && orKey) {
+                    const modelToUse = (primaryNode === 'openrouter' && selected_model) ? selected_model : "meta-llama/llama-3.1-8b-instruct:free";
+                    const openrouter = createOpenRouter({ 
+                        apiKey: orKey,
+                        headers: { "HTTP-Referer": "https://studybuddy-v2.vercel.app", "X-Title": "StudyBuddy" }
+                    });
+                    const config = { model: openrouter(modelToUse), messages: formattedMessages, maxTokens: 600, temperature: 0.7 };
+                    
+                    if (shouldStream) result = await streamText(config);
+                    else { const res = await generateText(config); result = res.text; }
+                    usedNode = `OpenRouter: ${modelToUse}`;
+                } 
+                else if (node === 'groq' && groqKey) {
+                    const modelToUse = (primaryNode === 'groq' && selected_model) ? selected_model : "llama-3.3-70b-versatile";
+                    const groq = createGroq({ apiKey: groqKey });
+                    const config = { model: groq(modelToUse), messages: formattedMessages };
+                    
+                    if (shouldStream) result = await streamText(config);
+                    else { const res = await generateText(config); result = res.text; }
+                    usedNode = `Groq: ${modelToUse}`;
                 }
-                usedNode = `Neural Link: ${modelToUse}`;
-            } catch (e: any) {
-                console.warn(`Manual selection failed: ${e.message}. Falling back to waterfall...`);
-            }
-        }
-
-        // 🌊 FALLBACK 1: OpenRouter (Llama 3.1)
-        if (!result && orKey) {
-            try {
-                const openrouter = createOpenRouter({ 
-                    apiKey: orKey,
-                    headers: {
-                        "HTTP-Referer": "https://studybuddy-v2.vercel.app",
-                        "X-Title": "StudyBuddy"
-                    }
-                });
-                const config = {
-                    model: openrouter("meta-llama/llama-3.1-8b-instruct:free"),
-                    messages: formattedMessages
-                };
-
-                if (shouldStream) {
-                    result = await streamText(config);
-                } else {
-                    const textRes = await generateText(config);
-                    result = textRes.text;
+                else if (node === 'gemini' && geminiKey) {
+                    const modelToUse = (primaryNode === 'gemini' && selected_model) ? selected_model : "gemini-1.5-flash";
+                    const google = createGoogleGenerativeAI({ apiKey: geminiKey });
+                    const config = { model: google(modelToUse), messages: formattedMessages };
+                    
+                    if (shouldStream) result = await streamText(config);
+                    else { const res = await generateText(config); result = res.text; }
+                    usedNode = `Gemini: ${modelToUse}`;
                 }
-                usedNode = "OpenRouter (Llama 3.1)";
             } catch (e: any) {
-                console.warn(`OpenRouter waterfall failed: ${e.message}.`);
-            }
-        }
-
-        // 🌊 FALLBACK 2: Groq (Llama 3.3)
-        if (!result && groqKey) {
-            try {
-                const groq = createGroq({ apiKey: groqKey });
-                const config = {
-                    model: groq("llama-3.3-70b-versatile"),
-                    messages: formattedMessages
-                };
-
-                if (shouldStream) {
-                    result = await streamText(config);
-                } else {
-                    const textRes = await generateText(config);
-                    result = textRes.text;
-                }
-                usedNode = "Groq (Llama 3.3)";
-            } catch (e: any) {
-                console.warn(`Groq waterfall failed: ${e.message}.`);
-            }
-        }
-
-        // 🌊 FALLBACK 3: Gemini (Native)
-        if (!result && geminiKey) {
-            try {
-                const google = createGoogleGenerativeAI({ apiKey: geminiKey });
-                const config = {
-                    model: google('gemini-1.5-flash'),
-                    messages: formattedMessages
-                };
-
-                if (shouldStream) {
-                    result = await streamText(config);
-                } else {
-                    const textRes = await generateText(config);
-                    result = textRes.text;
-                }
-                usedNode = "Gemini 2.0 (Direct)";
-            } catch (e: any) {
-                console.warn(`Gemini waterfall failed: ${e.message}.`);
+                console.warn(`${node} failed in waterfall: ${e.message}`);
             }
         }
 

@@ -153,6 +153,8 @@ interface StudyState {
     tutorSessionState: TutorSessionState;
 
     aiTier: 'cloud' | 'local' | 'offline';
+    aiPrimaryNode: 'openrouter' | 'groq' | 'gemini';
+    setAIPrimaryNode: (node: 'openrouter' | 'groq' | 'gemini') => void;
     aiKeys: { groq: string; gemini: string; openrouter: string };
     selectedModel: string;
     setSelectedModel: (model: string) => void;
@@ -367,6 +369,15 @@ export const useStudyStore = create<StudyState>()(
             },
 
             aiTier: 'cloud',
+            aiPrimaryNode: 'openrouter',
+            setAIPrimaryNode: (node) => {
+                const defaults = {
+                    openrouter: 'mistralai/mistral-7b-instruct:free',
+                    groq: 'llama-3.3-70b-versatile',
+                    gemini: 'gemini-1.5-flash'
+                };
+                set({ aiPrimaryNode: node, selectedModel: defaults[node] });
+            },
             aiKeys: { groq: '', gemini: '', openrouter: '' },
             selectedModel: 'mistralai/mistral-7b-instruct:free',
             setSelectedModel: (model) => set({ selectedModel: model }),
@@ -1098,6 +1109,8 @@ export const useStudyStore = create<StudyState>()(
             partialize: (state) => ({
                 aiKeys: state.aiKeys,
                 aiTier: state.aiTier,
+                aiPrimaryNode: state.aiPrimaryNode,
+                selectedModel: state.selectedModel,
                 ollamaUrl: state.ollamaUrl,
                 pomodoroFocus: state.pomodoroFocus,
                 pomodoroShortBreak: state.pomodoroShortBreak,

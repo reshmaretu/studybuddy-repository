@@ -47,7 +47,7 @@ export default function ChumWidget() {
         shards, updateShardMastery, aiTier, setAITier, aiKeys, updateAIKeys, selectedModel, setSelectedModel, ollamaUrl, setOllamaUrl,
         normalChatHistory, tutorChatHistory, setNormalChatHistory, setTutorChatHistory,
         tutorSessionState, updateTutorSessionState, completeTutorSession, pastTutorSessions, toggleMindDump,
-        showNodeBadge, setShowNodeBadge, chumToasts, addTask, isPremiumUser
+        showNodeBadge, setShowNodeBadge, chumToasts, addTask, isPremiumUser, aiPrimaryNode, setAIPrimaryNode
     } = useStudyStore();
 
     const [widgetPos, setWidgetPos] = useState({ isLeft: false, isTop: false });
@@ -233,6 +233,7 @@ export default function ChumWidget() {
                             messages: messagesPayload,
                             user_id: (session as any).user.id,
                             selected_model: useStudyStore.getState().selectedModel,
+                            primary_node: useStudyStore.getState().aiPrimaryNode,
                             openrouter_key: useStudyStore.getState().aiKeys.openrouter,
                             groq_key: useStudyStore.getState().aiKeys.groq,
                             gemini_key: useStudyStore.getState().aiKeys.gemini,
@@ -439,7 +440,7 @@ export default function ChumWidget() {
                                         </div>
                                         <div className="flex gap-1">
                                             {['openrouter', 'groq', 'gemini'].map((provider) => (
-                                                <div key={provider} className={`w-1.5 h-1.5 rounded-full ${aiKeys[provider as keyof typeof aiKeys] ? 'bg-(--accent-teal)' : 'bg-(--text-muted)/20'}`} />
+                                                <div key={provider} className={`w-1.5 h-1.5 rounded-full ${aiPrimaryNode === provider ? 'bg-(--accent-teal)' : 'bg-(--text-muted)/20'}`} />
                                             ))}
                                         </div>
                                     </div>
@@ -451,6 +452,23 @@ export default function ChumWidget() {
                                     </div>
 
                                     {aiTier === 'cloud' && (
+                                        <>
+                                        <div className="bg-(--bg-card) border border-(--border-color) rounded-lg p-2 flex flex-col gap-1">
+                                            <div className="flex justify-between items-center mb-1 px-1">
+                                                <span className="text-[10px] font-black text-(--accent-teal) uppercase tracking-tighter">Waterfall Sequence</span>
+                                                <span className="text-[9px] text-(--text-muted) italic">Drag not yet supported</span>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                {[aiPrimaryNode, ...(['openrouter', 'groq', 'gemini'].filter(n => n !== aiPrimaryNode))].map((node, i) => (
+                                                    <div key={node} className="flex items-center gap-1">
+                                                        <div className={`px-2 py-1 rounded text-[9px] font-bold border transition-colors ${i === 0 ? 'bg-(--accent-teal)/10 border-(--accent-teal) text-(--accent-teal)' : 'bg-(--bg-dark) border-(--border-color) text-(--text-muted)'}`}>
+                                                            {node.toUpperCase()}
+                                                        </div>
+                                                        {i < 2 && <span className="text-(--text-muted) text-[10px]">→</span>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                         <div className="flex flex-col gap-5">
                                             {[
                                                 { 
@@ -482,9 +500,17 @@ export default function ChumWidget() {
                                                     ]
                                                 }
                                             ].map((prov) => (
-                                                <div key={prov.id} className="space-y-2 p-3 rounded-xl bg-[var(--bg-dark)]/50 border border-[var(--border-color)]">
+                                                <div key={prov.id} className={`space-y-2 p-3 rounded-xl bg-[var(--bg-dark)]/50 border transition-colors ${aiPrimaryNode === prov.id ? 'border-(--accent-teal)' : 'border-(--border-color)'}`}>
                                                     <div className="flex items-center justify-between mb-1">
-                                                        <span className="text-xs font-bold text-[var(--accent-teal)] uppercase tracking-widest">{prov.label}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-bold text-[var(--accent-teal)] uppercase tracking-widest">{prov.label}</span>
+                                                            {aiPrimaryNode !== prov.id && (
+                                                                <button onClick={() => setAIPrimaryNode(prov.id as any)} className="text-[9px] bg-(--accent-teal)/10 text-(--accent-teal) px-1.5 py-0.5 rounded-md border border-(--accent-teal)/30 hover:bg-(--accent-teal)/20 transition-colors uppercase font-black">Set Primary</button>
+                                                            )}
+                                                            {aiPrimaryNode === prov.id && (
+                                                                <span className="text-[9px] bg-(--accent-teal) text-black px-1.5 py-0.5 rounded-md font-black uppercase">Active</span>
+                                                            )}
+                                                        </div>
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-[10px] text-[var(--text-muted)]">Model:</span>
                                                             <select
@@ -510,6 +536,7 @@ export default function ChumWidget() {
                                                 </div>
                                             ))}
                                         </div>
+                                        </>
                                     )}
 
                                     {aiTier === 'local' && (
