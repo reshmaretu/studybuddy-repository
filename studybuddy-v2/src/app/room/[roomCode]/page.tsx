@@ -165,7 +165,19 @@ const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any,
     return <audio ref={audioRef} crossOrigin="anonymous" loop className="hidden" />;
 };
 
-const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isActive: boolean }) => {
+const Visualizer = ({ 
+    analyser, 
+    isActive, 
+    color = "rgba(255, 250, 240, 0.9)", 
+    mirrored = false, 
+    scale = 1.0 
+}: { 
+    analyser: AnalyserNode | null, 
+    isActive: boolean,
+    color?: string,
+    mirrored?: boolean,
+    scale?: number
+}) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     useEffect(() => {
         if (!analyser || !canvasRef.current) return;
@@ -182,41 +194,50 @@ const Visualizer = ({ analyser, isActive }: { analyser: AnalyserNode | null, isA
 
             const barCount = 48;
             const gap = 6;
-            const barWidth = (canvas.width - gap * barCount) / barCount;
-            let x = gap / 2;
+            const barWidth = ((800 / (mirrored ? 2 : 1)) - gap * barCount) / barCount;
+            const opacity = isActive ? 0.9 : 0.2;
 
-            for (let i = 0; i < barCount; i++) {
-                // Focus slightly more on lower/mid frequencies
-                const index = Math.floor(i * (bufferLength * 0.7) / barCount);
-                const dataVal = dataArray[index] || 0;
+            const renderBars = (baseX: number, direction: number) => {
+                let x = baseX + (gap / 2) * direction;
+                for (let i = 0; i < barCount; i++) {
+                    const index = Math.floor(i * (bufferLength * 0.7) / barCount);
+                    const dataVal = dataArray[index] || 0;
+                    const barHeight = Math.max(4, (dataVal / 255) * (canvas.height / 1.5) * scale);
 
-                const barHeight = Math.max(4, (dataVal / 255) * (canvas.height / 1.5));
-                const opacity = isActive ? 0.9 : 0.2;
+                    ctx.save();
+                    ctx.translate(x + (barWidth / 2) * direction, canvas.height / 2);
+                    
+                    // Handle both hex and rgba colors for dev customization
+                    if (color && color.startsWith('#')) {
+                        const r = parseInt(color.slice(1, 3), 16);
+                        const g = parseInt(color.slice(3, 5), 16);
+                        const b = parseInt(color.slice(5, 7), 16);
+                        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+                    } else if (color) {
+                        ctx.fillStyle = color.replace('0.9', opacity.toString());
+                    }
+                    
+                    ctx.beginPath();
+                    ctx.roundRect(-barWidth / 2, -barHeight / 2, barWidth, barHeight, barWidth / 2);
+                    ctx.fill();
+                    ctx.restore();
+                    x += (barWidth + gap) * direction;
+                }
+            };
 
-                ctx.save();
-                ctx.translate(x + barWidth / 2, canvas.height / 2);
-
-                // Silky creamy white color that blends beautifully with the background theme
-                ctx.fillStyle = `rgba(255, 250, 240, ${opacity})`;
-                ctx.shadowBlur = isActive ? 24 : 8;
-                ctx.shadowColor = `rgba(255, 255, 255, ${opacity * 0.5})`;
-
-                // Render mirrored full rounded capsule
-                ctx.beginPath();
-                ctx.roundRect(-barWidth / 2, -barHeight, barWidth, barHeight * 2, barWidth / 2);
-                ctx.fill();
-
-                ctx.restore();
-
-                x += barWidth + gap;
+            if (mirrored) {
+                renderBars(canvas.width / 2, 1);
+                renderBars(canvas.width / 2, -1);
+            } else {
+                renderBars(0, 1);
             }
         };
+
         draw();
         return () => cancelAnimationFrame(animationId);
-    }, [analyser, isActive]);
+    }, [analyser, isActive, color, mirrored, scale]);
 
-    // ⚡ mix-blend-overlay ensures the visualizer magically adopts the background's prominent color scheme
-    return <canvas ref={canvasRef} width={600} height={200} className="w-full max-w-2xl h-[150px] opacity-50 mix-blend-overlay pointer-events-none filter blur-[1px]" />;
+    return <canvas ref={canvasRef} width={800} height={200} className="w-full h-full opacity-50 mix-blend-overlay pointer-events-none filter blur-[1px]" />;
 };
 
 export default function StudyRoom({ params }: { params: Promise<{ roomCode: string }> }) {
@@ -224,7 +245,10 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     const { roomCode } = use(params);
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { isPremiumUser } = useStudyStore();
+    const { 
+        isPremiumUser,
+        enableDevRoomOptions
+    } = useStudyStore();
     const [isRoomPremium, setIsRoomPremium] = useState(false);
 
     // --- STATES ---
@@ -253,6 +277,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         roomTheme: null as string | null, // null = host hasn't changed, use personal theme
         audioTrack: 'None',
         showVisualizer: false,
+        visualizerColor: '#fffaf0',
+        visualizerMirrored: false,
+        visualizerScale: 1.0,
         isGhostMode: false,
     });
 
@@ -277,6 +304,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
         vibeCategory: settings.vibeCategory,
         audioTrack: settings.audioTrack,
         showVisualizer: settings.showVisualizer,
+        visualizerColor: settings.visualizerColor,
+        visualizerMirrored: settings.visualizerMirrored,
+        visualizerScale: settings.visualizerScale,
         isGhostMode: settings.isGhostMode,
         roomTheme: settings.roomTheme
     });
@@ -292,6 +322,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             vibeCategory: settings.vibeCategory,
             audioTrack: settings.audioTrack,
             showVisualizer: settings.showVisualizer,
+            visualizerColor: settings.visualizerColor,
+            visualizerMirrored: settings.visualizerMirrored,
+            visualizerScale: settings.visualizerScale,
             isGhostMode: settings.isGhostMode,
             roomTheme: settings.roomTheme
         };
@@ -443,6 +476,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             vibeCategory: payload.vibeCategory,
                             audioTrack: payload.audioTrack,
                             showVisualizer: payload.showVisualizer,
+                            visualizerColor: payload.visualizerColor,
+                            visualizerMirrored: payload.visualizerMirrored,
+                            visualizerScale: payload.visualizerScale,
                             isGhostMode: payload.isGhostMode,
                             roomTheme: payload.roomTheme
                         }));
@@ -860,12 +896,34 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                 />
                                 <CustomSelect
                                     value={settings.audioTrack}
-                                    options={AUDIO_TRACKS}
+                                    options={enableDevRoomOptions ? [...AUDIO_TRACKS, { name: 'Dev: Deep Space', pro: true }, { name: 'Dev: Cybernetic Pulse', pro: true }] : AUDIO_TRACKS}
                                     isOpen={openDropdown === 'audio'}
                                     onToggle={() => setOpenDropdown(openDropdown === 'audio' ? null : 'audio')}
                                     isPremiumUser={isRoomPremium}
                                     onChange={(track: string) => updateSettings({ audioTrack: track })}
                                 />
+                                {enableDevRoomOptions && (
+                                    <div className="pt-2 space-y-3">
+                                        <div className="flex justify-between items-center bg-red-500/5 p-3 rounded-xl border border-red-500/20">
+                                            <span className="text-[10px] font-black text-red-400 uppercase">Visualizer Theme</span>
+                                            <input 
+                                                type="color" 
+                                                value={settings.visualizerColor || '#fffaf0'} 
+                                                onChange={(e) => updateSettings({ visualizerColor: e.target.value })}
+                                                className="w-6 h-6 bg-transparent border-none cursor-pointer"
+                                            />
+                                        </div>
+                                        <div 
+                                            onClick={() => updateSettings({ visualizerMirrored: !settings.visualizerMirrored })}
+                                            className="flex justify-between items-center bg-red-500/5 p-3 rounded-xl border border-red-500/20 cursor-pointer"
+                                        >
+                                            <span className="text-[10px] font-black text-red-400 uppercase">Mirror Rails</span>
+                                            <div className={`w-8 h-4 rounded-full relative transition-colors ${settings.visualizerMirrored ? 'bg-red-500' : 'bg-white/10'}`}>
+                                                <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${settings.visualizerMirrored ? 'left-4.5' : 'left-0.5'}`} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </section>
 
                             {/* PREMIUM TOGGLES */}
@@ -929,6 +987,18 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             <p className={`text-[10px] font-black uppercase tracking-[0.2em] mt-1 ${isBreak ? 'text-[var(--text-muted)]' : 'text-[var(--accent-teal)]'}`}>
                                 {status === 'DRAFT' ? "Blueprint Phase" : isBreak ? "☕ Recovery Phase" : "⚡ Focus Protocol Active"}
                             </p>
+                            {status === 'ACTIVE' && (
+                                <div className="flex gap-4 mt-2">
+                                    <div className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-lg border border-white/5">
+                                        <Sparkles size={10} className="text-[var(--accent-yellow)]" />
+                                        <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">{settings.vibeAsset}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-lg border border-white/5">
+                                        <Activity size={10} className="text-[var(--accent-teal)]" />
+                                        <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">{settings.audioTrack}</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <button onClick={() => setShowAbandonConfirm(true)} className="flex items-center gap-2 text-xs font-bold text-(--text-muted) hover:text-red-400 transition-colors bg-(--bg-sidebar)/50 px-4 py-2 rounded-xl border border-(--border-color)">
@@ -940,7 +1010,13 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     {/* 📊 VISUALIZER (Centered Architectural Layer) */}
                     {settings.showVisualizer && (
                         <div className="flex-1 flex items-center justify-center w-full pointer-events-none absolute inset-0 z-0">
-                            <Visualizer analyser={analyser} isActive={isActive || status === 'DRAFT'} />
+                            <Visualizer 
+                                analyser={analyser} 
+                                isActive={isActive || status === 'DRAFT'} 
+                                color={settings.visualizerColor}
+                                mirrored={settings.visualizerMirrored}
+                                scale={settings.visualizerScale}
+                            />
                         </div>
                     )}
 

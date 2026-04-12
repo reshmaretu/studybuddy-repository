@@ -94,7 +94,6 @@ export default function LanternNetPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const {
         totalSessions, activeMode, isTutorModeActive, isDev, devOverlayEnabled,
-        debrisSize, debrisColor, debrisCount, debrisSpread, setDebris,
         mockUsers, setMockUsers, isPremiumUser, setSettings, totalSecondsTracked
     } = useStudyStore();
     const router = useRouter();
@@ -104,7 +103,7 @@ export default function LanternNetPage() {
     const isFirstLoad = useRef(true);
     const lanternRef = useRef<LanternNetHandle>(null);
 
-    const [isDevOverlayOpen, setIsDevOverlayOpen] = useState(false);
+    const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
     const [appTheme, setAppTheme] = useState('deep-teal');
 
     useEffect(() => {
@@ -115,39 +114,7 @@ export default function LanternNetPage() {
         document.documentElement.setAttribute('data-theme', saved);
     }, []);
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (isDev && devOverlayEnabled && e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
-                e.preventDefault();
-                setIsDevOverlayOpen(p => !p);
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isDev, devOverlayEnabled]);
-
-    const generateMockUser = (existingUsers: LanternUser[], id: string): LanternUser => {
-        const statuses: LanternUser['status'][] = ['idle', 'drafting', 'hosting', 'joined', 'flowState', 'cafe', 'mastering', 'offline'];
-        const status = statuses[Math.floor(Math.random() * statuses.length)];
-        const isHosting = status === 'hosting' || status === 'drafting';
-
-        let gridX = 6, gridY = 6;
-        let attempts = 0;
-        while (attempts < 100) {
-            gridX = Math.floor(Math.random() * 24) - 6;
-            gridY = Math.floor(Math.random() * 24) - 6;
-            if (gridX === 6 && gridY === 6) { attempts++; continue; }
-            const clash = existingUsers.some(u => u.gridX === gridX && u.gridY === gridY);
-            if (!clash) break;
-            attempts++;
-        }
-
-        return {
-            id: `mock-${id}`,
-            name: `Bot ${id}`,
-            chumLabel: "🤖 Bot",
-            focusScore: Math.floor(Math.random() * 5000),
-            status,
+    // --- NETWORK CORE ---
             hours: Math.floor(Math.random() * 500),
             isPremium: Math.random() > 0.5,
             isHosting,

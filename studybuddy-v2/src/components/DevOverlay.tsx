@@ -11,8 +11,10 @@ export default function DevOverlay() {
     const {
         isDev, devOverlayEnabled, setLastPlannedDate,
         debrisSize, debrisColor, debrisCount, debrisSpread, setDebris,
-        windSpeed, swayAmount, setWindSettings, // <-- ADD THESE
-        triggerChumToast
+        windSpeed, swayAmount, setWindSettings,
+        triggerChumToast,
+        mockUsers, setMockUsers,
+        enableDevRoomOptions, setEnableDevRoomOptions
     } = useStudyStore();
     const [isOpen, setIsOpen] = useState(false);
     const [isNuking, setIsNuking] = useState(false);
@@ -28,6 +30,29 @@ export default function DevOverlay() {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isDev, devOverlayEnabled]);
+
+    const generateMockUser = (id: string): any => {
+        const statuses = ['idle', 'drafting', 'hosting', 'joined', 'flowState', 'cafe', 'mastering', 'offline'];
+        const status = statuses[Math.floor(Math.random() * statuses.length)];
+        const isHosting = status === 'hosting' || status === 'drafting';
+
+        return {
+            id: `mock-${id}`,
+            name: `Bot ${id}`,
+            chumLabel: "🤖 Bot",
+            focusScore: Math.floor(Math.random() * 5000),
+            status,
+            hours: Math.floor(Math.random() * 500),
+            isPremium: Math.random() > 0.5,
+            isHosting,
+            roomCode: isHosting ? `MCK${id.substring(0, 3)}` : undefined,
+            roomTitle: isHosting ? `Mock Sanctuary ${id}` : undefined,
+            gridX: Math.floor(Math.random() * 24) - 6,
+            gridY: Math.floor(Math.random() * 24) - 6,
+            jitterX: (Math.random() - 0.5) * 40,
+            jitterY: (Math.random() - 0.5) * 40,
+        };
+    };
 
     const forceMorningReset = async () => {
         const yesterday = new Date();
@@ -79,8 +104,6 @@ export default function DevOverlay() {
         }
     };
 
-
-
     if (!isDev) return null;
 
     return (
@@ -104,7 +127,7 @@ export default function DevOverlay() {
                         </div>
 
                         <div className="space-y-6">
-                            <div className="bg-(--bg-dark) border border-(--border-color) p-4 rounded-2xl flex flex-col gap-3">
+                            <div className="bg-(--bg-dark) border border-(--border-color) p-4 rounded-2xl space-y-3">
                                 <div className="flex justify-between items-center">
                                     <span className="text-xs font-bold text-(--text-main)">System Tools</span>
                                     <Terminal size={14} className="text-(--text-muted)" />
@@ -115,46 +138,75 @@ export default function DevOverlay() {
                                 >
                                     <RefreshCw size={14} /> Force Morning Reset
                                 </button>
+
+                                <div className="flex justify-between items-center pt-2 border-t border-(--border-color)">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black uppercase text-white/60 tracking-widest">Enclave Status</span>
+                                        <span className="text-[8px] text-(--text-muted) font-medium italic">Enable hidden room blueprints</span>
+                                    </div>
+                                    <div 
+                                        onClick={() => setEnableDevRoomOptions(!enableDevRoomOptions)}
+                                        className={`w-10 h-5 rounded-full p-1 flex items-center transition-all duration-300 cursor-pointer ${enableDevRoomOptions ? 'bg-red-500' : 'bg-(--bg-card) border border-(--border-color)'}`}
+                                    >
+                                        <div className={`w-3 h-3 rounded-full transition-transform duration-300 ${enableDevRoomOptions ? 'translate-x-5 bg-white' : 'translate-x-0 bg-(--text-muted)'}`} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-(--bg-dark) border border-(--border-color) p-4 rounded-2xl space-y-4">
+                                <h3 className="text-[10px] font-black uppercase text-white/40 tracking-widest">Network Mocks (Lantern)</h3>
+                                <div className="flex justify-between items-center bg-(--bg-sidebar) px-4 py-3 rounded-xl border border-(--border-color)">
+                                    <span className="text-xs font-bold text-(--text-main)">Mock User Count</span>
+                                    <div className="flex gap-3 items-center">
+                                        <button onClick={() => setMockUsers(mockUsers.slice(0, Math.max(0, mockUsers.length - 1)))} className="w-6 h-6 rounded bg-(--border-color) flex items-center justify-center font-bold text-xs hover:text-(--accent-teal)">-</button>
+                                        <span className="text-xs font-mono w-4 text-center">{mockUsers.length}</span>
+                                        <button onClick={() => setMockUsers([...mockUsers, generateMockUser(Math.random().toString(36).substring(2, 6))])} className="w-6 h-6 rounded bg-(--border-color) flex items-center justify-center font-bold text-xs hover:text-(--accent-teal)">+</button>
+                                    </div>
+                                </div>
+                                <button onClick={() => {
+                                    setMockUsers(mockUsers.map(u => generateMockUser(u.id.replace('mock-', ''))));
+                                }} className="w-full py-2 bg-(--bg-sidebar) border border-(--border-color) rounded-xl text-xs font-bold hover:border-red-500/50 transition-colors">
+                                    Randomize Bot Vectors
+                                </button>
                             </div>
 
                             <div className="bg-(--bg-dark) border border-(--border-color) p-4 rounded-2xl space-y-4">
                                 <h3 className="text-[10px] font-black uppercase text-white/40 tracking-widest">Atmosphere (Lantern Net)</h3>
-                                {/* ... Your existing slider inputs remain identical ... */}
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-bold">
                                         <span>Wind Speed</span>
-                                        <span className="font-mono text-(--accent-teal)">{windSpeed.toFixed(1)}</span>
+                                        <span className="font-mono text-red-400">{windSpeed.toFixed(1)}</span>
                                     </div>
-                                    <input type="range" min="0" max="10" step="0.1" value={windSpeed} onChange={(e) => setWindSettings({ windSpeed: parseFloat(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
+                                    <input type="range" min="0" max="10" step="0.1" value={windSpeed} onChange={(e) => setWindSettings({ windSpeed: parseFloat(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-500" />
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-bold">
                                         <span>Wind Sway</span>
-                                        <span className="font-mono text-(--accent-teal)">{swayAmount.toFixed(2)}</span>
+                                        <span className="font-mono text-red-400">{swayAmount.toFixed(2)}</span>
                                     </div>
-                                    <input type="range" min="0" max="1.0" step="0.01" value={swayAmount} onChange={(e) => setWindSettings({ swayAmount: parseFloat(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
+                                    <input type="range" min="0" max="1.0" step="0.01" value={swayAmount} onChange={(e) => setWindSettings({ swayAmount: parseFloat(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-500" />
                                 </div>
 
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-bold">
                                         <span>Debris Size</span>
-                                        <span className="font-mono text-(--accent-teal)">{debrisSize.toFixed(1)}</span>
+                                        <span className="font-mono text-red-400">{debrisSize.toFixed(1)}</span>
                                     </div>
-                                    <input type="range" min="0.1" max="2.0" step="0.1" value={debrisSize} onChange={(e) => setDebris({ size: parseFloat(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
+                                    <input type="range" min="0.1" max="2.0" step="0.1" value={debrisSize} onChange={(e) => setDebris({ size: parseFloat(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-500" />
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-bold">
                                         <span>Debris Count</span>
-                                        <span className="font-mono text-(--accent-teal)">{debrisCount}</span>
+                                        <span className="font-mono text-red-400">{debrisCount}</span>
                                     </div>
-                                    <input type="range" min="1000" max="15000" step="1000" value={debrisCount} onChange={(e) => setDebris({ count: parseInt(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
+                                    <input type="range" min="1000" max="15000" step="1000" value={debrisCount} onChange={(e) => setDebris({ count: parseInt(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-500" />
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-bold">
                                         <span>Debris Spread</span>
-                                        <span className="font-mono text-(--accent-teal)">{debrisSpread}</span>
+                                        <span className="font-mono text-red-400">{debrisSpread}</span>
                                     </div>
-                                    <input type="range" min="100" max="1000" step="50" value={debrisSpread} onChange={(e) => setDebris({ spread: parseInt(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-(--accent-teal)" />
+                                    <input type="range" min="100" max="1000" step="50" value={debrisSpread} onChange={(e) => setDebris({ spread: parseInt(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-500" />
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-bold">

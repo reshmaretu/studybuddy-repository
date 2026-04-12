@@ -299,8 +299,8 @@ export default function Dashboard() {
                     <button
                         id="dashboard-brain-reset"
                         onClick={() => setIsBrainResetOpen(true)}
-                        className={`bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer group relative overflow-hidden transition-all duration-700 w-full ${isResetHighlighted
-                                ? "border-[var(--accent-teal)] shadow-[0_0_30px_rgba(45,212,191,0.2)]"
+                        className={`bg-[var(--bg-card)] border-2 border-[var(--border-color)] rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer group relative overflow-hidden transition-all duration-700 w-full ${isResetHighlighted
+                                ? "border-[var(--accent-teal)] shadow-[0_0_30px_rgba(45,212,191,0.4)] ring-4 ring-[var(--accent-teal)]/20 ring-offset-4 ring-offset-[var(--bg-dark)]"
                                 : "hover:border-[var(--accent-teal)]/50"
                             }`}
                     >

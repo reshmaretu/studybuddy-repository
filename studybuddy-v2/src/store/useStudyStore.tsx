@@ -263,6 +263,8 @@ interface StudyState {
     setDebris: (settings: Partial<{ size: number, color: string, count: number, spread: number }>) => void;
     devOverlayEnabled: boolean;
     setDevOverlayEnabled: (val: boolean) => void;
+    enableDevRoomOptions: boolean;
+    setEnableDevRoomOptions: (val: boolean) => void;
 
     reset: () => void;
 
@@ -415,6 +417,8 @@ export const useStudyStore = create<StudyState>()(
             lastPlannedDate: null,
             isDev: false,
             devOverlayEnabled: true,
+            enableDevRoomOptions: false,
+            setEnableDevRoomOptions: (val) => set({ enableDevRoomOptions: val }),
             protocolLimits: { heavy: 1, medium: 3, light: 5 },
             isEditModalOpen: false,
             editingTaskId: null,
@@ -1218,6 +1222,7 @@ export const useStudyStore = create<StudyState>()(
                 lastResetHighlightAt: state.lastResetHighlightAt,
                 notifications: state.notifications,
                 hasCompletedTutorial: state.hasCompletedTutorial,
+                enableDevRoomOptions: state.enableDevRoomOptions,
             })
         }
     )
