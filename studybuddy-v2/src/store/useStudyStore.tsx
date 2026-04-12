@@ -367,7 +367,7 @@ export const useStudyStore = create<StudyState>()(
 
             aiTier: 'cloud',
             aiKeys: { groq: '', gemini: '', openrouter: '' },
-            selectedModel: 'google/gemini-2.0-flash-001',
+            selectedModel: 'mistralai/mistral-7b-instruct:free',
             setSelectedModel: (model) => set({ selectedModel: model }),
             ollamaUrl: 'http://localhost:11434',
             showNodeBadge: true,

@@ -7,6 +7,26 @@ import { useStudyStore, ChatMessage, TutorSession, Shard, TaskLoad } from "@/sto
 import { supabase } from '@/lib/supabase';
 import ChumRenderer from "@/components/ChumRenderer";
 
+function TypewriterText({ text, speed = 40 }: { text: string, speed?: number }) {
+    const [displayedText, setDisplayedText] = useState("");
+    
+    useEffect(() => {
+        setDisplayedText(""); // Reset when text changes
+        let index = 0;
+        const interval = setInterval(() => {
+            if (index < text.length) {
+                setDisplayedText((prev) => prev + text.charAt(index));
+                index++;
+            } else {
+                clearInterval(interval);
+            }
+        }, speed);
+        return () => clearInterval(interval);
+    }, [text, speed]);
+
+    return <>{displayedText}</>;
+}
+
 export default function ChumWidget() {
     const [isOpen, setIsOpen] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
@@ -434,9 +454,8 @@ export default function ChumWidget() {
                                                     label: 'OpenRouter', 
                                                     placeholder: 'sk-or-v1-...', 
                                                     models: [
-                                                        { id: 'google/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash' },
                                                         { id: 'mistralai/mistral-7b-instruct:free', label: 'Mistral 7B Instruct v0.3' },
-                                                        { id: 'google/gemini-2.0-flash-lite-preview-02-05:free', label: 'Gemini 2.0 Flash Lite' },
+                                                        { id: 'google/gemini-2.0-flash-lite:preview-02-05', label: 'Gemini 2.5 Flash Lite' },
                                                         { id: 'meta-llama/llama-3.2-3b-instruct:free', label: 'Llama 3.2 3B Instruct' }
                                                     ]
                                                 },
@@ -454,8 +473,8 @@ export default function ChumWidget() {
                                                     label: 'Gemini (Direct)', 
                                                     placeholder: 'AIza...', 
                                                     models: [
-                                                        { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-                                                        { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' }
+                                                        { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+                                                        { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' }
                                                     ]
                                                 }
                                             ].map((prov) => (
@@ -465,11 +484,12 @@ export default function ChumWidget() {
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-[10px] text-[var(--text-muted)]">Model:</span>
                                                             <select
-                                                                value={aiKeys.selectedModel || ''}
-                                                                onChange={(e) => updateAIKeys({ selectedModel: e.target.value })}
+                                                                value={selectedModel || ''}
+                                                                onChange={(e) => setSelectedModel(e.target.value)}
                                                                 className="bg-transparent text-[10px] font-bold text-[var(--text-main)] outline-none cursor-pointer border-b border-[var(--border-color)] pb-0.5"
                                                                 disabled={!aiKeys[prov.id as keyof typeof aiKeys]}
                                                             >
+                                                                <option value="" disabled className="bg-[var(--bg-card)]">Select Model</option>
                                                                 {prov.models.map(m => (
                                                                     <option key={m.id} value={m.id} className="bg-[var(--bg-card)]">{m.label}</option>
                                                                 ))}
@@ -573,7 +593,11 @@ export default function ChumWidget() {
                                         {currentHistory.map((msg, i) => (
                                             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} flex-col`}>
                                                 <div className={`p-3 text-sm rounded-xl max-w-[85%] shadow-sm whitespace-pre-wrap ${msg.role === 'user' ? 'bg-(--accent-teal)/20 border border-(--accent-teal)/30 text-(--text-main) rounded-tr-none' : 'bg-(--bg-dark) border border-(--border-color) text-(--text-muted) rounded-tl-none'}`}>
-                                                    {msg.text}
+                                                    {msg.role === 'chum' && i === currentHistory.length - 1 && !isTyping ? (
+                                                        <TypewriterText text={msg.text} />
+                                                    ) : (
+                                                        msg.text
+                                                    )}
 
                                                     {msg.node && msg.role === 'chum' && showNodeBadge && (
                                                         <div className="mt-2 pt-2 border-t border-(--border-color)/30 flex items-center gap-1.5 opacity-50 select-none">

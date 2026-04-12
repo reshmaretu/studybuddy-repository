@@ -72,12 +72,15 @@ export async function POST(req: Request) {
         const shouldStream = req.body ? (await req.clone().json()).stream !== false : true;
 
         // 🎯 PRIORITY: Manual Model Selection via OpenRouter
-        if (selected_model && orKey) {
+        const modelToUse = selected_model || "mistralai/mistral-7b-instruct:free";
+        if (modelToUse && orKey) {
             try {
                 const openrouter = createOpenRouter({ apiKey: orKey });
                 const config = {
-                    model: openrouter(selected_model),
-                    messages: formattedMessages
+                    model: openrouter(modelToUse),
+                    messages: formattedMessages,
+                    maxTokens: 600, // Balanced for speed and detail
+                    temperature: 0.7,
                 };
 
                 if (shouldStream) {
