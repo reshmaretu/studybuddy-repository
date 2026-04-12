@@ -292,63 +292,6 @@ if (!isMounted) return null;
 return (
     <div data-theme={appTheme} className="flex flex-col lg:flex-row h-screen max-h-screen p-4 pb-8 lg:p-6 lg:pb-10 gap-6 bg-(--bg-dark) overflow-hidden relative">
 
-        <AnimatePresence>
-            {isDevOverlayOpen && (
-                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                    className="absolute top-20 left-1/2 -translate-x-1/2 z-999 bg-(--bg-card) border-2 border-red-500/50 p-6 rounded-3xl shadow-[0_0_50px_rgba(255,0,0,0.15)] w-80">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="font-black text-red-400 text-xs tracking-widest uppercase">Dev Console</h2>
-                        <button onClick={() => setIsDevOverlayOpen(false)} className="text-(--text-muted) hover:text-white"><X size={14} /></button>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center bg-(--bg-dark) px-4 py-2 rounded-xl">
-                            <span className="text-xs font-bold text-(--text-main)">Mock Users</span>
-                            <div className="flex gap-2 items-center">
-                                <button onClick={() => setMockUsers(mockUsers.slice(0, Math.max(0, mockUsers.length - 1)))} className="w-6 h-6 rounded bg-(--border-color) flex items-center justify-center font-bold text-xs">-</button>
-                                <span className="text-xs font-mono">{mockUsers.length}</span>
-                                <button onClick={() => setMockUsers([...mockUsers, generateMockUser(combinedNetwork, Math.random().toString(36).substring(2, 6))])} className="w-6 h-6 rounded bg-(--border-color) flex items-center justify-center font-bold text-xs">+</button>
-                            </div>
-                        </div>
-                        <button onClick={() => {
-                            setMockUsers(mockUsers.map(u => generateMockUser(combinedNetwork.filter(m => m.id !== u.id), u.id.replace('mock-', ''))));
-                        }} className="w-full py-2 bg-(--bg-dark) border border-(--border-color) rounded-xl text-xs font-bold hover:bg-(--border-color) transition-colors">
-                            Randomize Mock Users
-                        </button>
-
-                        <div className="pt-4 border-t border-(--border-color) space-y-3">
-                            <h3 className="text-[10px] font-black uppercase text-white/40 tracking-widest">Environment Controls</h3>
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center text-[10px] font-bold">
-                                    <span>Size</span>
-                                    <span className="font-mono text-red-400">{debrisSize.toFixed(1)}</span>
-                                </div>
-                                <input type="range" min="0.1" max="2" step="0.1" value={debrisSize} onChange={(e) => setDebris({ size: parseFloat(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-500" />
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center text-[10px] font-bold">
-                                    <span>Count</span>
-                                    <span className="font-mono text-red-400">{debrisCount}</span>
-                                </div>
-                                <input type="range" min="1000" max="15000" step="1000" value={debrisCount} onChange={(e) => setDebris({ count: parseInt(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-500" />
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center text-[10px] font-bold">
-                                    <span>Spread</span>
-                                    <span className="font-mono text-red-400">{debrisSpread}</span>
-                                </div>
-                                <input type="range" min="100" max="1000" step="50" value={debrisSpread} onChange={(e) => setDebris({ spread: parseInt(e.target.value) })} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-500" />
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center text-[10px] font-bold">
-                                    <span>Color</span>
-                                    <input type="color" value={debrisColor} onChange={(e) => setDebris({ color: e.target.value })} className="w-6 h-6 bg-transparent border-none cursor-pointer" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </motion.div>
-            )}
-        </AnimatePresence>
 
         <AnimatePresence>
             {isHostModalOpen && (
