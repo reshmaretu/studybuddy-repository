@@ -29,9 +29,17 @@ export default function AccountPage() {
         setPremiumStatus, setDisplayName, setFullName, mockInvoices, addMockInvoice,
         isVerified, setIsVerified, avatarUrl, setProfileModalOpen,
         doubleClickToComplete = true, dndEnabled = true, setSettings, handleLogout,
+        requestNotificationPermission,
         performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true },
         accessibilitySettings = { highContrast: false, largeText: false, reducedMotion: false }
     } = useStudyStore();
+
+    const [notificationPermission, setNotificationPermission] = useState<string>('default');
+    useEffect(() => {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            setNotificationPermission(Notification.permission);
+        }
+    }, []);
 
     const [isNewPasswordFocused, setIsNewPasswordFocused] = useState(false);
 
@@ -634,6 +642,34 @@ export default function AccountPage() {
                                 className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${dndEnabled ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
                             >
                                 <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${dndEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+
+                        {/* Web Push / Notifications Toggle */}
+                        <div className="flex items-center justify-between p-6 rounded-3xl bg-black/20 border border-white/5 group hover:border-[var(--accent-teal)]/20 transition-all">
+                            <div className="flex items-center gap-4">
+                                <div className={`p-2 rounded-xl transition-colors ${notificationPermission === 'granted' ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-white/5 text-white/20'}`}>
+                                    <Fingerprint size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-white">Neural Transmissions</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5">Desktop & Background Alerts</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    const granted = await requestNotificationPermission();
+                                    if (granted) {
+                                        setNotificationPermission('granted');
+                                        triggerChumToast("Neural Link established!", "success");
+                                    } else {
+                                        setNotificationPermission('denied');
+                                        triggerChumToast("Link rejected by host.", "warning");
+                                    }
+                                }}
+                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${notificationPermission === 'granted' ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${notificationPermission === 'granted' ? 'translate-x-6' : 'translate-x-0'}`} />
                             </button>
                         </div>
                     </div>

@@ -592,7 +592,7 @@ export default function CrystalGarden() {
     return (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             {/* Full-height container, responsive scroll logic */}
-            <div className="h-full lg:h-[calc(100vh-theme(spacing.24))] flex flex-col max-w-[1600px] mx-auto space-y-4 relative overflow-y-auto lg:overflow-hidden px-4 no-scrollbar">
+            <div id="garden-main-zone" className="h-full lg:h-[calc(100vh-theme(spacing.24))] flex flex-col max-w-[1600px] mx-auto space-y-4 relative overflow-y-auto lg:overflow-hidden px-4 no-scrollbar">
 
                 <AnimatePresence>
                     {showMorningModal && <MorningPlanningModal />}

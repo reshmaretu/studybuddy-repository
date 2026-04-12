@@ -39,6 +39,13 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
         if (!isInitialized) {
             initializeData();
         }
+
+        // 🛰️ Register Service Worker for Web Push
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('[STUDYBUDDY] Neural Link (SW) Registered'))
+                .catch(err => console.error('[STUDYBUDDY] Neural Link Failed:', err));
+        }
     }, [isInitialized, initializeData]);
     
     // 🚪 Protection: Redirect if not logged in and trying to access app pages

@@ -134,7 +134,7 @@ export default function Dashboard() {
             const alreadyNotified = notifications.some(n => n.title.includes(t.title) && n.type === 'error');
             if (!alreadyNotified) {
                 addNotification({
-                    category: 'system',
+                    category: 'activity',
                     type: 'error',
                     title: `Overdue: ${t.title}`,
                     message: "This bloom has withered! Complete it immediately to restore garden harmony."
@@ -239,7 +239,7 @@ export default function Dashboard() {
                 </header>
 
                 {/* SPARKS FEED */}
-                <fieldset className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 pb-5 pt-2 mt-4 mb-4">
+                <fieldset id="sparks-feed" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 pb-5 pt-2 mt-4 mb-4">
                     <legend className="ml-4 px-2 flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
                         <Zap size={14} className="text-[var(--accent-yellow)]" /> Sparks Feed
                     </legend>
@@ -317,7 +317,7 @@ export default function Dashboard() {
                 </section>
 
                 {/* MIDDLE ROW: Pet */}
-                <section className="grid grid-cols-1 lg:grid-cols-1 gap-5">
+                <section id="garden-blooms-area" className="grid grid-cols-1 lg:grid-cols-1 gap-5">
                     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 shadow-sm cursor-pointer hover:border-[var(--accent-teal)]/50 transition-colors">
 
                         {/* Strictly locked 24x24 container */}

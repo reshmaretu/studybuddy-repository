@@ -161,6 +161,7 @@ interface StudyState {
     addNotification: (notif: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => void;
     markNotificationRead: (id: string) => void;
     clearNotifications: (category?: 'activity' | 'system') => void;
+    requestNotificationPermission: () => Promise<boolean>;
 
     // 🎓 TUTORIAL
     hasCompletedTutorial: boolean;
@@ -439,6 +440,19 @@ export const useStudyStore = create<StudyState>()(
             addNotification: (notif) => {
                 const id = Math.random().toString(36).substring(7);
                 const timestamp = new Date().toISOString();
+                
+                // 🔥 NATIVE WEB PUSH BRIDGE
+                if ("Notification" in window && Notification.permission === "granted") {
+                    navigator.serviceWorker.ready.then(registration => {
+                        registration.showNotification(notif.title, {
+                            body: notif.message,
+                            icon: '/favicon.ico',
+                            tag: id,
+                            badge: '/favicon.ico'
+                        });
+                    });
+                }
+
                 set((state) => ({
                     notifications: [{ ...notif, id, timestamp, isRead: false }, ...state.notifications].slice(0, 50)
                 }));
@@ -451,6 +465,11 @@ export const useStudyStore = create<StudyState>()(
                     ? state.notifications.filter(n => n.category !== category)
                     : []
             })),
+            requestNotificationPermission: async () => {
+                if (!("Notification" in window)) return false;
+                const permission = await Notification.requestPermission();
+                return permission === "granted";
+            },
             hasCompletedTutorial: false,
             setCompletedTutorial: (val) => set({ hasCompletedTutorial: val }),
             setSettings: (settings) => set((state) => ({
