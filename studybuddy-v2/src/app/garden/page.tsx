@@ -395,7 +395,10 @@ export default function CrystalGarden() {
     };
 
     const validTasks = tasks.filter(t => t && t.id);
-    const filteredTasks = validTasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.description?.toLowerCase().includes(searchQuery.toLowerCase()));
+    const filteredTasks = validTasks.filter(t => 
+        (t.title?.toLowerCase()?.includes(searchQuery.toLowerCase())) || 
+        (t.description?.toLowerCase()?.includes(searchQuery.toLowerCase()))
+    );
 
     // These are for the UI Columns (affected by search)
     const activeQuests = filteredTasks.filter(t => !t.isCompleted);
@@ -957,7 +960,7 @@ export default function CrystalGarden() {
                                             transition={{ duration: 0.3 }}
                                             className="absolute inset-0 flex flex-col"
                                         >
-                                            <StandardZone id="current-focus" tasks={sortedQuests} />
+                                            <StandardZone id="current-focus" tasks={sortedQuests} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
                                         </motion.div>
                                     )}
                                 </AnimatePresence>

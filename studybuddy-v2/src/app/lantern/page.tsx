@@ -518,9 +518,18 @@ export default function LanternNetPage() {
                                 <input
                                     type="text"
                                     placeholder="Search void..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
                                     className="w-full bg-(--bg-dark) border border-(--border-color) rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold outline-none focus:border-(--accent-teal) transition-all"
                                 />
                             </div>
+
+                            <button
+                                onClick={() => setIsHostModalOpen(true)}
+                                className="w-full py-4 bg-(--accent-teal)/10 border-2 border-dashed border-(--accent-teal)/30 rounded-2xl text-(--accent-teal) text-xs font-black uppercase tracking-widest hover:bg-(--accent-teal)/20 hover:border-(--accent-teal) transition-all flex items-center justify-center gap-2"
+                            >
+                                <Plus size={18} /> Host a Room
+                            </button>
                         </div>
 
                         {/* TABS CONTAINER (The Conflict Fix) */}
@@ -618,13 +627,6 @@ export default function LanternNetPage() {
                                             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                                             className="space-y-3 flex flex-col h-full"
                                         >
-                                            <button
-                                                onClick={() => setIsHostModalOpen(true)}
-                                                className="w-full py-3.5 bg-(--accent-teal)/10 border-2 border-dashed border-(--accent-teal)/30 rounded-2xl text-(--accent-teal) text-xs font-black uppercase tracking-widest hover:bg-(--accent-teal)/20 hover:border-(--accent-teal) transition-all flex items-center justify-center gap-2 mb-2"
-                                            >
-                                                <Plus size={16} /> Host Sanctuary
-                                            </button>
-
                                             <div className="flex flex-col min-h-0 pb-8 flex-1 overflow-y-auto custom-scrollbar">
                                                 <h3 className="text-sm font-black text-(--text-main) flex items-center gap-2 mb-4 pb-4 border-b border-(--border-color) uppercase tracking-wide">
                                                     <Radio size={18} className="text-(--accent-teal)" /> active Sanctuaries

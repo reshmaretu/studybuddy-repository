@@ -233,6 +233,9 @@ export default function ChumWidget() {
                             messages: messagesPayload,
                             user_id: (session as any).user.id,
                             selected_model: useStudyStore.getState().selectedModel,
+                            openrouter_key: useStudyStore.getState().aiKeys.openrouter,
+                            groq_key: useStudyStore.getState().aiKeys.groq,
+                            gemini_key: useStudyStore.getState().aiKeys.gemini,
                         })
                     });
 

@@ -172,6 +172,7 @@ interface StudyState {
     setActiveAtmosphereFilter: (filter: 'default' | 'dark' | 'refreshing' | 'cool') => void;
 
     activeAccessories: { id: string; fileName: string; zIndex: number; name?: string }[];
+    unlockedThemes: ['default'],
     toggleAccessory: (acc: any) => void;
     setActiveAccessories: (accessories: { id: string; fileName: string; zIndex: number; name?: string }[]) => Promise<void>;
     syncWardrobe: () => Promise<void>;
@@ -420,7 +421,7 @@ export const useStudyStore = create<StudyState>()(
                 const id = Math.random().toString(36).substring(7);
                 const newToast = { message, type, action, id } as any;
                 set((state) => ({ chumToasts: [...state.chumToasts, newToast] }));
-                
+
                 setTimeout(() => {
                     set((state) => ({
                         chumToasts: state.chumToasts.filter((t: any) => t.id !== id)
@@ -512,7 +513,7 @@ export const useStudyStore = create<StudyState>()(
                         setTimeout(() => set({ lastLevelUp: null }), 5000);
                         if (state.triggerChumToast) {
                             state.triggerChumToast(
-                                <span><strong className="text-(--accent-yellow)">🌟 ASCENSION REACHED!</strong><br />Level {currentLevel} achieved. You are now: <span className="text-(--accent-teal)">{getTitleForLevel(currentLevel)}</span></span>, 
+                                <span><strong className="text-(--accent-yellow)">🌟 ASCENSION REACHED!</strong><br />Level {currentLevel} achieved. You are now: <span className="text-(--accent-teal)">{getTitleForLevel(currentLevel)}</span></span>,
                                 'info'
                             );
                         }
@@ -523,7 +524,7 @@ export const useStudyStore = create<StudyState>()(
                         setTimeout(() => set({ lastXpGain: null }), 3000);
                         if (state.triggerChumToast && !didLevelUp) {
                             state.triggerChumToast(
-                                <span><strong className="text-(--accent-teal)">✨ Essence Absorbed!</strong><br />+{finalAmount} XP added to your neural network.</span>, 
+                                <span><strong className="text-(--accent-teal)">✨ Essence Absorbed!</strong><br />+{finalAmount} XP added to your neural network.</span>,
                                 'success'
                             );
                         }
@@ -553,8 +554,8 @@ export const useStudyStore = create<StudyState>()(
                 if (newSinceReset >= 4) {
                     set({ lastResetHighlightAt: new Date().toISOString() });
                     get().triggerChumToast(
-                        <span><strong className="text-(--accent-yellow)">🧠 Neural Fog Detected!</strong><br />You've completed {newSinceReset} flows without a break. Time for a Brain Reset?</span>, 
-                        "info", 
+                        <span><strong className="text-(--accent-yellow)">🧠 Neural Fog Detected!</strong><br />You've completed {newSinceReset} flows without a break. Time for a Brain Reset?</span>,
+                        "info",
                         () => get().setIsBrainResetOpen(true)
                     );
                 }
@@ -628,21 +629,25 @@ export const useStudyStore = create<StudyState>()(
                 }
 
                 if (!id.startsWith('temp-') && user) {
-                    // Update session counts for ANY completion
-                    const newTotal = get().totalSessions + 1;
-                    const newSinceReset = get().sessionsSinceLastReset + 1;
-                    set({ totalSessions: newTotal, sessionsSinceLastReset: newSinceReset });
+                    const currentMode = get().activeMode;
+                    const isFocusMode = currentMode === 'flowState' || currentMode === 'studyCafe';
 
-                    if (newSinceReset >= 4) {
-                        set({ lastResetHighlightAt: new Date().toISOString() });
-                        get().triggerChumToast(
-                            <span><strong className="text-[var(--accent-yellow)]">🧠 Neural Fog Detected!</strong><br />You've completed {newSinceReset} blooms without a break. Time for a Brain Reset?</span>, 
-                            "info", 
-                            () => get().setIsBrainResetOpen(true)
-                        );
+                    // ONLY increment sessions if in a focus mode!
+                    if (isFocusMode) {
+                        const newTotal = get().totalSessions + 1;
+                        const newSinceReset = get().sessionsSinceLastReset + 1;
+                        set({ totalSessions: newTotal, sessionsSinceLastReset: newSinceReset });
+
+                        if (newSinceReset >= 4) {
+                            set({ lastResetHighlightAt: new Date().toISOString() });
+                            get().triggerChumToast(
+                                <span><strong className="text-[var(--accent-yellow)]">🧠 Neural Fog Detected!</strong><br />You've completed {newSinceReset} flows in the zone. Time for a Brain Reset?</span>,
+                                "info",
+                                () => get().setIsBrainResetOpen(true)
+                            );
+                        }
+                        supabase.from('user_stats').update({ total_sessions: newTotal }).eq('user_id', user.id).then();
                     }
-
-                    supabase.from('user_stats').update({ total_sessions: newTotal }).eq('user_id', user.id).then();
 
                     const dbUpdate: any = { is_completed: true, completed_at: now };
                     if (premiumStats?.actualPomos !== undefined) dbUpdate.actual_pomodoros = premiumStats.actualPomos;
@@ -664,6 +669,8 @@ export const useStudyStore = create<StudyState>()(
 
             activeCrystalTheme: 'quartz',
             activeAtmosphereFilter: 'default',
+
+            unlockedThemes: ['default'],
 
             activeAccessories: [],
             toggleAccessory: (acc) => set((state) => ({
@@ -927,7 +934,7 @@ export const useStudyStore = create<StudyState>()(
             exitMode: () => {
                 const { totalSecondsTracked } = get();
                 set({ activeMode: 'none', activeTaskId: null, isRunning: false });
-                
+
                 // 🔥 IMMEDIATE SAVE ON EXIT
                 supabase.auth.getUser().then(({ data: { user } }) => {
                     if (user) supabase.from('user_stats').update({ total_seconds_tracked: totalSecondsTracked }).eq('user_id', user.id).then();
@@ -1098,7 +1105,7 @@ export const useStudyStore = create<StudyState>()(
                 pomodoroCycles: state.pomodoroCycles,
                 devOverlayEnabled: state.devOverlayEnabled,
                 activeCrystalTheme: state.activeCrystalTheme,
-                activeAccessories: state.activeAccessories,
+                activeAccessories: state.activeAccessories || [],
                 windSpeed: state.windSpeed,
                 swayAmount: state.swayAmount,
                 flowerCount: state.flowerCount,

@@ -295,12 +295,15 @@ export default function AccountPage() {
 
             if (profileError) throw profileError;
 
-            if (isChangingDisplay) await setDisplayName(formData.newDisplayName);
-            if (isChangingIdentity) await setFullName(finalFullName);
+            // Update store immediately
+            if (isChangingDisplay) setDisplayName(formData.newDisplayName);
+            if (isChangingIdentity) setFullName(finalFullName);
 
             triggerChumToast("Garden identity harmonized.", "success");
             setActiveModal(null);
-            setTimeout(() => window.location.reload(), 1500);
+            
+            // Allow state to settle before reload (or skip reload if store is enough)
+            setTimeout(() => window.location.reload(), 2000);
         } catch (err: any) {
             triggerChumToast(err.message || "Sync failed. Reverting shards.", "warning");
         } finally {
@@ -503,7 +506,7 @@ export default function AccountPage() {
                         onClick={() => setProfileModalOpen(true)}
                         className="relative group cursor-pointer active:scale-95 transition-transform"
                     >
-                        <div className="w-40 h-40 rounded-full border-4 border-teal-500/20 p-1.5 bg-(--bg-card) flex items-center justify-center relative transition-all duration-500 group-hover:border-teal-400 group-hover:shadow-[0_0_30px_rgba(45,212,191,0.3)] shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden">
+                        <div className="w-40 h-40 rounded-full border-4 border-[var(--accent-teal)]/20 p-1.5 bg-(--bg-card) flex items-center justify-center relative transition-all duration-500 group-hover:border-[var(--accent-teal)] group-hover:shadow-[0_0_30px_rgba(45,212,191,0.3)] shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden">
                             {avatarUrl ? (
                                 <img 
                                     src={avatarUrl} 
@@ -528,20 +531,20 @@ export default function AccountPage() {
 
                     <div className="space-y-1">
                         <div className="flex items-center justify-center gap-3">
-                            <h1 className="text-4xl font-bold tracking-tight text-white leading-tight">
+                            <h1 className="text-4xl font-bold tracking-tight text-(--text-main) leading-tight">
                                 {displayName || fullName || userEmail.split('@')[0] || "Guardian"}
                             </h1>
                             <button
                                 onClick={() => setActiveModal('premium-status')}
-                                className={`p-2 rounded-2xl transition-all shadow-lg ${isPremiumUser ? 'bg-amber-400 text-black' : 'bg-white/5 text-white/40 hover:text-white'}`}
+                                className={`p-2 rounded-2xl transition-all shadow-lg ${isPremiumUser ? 'bg-(--accent-yellow) text-black' : 'bg-white/5 text-white/40 hover:text-white'}`}
                             >
                                 <Crown size={20} fill={isPremiumUser ? "currentColor" : "none"} />
                             </button>
                         </div>
-                        <p className="text-sm font-medium text-teal-400/80 tracking-wide">{userEmail}</p>
+                        <p className="text-sm font-medium text-[var(--accent-teal)]/80 tracking-wide">{userEmail}</p>
                         <div className="flex items-center justify-center gap-2 mt-2">
-                            <span className="text-[10px] font-bold bg-teal-500/10 text-teal-400 border border-teal-500/20 px-3 py-1 rounded-full uppercase tracking-wider">Level {level}</span>
-                            <div className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase flex items-center gap-2 border shadow-sm ${isVerified ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                            <span className="text-[10px] font-bold bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] border border-[var(--accent-teal)]/20 px-3 py-1 rounded-full uppercase tracking-wider">Level {level}</span>
+                            <div className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase flex items-center gap-2 border shadow-sm ${isVerified ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] border-[var(--accent-teal)]/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                                 {isVerified ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
                                 {isVerified ? 'Verified' : 'Unverified'}
                             </div>
@@ -550,7 +553,7 @@ export default function AccountPage() {
                             <button
                                 onClick={() => handleSendOTP('verify')}
                                 disabled={loading}
-                                className="mt-4 px-6 py-2.5 rounded-full bg-white text-black text-[10px] font-bold uppercase hover:bg-teal-400 transition-all flex items-center gap-2 mx-auto active:scale-95 shadow-xl"
+                                className="mt-4 px-6 py-2.5 rounded-full bg-white text-black text-[10px] font-bold uppercase hover:bg-[var(--accent-teal)] transition-all flex items-center gap-2 mx-auto active:scale-95 shadow-xl"
                             >
                                 {loading ? <RefreshCcw size={14} className="animate-spin" /> : <Fingerprint size={14} />}
                                 Verify Email
@@ -560,16 +563,16 @@ export default function AccountPage() {
                 </div>
                 {/* Cozy Action Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full mt-6">
-                    <button onClick={() => setActiveModal('identity')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all group">
-                        <User size={28} className="text-teal-400 group-hover:scale-110 transition-transform" />
+                    <button onClick={() => setActiveModal('identity')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-[var(--accent-teal)]/10 hover:border-[var(--accent-teal)]/30 transition-all group">
+                        <User size={28} className="text-[var(--accent-teal)] group-hover:scale-110 transition-transform" />
                         <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Identity</span>
                     </button>
-                    <button onClick={() => setActiveModal('email')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all group">
-                        <Mail size={28} className="text-teal-400 group-hover:scale-110 transition-transform" />
+                    <button onClick={() => setActiveModal('email')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-[var(--accent-teal)]/10 hover:border-[var(--accent-teal)]/30 transition-all group">
+                        <Mail size={28} className="text-[var(--accent-teal)] group-hover:scale-110 transition-transform" />
                         <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Email</span>
                     </button>
-                    <button onClick={() => setActiveModal('password')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all group">
-                        <Lock size={28} className="text-teal-400 group-hover:scale-110 transition-transform" />
+                    <button onClick={() => setActiveModal('password')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:bg-[var(--accent-teal)]/10 hover:border-[var(--accent-teal)]/30 transition-all group">
+                        <Lock size={28} className="text-[var(--accent-teal)] group-hover:scale-110 transition-transform" />
                         <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Password</span>
                     </button>
                     <button onClick={() => setActiveModal('delete')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-white/5 border-white/10 hover:border-red-500/40 hover:bg-red-500/5 transition-all group">
@@ -585,8 +588,8 @@ export default function AccountPage() {
                 {/* ⚙️ GARDEN PROTOCOLS (Settings) - MOVED BELOW */}
                 <div className="w-full bg-white/5 border border-white/10 rounded-[40px] p-8 mt-6 backdrop-blur-md">
                     <div className="flex items-center gap-4 mb-8">
-                        <div className="p-3 bg-teal-400/10 rounded-2xl border border-teal-400/20">
-                            <Settings size={20} className="text-teal-400" />
+                        <div className="p-3 bg-[var(--accent-teal)]/10 rounded-2xl border border-[var(--accent-teal)]/20">
+                            <Settings size={20} className="text-[var(--accent-teal)]" />
                         </div>
                         <div>
                             <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">Neural Protocols</h3>
@@ -596,9 +599,9 @@ export default function AccountPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Double Tap Toggle */}
-                        <div className="flex items-center justify-between p-6 rounded-3xl bg-black/20 border border-white/5 group hover:border-teal-400/20 transition-all">
+                        <div className="flex items-center justify-between p-6 rounded-3xl bg-black/20 border border-white/5 group hover:border-[var(--accent-teal)]/20 transition-all">
                             <div className="flex items-center gap-4">
-                                <div className={`p-2 rounded-xl transition-colors ${doubleClickToComplete ? 'bg-teal-400/10 text-teal-400' : 'bg-white/5 text-white/20'}`}>
+                                <div className={`p-2 rounded-xl transition-colors ${doubleClickToComplete ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-white/5 text-white/20'}`}>
                                     <MousePointer2 size={18} />
                                 </div>
                                 <div>
@@ -608,16 +611,16 @@ export default function AccountPage() {
                             </div>
                             <button
                                 onClick={() => setSettings({ doubleClickToComplete: !doubleClickToComplete })}
-                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${doubleClickToComplete ? 'bg-teal-400' : 'bg-white/10'}`}
+                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${doubleClickToComplete ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
                             >
                                 <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${doubleClickToComplete ? 'translate-x-6' : 'translate-x-0'}`} />
                             </button>
                         </div>
 
                         {/* Drag & Drop Toggle */}
-                        <div className="flex items-center justify-between p-6 rounded-3xl bg-black/20 border border-white/5 group hover:border-teal-400/20 transition-all">
+                        <div className="flex items-center justify-between p-6 rounded-3xl bg-black/20 border border-white/5 group hover:border-[var(--accent-teal)]/20 transition-all">
                             <div className="flex items-center gap-4">
-                                <div className={`p-2 rounded-xl transition-colors ${dndEnabled ? 'bg-teal-400/10 text-teal-400' : 'bg-white/5 text-white/20'}`}>
+                                <div className={`p-2 rounded-xl transition-colors ${dndEnabled ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-white/5 text-white/20'}`}>
                                     <Hand size={18} />
                                 </div>
                                 <div>
@@ -627,7 +630,7 @@ export default function AccountPage() {
                             </div>
                             <button
                                 onClick={() => setSettings({ dndEnabled: !dndEnabled })}
-                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${dndEnabled ? 'bg-teal-400' : 'bg-white/10'}`}
+                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${dndEnabled ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
                             >
                                 <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${dndEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
                             </button>
@@ -637,8 +640,8 @@ export default function AccountPage() {
                     {/* ⚡ ENVIRONMENTAL OPTIMIZATION (Performance) */}
                     <div className="mt-8 pt-8 border-t border-white/5">
                         <div className="flex items-center gap-4 mb-6">
-                            <div className="p-2 bg-amber-400/10 rounded-xl border border-amber-400/20">
-                                <Cpu size={16} className="text-amber-400" />
+                            <div className="p-2 bg-[var(--accent-yellow)]/10 rounded-xl border border-[var(--accent-yellow)]/20">
+                                <Cpu size={16} className="text-[var(--accent-yellow)]" />
                             </div>
                             <div>
                                 <h4 className="text-[11px] font-black uppercase tracking-widest text-white">Environmental Sync</h4>
@@ -650,14 +653,14 @@ export default function AccountPage() {
                             <div className="flex flex-col gap-3 p-4 rounded-2xl bg-black/20 border border-white/5">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Processor Mode</span>
-                                    <span className="text-[9px] font-bold text-teal-400 uppercase">{performanceSettings.mode}</span>
+                                    <span className="text-[9px] font-bold text-[var(--accent-teal)] uppercase">{performanceSettings.mode}</span>
                                 </div>
                                 <div className="grid grid-cols-4 gap-2">
                                     {(['auto', 'low', 'balanced', 'high'] as const).map(m => (
                                         <button
                                             key={m}
                                             onClick={() => setSettings({ performanceSettings: { mode: m } })}
-                                            className={`py-2 rounded-xl text-[9px] font-black uppercase border transition-all ${performanceSettings.mode === m ? 'bg-teal-400 border-teal-400 text-black' : 'bg-white/5 border-white/10 text-white/40 hover:text-white'}`}
+                                            className={`py-2 rounded-xl text-[9px] font-black uppercase border transition-all ${performanceSettings.mode === m ? 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black' : 'bg-white/5 border-white/10 text-white/40 hover:text-white'}`}
                                         >
                                             {m}
                                         </button>
@@ -668,19 +671,19 @@ export default function AccountPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <button
                                     onClick={() => setSettings({ performanceSettings: { showParticles: !performanceSettings.showParticles } })}
-                                    className={`flex items-center justify-between p-4 rounded-2xl bg-black/20 border transition-all ${performanceSettings.showParticles ? 'border-teal-400/30' : 'border-white/5 opacity-50'}`}
+                                    className={`flex items-center justify-between p-4 rounded-2xl bg-black/20 border transition-all ${performanceSettings.showParticles ? 'border-[var(--accent-teal)]/30' : 'border-white/5 opacity-50'}`}
                                 >
                                     <span className="text-[10px] font-black uppercase tracking-widest text-white">Shaders</span>
-                                    <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-all ${performanceSettings.showParticles ? 'bg-teal-400' : 'bg-white/10'}`}>
+                                    <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-all ${performanceSettings.showParticles ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}>
                                         <div className={`w-3 h-3 rounded-full bg-black transition-all ${performanceSettings.showParticles ? 'translate-x-4' : 'translate-x-0'}`} />
                                     </div>
                                 </button>
                                 <button
                                     onClick={() => setSettings({ performanceSettings: { bloomEnabled: !performanceSettings.bloomEnabled } })}
-                                    className={`flex items-center justify-between p-4 rounded-2xl bg-black/20 border transition-all ${performanceSettings.bloomEnabled ? 'border-teal-400/30' : 'border-white/5 opacity-50'}`}
+                                    className={`flex items-center justify-between p-4 rounded-2xl bg-black/20 border transition-all ${performanceSettings.bloomEnabled ? 'border-[var(--accent-teal)]/30' : 'border-white/5 opacity-50'}`}
                                 >
                                     <span className="text-[10px] font-black uppercase tracking-widest text-white">Bloom</span>
-                                    <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-all ${performanceSettings.bloomEnabled ? 'bg-teal-400' : 'bg-white/10'}`}>
+                                    <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-all ${performanceSettings.bloomEnabled ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}>
                                         <div className={`w-3 h-3 rounded-full bg-black transition-all ${performanceSettings.bloomEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
                                     </div>
                                 </button>
@@ -690,23 +693,23 @@ export default function AccountPage() {
                             <div className="grid grid-cols-3 gap-4 border-t border-white/5 pt-4 mt-2">
                                 <button
                                     onClick={() => setSettings({ accessibilitySettings: { highContrast: !accessibilitySettings.highContrast } })}
-                                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/20 border transition-all ${accessibilitySettings.highContrast ? 'border-teal-400/30 bg-teal-400/5' : 'border-white/5 opacity-50'}`}
+                                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/20 border transition-all ${accessibilitySettings.highContrast ? 'border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/5' : 'border-white/5 opacity-50'}`}
                                 >
-                                    <Eye size={16} className={accessibilitySettings.highContrast ? 'text-teal-400' : 'text-white/40'} />
+                                    <Eye size={16} className={accessibilitySettings.highContrast ? 'text-[var(--accent-teal)]' : 'text-white/40'} />
                                     <span className="text-[8px] font-black uppercase tracking-widest text-white">High Contrast</span>
                                 </button>
                                 <button
                                     onClick={() => setSettings({ accessibilitySettings: { largeText: !accessibilitySettings.largeText } })}
-                                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/20 border transition-all ${accessibilitySettings.largeText ? 'border-teal-400/30 bg-teal-400/5' : 'border-white/5 opacity-50'}`}
+                                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/20 border transition-all ${accessibilitySettings.largeText ? 'border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/5' : 'border-white/5 opacity-50'}`}
                                 >
-                                    <Maximize2 size={16} className={accessibilitySettings.largeText ? 'text-teal-400' : 'text-white/40'} />
+                                    <Maximize2 size={16} className={accessibilitySettings.largeText ? 'text-[var(--accent-teal)]' : 'text-white/40'} />
                                     <span className="text-[8px] font-black uppercase tracking-widest text-white">Large Text</span>
                                 </button>
                                 <button
                                     onClick={() => setSettings({ accessibilitySettings: { reducedMotion: !accessibilitySettings.reducedMotion } })}
-                                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/20 border transition-all ${accessibilitySettings.reducedMotion ? 'border-teal-400/30 bg-teal-400/5' : 'border-white/5 opacity-50'}`}
+                                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/20 border transition-all ${accessibilitySettings.reducedMotion ? 'border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/5' : 'border-white/5 opacity-50'}`}
                                 >
-                                    <Waves size={16} className={accessibilitySettings.reducedMotion ? 'text-teal-400' : 'text-white/40'} />
+                                    <Waves size={16} className={accessibilitySettings.reducedMotion ? 'text-[var(--accent-teal)]' : 'text-white/40'} />
                                     <span className="text-[8px] font-black uppercase tracking-widest text-white">Soft Motion</span>
                                 </button>
                             </div>
@@ -784,9 +787,9 @@ export default function AccountPage() {
                             {/* Premium Status Modal */}
                             {activeModal === 'premium-status' && (
                                 <div className="space-y-8 flex flex-col items-center">
-                                    <div className="p-8 bg-white/5 rounded-[40px] text-amber-400 relative group overflow-hidden border border-amber-400/20">
+                                    <div className="p-8 bg-white/5 rounded-[40px] text-(--accent-yellow) relative group overflow-hidden border border-(--accent-yellow)/20">
                                         <Crown size={64} className="drop-shadow-[0_0_15px_rgba(251,191,36,0.5)] relative z-10" />
-                                        <div className="absolute inset-0 bg-amber-400/5 blur-3xl rounded-full" />
+                                        <div className="absolute inset-0 bg-(--accent-yellow)/5 blur-3xl rounded-full" />
                                     </div>
                                     <div className="text-center space-y-2">
                                         <h2 className="text-3xl font-black uppercase italic tracking-tighter">
@@ -799,16 +802,16 @@ export default function AccountPage() {
 
                                     <div className="w-full space-y-4">
                                         <div className="p-6 rounded-3xl bg-white/5 border border-white/10 space-y-4">
-                                            <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-teal-400">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-teal-400" />
+                                            <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-(--accent-teal)">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-(--accent-teal)" />
                                                 Infinite Knowledge Shards
                                             </div>
-                                            <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-teal-400">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-teal-400" />
+                                            <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-(--accent-teal)">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-(--accent-teal)" />
                                                 Priority Forge Pipelines
                                             </div>
-                                            <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-teal-400">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-teal-400" />
+                                            <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-(--accent-teal)">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-(--accent-teal)" />
                                                 Elite Chum Wardrobe
                                             </div>
                                         </div>
@@ -824,7 +827,7 @@ export default function AccountPage() {
                                             <div className="space-y-3">
                                                 <button
                                                     onClick={() => generateReceiptPDF(mockInvoices[0])}
-                                                    className="w-full py-5 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-[32px] text-[10px] font-black uppercase hover:bg-teal-500/20 transition-all flex items-center justify-center gap-2"
+                                                    className="w-full py-5 bg-(--accent-teal)/10 text-(--accent-teal) border border-(--accent-teal)/20 rounded-[32px] text-[10px] font-black uppercase hover:bg-(--accent-teal)/20 transition-all flex items-center justify-center gap-2"
                                                 >
                                                     <Download size={14} /> Extract Logbook
                                                 </button>
@@ -878,7 +881,7 @@ export default function AccountPage() {
                                             onChange={e => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
                                             className="w-full bg-white/5 border border-white/10 rounded-[32px] p-8 text-4xl text-center font-bold tracking-[0.5em] outline-none focus:border-teal-400 text-teal-400"
                                         />
-                                        <button onClick={handleVerifyOTP} disabled={loading} className="w-full py-5 bg-(--accent-teal) text-black rounded-[24px] text-[11px] font-black uppercase shadow-[0_0_30px_-5px_rgba(0,255,200,0.5)]">
+                                        <button onClick={handleVerifyOTP} disabled={loading} className="w-full py-5 bg-(--accent-teal) text-black rounded-[24px] text-[11px] font-black uppercase shadow-[0_0_30px_-5px_rgba(45,212,191,0.5)]">
                                             {loading ? "Synchronizing..." : "FINAL VERIFICATION"}
                                         </button>
                                     </div>
