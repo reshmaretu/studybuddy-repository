@@ -9,17 +9,18 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
     try {
-        const { messages, user_id, openrouter_key, groq_key, gemini_key, selected_model } = await req.json();
-
-        // 🗝️ Centralized Key Logic
-        const orKey = (openrouter_key?.trim() || process.env.OPENROUTER_AI_API_KEY)?.trim();
-        const groqKey = (groq_key?.trim() || process.env.GROQ_AI_API_KEY)?.trim();
-        const geminiKey = (gemini_key?.trim() || process.env.GEMINI_AI_API_KEY)?.trim();
+        const body = await req.json();
+        const { messages, user_id, openrouter_key, groq_key, gemini_key, selected_model, stream } = body;
 
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
+
+        // 🗝️ Centralized Key Logic
+        const orKey = (openrouter_key?.trim() || process.env.OPENROUTER_AI_API_KEY)?.trim();
+        const groqKey = (groq_key?.trim() || process.env.GROQ_AI_API_KEY)?.trim();
+        const geminiKey = (gemini_key?.trim() || process.env.GEMINI_AI_API_KEY)?.trim();
 
         // 1. Premium & Profile Check
         const { data: profile } = await supabase.from('profiles').select('is_premium').eq('id', user_id).single();
@@ -69,7 +70,7 @@ export async function POST(req: Request) {
         // ==========================================
         let result = null;
         let usedNode = "";
-        const shouldStream = req.body ? (await req.clone().json()).stream !== false : true;
+        const shouldStream = stream !== false;
 
         // 🎯 PRIORITY: Manual Model Selection via OpenRouter
         const modelToUse = selected_model || "mistralai/mistral-7b-instruct:free";
@@ -142,7 +143,7 @@ export async function POST(req: Request) {
             try {
                 const google = createGoogleGenerativeAI({ apiKey: geminiKey });
                 const config = {
-                    model: google('gemini-2.0-flash'),
+                    model: google('gemini-1.5-flash'),
                     messages: formattedMessages
                 };
 
@@ -162,10 +163,12 @@ export async function POST(req: Request) {
             throw new Error("All Cloud AI nodes failed or keys are missing. Check Settings.");
         }
 
-        if (shouldStream && typeof result !== 'string') {
+        if (result && shouldStream) {
             return (result as any).toTextStreamResponse({
                 headers: { 'X-Node-Used': usedNode }
             });
+        } else if (result) {
+            return NextResponse.json({ text: result }, { headers: { 'X-Node-Used': usedNode } });
         }
 
         return NextResponse.json({ response: result, node: usedNode });

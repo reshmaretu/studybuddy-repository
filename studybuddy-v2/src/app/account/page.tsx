@@ -277,14 +277,17 @@ export default function AccountPage() {
         }
 
         setLoading(true);
-        const profileUpdates: any = {};
+        const nowISO = new Date().toISOString();
+        const profileUpdates: any = {
+            updated_at: nowISO
+        };
         if (isChangingDisplay) {
             profileUpdates.display_name = formData.newDisplayName;
-            profileUpdates.last_display_name_change = nowMs;
+            profileUpdates.last_display_name_change = nowISO;
         }
         if (isChangingIdentity) {
             profileUpdates.full_name = finalFullName;
-            profileUpdates.last_full_name_change = nowMs;
+            profileUpdates.last_full_name_change = nowISO;
         }
 
         try {

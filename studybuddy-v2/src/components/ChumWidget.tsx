@@ -239,7 +239,12 @@ export default function ChumWidget() {
                         })
                     });
 
-                    if (!res.ok) throw new Error(`${provider} failed`);
+                    if (!res.ok) {
+                        const errorData = await res.json().catch(() => ({}));
+                        const serverError = errorData.error || `${provider} failed`;
+                        console.error(`[WATERFALL] Server Error (${provider}):`, serverError);
+                        throw new Error(serverError);
+                    }
                     if (!res.body) throw new Error("No stream body");
 
                     usedNode = res.headers.get('X-Node-Used') || `${provider.toUpperCase()} (Cloud)`;
@@ -264,30 +269,25 @@ export default function ChumWidget() {
                     }
                     aiResponse = fullText;
                     return true; // SUCCESS!
-                } catch (e) {
-                    console.warn(`[WATERFALL] ${provider} failed, trying next...`, e);
+                } catch (e: any) {
+                    lastErrorMessage = e.message;
+                    console.warn(`[WATERFALL] ${provider} failed, trying next...`, e.message);
                 }
             }
-            return false; // All providers failed
+            throw new Error(lastErrorMessage || "All cloud providers failed.");
         };
 
+        let lastErrorMessage = "";
         try {
             if (aiTier === 'offline') throw new Error("Offline mode");
 
             if (aiTier === 'cloud') {
                 setIsTyping(true);
-                const waterfallRes = await tryCloudChat(['openrouter', 'groq', 'gemini']);
-                if (!waterfallRes) throw new Error("Full Waterfall Depleted");
+                await tryCloudChat(['openrouter', 'groq', 'gemini']);
                 setIsTyping(false);
-            } else {
-                throw new Error("Local mode active");
-            }
-        } catch (err) {
-            // ... fallback to local or error message ...
-            if (aiTier === 'offline') {
-                aiResponse = "I'm currently resting in offline mode. Let's study together again when you're back online!";
-            } else {
+            } else if (aiTier === 'local') {
                 try {
+                    setIsTyping(true);
                     const historyToUse = [...(isTutorModeActive ? tutorChatHistory : normalChatHistory), { role: 'user', text: messageText }].map(msg => ({
                         role: msg.role === 'chum' ? 'assistant' : 'user',
                         content: (msg as any).text || (msg as any).content
@@ -305,15 +305,16 @@ export default function ChumWidget() {
                     const data = await res.json();
                     aiResponse = data.message.content;
                     usedNode = "Local Hive (Ollama)";
+                    setIsTyping(false);
+                    setCurrentHistory([...newHistory, { role: 'chum', text: aiResponse, node: usedNode }]);
                 } catch (e) {
-                    aiResponse = "Neural link failed. If using Ollama, ensure it is running and CORS is allowed.";
+                    setIsTyping(false);
+                    setCurrentHistory([...newHistory, { role: 'chum', text: "Neural link failed. If using Ollama, ensure it is running and CORS is allowed.", node: "Fallback" }]);
                 }
             }
-
+        } catch (err: any) {
             setIsTyping(false);
-            // Only push the final history manually if we caught an error or used Local/Offline mode
-            const finalHistory: ChatMessage[] = [...newHistory, { role: 'chum' as const, text: aiResponse, node: usedNode }];
-            setCurrentHistory(finalHistory);
+            setCurrentHistory([...newHistory, { role: 'chum', text: err.message || "Neural link failed.", node: "Error" }]);
         }
 
         if (isTutorModeActive && activeShard && !forcePrimer) {
