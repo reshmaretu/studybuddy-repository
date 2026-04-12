@@ -86,7 +86,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
 
     // Expose warpToUser to parent
     const getPos = useCallback((user: LanternUser): [number, number, number] => {
-        const zPos = is3D ? (user.hours / 10) - 20 : 0;
+        const zPos = is3D ? (user.gridZ - 6) * 12 + (user.jitterZ / 8) : 0;
         return [(user.gridX - 6) * 12 + (user.jitterX / 8), (user.gridY - 6) * 12 + (user.jitterY / 8), zPos];
     }, [is3D]);
 
@@ -278,7 +278,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
 
     const xPos = (user.gridX - 6) * 12 + (user.jitterX / 8);
     const yPos = (user.gridY - 6) * 12 + (user.jitterY / 8);
-    const targetZ = is3D ? (user.hours / 10) - 20 : 0;
+    const targetZ = is3D ? (user.gridZ - 6) * 12 + (user.jitterZ / 8) : 0;
 
     useEffect(() => {
         if (groupRef.current) {
