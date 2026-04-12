@@ -628,16 +628,21 @@ export const useStudyStore = create<StudyState>()(
                 }
 
                 if (!id.startsWith('temp-') && user) {
-                    // If task was completed in a focus mode, increment sessions
-                    if (get().activeMode === 'flowState' || get().activeMode === 'studyCafe') {
-                        const newTotal = get().totalSessions + 1;
-                        const newSinceReset = get().sessionsSinceLastReset + 1;
-                        set({ totalSessions: newTotal, sessionsSinceLastReset: newSinceReset });
-                        if (newSinceReset >= 4) {
-                            get().triggerChumToast("🧠 Focus flow peak! Your brain might need a quick reset. Click to start the ritual.", "info", () => get().setIsBrainResetOpen(true));
-                        }
-                        supabase.from('user_stats').update({ total_sessions: newTotal }).eq('user_id', user.id).then();
+                    // Update session counts for ANY completion
+                    const newTotal = get().totalSessions + 1;
+                    const newSinceReset = get().sessionsSinceLastReset + 1;
+                    set({ totalSessions: newTotal, sessionsSinceLastReset: newSinceReset });
+
+                    if (newSinceReset >= 4) {
+                        set({ lastResetHighlightAt: new Date().toISOString() });
+                        get().triggerChumToast(
+                            <span><strong className="text-[var(--accent-yellow)]">🧠 Neural Fog Detected!</strong><br />You've completed {newSinceReset} blooms without a break. Time for a Brain Reset?</span>, 
+                            "info", 
+                            () => get().setIsBrainResetOpen(true)
+                        );
                     }
+
+                    supabase.from('user_stats').update({ total_sessions: newTotal }).eq('user_id', user.id).then();
 
                     const dbUpdate: any = { is_completed: true, completed_at: now };
                     if (premiumStats?.actualPomos !== undefined) dbUpdate.actual_pomodoros = premiumStats.actualPomos;
@@ -1076,7 +1081,9 @@ export const useStudyStore = create<StudyState>()(
                 isPremiumUser: false,
                 normalChatHistory: [{ role: 'chum', text: "Ready to study." }],
                 tutorChatHistory: [],
-                pastTutorSessions: []
+                pastTutorSessions: [],
+                sessionsSinceLastReset: 0,
+                lastResetHighlightAt: null
             })
         }),
         {
@@ -1099,6 +1106,8 @@ export const useStudyStore = create<StudyState>()(
                 dailyFocusScores: state.dailyFocusScores,
                 flowBreaks: state.flowBreaks,
                 tabSwitches: state.tabSwitches,
+                sessionsSinceLastReset: state.sessionsSinceLastReset,
+                lastResetHighlightAt: state.lastResetHighlightAt,
             })
         }
     )

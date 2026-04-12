@@ -428,33 +428,61 @@ export default function ChumWidget() {
 
                                     {aiTier === 'cloud' && (
                                         <div className="flex flex-col gap-5">
-                                            {/* PROVIDER SETS */}
                                             {[
-                                                { id: 'openrouter', label: 'OpenRouter', placeholder: 'sk-or-v1-...', defaultModel: 'google/gemini-2.0-flash-001' },
-                                                { id: 'groq', label: 'Groq', placeholder: 'gsk_...', defaultModel: 'llama-3.3-70b-versatile' },
-                                                { id: 'gemini', label: 'Gemini (Direct)', placeholder: 'AIza...', defaultModel: 'gemini-2.0-flash' }
+                                                { 
+                                                    id: 'openrouter', 
+                                                    label: 'OpenRouter', 
+                                                    placeholder: 'sk-or-v1-...', 
+                                                    models: [
+                                                        { id: 'google/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash' },
+                                                        { id: 'mistralai/mistral-7b-instruct:free', label: 'Mistral 7B Instruct v0.3' },
+                                                        { id: 'google/gemini-2.0-flash-lite-preview-02-05:free', label: 'Gemini 2.0 Flash Lite' },
+                                                        { id: 'meta-llama/llama-3.2-3b-instruct:free', label: 'Llama 3.2 3B Instruct' }
+                                                    ]
+                                                },
+                                                { 
+                                                    id: 'groq', 
+                                                    label: 'Groq', 
+                                                    placeholder: 'gsk_...', 
+                                                    models: [
+                                                        { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70b' },
+                                                        { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8b' }
+                                                    ]
+                                                },
+                                                { 
+                                                    id: 'gemini', 
+                                                    label: 'Gemini (Direct)', 
+                                                    placeholder: 'AIza...', 
+                                                    models: [
+                                                        { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+                                                        { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' }
+                                                    ]
+                                                }
                                             ].map((prov) => (
-                                                <div key={prov.id} className="space-y-2 bg-(--bg-sidebar)/50 p-3 rounded-xl border border-(--border-color)/50">
-                                                    <div className="flex justify-between items-center">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-(--text-main)">{prov.label}</label>
-                                                        {prov.id === 'openrouter' && <span className="text-[8px] bg-(--accent-teal)/20 text-(--accent-teal) px-1.5 py-0.5 rounded font-black">PRIORITY</span>}
+                                                <div key={prov.id} className="space-y-2 p-3 rounded-xl bg-[var(--bg-dark)]/50 border border-[var(--border-color)]">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="text-xs font-bold text-[var(--accent-teal)] uppercase tracking-widest">{prov.label}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] text-[var(--text-muted)]">Model:</span>
+                                                            <select
+                                                                value={aiKeys.selectedModel || ''}
+                                                                onChange={(e) => updateAIKeys({ selectedModel: e.target.value })}
+                                                                className="bg-transparent text-[10px] font-bold text-[var(--text-main)] outline-none cursor-pointer border-b border-[var(--border-color)] pb-0.5"
+                                                                disabled={!aiKeys[prov.id as keyof typeof aiKeys]}
+                                                            >
+                                                                {prov.models.map(m => (
+                                                                    <option key={m.id} value={m.id} className="bg-[var(--bg-card)]">{m.label}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
                                                     </div>
-                                                    <input 
-                                                        type="password" 
-                                                        placeholder={prov.placeholder} 
-                                                        value={aiKeys[prov.id as keyof typeof aiKeys]} 
-                                                        onChange={(e) => updateAIKeys({ [prov.id]: e.target.value })} 
-                                                        className="w-full bg-(--bg-dark) border border-(--border-color) rounded-lg px-3 py-1.5 text-[10px] text-(--text-main) outline-none focus:border-(--accent-teal)" 
+                                                    <input
+                                                        type="password"
+                                                        value={aiKeys[prov.id as keyof typeof aiKeys] || ''}
+                                                        onChange={(e) => updateAIKeys({ [prov.id]: e.target.value })}
+                                                        placeholder={prov.placeholder}
+                                                        className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] placeholder:text-[var(--text-muted)]/30"
                                                     />
-                                                    <div className="flex items-center justify-between mt-1">
-                                                        <span className="text-[9px] text-(--text-muted) font-mono">{prov.defaultModel}</span>
-                                                        <button 
-                                                            onClick={() => setSelectedModel(prov.defaultModel)}
-                                                            className={`text-[8px] px-2 py-0.5 rounded border transition-colors ${selectedModel === prov.defaultModel ? 'bg-(--accent-teal) text-black border-transparent' : 'border-(--border-color) text-(--text-muted) hover:text-(--text-main)'}`}
-                                                        >
-                                                            Select
-                                                        </button>
-                                                    </div>
                                                 </div>
                                             ))}
                                         </div>

@@ -102,7 +102,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
 
     return (
         <div
-            className="w-full h-full bg-[#05080c] relative group"
+            className="w-full h-full bg-[var(--bg-dark)] relative group"
             onPointerEnter={() => setIsFocused(true)}
             onPointerLeave={() => setIsFocused(false)}
         >
@@ -110,55 +110,55 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
             <AnimatePresence>
                 {isFreeCam && is3D && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                        className="absolute bottom-6 left-6 z-[100] bg-[var(--bg-dark)]/80 backdrop-blur-md px-4 py-2 rounded-xl border border-[var(--accent-teal)]/50 shadow-[0_0_15px_rgba(45,212,191,0.2)] pointer-events-none">
+                        className="absolute bottom-6 left-6 z-[100] bg-[var(--bg-card)]/80 backdrop-blur-md px-4 py-2 rounded-xl border border-[var(--accent-teal)]/50 shadow-[0_0_15px_rgba(45,212,191,0.2)] pointer-events-none">
                         <p className="text-[10px] font-black uppercase text-[var(--accent-teal)] tracking-widest flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)] animate-pulse" /> Freecam Active
                         </p>
-                        <p className="text-[8px] font-bold text-(--text-muted) tracking-wide mt-1">WASD to Move • EQ for Elevation • Mouse to Look</p>
+                        <p className="text-[8px] font-bold text-[var(--text-muted)] tracking-wide mt-1">WASD to Move • EQ for Elevation • Mouse to Look</p>
                     </motion.div>
                 )}
             </AnimatePresence>
-
+ 
             {/* --- TOOLBAR --- */}
             <div className="absolute top-6 right-6 z-[100] flex flex-col gap-3 items-end">
-                <div className="flex bg-(--bg-card)/80 backdrop-blur-md p-1.5 rounded-2xl border border-(--border-color) shadow-2xl">
-                    <button onClick={() => { setIs3D(false); setIsFreeCam(false); }} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${!is3D ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}><BoxSelect size={14} /> 2D Map</button>
-                    <button onClick={() => setIs3D(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${is3D ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}><Layers size={14} /> 3D Void</button>
-
+                <div className="flex bg-[var(--bg-card)]/80 backdrop-blur-md p-1.5 rounded-2xl border border-[var(--border-color)] shadow-2xl">
+                    <button onClick={() => { setIs3D(false); setIsFreeCam(false); }} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${!is3D ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><BoxSelect size={14} /> 2D Map</button>
+                    <button onClick={() => setIs3D(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${is3D ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><Layers size={14} /> 3D Void</button>
+ 
                     {/* 🔥 NEW: Physical Freecam Toggle Button */}
                     {is3D && (
                         <>
-                            <div className="w-px h-6 bg-(--border-color) mx-1 self-center" />
+                            <div className="w-px h-6 bg-[var(--border-color)] mx-1 self-center" />
                             <button
                                 onClick={() => setIsFreeCam(!isFreeCam)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${isFreeCam ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${isFreeCam ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
                             >
                                 Freecam (C)
                             </button>
                         </>
                     )}
-
-                    <div className="w-px h-6 bg-(--border-color) mx-1 self-center" />
-                    <button onClick={onToggleMaximize} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all text-(--text-muted) hover:text-(--text-main)`} title={isMaximized ? "Minimize Map" : "Maximize Map"}>
+ 
+                    <div className="w-px h-6 bg-[var(--border-color)] mx-1 self-center" />
+                    <button onClick={onToggleMaximize} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all text-[var(--text-muted)] hover:text-[var(--text-main)]`} title={isMaximized ? "Minimize Map" : "Maximize Map"}>
                         {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />} {isMaximized ? 'Minimize' : 'Maximize'}
                     </button>
                 </div>
 
                 {/* --- BRIGHTNESS SLIDER --- */}
-                <div className="flex items-center gap-3 bg-(--bg-card)/80 backdrop-blur-md px-4 py-2 rounded-xl border border-(--border-color) shadow-xl">
-                    <Zap size={14} className="text-(--accent-yellow)" />
+                <div className="flex items-center gap-3 bg-[var(--bg-card)]/80 backdrop-blur-md px-4 py-2 rounded-xl border border-[var(--border-color)] shadow-xl">
+                    <Zap size={14} className="text-[var(--accent-yellow)]" />
                     <input
                         type="range" min="0.5" max="4.0" step="0.1"
                         value={globalIntensity}
                         onChange={(e) => setGlobalIntensity(parseFloat(e.target.value))}
-                        className="w-24 h-1 bg-(--border-color) rounded-lg appearance-none cursor-pointer accent-(--accent-teal)"
+                        className="w-24 h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-teal)]"
                     />
                 </div>
                 {/* --- HUD LOADER --- */}
                 {isInitialLoading && (
-                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-100 flex items-center gap-3 bg-(--bg-card)/60 backdrop-blur-md px-6 py-3 rounded-full border border-(--border-color) animate-pulse shadow-xl">
-                        <div className="w-3 h-3 border-2 border-(--accent-teal)/30 border-t-(--accent-teal) rounded-full animate-spin" />
-                        <span className="text-[10px] font-black tracking-widest uppercase text-(--accent-teal)">Syncing Void...</span>
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-100 flex items-center gap-3 bg-[var(--bg-card)]/60 backdrop-blur-md px-6 py-3 rounded-full border border-[var(--border-color)] animate-pulse shadow-xl">
+                        <div className="w-3 h-3 border-2 border-[var(--accent-teal)]/30 border-t-[var(--accent-teal)] rounded-full animate-spin" />
+                        <span className="text-[10px] font-black tracking-widest uppercase text-[var(--accent-teal)]">Syncing Void...</span>
                     </div>
                 )}
             </div>
@@ -358,7 +358,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                 {(isHovered || isSelected) && (
                     <Html distanceFactor={is3D ? 30 : 45} position={[0, 8, 0]} center className="pointer-events-none">
                         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                            className="bg-(--bg-dark)/95 backdrop-blur-xl border border-(--border-color) p-5 rounded-3xl w-64 pointer-events-auto shadow-2xl text-(--text-main)">
+                            className="bg-[var(--bg-dark)]/95 backdrop-blur-xl border border-[var(--border-color)] p-5 rounded-3xl w-64 pointer-events-auto shadow-2xl text-[var(--text-main)]">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="font-black text-sm">{user.name}</h3>
@@ -370,7 +370,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                         ● {user.status}
                                     </p>
                                 </div>
-                                <div className="w-12 h-12 rounded-full border border-(--border-color) overflow-hidden flex-shrink-0 bg-black/40 relative">
+                                <div className="w-12 h-12 rounded-full border border-[var(--border-color)] overflow-hidden flex-shrink-0 bg-black/40 relative">
                                     {(user as any).avatarUrl ? (
                                         <img 
                                             src={(user as any).avatarUrl} 
@@ -383,7 +383,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                             }}
                                         />
                                     ) : null}
-                                    <div className={`absolute inset-0 flex items-center justify-center p-1 bg-(--bg-dark) fallback-chum ${(user as any).avatarUrl ? 'invisible' : ''}`}>
+                                    <div className={`absolute inset-0 flex items-center justify-center p-1 bg-[var(--bg-dark)] fallback-chum ${(user as any).avatarUrl ? 'invisible' : ''}`}>
                                         <ChumRenderer 
                                             size="w-full h-full" 
                                             activeAccessoriesOverride={(user as any).activeAccessories} 
@@ -391,9 +391,9 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                     </div>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-3 bg-black/40 p-3 rounded-2xl border border-(--border-color)">
-                                <div className="flex flex-col"><span className="text-[8px] uppercase font-black opacity-40">Total Hours</span><span className="text-xs font-mono font-bold text-(--accent-teal)">{user.hours}h</span></div>
-                                <div className="flex flex-col text-right"><span className="text-[8px] uppercase font-black opacity-40">Focus Score</span><span className="text-xs font-bold text-(--accent-yellow)">{user.focusScore || 0}</span></div>
+                            <div className="grid grid-cols-2 gap-3 bg-black/40 p-3 rounded-2xl border border-[var(--border-color)]">
+                                <div className="flex flex-col"><span className="text-[8px] uppercase font-black opacity-40">Total Hours</span><span className="text-xs font-mono font-bold text-[var(--accent-teal)]">{user.hours}h</span></div>
+                                <div className="flex flex-col text-right"><span className="text-[8px] uppercase font-black opacity-40">Focus Score</span><span className="text-xs font-bold text-[var(--accent-yellow)]">{user.focusScore || 0}</span></div>
                             </div>
                             {/* 💎 AI MASTERING SHARD */}
                             {user.status === 'mastering' && (
@@ -412,7 +412,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                     <p className="text-[9px] text-purple-300/80 italic">"Generating mastering insights..."</p>
                                 </motion.div>
                             )}
-
+ 
                             {/* 🌊 FLOWSTATE PULSE */}
                             {user.status === 'flowState' && (
                                 <motion.div
@@ -425,12 +425,12 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                     </p>
                                 </motion.div>
                             )}
-
+ 
                             {/* 🔗 ROOM INTERACTION SECTION */}
                             {isSelected && !isSelf && (['hosting', 'joined', 'drafting', 'cafe'].includes(user.status)) && (
                                 <motion.div initial={{ height: 0, opacity: 0 }}
                                     animate={{ height: 'auto', opacity: 1 }}
-                                    className="mt-4 pt-4 border-t border-(--border-color)">
+                                    className="mt-4 pt-4 border-t border-[var(--border-color)]">
                                     <p className="text-[10px] font-black uppercase text-white/40 mb-2">
                                         {user.status === 'drafting' ? 'Blueprint in Progress' : 'Current Sanctuary'}
                                     </p>
@@ -439,14 +439,14 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                             "{user.roomTitle || 'Quiet Study'}"
                                         </p>
                                         {user.roomDescription && (
-                                            <p className="text-[10px] text-(--text-muted) leading-relaxed line-clamp-2 italic">
+                                            <p className="text-[10px] text-[var(--text-muted)] leading-relaxed line-clamp-2 italic">
                                                 {user.roomDescription}
                                             </p>
                                         )}
                                     </div>
                                     <button
                                         onClick={() => router.push(`/room/${user.roomCode}`)}
-                                        className="w-full py-3 bg-(--accent-teal) text-black text-xs font-black rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"
+                                        className="w-full py-3 bg-[var(--accent-teal)] text-black text-xs font-black rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"
                                     >
                                         {user.status === 'drafting' ? 'View Blueprint' : `Join Sanctuary [${user.roomCode || '...'}]`}
                                     </button>
