@@ -830,7 +830,7 @@ export default function CrystalGarden() {
                 <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0 pb-20 lg:pb-4 overflow-y-auto lg:overflow-hidden no-scrollbar">
 
                     {/* LEFT Column: Active Quests (Cinematic Shape-Shifter) */}
-                    <section className="h-[420px] lg:h-full flex flex-col shrink-0">
+                    <section id="garden-framework-zone" className="h-[420px] lg:h-full flex flex-col shrink-0">
                         <div className="bg-[var(--bg-card)] border border-(--border-color) rounded-2xl p-4 sm:p-5 flex flex-col h-full overflow-hidden shadow-sm">
 
                             {/* Static Header */}
@@ -969,7 +969,7 @@ export default function CrystalGarden() {
                     </section>
 
                     {/* MIDDLE Column: The Terrarium Drop Zone */}
-                    <div className="h-[400px] lg:h-full relative flex flex-col pt-0 shrink-0">
+                    <div id="garden-crystal-visual" className="h-[400px] lg:h-full relative flex flex-col pt-0 shrink-0">
                         <div ref={setGeodeRef} className={`flex-1 relative rounded-[2.5rem] p-3 transition-colors duration-300 ${isGeodeOver ? 'bg-[var(--accent-teal)] shadow-[0_0_30px_rgba(20,184,166,0.3)]' : 'bg-[#111] shadow-[inset_0_4px_20px_rgba(0,0,0,0.6),0_0_0_1px_var(--border-color)]'}`}>
                             <div className={`w-full h-full rounded-[1.8rem] overflow-hidden relative shadow-[inset_0_0_60px_rgba(0,0,0,0.9)] transition-all ${isGeodeOver ? 'border-2 border-[var(--bg-dark)]' : 'border border-white/10'}`}>
 
@@ -999,7 +999,7 @@ export default function CrystalGarden() {
                     </div>
 
                     {/* RIGHT Column: Hall of Mastery */}
-                    <section className="h-[500px] lg:h-full overflow-hidden flex flex-col">
+                    <section id="garden-mastery-col" className="h-[500px] lg:h-full overflow-hidden flex flex-col">
                         <MasteryContainer
                             id="hall-of-mastery"
                             masteryTab={masteryTab}

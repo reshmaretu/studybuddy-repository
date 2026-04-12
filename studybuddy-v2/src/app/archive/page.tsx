@@ -218,7 +218,7 @@ export default function TheForge() {
         <div className="min-h-[calc(100vh-4rem)] flex flex-col space-y-8 pb-12 relative">
 
             {/* HEADER */}
-            <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+            <header id="archive-forge-header" className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-(--text-main) flex items-center gap-3">
                         <Hammer className="text-(--accent-yellow)" size={32} />
@@ -230,6 +230,7 @@ export default function TheForge() {
                 </div>
                 {/* STRIKE ANVIL BUTTON */}
                 <button
+                    id="archive-forge-trigger"
                     onClick={() => setIsForgeModalOpen(true)}
                     className="bg-(--accent-yellow)/10 text-(--accent-yellow) border border-(--accent-yellow)/30 px-6 py-3 rounded-2xl font-bold hover:bg-(--accent-yellow) hover:text-[#0b1211] transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(250,204,21,0.15)]"
                 >
@@ -238,14 +239,31 @@ export default function TheForge() {
             </header>
 
             {/* THE ARMORY (Shard Grid) */}
-            <div>
+            <div id="archive-shard-vault">
                 {shards.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-(--border-color) rounded-3xl p-12 text-center opacity-60 bg-(--bg-card)/50">
-                        <Hammer size={48} className="text-(--text-muted) mb-4" />
-                        <h3 className="text-xl font-bold text-(--text-main) mb-2">The prism is dormant.</h3>
-                        <p className="text-(--text-muted) max-w-sm">
-                            You haven't extracted any shards yet. Begin extraction to start."
-                        </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {/* THE SEED SHARD (Tutorial Sample) */}
+                        <div id="archive-demo-shard">
+                            <ShardCard 
+                                onRead={() => {}}
+                                shard={{
+                                    id: 'demo-seed-shard',
+                                    title: "Neural Gardening: The Basics",
+                                    content: "Welcome to the garden. Shards represent your extracted knowledge. You can master them through AI-driven sessions.",
+                                    mastery: 42,
+                                    isMastered: false,
+                                    createdAt: new Date().toISOString()
+                                }}
+                            />
+                        </div>
+
+                        <div id="archive-dormant-infographic" className="flex flex-col items-center justify-center border-2 border-dashed border-(--border-color) rounded-3xl p-12 text-center opacity-60 bg-(--bg-card)/50 col-span-1 md:col-span-1 lg:col-span-2">
+                            <Hammer size={48} className="text-(--text-muted) mb-4" />
+                            <h3 className="text-xl font-bold text-(--text-main) mb-2">The prism is dormant.</h3>
+                            <p className="text-(--text-muted) max-w-sm">
+                                You haven't extracted any shards yet. Begin extraction to start."
+                            </p>
+                        </div>
                     </div>
                 ) : (
                     <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

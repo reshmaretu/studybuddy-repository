@@ -250,7 +250,7 @@ export default function Dashboard() {
                 </fieldset>
 
                 {/* TOP ROW: Score, Reset, Timer */}
-                <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <section id="dashboard-timer-core" className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-5 flex items-center justify-between shadow-sm relative overflow-hidden">
                         {!isInitialized ? (
                             <div className="w-full h-full flex items-center gap-4 animate-pulse">
@@ -297,6 +297,7 @@ export default function Dashboard() {
                     </div>
 
                     <button
+                        id="dashboard-brain-reset"
                         onClick={() => setIsBrainResetOpen(true)}
                         className={`bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer group relative overflow-hidden transition-all duration-700 w-full ${isResetHighlighted
                                 ? "border-[var(--accent-teal)] shadow-[0_0_30px_rgba(45,212,191,0.2)]"

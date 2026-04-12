@@ -177,7 +177,7 @@ export default function WardrobePage() {
             <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-0">
 
                 {/* LEFT PANEL: Character Preview */}
-                <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-8 flex flex-col items-center justify-between relative overflow-hidden shadow-sm">
+                <section id="wardrobe-avatar-preview" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-8 flex flex-col items-center justify-between relative overflow-hidden shadow-sm">
                     <div className="absolute top-6 left-8">
                         <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">Character Preview</span>
                     </div>
@@ -192,7 +192,7 @@ export default function WardrobePage() {
                 </section>
 
                 {/* RIGHT PANEL: Customization Hub */}
-                <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl flex flex-col min-h-0 shadow-sm overflow-hidden">
+                <section id="wardrobe-customization-hub" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl flex flex-col min-h-0 shadow-sm overflow-hidden">
 
                     {/* TABS HEADER */}
                     <div className="flex p-2 border-b border-[var(--border-color)]/50 bg-[var(--bg-dark)]/30">

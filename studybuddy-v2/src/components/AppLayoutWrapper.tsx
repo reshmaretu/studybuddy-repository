@@ -95,7 +95,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
                 >
                     {children}
                 </main>
-                <ChumWidget />
+                {!useStudyStore.getState().hasCompletedTutorial ? null : <ChumWidget />}
                 <FocusModal />
                 <FlowStateOverlay />
                 <StudyCafeOverlay />

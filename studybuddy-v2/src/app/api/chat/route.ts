@@ -130,7 +130,7 @@ export async function POST(req: Request) {
                 headers: { 'X-Node-Used': usedNode }
             });
         } else if (result) {
-            return NextResponse.json({ text: result }, { headers: { 'X-Node-Used': usedNode } });
+            return NextResponse.json({ response: result }, { headers: { 'X-Node-Used': usedNode } });
         }
 
         return NextResponse.json({ response: result, node: usedNode });

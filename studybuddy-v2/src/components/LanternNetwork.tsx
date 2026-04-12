@@ -102,6 +102,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
 
     return (
         <div
+            id="lantern-map-anchor"
             className="w-full h-full bg-[var(--bg-dark)] relative group"
             onPointerEnter={() => setIsFocused(true)}
             onPointerLeave={() => setIsFocused(false)}

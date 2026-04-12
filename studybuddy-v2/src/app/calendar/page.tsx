@@ -220,7 +220,7 @@ export default function TactileCalendar() {
                     </div>
 
                     {/* View Toggle */}
-                    <div className="flex bg-[var(--bg-card)] border border-[var(--border-color)] p-1 rounded-xl shadow-sm shrink-0 scale-90 sm:scale-100">
+                    <div id="calendar-view-toggle" className="flex bg-[var(--bg-card)] border border-[var(--border-color)] p-1 rounded-xl shadow-sm shrink-0 scale-90 sm:scale-100">
                         <button onClick={() => setView('horizon')} className={`px-2 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${view === 'horizon' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5'}`}>
                             Forecast
                         </button>
@@ -276,7 +276,7 @@ export default function TactileCalendar() {
                 <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 pt-2 overflow-y-auto lg:overflow-hidden no-scrollbar">
 
                     {/* LEFT: THE STASH */}
-                    <div className="w-full lg:w-80 h-[400px] lg:h-full flex flex-col bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 overflow-hidden shadow-sm relative shrink-0">
+                    <div id="calendar-seed-bank" className="w-full lg:w-80 h-[400px] lg:h-full flex flex-col bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 overflow-hidden shadow-sm relative shrink-0">
                         <div className="flex items-center gap-2 mb-4">
                             <Inbox size={18} className="text-[var(--accent-yellow)]" />
                             <h2 className="font-bold text-[var(--text-main)]">Seed Bank</h2>
@@ -305,11 +305,12 @@ export default function TactileCalendar() {
                     </div>
 
                     {/* RIGHT: THE TIMELINES */}
-                    <div className="flex-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 flex flex-col overflow-hidden shadow-sm">
+                    <div id="calendar-temporal-nexus" className="flex-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 flex flex-col overflow-hidden shadow-sm">
 
                         {/* ── Horizon View ── */}
                         {view === 'horizon' && (
                             <div
+                                id="calendar-nexus-anchor"
                                 ref={horizonRef}
                                 onWheel={handleHorizonWheel}
                                 onMouseDown={handleMouseDown}

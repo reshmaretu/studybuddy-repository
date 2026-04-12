@@ -525,6 +525,7 @@ export default function LanternNetPage() {
                             </div>
 
                             <button
+                                id="lantern-host-trigger"
                                 onClick={() => setIsHostModalOpen(true)}
                                 className="w-full py-4 bg-(--accent-teal)/10 border-2 border-dashed border-(--accent-teal)/30 rounded-2xl text-(--accent-teal) text-xs font-black uppercase tracking-widest hover:bg-(--accent-teal)/20 hover:border-(--accent-teal) transition-all flex items-center justify-center gap-2"
                             >
@@ -561,7 +562,7 @@ export default function LanternNetPage() {
                                             className="space-y-2"
                                         >
                                             <div className="flex flex-col min-h-0">
-                                                <h3 className="text-sm font-black text-(--text-main) flex items-center gap-2 mb-4 pb-4 border-b border-(--border-color) uppercase tracking-wide">
+                                                <h3 id="lantern-leaderboard" className="text-sm font-black text-(--text-main) flex items-center gap-2 mb-4 pb-4 border-b border-(--border-color) uppercase tracking-wide">
                                                     <Trophy size={18} className="text-(--accent-yellow)" /> Hall of Focus
                                                 </h3>
                                                 <div className="space-y-2">
@@ -663,7 +664,7 @@ export default function LanternNetPage() {
                 )}
             </AnimatePresence>
 
-            <div className="flex-1 h-full rounded-[40px] overflow-hidden border border-(--border-color) shadow-xl relative min-h-0">
+            <div id="lantern-map-container" className="flex-1 h-full rounded-[40px] overflow-hidden border border-(--border-color) shadow-xl relative min-h-0">
                 <ThreeLanternNet
                     ref={lanternRef}
                     users={combinedNetwork}
