@@ -133,7 +133,7 @@ export default function TheForge() {
 
     const [viewingLog, setViewingLog] = useState<TutorSession | null>(null);
     const [isForging, setIsForging] = useState(false);
-    const { shards, forgeShard } = useStudyStore();
+    const { shards, forgeShard, triggerChumToast } = useStudyStore();
     const [isMounted, setIsMounted] = useState(false);
 
     // Modal States
