@@ -2,7 +2,7 @@
 
 import { useStudyStore } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ArrowRight, Zap, Target, BookOpen, Wind, CheckCircle2, X, Globe, User, MessageSquare, Shirt, Database, Calendar, Palette, Coffee, PlayCircle, Hammer, Layout, Trophy, ShieldCheck, Cpu, Brain, SunDim, Plus, Gem } from "lucide-react";
+import { Sparkles, ArrowRight, Zap, Target, BookOpen, Wind, CheckCircle2, X, Globe, User, MessageSquare, Shirt, Database, Calendar, Palette, Coffee, PlayCircle, Hammer, Layout, Trophy, ShieldCheck, Cpu, Brain, SunDim, Plus, Gem, LayoutGrid, List, ListOrdered, Flame } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { ChumRenderer } from "@studybuddy/ui";
