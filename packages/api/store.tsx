@@ -244,13 +244,13 @@ export const useStudyStore = create<StudyState>()(
 
             setDisplayName: async (name) => {
                 set({ displayName: name });
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) await supabase.from('profiles').update({ display_name: name }).eq('id', user.id);
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user) await supabase.from('profiles').update({ display_name: name }).eq('id', session.user.id);
             },
             setFullName: async (name) => {
                 set({ fullName: name });
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) await supabase.from('profiles').update({ full_name: name }).eq('id', user.id);
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user) await supabase.from('profiles').update({ full_name: name }).eq('id', session.user.id);
             },
             setUserEmail: (email) => set({ userEmail: email }),
             setIsVerified: (val) => set({ isVerified: val }),

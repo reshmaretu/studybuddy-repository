@@ -396,7 +396,15 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 await new Promise(r => setTimeout(r, 800));
             }
 
-            if (!roomData) return router.push('/lantern');
+            if (!roomData) {
+                // ⚡ RESILIENCE: Before kicking, check if we're just hitting a cold DB or RLS
+                await new Promise(r => setTimeout(r, 2000));
+                const { data: retryData } = await supabase.from('rooms').select('host_id, status').eq('room_code', roomCode).maybeSingle();
+                if (!retryData) {
+                    return router.push('/lantern?error=room_not_found');
+                }
+                roomData = retryData;
+            }
 
             const isActuallyHost = roomData.host_id === user.id;
             setIsHost(isActuallyHost);
