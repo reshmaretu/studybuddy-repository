@@ -3,6 +3,7 @@
 import { useStudyStore } from "@/store/useStudyStore";
 import PasswordValidator from "@/components/PasswordValidator";
 import {
+    Sparkles,
     User, Mail, Lock, Trash2, Crown, LogOut,
     Camera, CheckCircle2, AlertCircle, RefreshCcw, X, ShieldAlert, ShieldCheck,
     QrCode, Download, CreditCard, Send, Fingerprint, Settings, MousePointer2, Hand, Cpu, Eye, EyeOff, Waves, Maximize2
@@ -286,7 +287,7 @@ export default function AccountPage() {
         }
 
         setLoading(true);
-        const nowISO = new Date().toISOString(); 
+        const nowISO = new Date().toISOString();
         const profileUpdates: any = {};
         if (isChangingDisplay) {
             profileUpdates.display_name = formData.newDisplayName;
@@ -311,7 +312,7 @@ export default function AccountPage() {
 
             triggerChumToast("Garden identity harmonized.", "success");
             setActiveModal(null);
-            
+
             // Allow state to settle before reload (or skip reload if store is enough)
             setTimeout(() => window.location.reload(), 2000);
         } catch (err: any) {
@@ -512,17 +513,17 @@ export default function AccountPage() {
 
                 {/* Centered Profile Section (Cozy/Refined) */}
                 <div id="account-identity-module" className="flex flex-col items-center text-center gap-6 mt-4">
-                    <button 
+                    <button
                         id="account-identity-vessel"
                         onClick={() => setProfileModalOpen(true)}
                         className="relative group cursor-pointer active:scale-95 transition-transform"
                     >
                         <div className="w-40 h-40 rounded-full border-4 border-[var(--accent-teal)]/20 p-1.5 bg-(--bg-card) flex items-center justify-center relative transition-all duration-500 group-hover:border-[var(--accent-teal)] group-hover:shadow-[0_0_30px_rgba(45,212,191,0.3)] shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden">
                             {avatarUrl ? (
-                                <img 
-                                    src={avatarUrl} 
-                                    alt="PFP" 
-                                    className="w-full h-full object-cover rounded-full z-20 relative" 
+                                <img
+                                    src={avatarUrl}
+                                    alt="PFP"
+                                    className="w-full h-full object-cover rounded-full z-20 relative"
                                     onError={(e) => {
                                         (e.target as HTMLImageElement).style.display = 'none';
                                         const fallback = (e.target as HTMLImageElement).parentElement?.querySelector('.fallback-chum');
