@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStudyStore, TaskLoad } from "@/store/useStudyStore";
-import { X, Check, Clock, Edit3, Trash2 } from "lucide-react";
+import { Flame, X, Check, Clock, Edit3, Trash2 } from "lucide-react";
 
 export default function TaskEditModal() {
     const { isEditModalOpen, editingTaskId, tasks, updateTask, closeEditModal } = useStudyStore();
@@ -106,11 +106,10 @@ export default function TaskEditModal() {
                                             <button
                                                 key={l}
                                                 onClick={() => setLoad(l)}
-                                                className={`flex-1 py-2 text-[9px] font-black uppercase tracking-tighter rounded-xl transition-all ${
-                                                    load === l 
-                                                        ? loadColors[l] + ' shadow-sm' 
+                                                className={`flex-1 py-2 text-[9px] font-black uppercase tracking-tighter rounded-xl transition-all ${load === l
+                                                        ? loadColors[l] + ' shadow-sm'
                                                         : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                                                }`}
+                                                    }`}
                                             >
                                                 {l}
                                             </button>
@@ -147,7 +146,7 @@ export default function TaskEditModal() {
                         </div>
 
                         <div className="p-6 border-t border-[var(--border-color)] bg-[var(--bg-sidebar)]/30 flex gap-4">
-                             <button
+                            <button
                                 onClick={closeEditModal}
                                 className="flex-1 py-4 rounded-2xl border border-[var(--border-color)] text-sm font-black uppercase tracking-widest text-[var(--text-muted)] hover:bg-white/5 transition-all"
                             >
