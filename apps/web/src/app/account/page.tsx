@@ -3,6 +3,7 @@
 import { useStudyStore } from "@/store/useStudyStore";
 import PasswordValidator from "@/components/PasswordValidator";
 import {
+    Terminal,
     Sparkles,
     User, Mail, Lock, Trash2, Crown, LogOut,
     Camera, CheckCircle2, AlertCircle, RefreshCcw, X, ShieldAlert, ShieldCheck,
