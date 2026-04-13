@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useStudyStore } from '@/store/useStudyStore';
-import { LayoutGrid, ListOrdered, List } from 'lucide-react';
+import { LayoutGrid, ListOrdered, List, Flame } from 'lucide-react';
 
 export default function MorningPlanningModal() {
     const { setActiveFramework, setLastPlannedDate } = useStudyStore();
@@ -75,6 +75,23 @@ export default function MorningPlanningModal() {
                         <div className="text-left">
                             <h3 className="font-bold text-(--text-main)">Ivy Lee Method</h3>
                             <p className="text-xs text-(--text-muted) mt-0.5">List your top 6 priorities and do them in strict order.</p>
+                        </div>
+                    </button>
+
+                    {/* Eat the Frog */}
+                    <button
+                        onClick={() => setSelected('frog')}
+                        className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${selected === 'frog'
+                            ? 'border-(--accent-teal) bg-(--accent-teal)/10'
+                            : 'border-(--border-color) bg-(--bg-dark) hover:border-(--text-muted)'
+                            }`}
+                    >
+                        <div className={`p-3 rounded-lg ${selected === 'frog' ? 'bg-(--accent-teal) text-[#0b1211]' : 'bg-(--bg-sidebar) text-(--text-muted)'}`}>
+                            <Flame size={24} />
+                        </div>
+                        <div className="text-left">
+                            <h3 className="font-bold text-(--text-main)">Eat the Frog</h3>
+                            <p className="text-xs text-(--text-muted) mt-0.5">Tackle your most difficult and scary task first thing.</p>
                         </div>
                     </button>
                 </div>

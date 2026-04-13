@@ -13,6 +13,7 @@ export default function TaskEditModal() {
     const [description, setDescription] = useState("");
     const [load, setLoad] = useState<TaskLoad>("medium");
     const [deadline, setDeadline] = useState("");
+    const [isFrog, setIsFrog] = useState(false);
 
     useEffect(() => {
         if (task) {
@@ -20,6 +21,7 @@ export default function TaskEditModal() {
             setDescription(task.description || "");
             setLoad(task.load);
             setDeadline(task.deadline || "");
+            setIsFrog(task.isFrog || false);
         }
     }, [task]);
 
@@ -31,7 +33,8 @@ export default function TaskEditModal() {
             title,
             description,
             load,
-            deadline: deadline || undefined
+            deadline: deadline || undefined,
+            isFrog
         });
         closeEditModal();
     };
@@ -123,6 +126,22 @@ export default function TaskEditModal() {
                                         onChange={(e) => setDeadline(e.target.value)}
                                         className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-2xl px-4 py-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] transition-all"
                                     />
+                                </div>
+                            </div>
+
+                            {/* 🐸 FROG TOGGLE */}
+                            <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-[2rem] p-6 flex items-center justify-between group hover:border-orange-400/30 transition-all cursor-pointer" onClick={() => setIsFrog(!isFrog)}>
+                                <div className="flex items-center gap-4">
+                                    <div className={`p-3 rounded-xl transition-all ${isFrog ? 'bg-orange-400 text-black animate-bounce' : 'bg-[var(--bg-sidebar)] text-[var(--text-muted)]'}`}>
+                                        <Flame size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-[var(--text-main)]">Eat The Frog</h4>
+                                        <p className="text-[10px] text-[var(--text-muted)] mt-0.5">Mark this as your #1 most important task.</p>
+                                    </div>
+                                </div>
+                                <div className={`w-12 h-6 rounded-full p-1 flex items-center transition-all ${isFrog ? 'bg-orange-400' : 'bg-[var(--bg-sidebar)] border border-[var(--border-color)]'}`}>
+                                    <div className={`w-4 h-4 rounded-full shadow-md transition-all ${isFrog ? 'translate-x-6 bg-black' : 'translate-x-0 bg-[var(--text-muted)]'}`} />
                                 </div>
                             </div>
                         </div>

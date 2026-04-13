@@ -164,7 +164,7 @@ export interface StudyState {
     checkPremiumStatus: () => Promise<void>;
 
     // 🗓️ PLANNING & PRIORITIZATION
-    activeFramework: string | null;
+    activeFramework: 'eisenhower' | '1-3-5' | 'ivy' | 'frog' | null;
     lastPlannedDate: string | null;
     setActiveFramework: (framework: string | null) => Promise<void>;
     setLastPlannedDate: (date: string | null) => Promise<void>;
@@ -435,7 +435,7 @@ export const useStudyStore = create<StudyState>()(
             openViewModal: (taskId) => set({ isViewModalOpen: true, viewingTaskId: taskId }),
             closeViewModal: () => set({ isViewModalOpen: false, viewingTaskId: null }),
 
-            setActiveFramework: async (framework) => {
+            setActiveFramework: async (framework: 'eisenhower' | '1-3-5' | 'ivy' | 'frog' | null) => {
                 set({ activeFramework: framework });
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) await supabase.from('profiles').update({ active_framework: framework }).eq('id', user.id);

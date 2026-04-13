@@ -47,7 +47,7 @@ export default function ChumWidget() {
         shards, updateShardMastery, aiTier, setAITier, aiKeys, updateAIKeys, selectedModel, setSelectedModel, ollamaUrl, setOllamaUrl,
         normalChatHistory, tutorChatHistory, setNormalChatHistory, setTutorChatHistory,
         tutorSessionState, updateTutorSessionState, completeTutorSession, pastTutorSessions, toggleMindDump,
-        showNodeBadge, setShowNodeBadge, chumToasts, addTask, isPremiumUser, aiPrimaryNode, setAIPrimaryNode
+        showNodeBadge, setShowNodeBadge, chumToasts, addTask, isPremiumUser, aiPrimaryNode, setAIPrimaryNode, activeFramework
     } = useStudyStore();
 
     const [widgetPos, setWidgetPos] = useState({ isLeft: false, isTop: false });
@@ -59,8 +59,23 @@ export default function ChumWidget() {
     const activeShard = shards.find(s => s.id === activeShardId);
 
     const [showTaskForm, setShowTaskForm] = useState(false);
-    const [newTask, setNewTask] = useState<{ title: string, description: string, load: TaskLoad, deadline?: string, estimatedPomos?: number }>({ title: "", description: "", load: "medium" });
+    const [newTask, setNewTask] = useState<{ title: string, description: string, load: TaskLoad, deadline?: string, estimatedPomos?: number, isFrog?: boolean }>({ title: "", description: "", load: "medium", isFrog: false });
     const [isScheduled, setIsScheduled] = useState(false);
+
+    // 🌐 WEB PUSH (Mock Support)
+    const sendPush = (title: string, body: string) => {
+        if (!("Notification" in window)) return;
+        if (Notification.permission === "granted") {
+            new Notification(title, { body, icon: "/assets/chum-ask.png" });
+        }
+    };
+
+    useEffect(() => {
+        if (!("Notification" in window)) return;
+        if (Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+    }, []);
 
     useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [currentHistory, isOpen, showSettings, showSessions]);
     useEffect(() => { if (isTutorModeActive) setIsOpen(true); }, [isTutorModeActive]);
@@ -96,6 +111,10 @@ export default function ChumWidget() {
                     type: toast.type || 'info',
                     id: Date.now()
                 });
+                
+                // 🔔 Trigger Web Push if applicable
+                sendPush("Chum Guidance", String(toast.message).replace(/<[^>]*>?/gm, ''));
+
                 // Remove it from the store queue since we're displaying it internally
                 useStudyStore.setState((state) => ({ 
                     chumToasts: state.chumToasts.filter((t: any) => t.id !== (toast as any).id) 
@@ -741,6 +760,10 @@ export default function ChumWidget() {
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 transition={{ type: "spring", stiffness: 450, damping: 12, delay: idx * 0.1 }}
                                 exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
+                                style={{ 
+                                    rotate: idx % 2 === 0 ? '-1deg' : '1deg',
+                                    zIndex: 100 - idx 
+                                }}
                                 onClick={() => {
                                     if (toast.action) {
                                         toast.action();
@@ -788,6 +811,7 @@ export default function ChumWidget() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ type: "spring", stiffness: 450, damping: 12 }}
                                 exit={{ opacity: 0, scale: 0 }}
+                                style={{ rotate: '1deg' }}
                                 onClick={() => setIsOpen(true)}
                                 className="w-[320px] min-h-[60px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 border-[var(--border-color)] p-4 rounded-[28px] shadow-[0_15px_40px_rgba(0,0,0,0.4)] cursor-pointer pointer-events-auto flex flex-col justify-center hover:border-[var(--accent-teal)] transition-colors relative"
                             >
@@ -798,7 +822,7 @@ export default function ChumWidget() {
                                     <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)] animate-pulse" />
                                     <span className="text-[9px] font-black uppercase tracking-tighter text-[var(--accent-teal)]">Neural Link</span>
                                 </div>
-                                <div className={`absolute w-4 h-4 rotate-45 border-2 border-[var(--border-color)] bg-[var(--bg-card)] z-[-1] -bottom-2 ${widgetPos.isLeft ? 'left-6' : 'right-6'}`}
+                                <div className={`absolute w-4 h-4 rotate-45 bg-[var(--bg-card)] border-b-2 border-r-2 border-[var(--border-color)] z-0 -bottom-2 ${widgetPos.isLeft ? 'left-6' : 'right-6'}`}
                                      style={{ clipPath: 'polygon(100% 100%, 100% 0, 0 100%)' }} />
                             </motion.div>
                         )}
@@ -919,11 +943,25 @@ export default function ChumWidget() {
                                     </AnimatePresence>
                                 </div>
 
+                                {/* 🐸 FROG SPECIAL */}
+                                {activeFramework === 'frog' && (
+                                    <div 
+                                        onClick={() => setNewTask({ ...newTask, isFrog: !newTask.isFrog })}
+                                        className={`p-3 rounded-lg border-2 cursor-pointer transition-all flex justify-between items-center ${newTask.isFrog ? 'border-orange-400 bg-orange-400/10' : 'border-(--border-color) bg-(--bg-dark) opacity-60'}`}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Flame size={14} className={newTask.isFrog ? 'text-orange-400' : 'text-(--text-muted)'} />
+                                            <span className={`text-[10px] font-black uppercase ${newTask.isFrog ? 'text-orange-400' : 'text-(--text-muted)'}`}>This is my Frog</span>
+                                        </div>
+                                        <div className={`w-3 h-3 rounded-full ${newTask.isFrog ? 'bg-orange-400 animate-pulse' : 'bg-transparent border border-(--border-color)'}`} />
+                                    </div>
+                                )}
+
                                 <button
                                     disabled={!newTask.title.trim()}
                                     onClick={() => {
                                         addTask({ ...newTask, deadline: isScheduled ? newTask.deadline : undefined });
-                                        setNewTask({ title: "", description: "", load: "medium", deadline: undefined });
+                                        setNewTask({ title: "", description: "", load: "medium", deadline: undefined, isFrog: false });
                                         setIsScheduled(false);
                                         setShowTaskForm(false);
                                     }}

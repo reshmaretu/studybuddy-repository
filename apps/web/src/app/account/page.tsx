@@ -115,8 +115,8 @@ export default function AccountPage() {
                     setMeta({
                         firstName: m_firstName,
                         lastName: m_lastName,
-                        lastIdentityUpdate: profile.last_full_name_change || 0,
-                        lastDisplayUpdate: profile.last_display_name_change || 0,
+                        lastIdentityUpdate: profile.last_full_name_change ? new Date(profile.last_full_name_change).getTime() : 0,
+                        lastDisplayUpdate: profile.last_display_name_change ? new Date(profile.last_display_name_change).getTime() : 0,
                     });
 
                     setFormData(prev => ({
@@ -273,9 +273,9 @@ export default function AccountPage() {
         const identityCooldown = 14 * 24 * 60 * 60 * 1000;
 
         // 🛡️ Cooldown Check
-        const isChangingDisplay = formData.newDisplayName !== (displayName || "");
+        const isChangingDisplay = formData.newDisplayName !== (store.displayName || "");
         const finalFullName = `${formData.newFirstName} ${formData.newLastName}`.trim();
-        const isChangingIdentity = finalFullName !== (fullName || "");
+        const isChangingIdentity = finalFullName !== (store.fullName || "");
 
         if (isChangingDisplay && meta.lastDisplayUpdate > 0 && (nowMs - meta.lastDisplayUpdate) < displayCooldown) {
             const remaining = Math.ceil((displayCooldown - (nowMs - meta.lastDisplayUpdate)) / (24 * 60 * 60 * 1000));

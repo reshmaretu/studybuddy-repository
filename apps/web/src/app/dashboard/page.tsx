@@ -156,6 +156,32 @@ export default function Dashboard() {
             }
         });
     }, [isInitialized, tasks.length]);
+    
+    // 🐸 FROG PROTOCOL: Morning Reminder
+    useEffect(() => {
+        if (!isInitialized || activeFramework !== 'frog') return;
+        const now = new Date();
+        const frogTask = tasks.find(t => t.isFrog && !t.isCompleted);
+        const currentHour = now.getHours();
+
+        if (frogTask && currentHour >= 8 && currentHour < 12) {
+            const alreadyNotified = notifications.some(n => n.title.includes("The Frog is Waiting") && (Date.now() - new Date(n.timestamp).getTime()) < 3600000 * 4);
+            if (!alreadyNotified) {
+                addNotification({
+                    category: 'activity',
+                    type: 'warning',
+                    title: "The Frog is Waiting",
+                    message: "It's morning! Eat your big frog first to finish the day as a champion."
+                });
+                if (triggerChumToast) {
+                    triggerChumToast(
+                        <span><strong className="text-orange-400">🐸 RIBBIT!</strong><br />Your biggest task is staring at you. Eat it now to find true peace.</span>,
+                        'warning'
+                    );
+                }
+            }
+        }
+    }, [isInitialized, tasks, activeFramework]);
 
     const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -203,8 +229,23 @@ export default function Dashboard() {
         const { active, over } = event;
 
         if (over && over.id === "completion-zone") {
+            const task = tasks.find(t => t.id === active.id);
             if (window.confirm("Spark this bloom to completion?")) {
                 completeTask(active.id as string);
+                
+                // 🐸 Special Celebration for Frogs
+                if (task?.isFrog) {
+                    triggerChumToast(
+                        <span><strong className="text-emerald-400">🏆 FROG CONSUMED!</strong><br />You've conquered your biggest fear. The rest of the day is a breeze!</span>,
+                        'success'
+                    );
+                    addNotification({
+                        category: 'activity',
+                        type: 'success',
+                        title: "Frog Eaten!",
+                        message: "The hardest part of the day is behind you. High-frequency focus achieved."
+                    });
+                }
             }
         }
     };
@@ -378,6 +419,30 @@ export default function Dashboard() {
                     </div>
 
                 </section>
+
+                {/* 🌙 EVENING RITUAL: Wrap Up (Start at 9 PM) */}
+                <AnimatePresence>
+                    {currentHour >= 21 && (
+                        <motion.section
+                            initial={{ opacity: 0, scale: 0.95, y: 30 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 30 }}
+                            className="bg-(--bg-card) border-2 border-(--accent-yellow) rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_50px_rgba(232,195,125,0.2)] relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-(--accent-yellow)/5 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2" />
+                            <div className="flex-1 relative z-10">
+                                <h2 className="text-2xl font-black text-(--text-main) mb-2">Evening Ritual 🌙</h2>
+                                <p className="text-(--text-muted) text-sm font-medium">The sun has set on today's garden. Perform a <strong>Neural Wrap-up</strong> to preserve your progress and clear your mind.</p>
+                            </div>
+                            <button
+                                onClick={() => setIsBrainResetOpen(true)}
+                                className="px-10 py-4 bg-(--accent-yellow) text-black rounded-2xl font-black uppercase tracking-widest text-sm hover:scale-105 hover:shadow-[0_0_30px_rgba(232,195,125,0.5)] transition-all animate-pulse relative z-10"
+                            >
+                                Wrap Up Day
+                            </button>
+                        </motion.section>
+                    )}
+                </AnimatePresence>
 
                 {/* CURRENT FOCUS */}
                 <section className="pt-2 relative">

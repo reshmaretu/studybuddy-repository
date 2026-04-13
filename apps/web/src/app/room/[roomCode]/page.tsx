@@ -280,6 +280,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     const [resolvedAvatar, setResolvedAvatar] = useState("👻");
     const [resolvedAvatarUrl, setResolvedAvatarUrl] = useState<string | null>(null);
     const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
+    const [isArchitectMinimized, setIsArchitectMinimized] = useState(false);
 
     // --- BROADCAST SETTINGS (Must come FIRST) ---
     const [settings, setSettings] = useState({
@@ -470,7 +471,10 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             channel
                 .on('presence', { event: 'sync' }, () => {
                     const state = channel.presenceState();
-                    setParticipants(Object.values(state).flat());
+                    const all = Object.values(state).flat();
+                    // ⚡ FIX: Deduplicate by unique ID to prevent multiple "You" or duplicate joiners
+                    const unique = Array.from(new Map(all.map((p: any) => [p.id, p])).values());
+                    setParticipants(unique);
                 })
                 .on('broadcast', { event: 'launch' }, () => setStatus('LAUNCHING'))
                 .on('broadcast', { event: 'sync_settings' }, ({ payload }) => {
@@ -795,9 +799,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
             {/* 1. ARCHITECT SIDEBAR */}
             <AnimatePresence>
-                {status === 'DRAFT' && isHost && (
+                {status === 'DRAFT' && !isArchitectMinimized && (
                     <motion.aside
-                        initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                        initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
                         // ⚡ FIX: Appended the scrollbar hiding classes to the end of the className string
                         className="w-80 flex-shrink-0 bg-[var(--bg-card)] border-r border-[var(--border-color)] z-20 flex flex-col overflow-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                     >
@@ -820,6 +824,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     {['pomodoro', 'fixed', 'stopwatch'].map(m => (
                                         <button
                                             key={m}
+                                            disabled={!isHost}
                                             onClick={() => {
                                                 if (m === 'stopwatch' && !isPremiumUser) {
                                                     setShakeTarget('stopwatch');
@@ -829,7 +834,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                                 updateSettings({ mode: m });
                                             }}
                                             className={`p-2.5 rounded-xl border text-[10px] font-bold uppercase transition-all flex items-center justify-center gap-2 ${settings.mode === m ? 'border-[var(--accent-teal)] bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                                                } ${m === 'stopwatch' && !isPremiumUser ? 'opacity-30 grayscale cursor-not-allowed' : ''} ${shakeTarget === 'stopwatch' && m === 'stopwatch' ? 'animate-shake' : ''}`}
+                                                } ${m === 'stopwatch' && !isPremiumUser ? 'opacity-30 grayscale' : ''} ${!isHost ? 'cursor-not-allowed' : ''} ${shakeTarget === 'stopwatch' && m === 'stopwatch' ? 'animate-shake' : ''}`}
                                         >
                                             {m} {m === 'stopwatch' && <Shield size={10} />}
                                         </button>
@@ -842,12 +847,12 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                         {/* Focus Block */}
                                         <div>
                                             <div className="flex justify-between mb-3 text-[10px] font-bold text-[var(--text-muted)] uppercase"><span>Focus</span> <span className="text-[var(--accent-teal)]">{settings.workDuration}m</span></div>
-                                            <input type="range" min="15" max="90" value={settings.workDuration} onChange={(e) => updateSettings({ workDuration: Number(e.target.value) })} className="w-full appearance-none bg-(--border-color) h-1.5 rounded-full accent-(--accent-teal)" />
+                                            <input type="range" min="15" max="90" disabled={!isHost} value={settings.workDuration} onChange={(e) => updateSettings({ workDuration: Number(e.target.value) })} className={`w-full appearance-none bg-(--border-color) h-1.5 rounded-full accent-(--accent-teal) ${!isHost ? 'cursor-not-allowed' : ''}`} />
                                         </div>
                                         {/* Short Break */}
                                         <div>
                                             <div className="flex justify-between mb-3 text-[10px] font-bold text-[var(--text-muted)] uppercase"><span>Short Break</span> <span className="text-[var(--accent-teal)]">{settings.breakDuration}m</span></div>
-                                            <input type="range" min="3" max="30" value={settings.breakDuration} onChange={(e) => updateSettings({ breakDuration: Number(e.target.value) })} className="w-full appearance-none bg-(--border-color) h-1.5 rounded-full accent-(--accent-teal)" />
+                                            <input type="range" min="3" max="30" disabled={!isHost} value={settings.breakDuration} onChange={(e) => updateSettings({ breakDuration: Number(e.target.value) })} className={`w-full appearance-none bg-(--border-color) h-1.5 rounded-full accent-(--accent-teal) ${!isHost ? 'cursor-not-allowed' : ''}`} />
                                         </div>
                                         {/* Long Break */}
                                         <div>
@@ -855,12 +860,12 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                                 <span>Long Break <InfoTooltip text="Triggers automatically after your set number of focus cycles." /></span>
                                                 <span className="text-[var(--accent-teal)]">{settings.longBreakDuration}m</span>
                                             </div>
-                                            <input type="range" min="10" max="60" value={settings.longBreakDuration} onChange={(e) => updateSettings({ longBreakDuration: Number(e.target.value) })} className="w-full appearance-none bg-(--border-color) h-1.5 rounded-full accent-(--accent-teal)" />
+                                            <input type="range" min="10" max="60" disabled={!isHost} value={settings.longBreakDuration} onChange={(e) => updateSettings({ longBreakDuration: Number(e.target.value) })} className={`w-full appearance-none bg-(--border-color) h-1.5 rounded-full accent-(--accent-teal) ${!isHost ? 'cursor-not-allowed' : ''}`} />
                                         </div>
                                         {/* Cycles */}
                                         <div>
                                             <div className="flex justify-between mb-3 text-[10px] font-bold text-[var(--text-muted)] uppercase"><span>Cycles</span> <span className="text-[var(--accent-teal)]">{settings.cyclesBeforeLongBreak}</span></div>
-                                            <input type="range" min="2" max="6" value={settings.cyclesBeforeLongBreak} onChange={(e) => updateSettings({ cyclesBeforeLongBreak: Number(e.target.value) })} className="w-full appearance-none bg-(--border-color) h-1.5 rounded-full accent-(--accent-teal)" />
+                                            <input type="range" min="2" max="6" disabled={!isHost} value={settings.cyclesBeforeLongBreak} onChange={(e) => updateSettings({ cyclesBeforeLongBreak: Number(e.target.value) })} className={`w-full appearance-none bg-(--border-color) h-1.5 rounded-full accent-(--accent-teal) ${!isHost ? 'cursor-not-allowed' : ''}`} />
                                         </div>
                                     </div>
                                 )}
@@ -870,11 +875,10 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             <section className="space-y-3">
                                 <SettingLabel
                                     text="Atmosphere"
-                                    tooltip="Live Lo-Fi animations require Architect Pro."
-                                />
-                                <CustomSelect
+                                    tooltip="L                                <CustomSelect
                                     value={settings.vibeCategory}
                                     options={['Theme Default', 'Static Lo-Fi', 'Live Lo-Fi (Pro)']}
+                                    disabled={!isHost}
                                     isOpen={openDropdown === 'cat'}
                                     onToggle={() => setOpenDropdown(openDropdown === 'cat' ? null : 'cat')}
                                     isPremiumUser={isRoomPremium}
@@ -887,6 +891,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     <CustomSelect
                                         value={ROOM_THEMES.find(t => t.id === resolvedTheme)?.name || 'Deep Teal'}
                                         options={ROOM_THEMES.map(t => ({ name: t.name, pro: t.premium }))}
+                                        disabled={!isHost}
                                         isOpen={openDropdown === 'asset'}
                                         onToggle={() => setOpenDropdown(openDropdown === 'asset' ? null : 'asset')}
                                         isPremiumUser={isRoomPremium}
@@ -905,6 +910,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                 ) : (
                                     <CustomSelect
                                         value={settings.vibeAsset}
+                                        disabled={!isHost}
                                         options={
                                             (settings.vibeCategory === 'Live Lo-Fi (Pro)' && enableDevRoomOptions) ? [...LIVE_BGS, ...DEV_LIVE_BGS] : 
                                             (settings.vibeCategory === 'Static Lo-Fi' && enableDevRoomOptions) ? [...STATIC_BGS, ...DEV_STATIC_BGS] :
@@ -917,7 +923,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     />
                                 )}
                             </section>
-
+ 
                             {/* AUDIO TRACK */}
                             <section className="space-y-3">
                                 <SettingLabel
@@ -926,11 +932,14 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                 />
                                 <CustomSelect
                                     value={settings.audioTrack}
+                                    disabled={!isHost}
                                     options={enableDevRoomOptions ? [...AUDIO_TRACKS, ...DEV_AUDIO_TRACKS] : AUDIO_TRACKS}
                                     isOpen={openDropdown === 'audio'}
                                     onToggle={() => setOpenDropdown(openDropdown === 'audio' ? null : 'audio')}
                                     isPremiumUser={isRoomPremium}
                                     onChange={(track: string) => updateSettings({ audioTrack: track })}
+                                />
+                            </section>ck })}
                                 />
                             </section>
 
@@ -944,13 +953,11 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     <div className="flex items-center gap-2">
                                         <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Visualizer</span>
                                         {!isRoomPremium && <Lock size={10} className="text-[var(--accent-yellow)]" />}
-                                        <InfoTooltip text="Enables an audio-reactive visualizer for the room." />
-                                    </div>
-                                    <div className={`w-10 h-5 rounded-full relative transition-colors pointer-events-none ${settings.showVisualizer ? 'bg-[var(--accent-yellow)]' : 'bg-[var(--text-muted)]/20'}`}>
+                                        <InfoTooltip text="Enables an audio-r                                    <div className={`w-10 h-5 rounded-full relative transition-colors pointer-events-none ${settings.showVisualizer ? 'bg-[var(--accent-yellow)]' : 'bg-[var(--text-muted)]/20'}`}>
                                         <motion.div layout className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" animate={{ x: settings.showVisualizer ? 20 : 0 }} />
                                     </div>
                                 </div>
-
+ 
                                 <AnimatePresence>
                                     {settings.showVisualizer && (
                                         <motion.div
@@ -959,16 +966,17 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                             exit={{ opacity: 0, height: 0 }}
                                             className="overflow-hidden space-y-3"
                                         >
-                                            <div className="flex justify-between items-center bg-[var(--bg-main)]/30 p-3 rounded-xl border border-[var(--border-color)]">
+                                            <div className={`flex justify-between items-center bg-[var(--bg-main)]/30 p-3 rounded-xl border border-[var(--border-color)] ${!isHost ? 'cursor-not-allowed opacity-50' : ''}`}>
                                                 <span className="text-[10px] font-black text-[var(--accent-teal)] uppercase tracking-widest">Glow Color</span>
                                                 <input 
                                                     type="color" 
+                                                    disabled={!isHost}
                                                     value={settings.visualizerColor || '#fffaf0'} 
                                                     onChange={(e) => updateSettings({ visualizerColor: e.target.value })}
-                                                    className="w-6 h-6 bg-transparent border-none cursor-pointer rounded-full"
+                                                    className={`w-6 h-6 bg-transparent border-none cursor-pointer rounded-full ${!isHost ? 'pointer-events-none' : ''}`}
                                                 />
                                             </div>
-
+ 
                                             <div className="space-y-4 p-4 bg-[var(--bg-main)]/30 rounded-xl border border-[var(--border-color)]">
                                                 <div className="space-y-2">
                                                     <div className="flex justify-between items-center text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">
@@ -976,40 +984,43 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                                     </div>
                                                     <input
                                                         type="range" min="0.1" max="3" step="0.1"
+                                                        disabled={!isHost}
                                                         value={settings.visualizerScale}
                                                         onChange={(e) => updateSettings({ visualizerScale: parseFloat(e.target.value) })}
-                                                        className="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-yellow)]"
+                                                        className={`w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-yellow)] ${!isHost ? 'cursor-not-allowed opacity-50' : ''}`}
                                                     />
                                                 </div>
-
+ 
                                                 <div className="space-y-2">
                                                     <div className="flex justify-between items-center text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">
                                                         <span>Width ({settings.visualizerWidth}px)</span>
                                                     </div>
                                                     <input
                                                         type="range" min="200" max="1200" step="10"
+                                                        disabled={!isHost}
                                                         value={settings.visualizerWidth}
                                                         onChange={(e) => updateSettings({ visualizerWidth: parseInt(e.target.value) })}
-                                                        className="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-yellow)]"
+                                                        className={`w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-yellow)] ${!isHost ? 'cursor-not-allowed opacity-50' : ''}`}
                                                     />
                                                 </div>
-
+ 
                                                 <div className="space-y-2">
                                                     <div className="flex justify-between items-center text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">
                                                         <span>Height ({settings.visualizerHeight}px)</span>
                                                     </div>
                                                     <input
                                                         type="range" min="50" max="600" step="10"
+                                                        disabled={!isHost}
                                                         value={settings.visualizerHeight}
                                                         onChange={(e) => updateSettings({ visualizerHeight: parseInt(e.target.value) })}
-                                                        className="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-yellow)]"
+                                                        className={`w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-yellow)] ${!isHost ? 'cursor-not-allowed opacity-50' : ''}`}
                                                     />
                                                 </div>
                                             </div>
-
+ 
                                             <div 
-                                                onClick={() => updateSettings({ visualizerMirrored: !settings.visualizerMirrored })}
-                                                className="flex justify-between items-center bg-[var(--bg-main)]/30 p-3 rounded-xl border border-[var(--border-color)] cursor-pointer hover:border-[var(--accent-yellow)]/40 transition-colors"
+                                                onClick={() => isHost && updateSettings({ visualizerMirrored: !settings.visualizerMirrored })}
+                                                className={`flex justify-between items-center bg-[var(--bg-main)]/30 p-3 rounded-xl border border-[var(--border-color)] transition-colors ${!isHost ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:border-[var(--accent-yellow)]/40'}`}
                                             >
                                                 <span className="text-[10px] font-black text-[var(--accent-teal)] uppercase tracking-widest">Mirror Rails</span>
                                                 <div className={`w-8 h-4 rounded-full relative transition-colors ${settings.visualizerMirrored ? 'bg-[var(--accent-yellow)]' : 'bg-[var(--text-muted)]/20'}`}>
@@ -1019,11 +1030,12 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
-
+ 
                                 {/* Ghost Mode Toggle */}
                                 <div
                                     onClick={() => handlePremiumToggle('isGhostMode', settings.isGhostMode)}
-                                    className={`flex items-center justify-between transition-opacity ${!isRoomPremium ? 'cursor-not-allowed opacity-50 hover:opacity-70' : 'cursor-pointer'} ${shakeTarget === 'isGhostMode' ? 'animate-shake' : ''}`}
+                                    className={`flex items-center justify-between transition-opacity ${!isRoomPremium || !isHost ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${shakeTarget === 'isGhostMode' ? 'animate-shake' : ''}`}
+                                >get === 'isGhostMode' ? 'animate-shake' : ''}`}
                                 >
                                     <div className="flex items-center gap-2">
                                         <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Ghost Mode</span>
@@ -1038,8 +1050,16 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                         </div>
 
                         <div className="p-6 border-t border-(--border-color) bg-(--bg-sidebar)/90 space-y-3">
-                            <button onClick={handleInitializeSanctuary} className="w-full py-4 bg-[var(--accent-teal)] text-white rounded-2xl font-black uppercase text-xs hover:brightness-110 transition-all">Initialize Sanctuary</button>
-                            <button onClick={() => setShowAbandonConfirm(true)} className="w-full py-3 text-[var(--text-muted)] text-[10px] font-bold uppercase hover:text-red-400 transition-colors">Abandon Blueprint</button>
+                            {isHost ? (
+                                <>
+                                    <button onClick={handleInitializeSanctuary} className="w-full py-4 bg-[var(--accent-teal)] text-white rounded-2xl font-black uppercase text-xs hover:brightness-110 transition-all">Initialize Sanctuary</button>
+                                    <button onClick={() => setShowAbandonConfirm(true)} className="w-full py-3 text-[var(--text-muted)] text-[10px] font-bold uppercase hover:text-red-400 transition-colors">Abandon Blueprint</button>
+                                </>
+                            ) : (
+                                <div className="text-center p-4 bg-[var(--bg-main)]/30 rounded-2xl border border-[var(--border-color)]">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">Awaiting Architect Dispatch</span>
+                                </div>
+                            )}
                         </div>
                     </motion.aside>
                 )}
@@ -1051,6 +1071,24 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             <main className="flex-1 min-w-0 relative flex flex-col p-8 z-10">
                 <header className="flex justify-between items-center z-20">
                     <div className="flex items-center gap-4">
+                        {status === 'DRAFT' && isArchitectMinimized && (
+                            <button
+                                onClick={() => setIsArchitectMinimized(false)}
+                                className="p-2 bg-[var(--bg-sidebar)]/50 rounded-xl text-[var(--accent-yellow)] hover:bg-[var(--accent-yellow)]/10 transition-all border border-[var(--border-color)]"
+                                title="Open Architect Sidebar"
+                            >
+                                <Sparkles size={18} />
+                            </button>
+                        )}
+                        {status === 'DRAFT' && !isArchitectMinimized && (
+                             <button
+                                onClick={() => setIsArchitectMinimized(true)}
+                                className="p-2 bg-[var(--bg-sidebar)]/50 rounded-xl text-[var(--text-muted)] hover:text-red-400 transition-all border border-[var(--border-color)]"
+                                title="Hide Sidebar"
+                            >
+                                <ChevronRight className="rotate-180" size={18} />
+                             </button>
+                        )}
                         {isSidebarMinimized && (
                             <button
                                 onClick={() => setIsSidebarMinimized(false)}
