@@ -875,7 +875,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             <section className="space-y-3">
                                 <SettingLabel
                                     text="Atmosphere"
-                                    tooltip="L                                <CustomSelect
+                                    tooltip="Select the visual ambiance for your focus sanctuary."
+                                />
+                                <CustomSelect
                                     value={settings.vibeCategory}
                                     options={['Theme Default', 'Static Lo-Fi', 'Live Lo-Fi (Pro)']}
                                     disabled={!isHost}
