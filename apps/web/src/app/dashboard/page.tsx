@@ -95,9 +95,9 @@ export default function Dashboard() {
                 const res = await fetch("/api/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         messages: [{ role: "user", content: prompt }],
-                        stream: false 
+                        stream: false
                     })
                 });
                 const data = await res.json();
@@ -124,11 +124,11 @@ export default function Dashboard() {
     // 🕵️ Task Deadline Enforcement Check
     useEffect(() => {
         if (!isInitialized || tasks.length === 0) return;
-        
+
         const now = new Date();
         const overdueTasks = tasks.filter(t => !t.isCompleted && t.deadline && new Date(t.deadline) < now);
-        const upcomingTasks = tasks.filter(t => !t.isCompleted && t.deadline && 
-            new Date(t.deadline) > now && 
+        const upcomingTasks = tasks.filter(t => !t.isCompleted && t.deadline &&
+            new Date(t.deadline) > now &&
             (new Date(t.deadline).getTime() - now.getTime()) < 3600000 * 2 // within 2 hours
         );
 
@@ -156,7 +156,7 @@ export default function Dashboard() {
             }
         });
     }, [isInitialized, tasks.length]);
-    
+
     // 🐸 FROG PROTOCOL: Morning Reminder
     useEffect(() => {
         if (!isInitialized) return;
@@ -182,7 +182,7 @@ export default function Dashboard() {
             }
         }
     }, [isInitialized, tasks, activeFramework]);
-    
+
     // 🌙 EVENING RITUAL: Wrap Up (Start at 9 PM)
     useEffect(() => {
         if (!isInitialized) return;
@@ -191,7 +191,7 @@ export default function Dashboard() {
             const alreadyNotified = notifications.some(n => n.title === "Evening Ritual 🌙" && (Date.now() - new Date(n.timestamp).getTime()) < 3600000 * 4);
             if (!alreadyNotified) {
                 const ritualMsg = "The sun has set on today's garden. Perform a Neural Wrap-up to preserve your progress.";
-                
+
                 // 1. Activity Tab
                 addNotification({
                     category: 'activity',
@@ -241,7 +241,7 @@ export default function Dashboard() {
     const store = useStudyStore();
     const rawName = (store.fullName?.trim() || store.displayName?.trim());
     const displayName = rawName || store.userEmail?.split('@')[0] || "Guardian";
-    
+
     // Check if we should highlight the brain reset button (10 minute window)
     const isResetHighlighted = useMemo(() => {
         if (!lastResetHighlightAt) return false;
@@ -264,7 +264,7 @@ export default function Dashboard() {
             const task = tasks.find(t => t.id === active.id);
             if (window.confirm("Spark this bloom to completion?")) {
                 completeTask(active.id as string);
-                
+
                 // 🐸 Special Celebration for Frogs
                 if (task?.isFrog) {
                     triggerChumToast(
@@ -299,7 +299,7 @@ export default function Dashboard() {
                             <span className="text-base md:text-xl font-black text-[var(--text-main)] leading-none">{time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
                             <span className="text-[var(--accent-teal)] font-bold tracking-widest uppercase text-[8px] md:text-[10px] mt-1 whitespace-nowrap">{time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                         </div>
-                        <button 
+                        <button
                             onClick={() => setIsNotificationCenterOpen(true)}
                             className="p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors relative shrink-0"
                         >
@@ -375,8 +375,8 @@ export default function Dashboard() {
                         id="dashboard-brain-reset"
                         onClick={() => setIsBrainResetOpen(true)}
                         className={`bg-[var(--bg-card)] border-2 border-[var(--border-color)] rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer group relative overflow-hidden transition-all duration-700 w-full ${isResetHighlighted
-                                ? "border-[var(--accent-teal)] shadow-[0_0_30px_rgba(45,212,191,0.4)] ring-4 ring-[var(--accent-teal)]/20 ring-offset-4 ring-offset-[var(--bg-dark)]"
-                                : "hover:border-[var(--accent-teal)]/50"
+                            ? "border-[var(--accent-teal)] shadow-[0_0_30px_rgba(45,212,191,0.4)] ring-4 ring-[var(--accent-teal)]/20 ring-offset-4 ring-offset-[var(--bg-dark)]"
+                            : "hover:border-[var(--accent-teal)]/50"
                             }`}
                     >
                         {isResetHighlighted && (
@@ -449,8 +449,6 @@ export default function Dashboard() {
                             <p className="text-xs md:text-sm text-[var(--text-muted)] italic truncate">"Nurture your blooms, grow your soul."</p>
                         </div>
                     </div>
-
-                </section>
 
                 </section>
 
