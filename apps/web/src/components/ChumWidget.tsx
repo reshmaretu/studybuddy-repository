@@ -2,14 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, CheckCircle2, Edit3, LogOut, Plus, BrainCircuit, Network, Cpu, WifiOff, Settings, History, Sparkles } from "lucide-react";
+import { Flame, X, Send, CheckCircle2, Edit3, LogOut, Plus, BrainCircuit, Network, Cpu, WifiOff, Settings, History, Sparkles } from "lucide-react";
 import { useStudyStore, ChatMessage, TutorSession, Shard, TaskLoad } from "@/store/useStudyStore";
 import { supabase } from '@/lib/supabase';
 import ChumRenderer from "@/components/ChumRenderer";
 
 function TypewriterText({ text, speed = 40 }: { text: string, speed?: number }) {
     const [displayedText, setDisplayedText] = useState("");
-    
+
     useEffect(() => {
         setDisplayedText(""); // Reset when text changes
         let index = 0;
@@ -111,13 +111,13 @@ export default function ChumWidget() {
                     type: toast.type || 'info',
                     id: Date.now()
                 });
-                
+
                 // 🔔 Trigger Web Push if applicable
                 sendPush("Chum Guidance", String(toast.message).replace(/<[^>]*>?/gm, ''));
 
                 // Remove it from the store queue since we're displaying it internally
-                useStudyStore.setState((state) => ({ 
-                    chumToasts: state.chumToasts.filter((t: any) => t.id !== (toast as any).id) 
+                useStudyStore.setState((state) => ({
+                    chumToasts: state.chumToasts.filter((t: any) => t.id !== (toast as any).id)
                 }));
             }
         }
@@ -268,7 +268,7 @@ export default function ChumWidget() {
                     if (!res.body) throw new Error("No stream body");
 
                     usedNode = res.headers.get('X-Node-Used') || `${provider.toUpperCase()} (Cloud)`;
-                    
+
                     // Inject empty message
                     setCurrentHistory([...newHistory, { role: 'chum', text: "", node: usedNode }]);
 
@@ -472,89 +472,89 @@ export default function ChumWidget() {
 
                                     {aiTier === 'cloud' && (
                                         <>
-                                        <div className="bg-(--bg-card) border border-(--border-color) rounded-lg p-2 flex flex-col gap-1">
-                                            <div className="flex justify-between items-center mb-1 px-1">
-                                                <span className="text-[10px] font-black text-(--accent-teal) uppercase tracking-tighter">Waterfall Sequence</span>
-                                                <span className="text-[9px] text-(--text-muted) italic">Drag not yet supported</span>
-                                            </div>
-                                            <div className="flex gap-1">
-                                                {[aiPrimaryNode, ...(['openrouter', 'groq', 'gemini'].filter(n => n !== aiPrimaryNode))].map((node, i) => (
-                                                    <div key={node} className="flex items-center gap-1">
-                                                        <div className={`px-2 py-1 rounded text-[9px] font-bold border transition-colors ${i === 0 ? 'bg-(--accent-teal)/10 border-(--accent-teal) text-(--accent-teal)' : 'bg-(--bg-dark) border-(--border-color) text-(--text-muted)'}`}>
-                                                            {node.toUpperCase()}
+                                            <div className="bg-(--bg-card) border border-(--border-color) rounded-lg p-2 flex flex-col gap-1">
+                                                <div className="flex justify-between items-center mb-1 px-1">
+                                                    <span className="text-[10px] font-black text-(--accent-teal) uppercase tracking-tighter">Waterfall Sequence</span>
+                                                    <span className="text-[9px] text-(--text-muted) italic">Drag not yet supported</span>
+                                                </div>
+                                                <div className="flex gap-1">
+                                                    {[aiPrimaryNode, ...(['openrouter', 'groq', 'gemini'].filter(n => n !== aiPrimaryNode))].map((node, i) => (
+                                                        <div key={node} className="flex items-center gap-1">
+                                                            <div className={`px-2 py-1 rounded text-[9px] font-bold border transition-colors ${i === 0 ? 'bg-(--accent-teal)/10 border-(--accent-teal) text-(--accent-teal)' : 'bg-(--bg-dark) border-(--border-color) text-(--text-muted)'}`}>
+                                                                {node.toUpperCase()}
+                                                            </div>
+                                                            {i < 2 && <span className="text-(--text-muted) text-[10px]">→</span>}
                                                         </div>
-                                                        {i < 2 && <span className="text-(--text-muted) text-[10px]">→</span>}
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col gap-5">
+                                                {[
+                                                    {
+                                                        id: 'openrouter',
+                                                        label: 'OpenRouter',
+                                                        placeholder: 'sk-or-v1-...',
+                                                        models: [
+                                                            { id: 'mistralai/mistral-7b-instruct:free', label: 'Mistral 7B Instruct v0.3' },
+                                                            { id: 'google/gemini-2.0-flash-lite:preview-02-05', label: 'Gemini 2.5 Flash Lite' },
+                                                            { id: 'meta-llama/llama-3.2-3b-instruct:free', label: 'Llama 3.2 3B Instruct' }
+                                                        ]
+                                                    },
+                                                    {
+                                                        id: 'groq',
+                                                        label: 'Groq',
+                                                        placeholder: 'gsk_...',
+                                                        models: [
+                                                            { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70b' },
+                                                            { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8b' }
+                                                        ]
+                                                    },
+                                                    {
+                                                        id: 'gemini',
+                                                        label: 'Gemini (Direct)',
+                                                        placeholder: 'AIza...',
+                                                        models: [
+                                                            { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+                                                            { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' }
+                                                        ]
+                                                    }
+                                                ].map((prov) => (
+                                                    <div key={prov.id} className={`space-y-2 p-3 rounded-xl bg-[var(--bg-dark)]/50 border transition-colors ${aiPrimaryNode === prov.id ? 'border-(--accent-teal)' : 'border-(--border-color)'}`}>
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-xs font-bold text-[var(--accent-teal)] uppercase tracking-widest">{prov.label}</span>
+                                                                {aiPrimaryNode !== prov.id && (
+                                                                    <button onClick={() => setAIPrimaryNode(prov.id as any)} className="text-[9px] bg-(--accent-teal)/10 text-(--accent-teal) px-1.5 py-0.5 rounded-md border border-(--accent-teal)/30 hover:bg-(--accent-teal)/20 transition-colors uppercase font-black">Set Primary</button>
+                                                                )}
+                                                                {aiPrimaryNode === prov.id && (
+                                                                    <span className="text-[9px] bg-(--accent-teal) text-black px-1.5 py-0.5 rounded-md font-black uppercase">Active</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[10px] text-[var(--text-muted)]">Model:</span>
+                                                                <select
+                                                                    value={selectedModel || ''}
+                                                                    onChange={(e) => setSelectedModel(e.target.value)}
+                                                                    className="bg-transparent text-[10px] font-bold text-[var(--text-main)] outline-none cursor-pointer border-b border-[var(--border-color)] pb-0.5"
+                                                                    disabled={!aiKeys[prov.id as keyof typeof aiKeys]}
+                                                                >
+                                                                    <option value="" disabled className="bg-[var(--bg-card)]">Select Model</option>
+                                                                    {prov.models.map(m => (
+                                                                        <option key={m.id} value={m.id} className="bg-[var(--bg-card)]">{m.label}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <input
+                                                            type="password"
+                                                            value={aiKeys[prov.id as keyof typeof aiKeys] || ''}
+                                                            onChange={(e) => updateAIKeys({ [prov.id]: e.target.value })}
+                                                            placeholder={prov.placeholder}
+                                                            className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] placeholder:text-[var(--text-muted)]/30"
+                                                        />
                                                     </div>
                                                 ))}
                                             </div>
-                                        </div>
-                                        <div className="flex flex-col gap-5">
-                                            {[
-                                                { 
-                                                    id: 'openrouter', 
-                                                    label: 'OpenRouter', 
-                                                    placeholder: 'sk-or-v1-...', 
-                                                    models: [
-                                                        { id: 'mistralai/mistral-7b-instruct:free', label: 'Mistral 7B Instruct v0.3' },
-                                                        { id: 'google/gemini-2.0-flash-lite:preview-02-05', label: 'Gemini 2.5 Flash Lite' },
-                                                        { id: 'meta-llama/llama-3.2-3b-instruct:free', label: 'Llama 3.2 3B Instruct' }
-                                                    ]
-                                                },
-                                                { 
-                                                    id: 'groq', 
-                                                    label: 'Groq', 
-                                                    placeholder: 'gsk_...', 
-                                                    models: [
-                                                        { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70b' },
-                                                        { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8b' }
-                                                    ]
-                                                },
-                                                { 
-                                                    id: 'gemini', 
-                                                    label: 'Gemini (Direct)', 
-                                                    placeholder: 'AIza...', 
-                                                    models: [
-                                                        { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
-                                                        { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' }
-                                                    ]
-                                                }
-                                            ].map((prov) => (
-                                                <div key={prov.id} className={`space-y-2 p-3 rounded-xl bg-[var(--bg-dark)]/50 border transition-colors ${aiPrimaryNode === prov.id ? 'border-(--accent-teal)' : 'border-(--border-color)'}`}>
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-xs font-bold text-[var(--accent-teal)] uppercase tracking-widest">{prov.label}</span>
-                                                            {aiPrimaryNode !== prov.id && (
-                                                                <button onClick={() => setAIPrimaryNode(prov.id as any)} className="text-[9px] bg-(--accent-teal)/10 text-(--accent-teal) px-1.5 py-0.5 rounded-md border border-(--accent-teal)/30 hover:bg-(--accent-teal)/20 transition-colors uppercase font-black">Set Primary</button>
-                                                            )}
-                                                            {aiPrimaryNode === prov.id && (
-                                                                <span className="text-[9px] bg-(--accent-teal) text-black px-1.5 py-0.5 rounded-md font-black uppercase">Active</span>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-[10px] text-[var(--text-muted)]">Model:</span>
-                                                            <select
-                                                                value={selectedModel || ''}
-                                                                onChange={(e) => setSelectedModel(e.target.value)}
-                                                                className="bg-transparent text-[10px] font-bold text-[var(--text-main)] outline-none cursor-pointer border-b border-[var(--border-color)] pb-0.5"
-                                                                disabled={!aiKeys[prov.id as keyof typeof aiKeys]}
-                                                            >
-                                                                <option value="" disabled className="bg-[var(--bg-card)]">Select Model</option>
-                                                                {prov.models.map(m => (
-                                                                    <option key={m.id} value={m.id} className="bg-[var(--bg-card)]">{m.label}</option>
-                                                                ))}
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <input
-                                                        type="password"
-                                                        value={aiKeys[prov.id as keyof typeof aiKeys] || ''}
-                                                        onChange={(e) => updateAIKeys({ [prov.id]: e.target.value })}
-                                                        placeholder={prov.placeholder}
-                                                        className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] placeholder:text-[var(--text-muted)]/30"
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
                                         </>
                                     )}
 
@@ -760,46 +760,43 @@ export default function ChumWidget() {
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 transition={{ type: "spring", stiffness: 450, damping: 12, delay: idx * 0.1 }}
                                 exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
-                                style={{ 
+                                style={{
                                     rotate: idx % 2 === 0 ? '-1deg' : '1deg',
-                                    zIndex: 100 - idx 
+                                    zIndex: 100 - idx
                                 }}
                                 onClick={() => {
                                     if (toast.action) {
                                         toast.action();
-                                        useStudyStore.setState((state) => ({ 
-                                            chumToasts: state.chumToasts.filter((t: any) => t.id !== toast.id) 
+                                        useStudyStore.setState((state) => ({
+                                            chumToasts: state.chumToasts.filter((t: any) => t.id !== toast.id)
                                         }));
                                     } else {
                                         setIsOpen(true);
                                     }
                                 }}
-                                className={`w-[320px] min-h-[60px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_15px_40px_rgba(0,0,0,0.4)] cursor-pointer pointer-events-auto flex flex-col justify-center relative ${
-                                    toast.type === 'warning' ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.15)]' :
+                                className={`w-[320px] min-h-[60px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_15px_40px_rgba(0,0,0,0.4)] cursor-pointer pointer-events-auto flex flex-col justify-center relative ${toast.type === 'warning' ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.15)]' :
                                     toast.type === 'success' ? 'border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]' :
-                                    toast.type === 'info' ? 'border-sky-500/50 shadow-[0_0_20px_rgba(14,165,233,0.15)]' :
-                                    'border-[var(--border-color)]'
-                                }`}
+                                        toast.type === 'info' ? 'border-sky-500/50 shadow-[0_0_20px_rgba(14,165,233,0.15)]' :
+                                            'border-[var(--border-color)]'
+                                    }`}
                             >
-                                <p className={`text-[10px] font-black uppercase tracking-wider mb-1 ${
-                                    toast.type === 'warning' ? 'text-red-400' :
+                                <p className={`text-[10px] font-black uppercase tracking-wider mb-1 ${toast.type === 'warning' ? 'text-red-400' :
                                     toast.type === 'success' ? 'text-emerald-400' :
-                                    toast.type === 'info' ? 'text-sky-400' :
-                                    'text-[var(--accent-teal)]'
-                                }`}>
+                                        toast.type === 'info' ? 'text-sky-400' :
+                                            'text-[var(--accent-teal)]'
+                                    }`}>
                                     {toast.type === 'warning' ? '⚠️ Alert' : toast.type === 'success' ? '✨ Mastery Pulse' : 'ℹ️ Guidance'}
                                 </p>
                                 <div className="text-sm text-[var(--text-main)] leading-relaxed font-bold">
                                     {toast.message}
                                 </div>
                                 {idx === 0 && (
-                                    <div className={`absolute w-4 h-4 rotate-45 border-2 z-[-1] -bottom-2 ${widgetPos.isLeft ? 'left-6' : 'right-6'} ${
-                                        toast.type === 'warning' ? 'bg-black border-red-500/50' :
+                                    <div className={`absolute w-4 h-4 rotate-45 border-2 z-[-1] -bottom-2 ${widgetPos.isLeft ? 'left-6' : 'right-6'} ${toast.type === 'warning' ? 'bg-black border-red-500/50' :
                                         toast.type === 'success' ? 'bg-black border-emerald-500/50' :
-                                        toast.type === 'info' ? 'bg-black border-sky-500/50' :
-                                        'bg-[var(--bg-card)] border-[var(--border-color)]'
-                                    }`}
-                                    style={{ clipPath: 'polygon(100% 100%, 100% 0, 0 100%)' }} />
+                                            toast.type === 'info' ? 'bg-black border-sky-500/50' :
+                                                'bg-[var(--bg-card)] border-[var(--border-color)]'
+                                        }`}
+                                        style={{ clipPath: 'polygon(100% 100%, 100% 0, 0 100%)' }} />
                                 )}
                             </motion.div>
                         ))}
@@ -823,7 +820,7 @@ export default function ChumWidget() {
                                     <span className="text-[9px] font-black uppercase tracking-tighter text-[var(--accent-teal)]">Neural Link</span>
                                 </div>
                                 <div className={`absolute w-4 h-4 rotate-45 bg-[var(--bg-card)] border-b-2 border-r-2 border-[var(--border-color)] z-0 -bottom-2 ${widgetPos.isLeft ? 'left-6' : 'right-6'}`}
-                                     style={{ clipPath: 'polygon(100% 100%, 100% 0, 0 100%)' }} />
+                                    style={{ clipPath: 'polygon(100% 100%, 100% 0, 0 100%)' }} />
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -944,7 +941,7 @@ export default function ChumWidget() {
                                 </div>
 
                                 {/* 🐸 FROG SPECIAL */}
-                                <div 
+                                <div
                                     onClick={() => setNewTask({ ...newTask, isFrog: !newTask.isFrog })}
                                     className={`p-3 rounded-lg border-2 cursor-pointer transition-all flex justify-between items-center ${newTask.isFrog ? 'border-orange-400 bg-orange-400/10' : 'border-(--border-color) bg-(--bg-dark) opacity-60'}`}
                                 >
