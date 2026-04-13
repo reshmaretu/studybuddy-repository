@@ -8,5 +8,9 @@
     "@supabase/supabase-js": "^2.100.0",
     "zustand": "^4.5.2",
     "react": "19.2.3"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19"
   }
 }
