@@ -178,7 +178,6 @@ export interface StudyState {
     debrisCount: number;
     debrisSpread: number;
     setDebris: (settings: Partial<{ size: number, color: string, count: number, spread: number }>) => void;
-    setDebris: (settings: Partial<{ size: number, color: string, count: number, spread: number }>) => void;
     enableDevRoomOptions: boolean;
     setEnableDevRoomOptions: (val: boolean) => void;
 
