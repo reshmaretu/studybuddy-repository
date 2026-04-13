@@ -475,7 +475,11 @@ export const useStudyStore = create<StudyState>()(
                 return permission === "granted";
             },
             hasCompletedTutorial: false,
-            setCompletedTutorial: (val) => set({ hasCompletedTutorial: val }),
+            setCompletedTutorial: async (val) => {
+                set({ hasCompletedTutorial: val });
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) await supabase.from('profiles').update({ has_completed_tutorial: val }).eq('id', user.id);
+            },
             setSettings: (settings) => set((state) => ({
                 ...state,
                 ...settings,
@@ -812,7 +816,7 @@ export const useStudyStore = create<StudyState>()(
                     const [tasksResponse, shardsResponse, profileResponse, statsResponse, wardrobeResponse, sessionsResponse] = await Promise.all([
                         supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                        supabase.from('profiles').select('display_name, full_name, is_premium, is_dev, active_framework, last_planned_date, is_verified, openrouter_key, gemini_key, groq_key, avatar_url').eq('id', user.id).maybeSingle(),
+                        supabase.from('profiles').select('display_name, full_name, is_premium, is_dev, active_framework, last_planned_date, is_verified, openrouter_key, gemini_key, groq_key, avatar_url, has_completed_tutorial').eq('id', user.id).maybeSingle(),
                         supabase.from('user_stats').select('focus_score, total_sessions, total_seconds_tracked, xp, level').eq('user_id', user.id).maybeSingle(),
                         supabase.from('chum_wardrobe').select('*').eq('user_id', user.id).maybeSingle(),
                         supabase.from('ai_sessions').select('*, shards(title)').eq('user_id', user.id).order('created_at', { ascending: false })
@@ -870,7 +874,8 @@ export const useStudyStore = create<StudyState>()(
                             openrouter: profileResponse.data?.openrouter_key || "",
                             gemini: profileResponse.data?.gemini_key || "",
                             groq: profileResponse.data?.groq_key || ""
-                        }
+                        },
+                        hasCompletedTutorial: profileResponse.data?.has_completed_tutorial || false,
                     });
                     console.log(`[NEURAL] Profile Loaded: ${profileResponse.data?.display_name || "Unknown"} (${user.email})`);
 
@@ -974,8 +979,7 @@ export const useStudyStore = create<StudyState>()(
                     const { data: { session } } = await supabase.auth.getSession();
                     if (!session) return;
 
-                    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-                    const res = await fetch(`${baseUrl}/api/forge`, {
+                    const res = await fetch(`/api/forge`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -986,14 +990,18 @@ export const useStudyStore = create<StudyState>()(
                             user_id: session.user.id,
                             title: shard.title,
                             content: shard.content,
-                            files: shard.files
+                            files: shard.files,
+                            geminiKey: get().aiKeys.gemini // Pass the user's key if they provided one
                         })
                     });
                     // SAFETY NET: If the server returns a 404 HTML page, catch it before it crashes!
                     if (!res.ok) {
-                        const errorText = await res.text();
-                        console.error("Server Error HTML:", errorText.substring(0, 200));
-                        throw new Error(`API returned status: ${res.status}. Check your terminal!`);
+                        const errorData = await res.json().catch(() => null);
+                        if (errorData?.error) {
+                            throw new Error(errorData.error);
+                        }
+                        const text = await res.text().catch(() => "Unknown error");
+                        throw new Error(`API Error (${res.status}): ${text.substring(0, 100)}`);
                     }
 
                     const data = await res.json();
@@ -1006,10 +1014,11 @@ export const useStudyStore = create<StudyState>()(
                             }, ...state.shards]
                         }));
                     }
-                } catch (error) {
+                } catch (error: any) {
                     console.error("Failed to forge shard:", error);
-                    // Optional: You could add a UI toast notification here instead of an alert
-                    alert("Failed to save shard. Did you add your Gemini API Key?");
+                    // Get the message from either the thrown error or a default
+                    const errorMsg = error.message || "Unknown error";
+                    alert(`Failed to forge shard: ${errorMsg}`);
                 }
             },
 
@@ -1173,7 +1182,7 @@ export const useStudyStore = create<StudyState>()(
                 const isPremiumTheme = ["sakura", "academia", "lofi", "nordic", "e-ink"].includes(themeId);
                 if (isPremiumTheme && !get().isPremiumUser) return;
 
-                await supabase.from('chum_wardrobe').update({ active_theme: themeId }).eq('user_id', user.id);
+                await supabase.from('chum_wardrobe').update({ active_app_theme: themeId }).eq('user_id', user.id);
                 document.documentElement.setAttribute("data-theme", themeId);
                 localStorage.setItem("appTheme", themeId);
             },

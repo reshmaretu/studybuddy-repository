@@ -5,10 +5,19 @@ export const maxDuration = 60; // Essential for LlamaParse wait times
 
 export async function POST(req: Request) {
     try {
-        const { title, content, files, user_id } = await req.json();
+        const { title, content, files, user_id, geminiKey: bodyGeminiKey, llamaKey: bodyLlamaKey } = await req.json();
+        
+        // Priority: Request Body (User Key) > Environment Variable (System Key)
+        const llamaKey = bodyLlamaKey || process.env.LLAMA_CLOUD_API_KEY;
+        const geminiKey = bodyGeminiKey || process.env.GEMINI_AI_API_KEY;
 
-        const llamaKey = process.env.LLAMA_CLOUD_API_KEY;
-        const geminiKey = process.env.GEMINI_AI_API_KEY;
+        if (!geminiKey) {
+            return NextResponse.json({ error: "Gemini API Key missing. Please add it in your account settings." }, { status: 400 });
+        }
+
+        if (files?.length > 0 && !llamaKey) {
+            return NextResponse.json({ error: "LlamaParse API Key missing. Required for PDF/Document processing." }, { status: 400 });
+        }
 
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
