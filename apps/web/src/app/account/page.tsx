@@ -273,9 +273,9 @@ export default function AccountPage() {
         const identityCooldown = 14 * 24 * 60 * 60 * 1000;
 
         // 🛡️ Cooldown Check
-        const isChangingDisplay = formData.newDisplayName !== (store.displayName || "");
+        const isChangingDisplay = formData.newDisplayName !== (displayName || "");
         const finalFullName = `${formData.newFirstName} ${formData.newLastName}`.trim();
-        const isChangingIdentity = finalFullName !== (store.fullName || "");
+        const isChangingIdentity = finalFullName !== (fullName || "");
 
         if (isChangingDisplay && meta.lastDisplayUpdate > 0 && (nowMs - meta.lastDisplayUpdate) < displayCooldown) {
             const remaining = Math.ceil((displayCooldown - (nowMs - meta.lastDisplayUpdate)) / (24 * 60 * 60 * 1000));
