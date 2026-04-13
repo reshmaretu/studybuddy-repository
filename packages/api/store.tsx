@@ -572,12 +572,30 @@ export const useStudyStore = create<StudyState>()(
                 const newTracked = state.totalSecondsTracked + 1;
 
                 if (state.timeLeft === 1) {
-                    set({ timeLeft: 0, isRunning: false });
+                    set({ timeLeft: 0, isRunning: false, totalSecondsTracked: newTracked });
                     get().completeStudySession();
                 } else {
-                    set({ timeLeft: Math.max(0, state.timeLeft - 1) });
+                    set({ 
+                        timeLeft: Math.max(0, state.timeLeft - 1),
+                        totalSecondsTracked: newTracked
+                    });
                 }
+                
+                // ⚡ Sync to DB every 60 seconds of focus
                 if (newTracked % 60 === 0) {
+                    supabase.auth.getUser().then(({ data: { user } }) => {
+                        if (user) supabase.from('user_stats').update({ total_seconds_tracked: newTracked }).eq('user_id', user.id).then();
+                    });
+                }
+            },
+
+            incrementSecondsTracked: (amount = 1) => {
+                const state = get();
+                const newTracked = state.totalSecondsTracked + amount;
+                set({ totalSecondsTracked: newTracked });
+
+                // Sync to DB every 60 seconds
+                if (newTracked % 60 === 0 || (newTracked % 60 < amount && newTracked > amount)) {
                     supabase.auth.getUser().then(({ data: { user } }) => {
                         if (user) supabase.from('user_stats').update({ total_seconds_tracked: newTracked }).eq('user_id', user.id).then();
                     });

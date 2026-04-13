@@ -756,10 +756,10 @@ export default function ChumWidget() {
                         {!isOpen && chumToasts?.map((toast: any, idx) => (
                             <motion.div
                                 key={toast.id}
-                                initial={{ opacity: 0, scale: 0.5, y: 50, x: 20, rotate: 10 }}
-                                animate={{ opacity: 1, scale: 1, y: 0, x: 0, rotate: -2 }}
-                                whileHover={{ scale: 1.02 }}
-                                transition={{ type: "spring", stiffness: 800, damping: 30, mass: 0.8 }}
+                                initial={{ opacity: 0, scale: 0.5, y: 50, x: widgetPos.isLeft ? -30 : 30, rotate: widgetPos.isLeft ? -15 : 15 }}
+                                animate={{ opacity: 1, scale: 1, y: 0, x: 0, rotate: 0 }}
+                                whileHover={{ scale: 1.02, rotate: 0.5 }}
+                                transition={{ type: "spring", stiffness: 600, damping: 25, mass: 0.6 }}
                                 exit={{ opacity: 0, scale: 0.8, filter: "blur(4px)", transition: { duration: 0.1 } }}
                                 style={{
                                     zIndex: 100 - idx

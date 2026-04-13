@@ -235,6 +235,9 @@ useEffect(() => {
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => {
             if (isSubscribed) fetchNetwork();
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'user_stats' }, () => {
+            if (isSubscribed) fetchNetwork();
+        })
         .subscribe();
 
     return () => {

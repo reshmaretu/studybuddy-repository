@@ -533,7 +533,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                             avatarUrl: finalAvatarUrl,
                             status: isActuallyHost ? (roomData?.status === 'ACTIVE' ? 'hosting' : 'drafting') : 'joined',
                             roomCode: roomCode,
-                            roomTitle: finalRoomTitle
+                            roomTitle: finalRoomTitle,
+                            focusScore: myStats.focus_score || 0,
+                            totalHours: Number(((myStats.total_seconds_tracked || 0) / 3600).toFixed(1))
                         });
                         // ⚡ LATE JOINER DETECTED: Ask host for the time!
                         if (!isActuallyHost && roomData?.status === 'ACTIVE') {
@@ -558,10 +560,12 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 avatarUrl: resolvedAvatarUrl,
                 status: isHost ? ((status === 'ACTIVE' || status === 'LAUNCHING') ? 'hosting' : 'drafting') : 'joined',
                 roomCode: roomCode,
-                roomTitle: settings.name || "Sanctuary"
+                roomTitle: settings.name || "Sanctuary",
+                focusScore: useStudyStore.getState().focusScore,
+                totalHours: Number(((useStudyStore.getState().totalSecondsTracked || 0) / 3600).toFixed(1))
             });
         }
-    }, [status, resolvedName, resolvedAvatar, resolvedAvatarUrl, isHost, roomCode, settings.name, currentUserId]);
+    }, [status, resolvedName, resolvedAvatar, resolvedAvatarUrl, isHost, roomCode, settings.name, currentUserId, useStudyStore.getState().totalSecondsTracked, useStudyStore.getState().focusScore]]);
 
     useEffect(() => {
         const handleUnload = () => {
@@ -706,11 +710,17 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     setSecondsLeft(prev => {
                         // ⚡ Count UP mode (Stopwatch / Free)
                         if (settings.mode === 'free' || settings.mode === 'stopwatch') {
+                            useStudyStore.getState().incrementSecondsTracked(secondsMissed);
                             return prev + secondsMissed;
                         }
 
                         // ⚡ Count DOWN mode (Pomodoro / Fixed)
                         const next = prev - secondsMissed;
+
+                        // Increment global stats only if NOT in a break
+                        if (!isBreak) {
+                            useStudyStore.getState().incrementSecondsTracked(secondsMissed);
+                        }
 
                         // Hit Zero!
                         if (next <= 0) {
@@ -1279,6 +1289,16 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                         <p className="text-[9px] font-black uppercase tracking-widest text-[var(--accent-teal)] mt-0.5 truncate">
                                             {isBreak ? "Resting" : "Focusing"}
                                         </p>
+                                        <div className="flex gap-2 mt-1">
+                                            <div className="flex items-center gap-1 opacity-60">
+                                                <Activity size={8} className="text-[var(--accent-teal)]" />
+                                                <span className="text-[8px] font-bold text-[var(--text-main)]">{(p as any).totalHours || 0}h</span>
+                                            </div>
+                                            <div className="flex items-center gap-1 opacity-60">
+                                                <Zap size={8} className="text-[var(--accent-yellow)]" />
+                                                <span className="text-[8px] font-bold text-[var(--text-main)]">{(p as any).focusScore || 0}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             );
