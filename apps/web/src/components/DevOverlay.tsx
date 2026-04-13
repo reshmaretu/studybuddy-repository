@@ -231,7 +231,7 @@ export default function DevOverlay() {
 
                             <div className="p-3 bg-black/20 rounded-xl">
                                 <p className="text-[10px] text-(--text-muted) leading-relaxed italic text-center">
-                                    "With great power comes great responsibility, Chum."
+                                    &quot;With great power comes great responsibility, Chum.&quot;
                                 </p>
                             </div>
                         </div>

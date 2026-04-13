@@ -111,9 +111,14 @@ const ATMOSPHERES = [
 function CenteredVisualizer({ accent, isRunning }: { accent: string; isRunning: boolean }) {
     const bars = 30;
     const barHeights = useMemo(() => {
+        // Deterministic pseudo-random heights to satisfy purity rules
         return Array.from({ length: bars }, (_, i) => {
             const base = 3 + Math.sin((i / bars) * Math.PI) * 10;
-            return [base, base + Math.floor(Math.random() * 18) + 4, base + Math.floor(Math.random() * 11), base + Math.floor(Math.random() * 20), base];
+            const seed = i * 1.5;
+            const r1 = (Math.sin(seed * 1.1) + 1) / 2;
+            const r2 = (Math.cos(seed * 1.3) + 1) / 2;
+            const r3 = (Math.sin(seed * 1.7) + 1) / 2;
+            return [base, base + Math.floor(r1 * 18) + 4, base + Math.floor(r2 * 11), base + Math.floor(r3 * 20), base];
         });
     }, []);
 
@@ -185,8 +190,10 @@ export default function StudyCafeOverlay() {
     const isActive = activeMode === "studyCafe";
 
     // Update refs for timer logic
-    phaseRef.current = phase;
-    cycleRef.current = cycleCount;
+    useEffect(() => {
+        phaseRef.current = phase;
+        cycleRef.current = cycleCount;
+    }, [phase, cycleCount]);
 
     // Timer Tick
     useEffect(() => {
@@ -484,7 +491,7 @@ export default function StudyCafeOverlay() {
                                                 </div>
                                             </div>
                                             <h3 className="text-white font-bold text-xs leading-snug mb-1 line-clamp-2">{task.title}</h3>
-                                            <p className="text-[10px] text-white/40 line-clamp-3 leading-relaxed font-medium italic">"{task.description}"</p>
+                                            <p className="text-[10px] text-white/40 line-clamp-3 leading-relaxed font-medium italic">&quot;{task.description}&quot;</p>
                                         </motion.div>
                                     ) : (
                                         <p className="text-xs text-white/30 italic">Free session — no chapter set.</p>

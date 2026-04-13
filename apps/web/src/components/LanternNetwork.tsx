@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Html, OrbitControls, PerspectiveCamera, QuadraticBezierLine, Float, Points, PointMaterial } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
-import { BoxSelect, Layers, Zap, Maximize2, Minimize2 } from "lucide-react";
+import { ShieldAlert, BoxSelect, Layers, Zap, Maximize2, Minimize2 } from "lucide-react";
 import { LanternUser } from "@/app/lantern/page";
 import { useRouter } from "next/navigation";
 import { useStudyStore } from "@/store/useStudyStore";
@@ -119,13 +119,13 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                     </motion.div>
                 )}
             </AnimatePresence>
- 
+
             {/* --- TOOLBAR --- */}
             <div className="absolute top-6 right-6 z-[100] flex flex-col gap-3 items-end">
                 <div className="flex bg-[var(--bg-card)]/80 backdrop-blur-md p-1.5 rounded-2xl border border-[var(--border-color)] shadow-2xl">
                     <button onClick={() => { setIs3D(false); setIsFreeCam(false); }} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${!is3D ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><BoxSelect size={14} /> 2D Map</button>
                     <button onClick={() => setIs3D(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${is3D ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><Layers size={14} /> 3D Void</button>
- 
+
                     {/* 🔥 NEW: Physical Freecam Toggle Button */}
                     {is3D && (
                         <>
@@ -138,7 +138,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                             </button>
                         </>
                     )}
- 
+
                     <div className="w-px h-6 bg-[var(--border-color)] mx-1 self-center" />
                     <button onClick={onToggleMaximize} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all text-[var(--text-muted)] hover:text-[var(--text-main)]`} title={isMaximized ? "Minimize Map" : "Maximize Map"}>
                         {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />} {isMaximized ? 'Minimize' : 'Maximize'}
@@ -268,7 +268,17 @@ function LanternConstellation({ users, is3D, onWarp, intensity }: { users: Lante
     );
 }
 
-function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, intensity, setHovered, clearHover }: any) {
+function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, intensity, setHovered, clearHover }: { 
+    user: LanternUser; 
+    is3D: boolean; 
+    isHovered: boolean; 
+    isSelected: boolean; 
+    onClick: () => void; 
+    isSelf: boolean; 
+    intensity: number; 
+    setHovered: () => void; 
+    clearHover: () => void; 
+}) {
     const meshRef = useRef<THREE.Mesh>(null);
     const materialRef = useRef<THREE.MeshStandardMaterial>(null);
     const spriteRef = useRef<THREE.Sprite>(null);
@@ -373,10 +383,10 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                     </div>
                                     <div className="w-12 h-12 rounded-full border border-[var(--border-color)] overflow-hidden flex-shrink-0 bg-black/40 relative">
                                         {(user as any).avatarUrl ? (
-                                            <img 
-                                                src={(user as any).avatarUrl} 
-                                                alt="PFP" 
-                                                className="w-full h-full object-cover z-20 relative" 
+                                            <img
+                                                src={(user as any).avatarUrl}
+                                                alt="PFP"
+                                                className="w-full h-full object-cover z-20 relative"
                                                 onError={(e) => {
                                                     (e.target as HTMLImageElement).style.display = 'none';
                                                     const fallback = (e.target as HTMLImageElement).parentElement?.querySelector('.fallback-chum');
@@ -385,9 +395,9 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                             />
                                         ) : null}
                                         <div className={`absolute inset-0 flex items-center justify-center p-1 bg-[var(--bg-dark)] fallback-chum ${(user as any).avatarUrl ? 'invisible' : ''}`}>
-                                            <ChumRenderer 
-                                                size="w-full h-full" 
-                                                activeAccessoriesOverride={(user as any).activeAccessories} 
+                                            <ChumRenderer
+                                                size="w-full h-full"
+                                                activeAccessoriesOverride={(user as any).activeAccessories}
                                             />
                                         </div>
                                     </div>
@@ -409,7 +419,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                             </span>
                                             <p className="text-[10px] text-purple-200 font-black uppercase tracking-tighter">AI Shard Active</p>
                                         </div>
-                                        <p className="text-[9px] text-purple-300/80 italic">"Generating mastering insights..."</p>
+                                        <p className="text-[9px] text-purple-300/80 italic">&quot;Generating mastering insights...&quot;</p>
                                     </motion.div>
                                 )}
                                 {user.status === 'flowState' && (
@@ -432,7 +442,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                         </p>
                                         <div className="space-y-1 mb-4">
                                             <p className="text-xs font-bold text-white italic">
-                                                "{user.roomTitle || 'Quiet Study'}"
+                                                &quot;{user.roomTitle || 'Quiet Study'}&quot;
                                             </p>
                                             {user.roomDescription && (
                                                 <p className="text-[10px] text-[var(--text-muted)] leading-relaxed line-clamp-2 italic">
@@ -464,7 +474,16 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
     );
 }
 
-function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete, isFocused, isFreeCam, setIsFreeCam }: any) {
+function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete, isFocused, isFreeCam, setIsFreeCam, intensity }: {
+    is3D: boolean;
+    controlsRef: React.RefObject<any>;
+    warpTarget: THREE.Vector3 | null;
+    onWarpComplete: () => void;
+    isFocused: boolean;
+    isFreeCam: boolean;
+    setIsFreeCam: React.Dispatch<React.SetStateAction<boolean>>;
+    intensity?: number;
+}) {
     const isTransitioning = useRef(false);
     const isCancelled = useRef(false);
 

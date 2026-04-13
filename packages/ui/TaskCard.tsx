@@ -28,9 +28,10 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
 
     // 🕒 3-PHASE DEADLINE ENFORCEMENT
     const getDeadlinePhase = () => {
-        if (!task.deadline || task.isCompleted) return { phase: 1, label: "Neutral", color: "text-(--text-muted)" };
+        const deadline = task.deadline;
+        if (!deadline || task.isCompleted) return { phase: 1, label: "Neutral", color: "text-(--text-muted)" };
         const now = new Date();
-        const dl = new Date(task.deadline).getTime();
+        const dl = new Date(deadline).getTime();
         const diffHours = (dl - now.getTime()) / (1000 * 60 * 60);
 
         if (diffHours < 0) return { phase: 3, label: "CRITICAL", color: "text-red-500", bg: "bg-red-500/10", border: "border-red-500" };
@@ -41,7 +42,8 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
 
     const dlStatus = getDeadlinePhase();
 
-    const formatDeadline = (dl: string) => {
+    const formatDeadline = (dl: string | undefined) => {
+        if (!dl) return "";
         const d = new Date(dl);
         return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' });
     };

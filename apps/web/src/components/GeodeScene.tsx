@@ -40,12 +40,13 @@ function CylinderGlitter({ count, completionRatio }: { count: number, completion
     const positions = useMemo(() => {
         const pos = new Float32Array(count * 3);
         for (let i = 0; i < count; i++) {
-            const theta = Math.random() * Math.PI * 2; // Full circle
-            const radius = Math.sqrt(Math.random()) * 25; // Grass plate radius
+            // Deterministic pseudo-randomness for React purity
+            const theta = (i * 1337.42) % (Math.PI * 2); 
+            const radius = Math.sqrt((i * 42.123) % 1) * 25; 
 
-            pos[i * 3] = Math.cos(theta) * radius;     // X
-            pos[i * 3 + 1] = Math.random() * 40;       // Y (Height into the sky)
-            pos[i * 3 + 2] = Math.sin(theta) * radius; // Z
+            pos[i * 3] = Math.cos(theta) * radius;     
+            pos[i * 3 + 1] = ((i * 99.9) % 1) * 40;       
+            pos[i * 3 + 2] = Math.sin(theta) * radius; 
         }
         return pos;
     }, [count]);
@@ -156,23 +157,22 @@ export function createMasterFlowerGeometry() {
 function generateTrilliums(count: number) {
     const flowers = [];
     for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 2.5 + Math.sqrt(Math.random()) * 21.5;
+        const angle = ((i * 123.456) % 1) * Math.PI * 2;
+        const radius = 2.5 + Math.sqrt((i * 789.012) % 1) * 21.5;
         const x = Math.cos(angle) * radius;
         const z = Math.sin(angle) * radius;
 
-        const stemHeight = 0.15 + Math.random() * 0.35;
-        const scale = 1.0 + Math.random() * 2.0; // Varies in size
+        const stemHeight = 0.15 + ((i * 55.5) % 1) * 0.35;
+        const scale = 1.0 + ((i * 33.3) % 1) * 2.0; 
 
-        // Give each flower head a slight natural tilt
-        const tiltX = (Math.random() - 0.5) * 0.5;
-        const tiltZ = (Math.random() - 0.5) * 0.5;
+        const tiltX = (((i * 11.1) % 1) - 0.5) * 0.5;
+        const tiltZ = (((i * 22.2) % 1) - 0.5) * 0.5;
 
         flowers.push({
             pos: [x, -0.4, z],
             stemHeight,
             scale,
-            rotY: Math.random() * Math.PI * 2,
+            rotY: ((i * 99.9) % 1) * Math.PI * 2,
             tiltX,
             tiltZ
         });
@@ -182,20 +182,20 @@ function generateTrilliums(count: number) {
 
 function generateCrystalCluster(count: number) {
     const crystals = [];
-    crystals.push({ pos: [0, 0.1, 0], rot: [0, Math.random(), 0], radius: 0.5, height: 2.2 });
-    crystals.push({ pos: [0.15, 0.05, 0.2], rot: [0.15, Math.random(), -0.1], radius: 0.45, height: 1.8 });
-    crystals.push({ pos: [-0.2, 0.1, -0.1], rot: [-0.1, Math.random(), 0.15], radius: 0.4, height: 1.9 });
+    crystals.push({ pos: [0, 0.1, 0], rot: [0, 1.2, 0], radius: 0.5, height: 2.2 });
+    crystals.push({ pos: [0.15, 0.05, 0.2], rot: [0.15, 2.5, -0.1], radius: 0.45, height: 1.8 });
+    crystals.push({ pos: [-0.2, 0.1, -0.1], rot: [-0.1, 0.8, 0.15], radius: 0.4, height: 1.9 });
 
     for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 0.2 + Math.random() * 0.7;
+        const angle = ((i * 77.7) % 1) * Math.PI * 2;
+        const dist = 0.2 + ((i * 11.1) % 1) * 0.7;
         const x = Math.cos(angle) * dist;
         const z = Math.sin(angle) * dist;
-        const tiltX = z * 0.6 + (Math.random() - 0.5) * 0.2;
-        const tiltZ = -x * 0.6 + (Math.random() - 0.5) * 0.2;
-        const radius = 0.15 + Math.random() * 0.15;
-        const height = 0.4 + Math.random() * 1.2;
-        crystals.push({ pos: [x, 0.1, z], rot: [tiltX, Math.random() * Math.PI, tiltZ], radius, height });
+        const tiltX = z * 0.6 + (((i * 44.4) % 1) - 0.5) * 0.2;
+        const tiltZ = -x * 0.6 + (((i * 55.5) % 1) - 0.5) * 0.2;
+        const radius = 0.15 + ((i * 22.2) % 1) * 0.15;
+        const height = 0.4 + ((i * 33.3) % 1) * 1.2;
+        crystals.push({ pos: [x, 0.1, z], rot: [tiltX, ((i * 66.6) % 1) * Math.PI, tiltZ], radius, height });
     }
     return crystals;
 }
@@ -309,13 +309,14 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
     }, [allFlowerPositions, masteredShards.length, flowerCount]);
 
     useFrame((state) => {
+        const mats = materials;
         if (shardsRef.current && coreLightRef.current) {
             const targetYScale = progress === 0 ? 0.05 : 0.2 + (progress * 1.2);
             const targetXZScale = progress === 0 ? 0.05 : 0.6 + (progress * 0.6);
             shardsRef.current.scale.lerp(new THREE.Vector3(targetXZScale, targetYScale, targetXZScale), 0.05);
             const targetIntensity = progress === 0 ? 0.2 : 1.5 + (progress * 5);
             coreLightRef.current.intensity = THREE.MathUtils.lerp(coreLightRef.current.intensity, targetIntensity, 0.05);
-            materials.quartz.emissiveIntensity = THREE.MathUtils.lerp(materials.quartz.emissiveIntensity, progress * 0.25, 0.05);
+            mats.quartz.emissiveIntensity = THREE.MathUtils.lerp(mats.quartz.emissiveIntensity, progress * 0.25, 0.05);
         }
         shaderUniforms.uTime.value = state.clock.elapsedTime * windSpeed;
         // Turn off sway instantly if toggled in dev tools

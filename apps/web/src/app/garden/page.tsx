@@ -404,8 +404,9 @@ export default function CrystalGarden() {
     // These are for the UI Columns (affected by search)
     const activeQuests = filteredTasks.filter(t => !t.isCompleted);
     const getPhaseValue = (t: Task) => {
-        if (!t.deadline) return 0;
-        const diff = (new Date(t.deadline).getTime() - Date.now()) / 3600000;
+        const deadline = t.deadline;
+        if (!deadline) return 0;
+        const diff = (new Date(deadline).getTime() - Date.now()) / 3600000;
         if (diff < 0) return 4; // Overdue
         if (diff <= 2) return 3; // Critical
         if (diff <= 12) return 2; // Soon

@@ -57,21 +57,28 @@ export default function ExperienceOverlay() {
                             </motion.div>
                         </div>
 
-                        {/* Particle Effects (Simplified) */}
-                        {[...Array(12)].map((_, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ x: 0, y: 0, opacity: 1 }}
-                                animate={{ 
-                                    x: (Math.random() - 0.5) * 600, 
-                                    y: (Math.random() - 0.5) * 600,
-                                    opacity: 0,
-                                    scale: 0
-                                }}
-                                transition={{ duration: 2, ease: "easeOut" }}
-                                className="absolute top-1/2 left-1/2 w-4 h-4 rounded-full bg-amber-400"
-                            />
-                        ))}
+                        {/* Particle Effects */}
+                        {(() => {
+                            const particles = Array.from({ length: 12 }, (_, i) => ({
+                                id: i,
+                                x: (Math.sin(i * 1337.42) % 1) * 600 - 300,
+                                y: (Math.cos(i * 999.99) % 1) * 600 - 300,
+                            }));
+                            return particles.map((p) => (
+                                <motion.div
+                                    key={p.id}
+                                    initial={{ x: 0, y: 0, opacity: 1 }}
+                                    animate={{ 
+                                        x: p.x, 
+                                        y: p.y,
+                                        opacity: 0,
+                                        scale: 0
+                                    }}
+                                    transition={{ duration: 2, ease: "easeOut" }}
+                                    className="absolute top-1/2 left-1/2 w-4 h-4 rounded-full bg-amber-400"
+                                />
+                            ));
+                        })()}
                     </motion.div>
                 )}
 

@@ -504,7 +504,7 @@ Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`
                                     >
                                         <div className="text-center mb-2">
                                             <p className="text-[var(--text-muted)] text-xs uppercase tracking-widest">Brain Dump</p>
-                                            <p className="text-[var(--text-muted)] text-sm">Take your time. Submit whenever you're ready.</p>
+                                            <p className="text-[var(--text-muted)] text-sm">Take your time. Submit whenever you&apos;re ready.</p>
                                         </div>
 
                                         {/* Chum Preview */}
@@ -712,7 +712,7 @@ Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`
                                         <div className="text-center">
                                             <h3 className="text-2xl font-black text-[var(--text-main)] mb-2">Reset Complete!</h3>
                                             <p className="text-[var(--text-muted)] text-sm">
-                                                You've taken care of yourself. Your brain will thank you.
+                                                You&apos;ve taken care of yourself. Your brain will thank you.
                                             </p>
                                         </div>
 

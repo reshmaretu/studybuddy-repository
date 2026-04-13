@@ -40,7 +40,7 @@ export default function MorningPlanningModal() {
                         </div>
                         <div className="text-left">
                             <h3 className="font-bold text-(--text-main)">Eisenhower Matrix</h3>
-                            <p className="text-xs text-(--text-muted) mt-0.5">Focus on what's Urgent vs Important.</p>
+                            <p className="text-xs text-(--text-muted) mt-0.5">Focus on what&apos;s Urgent vs Important.</p>
                         </div>
                     </button>
 

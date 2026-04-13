@@ -65,6 +65,29 @@ const CRYSTAL_CATALOG = {
     bismuth: { name: "Bismuth", unlockLevel: 1, isPremium: true, color: "#312e81", emissive: "#ec4899" },
 };
 
+interface Accessory {
+    id: string;
+    name: string;
+    fileName: string;
+    zIndex: number;
+    isPremium: boolean;
+}
+
+interface Crystal {
+    name: string;
+    unlockLevel: number;
+    isPremium: boolean;
+    color: string;
+    emissive: string;
+}
+
+interface Theme {
+    id: string;
+    name: string;
+    color1: string;
+    color2: string;
+}
+
 export default function WardrobePage() {
     // UI Tabs State
     const [activeTab, setActiveTab] = useState<'themes' | 'crystals' | 'accessories'>('themes');
@@ -103,7 +126,7 @@ export default function WardrobePage() {
         document.documentElement.setAttribute("data-theme", themeId);
     };
 
-    const handleCrystalChange = (crystalId: string, crystal: any) => {
+    const handleCrystalChange = (crystalId: string, crystal: Crystal) => {
         if (crystal.isPremium && !isPremiumUser) {
             setShakeTarget(crystalId);
             setTimeout(() => setShakeTarget(null), 400);
@@ -117,7 +140,7 @@ export default function WardrobePage() {
         if (setActiveCrystalTheme) setActiveCrystalTheme(crystalId);
     };
 
-    const handleToggleAccessory = (accessory: any) => {
+    const handleToggleAccessory = (accessory: Accessory) => {
         if (accessory.isPremium && !isPremiumUser) {
             setShakeTarget(accessory.id);
             setTimeout(() => setShakeTarget(null), 400);
@@ -372,7 +395,13 @@ export default function WardrobePage() {
 }
 
 // 🎨 Helper Component for App Themes
-function ThemeButton({ theme, isActive, isLocked, isShaking, onClick }: any) {
+function ThemeButton({ theme, isActive, isLocked, isShaking, onClick }: {
+    theme: Theme;
+    isActive: boolean;
+    isLocked?: boolean;
+    isShaking?: boolean;
+    onClick: () => void;
+}) {
     return (
         <button onClick={onClick} className={`group relative flex items-center p-4 rounded-2xl border-2 transition-all duration-200 ${isShaking ? 'animate-premium-shake border-red-500' : isActive ? 'border-[var(--accent-teal)] bg-[var(--bg-dark)] shadow-lg' : 'border-[var(--border-color)] bg-[var(--bg-sidebar)]/50 hover:bg-[var(--bg-sidebar)]'} ${isLocked && !isActive ? 'opacity-60 hover:opacity-100' : ''}`}>
             <div className="w-8 h-8 rounded-full mr-3 border border-[var(--border-color)] shadow-sm shrink-0" style={{ background: `linear-gradient(135deg, ${theme.color1} 50%, ${theme.color2} 50%)` }} />
@@ -383,7 +412,13 @@ function ThemeButton({ theme, isActive, isLocked, isShaking, onClick }: any) {
 }
 
 // 💎 Helper Component for Crystals
-function CrystalButton({ crystal, isActive, isLocked, isShaking, onClick }: any) {
+function CrystalButton({ crystal, isActive, isLocked, isShaking, onClick }: {
+    crystal: Crystal;
+    isActive: boolean;
+    isLocked?: boolean;
+    isShaking?: boolean;
+    onClick: () => void;
+}) {
     return (
         <button onClick={onClick} className={`group relative flex items-center p-4 rounded-2xl border-2 transition-all duration-200 ${isShaking ? 'animate-premium-shake border-red-500' : isActive ? 'border-[var(--accent-teal)] bg-[var(--bg-dark)] shadow-[0_0_15px_rgba(20,184,166,0.15)]' : 'border-[var(--border-color)] bg-[var(--bg-sidebar)]/50 hover:bg-[var(--bg-sidebar)]'} ${isLocked && !isActive ? 'opacity-60 hover:opacity-100' : ''}`}>
             {/* Glowing Gem Preview */}
@@ -409,7 +444,13 @@ function CrystalButton({ crystal, isActive, isLocked, isShaking, onClick }: any)
 }
 
 // 👕 Helper Component for Accessories (NEW)
-function AccessoryButton({ accessory, isActive, isLocked, isShaking, onClick }: any) {
+function AccessoryButton({ accessory, isActive, isLocked, isShaking, onClick }: {
+    accessory: Accessory;
+    isActive: boolean;
+    isLocked?: boolean;
+    isShaking?: boolean;
+    onClick: () => void;
+}) {
     return (
         <button
             onClick={onClick}
