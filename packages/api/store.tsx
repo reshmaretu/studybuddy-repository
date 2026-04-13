@@ -143,6 +143,7 @@ export interface StudyState {
     toggleTimer: () => void;
     resetTimer: () => void;
     decrementTimer: () => void;
+    incrementSecondsTracked: (amount: number) => void;
     openFocusModal: (taskId?: string) => void;
     closeFocusModal: () => void;
     startMode: (mode: 'flowState' | 'studyCafe', taskId: string | null) => void;

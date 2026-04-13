@@ -360,98 +360,101 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                     <Html distanceFactor={is3D ? 30 : 45} position={[0, 8, 0]} center className="pointer-events-none">
                         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
                             className="bg-[var(--bg-dark)]/95 backdrop-blur-xl border border-[var(--border-color)] p-5 rounded-3xl w-64 pointer-events-auto shadow-2xl text-[var(--text-main)]">
-                            <div className="flex justify-between items-start mb-4">
-                                <div>
-                                    <h3 className="font-black text-sm">{user.name}</h3>
-                                    {/* 👇 DYNAMIC STATUS LABEL */}
-                                    <p
-                                        className="text-[10px] font-black uppercase tracking-widest mt-0.5"
-                                        style={{ color: STATUS_CONFIG[user.status as keyof typeof STATUS_CONFIG]?.color || '#fff' }}
-                                    >
-                                        ● {user.status}
-                                    </p>
-                                </div>
-                                <div className="w-12 h-12 rounded-full border border-[var(--border-color)] overflow-hidden flex-shrink-0 bg-black/40 relative">
-                                    {(user as any).avatarUrl ? (
-                                        <img 
-                                            src={(user as any).avatarUrl} 
-                                            alt="PFP" 
-                                            className="w-full h-full object-cover z-20 relative" 
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).style.display = 'none';
-                                                const fallback = (e.target as HTMLImageElement).parentElement?.querySelector('.fallback-chum');
-                                                if (fallback) fallback.classList.remove('invisible');
-                                            }}
-                                        />
-                                    ) : null}
-                                    <div className={`absolute inset-0 flex items-center justify-center p-1 bg-[var(--bg-dark)] fallback-chum ${(user as any).avatarUrl ? 'invisible' : ''}`}>
-                                        <ChumRenderer 
-                                            size="w-full h-full" 
-                                            activeAccessoriesOverride={(user as any).activeAccessories} 
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 bg-black/40 p-3 rounded-2xl border border-[var(--border-color)]">
-                                <div className="flex flex-col"><span className="text-[8px] uppercase font-black opacity-40">Total Hours</span><span className="text-xs font-mono font-bold text-[var(--accent-teal)]">{user.hours}h</span></div>
-                                <div className="flex flex-col text-right"><span className="text-[8px] uppercase font-black opacity-40">Focus Score</span><span className="text-xs font-bold text-[var(--accent-yellow)]">{user.focusScore || 0}</span></div>
-                            </div>
-                            {/* 💎 AI MASTERING SHARD */}
-                            {user.status === 'mastering' && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="mt-4 p-3 bg-purple-500/20 border border-purple-500/30 rounded-2xl text-center backdrop-blur-md"
-                                >
-                                    <div className="flex items-center justify-center gap-2 mb-1">
-                                        <span className="relative flex h-2 w-2">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
-                                        </span>
-                                        <p className="text-[10px] text-purple-200 font-black uppercase tracking-tighter">AI Shard Active</p>
-                                    </div>
-                                    <p className="text-[9px] text-purple-300/80 italic">"Generating mastering insights..."</p>
-                                </motion.div>
-                            )}
- 
-                            {/* 🌊 FLOWSTATE PULSE */}
-                            {user.status === 'flowState' && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    className="mt-4 p-3 bg-teal-400/10 border border-teal-400/20 rounded-2xl text-center"
-                                >
-                                    <p className="text-[10px] text-teal-400 font-black uppercase tracking-widest animate-pulse">
-                                        Deep Work Zone
-                                    </p>
-                                </motion.div>
-                            )}
- 
-                            {/* 🔗 ROOM INTERACTION SECTION */}
-                            {isSelected && !isSelf && (['hosting', 'joined', 'drafting', 'cafe'].includes(user.status)) && (
-                                <motion.div initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    className="mt-4 pt-4 border-t border-[var(--border-color)]">
-                                    <p className="text-[10px] font-black uppercase text-white/40 mb-2">
-                                        {user.status === 'drafting' ? 'Blueprint in Progress' : 'Current Sanctuary'}
-                                    </p>
-                                    <div className="space-y-1 mb-4">
-                                        <p className="text-xs font-bold text-white italic">
-                                            "{user.roomTitle || 'Quiet Study'}"
+                            <div className={`relative ${(!user.isVerified && !isSelf) ? 'filter blur-md pointer-events-none' : ''}`}>
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 className="font-black text-sm">{user.name}</h3>
+                                        <p
+                                            className="text-[10px] font-black uppercase tracking-widest mt-0.5"
+                                            style={{ color: STATUS_CONFIG[user.status as keyof typeof STATUS_CONFIG]?.color || '#fff' }}
+                                        >
+                                            ● {user.status}
                                         </p>
-                                        {user.roomDescription && (
-                                            <p className="text-[10px] text-[var(--text-muted)] leading-relaxed line-clamp-2 italic">
-                                                {user.roomDescription}
-                                            </p>
-                                        )}
                                     </div>
-                                    <button
-                                        onClick={() => router.push(`/room/${user.roomCode}`)}
-                                        className="w-full py-3 bg-[var(--accent-teal)] text-black text-xs font-black rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"
+                                    <div className="w-12 h-12 rounded-full border border-[var(--border-color)] overflow-hidden flex-shrink-0 bg-black/40 relative">
+                                        {(user as any).avatarUrl ? (
+                                            <img 
+                                                src={(user as any).avatarUrl} 
+                                                alt="PFP" 
+                                                className="w-full h-full object-cover z-20 relative" 
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                    const fallback = (e.target as HTMLImageElement).parentElement?.querySelector('.fallback-chum');
+                                                    if (fallback) fallback.classList.remove('invisible');
+                                                }}
+                                            />
+                                        ) : null}
+                                        <div className={`absolute inset-0 flex items-center justify-center p-1 bg-[var(--bg-dark)] fallback-chum ${(user as any).avatarUrl ? 'invisible' : ''}`}>
+                                            <ChumRenderer 
+                                                size="w-full h-full" 
+                                                activeAccessoriesOverride={(user as any).activeAccessories} 
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 bg-black/40 p-3 rounded-2xl border border-[var(--border-color)]">
+                                    <div className="flex flex-col"><span className="text-[8px] uppercase font-black opacity-40">Total Hours</span><span className="text-xs font-mono font-bold text-[var(--accent-teal)]">{user.hours}h</span></div>
+                                    <div className="flex flex-col text-right"><span className="text-[8px] uppercase font-black opacity-40">Focus Score</span><span className="text-xs font-bold text-[var(--accent-yellow)]">{user.focusScore || 0}</span></div>
+                                </div>
+                                {user.status === 'mastering' && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="mt-4 p-3 bg-purple-500/20 border border-purple-500/30 rounded-2xl text-center backdrop-blur-md"
                                     >
-                                        {user.status === 'drafting' ? 'View Blueprint' : `Join Sanctuary [${user.roomCode || '...'}]`}
-                                    </button>
-                                </motion.div>
+                                        <div className="flex items-center justify-center gap-2 mb-1">
+                                            <span className="relative flex h-2 w-2">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                                            </span>
+                                            <p className="text-[10px] text-purple-200 font-black uppercase tracking-tighter">AI Shard Active</p>
+                                        </div>
+                                        <p className="text-[9px] text-purple-300/80 italic">"Generating mastering insights..."</p>
+                                    </motion.div>
+                                )}
+                                {user.status === 'flowState' && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="mt-4 p-3 bg-teal-400/10 border border-teal-400/20 rounded-2xl text-center"
+                                    >
+                                        <p className="text-[10px] text-teal-400 font-black uppercase tracking-widest animate-pulse">
+                                            Deep Work Zone
+                                        </p>
+                                    </motion.div>
+                                )}
+                                {isSelected && !isSelf && (['hosting', 'joined', 'drafting', 'cafe'].includes(user.status)) && (
+                                    <motion.div initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        className="mt-4 pt-4 border-t border-[var(--border-color)]">
+                                        <p className="text-[10px] font-black uppercase text-white/40 mb-2">
+                                            {user.status === 'drafting' ? 'Blueprint in Progress' : 'Current Sanctuary'}
+                                        </p>
+                                        <div className="space-y-1 mb-4">
+                                            <p className="text-xs font-bold text-white italic">
+                                                "{user.roomTitle || 'Quiet Study'}"
+                                            </p>
+                                            {user.roomDescription && (
+                                                <p className="text-[10px] text-[var(--text-muted)] leading-relaxed line-clamp-2 italic">
+                                                    {user.roomDescription}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={() => router.push(`/room/${user.roomCode}`)}
+                                            className="w-full py-3 bg-[var(--accent-teal)] text-black text-xs font-black rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"
+                                        >
+                                            {user.status === 'drafting' ? 'View Blueprint' : `Join Sanctuary [${user.roomCode || '...'}]`}
+                                        </button>
+                                    </motion.div>
+                                )}
+                            </div>
+                            {(!user.isVerified && !isSelf) && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-50">
+                                    <ShieldAlert size={32} className="text-[var(--accent-teal)] mb-3 animate-pulse" />
+                                    <p className="text-[10px] font-black uppercase text-white tracking-widest">Neural Link Encrypted</p>
+                                    <p className="text-[8px] text-[var(--accent-teal)] font-bold mt-1 uppercase">Identity Verification Required</p>
+                                </div>
                             )}
                         </motion.div>
                     </Html>

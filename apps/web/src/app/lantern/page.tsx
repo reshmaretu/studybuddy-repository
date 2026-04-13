@@ -29,6 +29,7 @@ export interface LanternUser {
     jitterZ: number;
     avatarUrl?: string;
     activeAccessories?: any[];
+    isVerified?: boolean;
 }
 
 const getStableRandom = (id: string, seed: string) => {
@@ -98,6 +99,7 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
         hours: stats ? Number(((stats.total_seconds_tracked || 0) / 3600).toFixed(1)) : 0,
         focusScore: stats ? (stats.focus_score || 0) : 0,
         isHosting: !!hostedRoom,
+        isVerified: p.is_verified,
         roomCode: relevantRoom?.room_code,
         roomTitle: (relevantRoom?.name && relevantRoom.name !== "undefined") ? relevantRoom.name : "Sanctuary",
         roomDescription: (relevantRoom?.description && relevantRoom.description !== "undefined") ? relevantRoom.description : undefined,

@@ -9,7 +9,8 @@ import { DndContext, useDraggable, useDroppable, DragEndEvent, DragOverlay, Drag
 export default function FocusModal() {
     const {
         isFocusModalOpen, closeFocusModal, focusTaskId, tasks,
-        pomodoroFocus, pomodoroShortBreak, pomodoroLongBreak, pomodoroCycles, updatePomodoroSettings
+        pomodoroFocus, pomodoroShortBreak, pomodoroLongBreak, pomodoroCycles, updatePomodoroSettings,
+        triggerChumToast, setPremiumModalOpen
     } = useStudyStore();
 
     // Local state for modal toggles
@@ -242,7 +243,18 @@ export default function FocusModal() {
                                         <p className="text-xs text-[var(--text-muted)]">Hides all UI elements for pure immersion</p>
                                     </div>
                                 </div>
-                                <button className="text-xs font-bold text-[var(--accent-yellow)] border border-[var(--accent-yellow)]/30 px-3 py-1.5 rounded-lg hover:bg-[var(--accent-yellow)] hover:text-black transition-colors">Upgrade</button>
+                                <button 
+                                    onClick={() => {
+                                        triggerChumToast(
+                                            "Ghost Mode requires a higher neural link. Upgrade to StudyBuddy Pro for full immersion.",
+                                            "warning",
+                                            () => setPremiumModalOpen(true)
+                                        );
+                                    }}
+                                    className="text-xs font-bold text-[var(--accent-yellow)] border border-[var(--accent-yellow)]/30 px-3 py-1.5 rounded-lg hover:bg-[var(--accent-yellow)] hover:text-black transition-colors"
+                                >
+                                    Upgrade
+                                </button>
                             </div>
                         </div>
                     </div>

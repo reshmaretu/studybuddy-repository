@@ -928,6 +928,14 @@ export default function AccountPage() {
                                                 <span>Allowed Glyphs</span>
                                                 <span className="text-(--text-main)">Alphanumeric & Spaces</span>
                                             </li>
+                                            <li className="text-[9px] font-bold text-(--accent-yellow)/60 flex justify-between pt-1 border-t border-white/5 mt-1">
+                                                <span>Cooldown (Display Name)</span>
+                                                <span className="text-(--accent-yellow)">14 Days</span>
+                                            </li>
+                                            <li className="text-[9px] font-bold text-(--accent-yellow)/60 flex justify-between">
+                                                <span>Cooldown (Full Name)</span>
+                                                <span className="text-(--accent-yellow)">30 Days</span>
+                                            </li>
                                         </ul>
                                     </div>
 
