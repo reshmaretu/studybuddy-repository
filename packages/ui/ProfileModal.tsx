@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Upload, Camera, Image as ImageIcon, Check, Ghost, Loader2, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
+import { Sparkles, X, Upload, Camera, Image as ImageIcon, Check, Ghost, Loader2, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
 import { useStudyStore, supabase, useTerms } from "@studybuddy/api";
 import { ChumRenderer } from "./ChumRenderer";
 import Cropper from 'react-easy-crop';
@@ -35,9 +35,9 @@ const getCroppedImg = async (imageSrc: string, pixelCrop: any, rotation = 0): Pr
 };
 
 export const ProfileModal = () => {
-    const { 
-        isProfileModalOpen, setProfileModalOpen, avatarUrl, setAvatarUrl, 
-        triggerChumToast, useThematicUI, setThematicUI 
+    const {
+        isProfileModalOpen, setProfileModalOpen, avatarUrl, setAvatarUrl,
+        triggerChumToast, useThematicUI, setThematicUI
     } = useStudyStore();
     const { terms } = useTerms();
     const [activeTab, setActiveTab] = useState<'custom' | 'chum'>('chum');
@@ -89,7 +89,7 @@ export const ProfileModal = () => {
                             </div>
                             <button onClick={() => fileInputRef.current?.click()} className="w-full py-4 rounded-2xl bg-(--accent-teal) text-black font-black uppercase tracking-widest transition-all">{terms.forgeShard === "Extract Shards" ? "Upload Shard" : "Upload Picture"}</button>
                             <input type="file" ref={fileInputRef} onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = () => setImage(r.result as string); r.readAsDataURL(f); } }} accept="image/*" className="hidden" />
-                            
+
                             {/* THEMATIC UI TOGGLE */}
                             <div className="w-full pt-4 border-t border-(--border-color) flex flex-col gap-3">
                                 <div className="flex justify-between items-center">
@@ -98,7 +98,7 @@ export const ProfileModal = () => {
                                         {useThematicUI ? "GAMIFIED" : "SIMPLE"}
                                     </span>
                                 </div>
-                                <button 
+                                <button
                                     onClick={() => setThematicUI(!useThematicUI)}
                                     className={`w-full py-3 rounded-2xl border-2 font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${useThematicUI ? 'border-(--accent-teal) text-(--accent-teal) bg-(--accent-teal)/5 hover:bg-(--accent-teal)/10' : 'border-(--border-color) text-(--text-main) hover:border-(--text-muted)'}`}
                                 >
