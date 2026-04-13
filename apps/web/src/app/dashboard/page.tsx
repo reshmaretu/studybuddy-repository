@@ -182,6 +182,37 @@ export default function Dashboard() {
             }
         }
     }, [isInitialized, tasks, activeFramework]);
+    
+    // 🌙 EVENING RITUAL: Wrap Up (Start at 9 PM)
+    useEffect(() => {
+        if (!isInitialized) return;
+        const currentHour = new Date().getHours();
+        if (currentHour >= 21) {
+            const alreadyNotified = notifications.some(n => n.title === "Evening Ritual 🌙" && (Date.now() - new Date(n.timestamp).getTime()) < 3600000 * 4);
+            if (!alreadyNotified) {
+                const ritualMsg = "The sun has set on today's garden. Perform a Neural Wrap-up to preserve your progress.";
+                
+                // 1. Activity Tab
+                addNotification({
+                    category: 'activity',
+                    type: 'info',
+                    title: "Evening Ritual 🌙",
+                    message: ritualMsg
+                });
+
+                // 2. Chum Toast
+                if (triggerChumToast) {
+                    triggerChumToast(
+                        <span><strong className="text-yellow-400">🌙 EVENING RITUAL</strong><br />Time to synchronize your day's growth.</span>,
+                        'info',
+                        () => useStudyStore.getState().setIsUnDoneModalOpen(true)
+                    );
+                }
+
+                // 3. Web Push (already handled inside addNotification if permission granted)
+            }
+        }
+    }, [isInitialized, notifications.length]);
 
     const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -421,36 +452,7 @@ export default function Dashboard() {
 
                 </section>
 
-    // 🌙 EVENING RITUAL: Wrap Up (Start at 9 PM)
-    useEffect(() => {
-        if (!isInitialized) return;
-        const currentHour = new Date().getHours();
-        if (currentHour >= 21) {
-            const alreadyNotified = notifications.some(n => n.title === "Evening Ritual 🌙" && (Date.now() - new Date(n.timestamp).getTime()) < 3600000 * 4);
-            if (!alreadyNotified) {
-                const ritualMsg = "The sun has set on today's garden. Perform a Neural Wrap-up to preserve your progress.";
-                
-                // 1. Activity Tab
-                addNotification({
-                    category: 'activity',
-                    type: 'info',
-                    title: "Evening Ritual 🌙",
-                    message: ritualMsg
-                });
-
-                // 2. Chum Toast
-                if (triggerChumToast) {
-                    triggerChumToast(
-                        <span><strong className="text-yellow-400">🌙 EVENING RITUAL</strong><br />Time to synchronize your day's growth.</span>,
-                        'info',
-                        () => useStudyStore.getState().setIsUnDoneModalOpen(true)
-                    );
-                }
-
-                // 3. Web Push (already handled inside addNotification if permission granted)
-            }
-        }
-    }, [isInitialized, notifications.length]);
+                </section>
 
                 {/* CURRENT FOCUS */}
                 <section className="pt-2 relative">
