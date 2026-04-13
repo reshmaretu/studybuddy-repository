@@ -166,7 +166,7 @@ export interface StudyState {
     // 🗓️ PLANNING & PRIORITIZATION
     activeFramework: 'eisenhower' | '1-3-5' | 'ivy' | null;
     lastPlannedDate: string | null;
-    setActiveFramework: (framework: string | null) => Promise<void>;
+    setActiveFramework: (framework: 'eisenhower' | '1-3-5' | 'ivy' | null) => Promise<void>;
     setLastPlannedDate: (date: string | null) => Promise<void>;
 
     updateUserTheme: (themeId: string) => Promise<void>;

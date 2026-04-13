@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useStudyStore } from '@/store/useStudyStore';
-import { LayoutGrid, ListOrdered, List, Flame } from 'lucide-react';
+import { LayoutGrid, ListOrdered, List } from 'lucide-react';
 
 export default function MorningPlanningModal() {
     const { setActiveFramework, setLastPlannedDate } = useStudyStore();
-    const [selected, setSelected] = useState<string | null>(null);
+    const [selected, setSelected] = useState<'eisenhower' | '1-3-5' | 'ivy' | null>(null);
 
     const handleConfirm = () => {
         if (!selected) return;
