@@ -939,8 +939,6 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     isPremiumUser={isRoomPremium}
                                     onChange={(track: string) => updateSettings({ audioTrack: track })}
                                 />
-                            </section>ck })}
-                                />
                             </section>
 
                             {/* PREMIUM TOGGLES */}
@@ -953,7 +951,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                     <div className="flex items-center gap-2">
                                         <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Visualizer</span>
                                         {!isRoomPremium && <Lock size={10} className="text-[var(--accent-yellow)]" />}
-                                        <InfoTooltip text="Enables an audio-r                                    <div className={`w-10 h-5 rounded-full relative transition-colors pointer-events-none ${settings.showVisualizer ? 'bg-[var(--accent-yellow)]' : 'bg-[var(--text-muted)]/20'}`}>
+                                        <InfoTooltip text="Enables an audio-reactive visualizer for the room atmosphere." />
+                                    </div>
+                                    <div className={`w-10 h-5 rounded-full relative transition-colors pointer-events-none ${settings.showVisualizer ? 'bg-[var(--accent-yellow)]' : 'bg-[var(--text-muted)]/20'}`}>
                                         <motion.div layout className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" animate={{ x: settings.showVisualizer ? 20 : 0 }} />
                                     </div>
                                 </div>
@@ -1035,7 +1035,6 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                                 <div
                                     onClick={() => handlePremiumToggle('isGhostMode', settings.isGhostMode)}
                                     className={`flex items-center justify-between transition-opacity ${!isRoomPremium || !isHost ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${shakeTarget === 'isGhostMode' ? 'animate-shake' : ''}`}
-                                >get === 'isGhostMode' ? 'animate-shake' : ''}`}
                                 >
                                     <div className="flex items-center gap-2">
                                         <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Ghost Mode</span>
