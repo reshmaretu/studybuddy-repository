@@ -14,3 +14,4 @@ export const supabase = createClient(supabaseUrl || "", supabaseAnonKey || "");
 export * from '@supabase/supabase-js';
 export * from './types';
 export * from './store';
+export * from './hooks/useTerms';

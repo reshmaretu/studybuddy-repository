@@ -8,6 +8,7 @@ import TaskCard from "@/components/TaskCard";
 import { redirect } from "next/navigation";
 import ChumRenderer from "@/components/ChumRenderer";
 import BrainResetModal from "@/components/BrainResetModal";
+import { useTerms } from "@/hooks/useTerms";
 
 // The Magical Drop Zone Component
 function CompletionDropZone() {
@@ -44,6 +45,7 @@ export default function Dashboard() {
         isInitialized, xp, level, pomodoroFocus, isBrainResetOpen, setIsBrainResetOpen, lastResetHighlightAt,
         notifications, setIsNotificationCenterOpen, addNotification
     } = useStudyStore();
+    const { terms } = useTerms();
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -241,7 +243,7 @@ export default function Dashboard() {
                 {/* SPARKS FEED */}
                 <fieldset id="sparks-feed" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 pb-5 pt-2 mt-4 mb-4">
                     <legend className="ml-4 px-2 flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-[var(--text-muted)]">
-                        <Zap size={14} className="text-[var(--accent-yellow)]" /> Sparks Feed
+                        <Zap size={14} className="text-[var(--accent-yellow)]" /> {terms.sparksFeed}
                     </legend>
                     <div className="text-center mt-1">
                         <p className="text-[var(--text-main)] italic text-sm">"{sparkQuote}"</p>
@@ -278,7 +280,7 @@ export default function Dashboard() {
                                     </svg>
                                     <div className="flex flex-col items-center z-10 mb-[-5px]">
                                         <span className="text-2xl md:text-3xl font-bold text-[var(--text-main)] leading-none">{focusScore}</span>
-                                        <span className="text-[8px] md:text-[9px] text-[var(--text-muted)] font-bold tracking-widest uppercase mt-1">Focus Score</span>
+                                        <span className="text-[8px] md:text-[9px] text-[var(--text-muted)] font-bold tracking-widest uppercase mt-1">{terms.focusScore}</span>
                                     </div>
                                 </div>
                                 <div className="flex flex-col items-center gap-3 w-32 md:w-36">
@@ -309,7 +311,7 @@ export default function Dashboard() {
                         )}
                         <div className="absolute inset-0 bg-[var(--accent-teal)] opacity-0 group-hover:opacity-5 transition-opacity duration-700"></div>
                         <Brain size={48} className={`text-[var(--accent-teal)] mb-3 group-hover:scale-110 transition-transform duration-500 ${isResetHighlighted ? "animate-bounce" : ""}`} style={{ filter: 'drop-shadow(0px 0px 10px var(--accent-teal))' }} />
-                        <h2 className="text-lg font-bold text-[var(--text-main)] mb-1">Mindful Reset</h2>
+                        <h2 className="text-lg font-bold text-[var(--text-main)] mb-1">{terms.brainReset}</h2>
                         <p className="text-[var(--text-muted)] text-xs font-medium">
                             {isResetHighlighted ? "Time for a brain reset!" : "Breathe deeply"}
                         </p>
@@ -335,7 +337,7 @@ export default function Dashboard() {
                                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
                                 className="absolute -bottom-3 bg-gradient-to-r from-[var(--accent-yellow)] to-orange-400 text-black text-[9px] md:text-[10px] font-black px-3 py-1 rounded-full shadow-[0_0_15px_rgba(250,204,21,0.5)] z-10"
                             >
-                                LVL {level}
+                                {terms.level} {level}
                             </motion.div>
                         </div>
 
@@ -356,7 +358,7 @@ export default function Dashboard() {
                                         </motion.h3>
                                     </AnimatePresence>
                                     <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--accent-yellow)]/10 border border-[var(--accent-yellow)]/20 text-[var(--accent-yellow)] font-bold text-[9px] md:text-[10px] uppercase tracking-wide whitespace-nowrap">
-                                        <Flame size={12} /> {dailyStreak} Day Streak
+                                        <Flame size={12} /> {dailyStreak} {terms.dayStreak}
                                     </div>
                                 </div>
                                 <motion.span
@@ -365,7 +367,7 @@ export default function Dashboard() {
                                     animate={{ scale: 1, color: "var(--text-muted)" }}
                                     className="text-[9px] md:text-[10px] font-mono text-[var(--text-muted)] font-bold tracking-widest whitespace-nowrap"
                                 >
-                                    Spirit: {xp}/{calculateXpRequirement(level)}
+                                    {terms.xp}: {xp}/{calculateXpRequirement(level)}
                                 </motion.span>
                             </div>
                             <div className="h-2 w-full bg-black/30 rounded-full overflow-hidden mb-2">
@@ -380,7 +382,7 @@ export default function Dashboard() {
                 {/* CURRENT FOCUS */}
                 <section className="pt-2 relative">
                     <div className="flex items-center gap-3 mb-4">
-                        <h2 className="text-xl font-bold text-[var(--text-main)]">Garden Blooms</h2>
+                        <h2 className="text-xl font-bold text-[var(--text-main)]">{terms.questProgress}</h2>
                         <span className="bg-[var(--bg-card)] border border-[var(--border-color)] px-2 py-1 rounded-md text-[11px] text-[var(--text-muted)] font-mono flex items-center gap-1.5">
                             <Calendar size={12} /> {formattedDate}
                         </span>
@@ -417,7 +419,7 @@ export default function Dashboard() {
 
                         <div className="h-24 md:h-32 border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex flex-col items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--accent-teal)]">
                             <span className="text-lg md:text-xl mb-1">✨</span>
-                            <span className="text-[10px] md:text-xs font-bold tracking-wide uppercase">Crystal Garden</span>
+                            <span className="text-[10px] md:text-xs font-bold tracking-wide uppercase">{terms.crystalGarden}</span>
                             <span className="text-[9px] md:text-[10px] opacity-70 mt-1">+{Math.max(0, activeTasks.length - 3)} hidden blooms</span>
                         </div>
                     </div>
@@ -427,11 +429,11 @@ export default function Dashboard() {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-4 text-center mb-8 border-b border-[var(--border-color)] pb-8">
                             <div className="flex flex-col items-center justify-center">
                                 <span className="text-3xl md:text-4xl font-bold text-[var(--text-main)] mb-1">{activeTasks.length}</span>
-                                <span className="text-xs text-[var(--text-muted)] font-medium">Active</span>
+                                <span className="text-xs text-[var(--text-muted)] font-medium">{terms.incomplete}</span>
                             </div>
                             <div className="flex flex-col items-center justify-center border-y sm:border-y-0 sm:border-x border-[var(--border-color)] py-4 sm:py-0">
                                 <span className="text-3xl md:text-4xl font-bold text-[var(--text-main)] mb-1">{completedTasks.length}</span>
-                                <span className="text-xs text-[var(--text-muted)] font-medium">Completed</span>
+                                <span className="text-xs text-[var(--text-muted)] font-medium">{terms.completed}</span>
                             </div>
                             <div className="flex flex-col items-center justify-center">
                                 {/* 👇 Now divides literal seconds by 3600 to get true hours! */}

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Calendar as CalendarIcon, Inbox, Sparkles, ChevronLeft, ChevronRight, Search, Filter } from "lucide-react";
 import { useStudyStore, Task } from "@/store/useStudyStore";
 import TaskCard from "@/components/TaskCard";
+import { useTerms } from "@/hooks/useTerms";
 
 // ─── HELPER COMPONENTS ────────────────────────────────────────────────────────
 
@@ -76,6 +77,7 @@ function MonthCell({ date, tasks, isCurrentMonth }: { date: Date; tasks: Task[];
 // ─── MAIN PAGE ───────────────────────────────────────────────────────────────
 export default function TactileCalendar() {
     const { tasks, updateTask } = useStudyStore();
+    const { terms } = useTerms();
     const [activeDragTask, setActiveDragTask] = useState<Task | null>(null);
     const [isMounted, setIsMounted] = useState(false);
     const horizonRef = useRef<HTMLDivElement>(null);
@@ -212,7 +214,7 @@ export default function TactileCalendar() {
                     <div>
                         <h1 className="text-xl md:text-3xl font-black text-[var(--text-main)] flex items-center gap-3">
                             <CalendarIcon className="text-[var(--accent-teal)]" size={24} />
-                            Quest Forecast
+                            {terms.questForecast}
                         </h1>
                         <p className="text-[var(--text-muted)] mt-1">
                             Plant quests from your Seed Bank to cultivate the days ahead.
@@ -222,7 +224,7 @@ export default function TactileCalendar() {
                     {/* View Toggle */}
                     <div id="calendar-view-toggle" className="flex bg-[var(--bg-card)] border border-[var(--border-color)] p-1 rounded-xl shadow-sm shrink-0 scale-90 sm:scale-100">
                         <button onClick={() => setView('horizon')} className={`px-2 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${view === 'horizon' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5'}`}>
-                            Forecast
+                            {terms.questForecast}
                         </button>
                         <button onClick={() => setView('month')} className={`px-2 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${view === 'month' ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5'}`}>
                             Month
@@ -265,7 +267,7 @@ export default function TactileCalendar() {
                                     onClick={() => setActiveFilter(isActive ? null : load)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${colorClass}`}
                                 >
-                                    {load}
+                                    {load === 'heavy' ? terms.heavyLoad : load === 'medium' ? terms.mediumLoad : terms.lightLoad}
                                 </button>
                             );
                         })}
@@ -279,7 +281,7 @@ export default function TactileCalendar() {
                     <div id="calendar-seed-bank" className="w-full lg:w-80 h-[400px] lg:h-full flex flex-col bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 overflow-hidden shadow-sm relative shrink-0">
                         <div className="flex items-center gap-2 mb-4">
                             <Inbox size={18} className="text-[var(--accent-yellow)]" />
-                            <h2 className="font-bold text-[var(--text-main)]">Seed Bank</h2>
+                            <h2 className="font-bold text-[var(--text-main)]">{terms.crystalVault}</h2>
                             <span className="ml-auto bg-[var(--bg-dark)] px-2 py-0.5 rounded-md text-xs font-bold text-[var(--text-muted)]">
                                 {stashedTasks.length}
                             </span>

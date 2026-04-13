@@ -3,7 +3,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Upload, Camera, Image as ImageIcon, Check, Ghost, Loader2, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
-import { useStudyStore, supabase } from "@studybuddy/api";
+import { useStudyStore, supabase, useTerms } from "@studybuddy/api";
 import { ChumRenderer } from "./ChumRenderer";
 import Cropper from 'react-easy-crop';
 
@@ -35,7 +35,11 @@ const getCroppedImg = async (imageSrc: string, pixelCrop: any, rotation = 0): Pr
 };
 
 export const ProfileModal = () => {
-    const { isProfileModalOpen, setProfileModalOpen, avatarUrl, setAvatarUrl, triggerChumToast } = useStudyStore();
+    const { 
+        isProfileModalOpen, setProfileModalOpen, avatarUrl, setAvatarUrl, 
+        triggerChumToast, useThematicUI, setThematicUI 
+    } = useStudyStore();
+    const { terms } = useTerms();
     const [activeTab, setActiveTab] = useState<'custom' | 'chum'>('chum');
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -76,15 +80,32 @@ export const ProfileModal = () => {
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setProfileModalOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-(--bg-card) border-2 border-(--border-color) rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl relative z-10">
                         <div className="p-6 border-b border-(--border-color) flex justify-between items-center bg-(--bg-sidebar)/30">
-                            <h3 className="text-xl font-black flex items-center gap-3"><Camera size={20} className="text-(--accent-teal)" /> Identity Mask</h3>
+                            <h3 className="text-xl font-black flex items-center gap-3"><Camera size={20} className="text-(--accent-teal)" /> {terms.neurallinkAscended === "Neural Link Ascended" ? "Identity Mask" : "Profile Settings"}</h3>
                             <button onClick={() => setProfileModalOpen(false)} className="p-2 rounded-xl hover:bg-(--bg-dark) transition-all"><X size={20} /></button>
                         </div>
                         <div className="p-8 flex flex-col items-center gap-6">
                             <div className="w-32 h-32 rounded-full border-4 border-(--accent-teal)/20 p-4 bg-(--bg-dark) flex items-center justify-center relative">
                                 {avatarUrl ? <img src={avatarUrl} className="w-full h-full rounded-full object-cover" /> : <ChumRenderer size="w-20 h-20" />}
                             </div>
-                            <button onClick={() => fileInputRef.current?.click()} className="w-full py-4 rounded-2xl bg-(--accent-teal) text-black font-black uppercase tracking-widest transition-all">Upload Shard</button>
+                            <button onClick={() => fileInputRef.current?.click()} className="w-full py-4 rounded-2xl bg-(--accent-teal) text-black font-black uppercase tracking-widest transition-all">{terms.forgeShard === "Extract Shards" ? "Upload Shard" : "Upload Picture"}</button>
                             <input type="file" ref={fileInputRef} onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = () => setImage(r.result as string); r.readAsDataURL(f); } }} accept="image/*" className="hidden" />
+                            
+                            {/* THEMATIC UI TOGGLE */}
+                            <div className="w-full pt-4 border-t border-(--border-color) flex flex-col gap-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-(--text-muted) uppercase tracking-widest">UI Generation</span>
+                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${useThematicUI ? 'bg-(--accent-teal)/10 text-(--accent-teal)' : 'bg-(--text-muted)/10 text-(--text-muted)'}`}>
+                                        {useThematicUI ? "GAMIFIED" : "SIMPLE"}
+                                    </span>
+                                </div>
+                                <button 
+                                    onClick={() => setThematicUI(!useThematicUI)}
+                                    className={`w-full py-3 rounded-2xl border-2 font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${useThematicUI ? 'border-(--accent-teal) text-(--accent-teal) bg-(--accent-teal)/5 hover:bg-(--accent-teal)/10' : 'border-(--border-color) text-(--text-main) hover:border-(--text-muted)'}`}
+                                >
+                                    {useThematicUI ? <Sparkles size={14} /> : <div className="w-3.5 h-3.5 border border-current rounded-sm" />}
+                                    Switch to {useThematicUI ? "Simple Mode" : "Gamified Mode"}
+                                </button>
+                            </div>
                         </div>
                     </motion.div>
                 </div>

@@ -9,6 +9,7 @@ import TaskCard from "@/components/TaskCard";
 import MorningPlanningModal from "@/components/MorningPlanningModal";
 import UnDoneModal from "@/components/UnDoneModal";
 import GeodeScene from "@/components/GeodeScene";
+import { useTerms } from "@/hooks/useTerms";
 
 function DropZoneContainer({ id, title, subtitle, children, isEmpty, emptyText }: any) {
     const { isOver, setNodeRef } = useDroppable({ id });
@@ -31,14 +32,17 @@ function MasteryContainer({ id, masteryTab, setMasteryTab, children, isEmpty, em
     return (
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col h-full overflow-hidden">
             {/* STYLING FIX: Added missing Header! */}
+    const { terms } = useTerms();
+    return (
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col h-full overflow-hidden">
             <div className="flex justify-between items-center mb-4 shrink-0">
-                <h2 className="text-xl font-bold text-[var(--text-main)]">The Hall of Mastery</h2>
-                <span className="text-xs font-medium text-[var(--text-muted)]">Completed</span>
+                <h2 className="text-xl font-bold text-[var(--text-main)]">{terms.hallOfMastery}</h2>
+                <span className="text-xs font-medium text-[var(--text-muted)]">{terms.completed}</span>
             </div>
 
             <div className="flex justify-between items-center mb-4 shrink-0 gap-4">
-                <button onClick={() => setMasteryTab('tasks')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'tasks' ? 'border-[var(--text-main)] text-[var(--text-main)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>Archived Quests</button>
-                <button onClick={() => setMasteryTab('shards')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'shards' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--accent-teal)]'}`}>Mastered Shards</button>
+                <button onClick={() => setMasteryTab('tasks')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'tasks' ? 'border-[var(--text-main)] text-[var(--text-main)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>{terms.archive}</button>
+                <button onClick={() => setMasteryTab('shards')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'shards' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>{terms.shards}</button>
             </div>
             {/* STYLING FIX: Invisible scrollbars applied */}
             <div ref={setNodeRef} className={`flex-1 rounded-xl p-4 transition-all duration-300 flex flex-col gap-3 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] border-2 border-dashed ${isOver ? "bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]" : "bg-[var(--bg-dark)] border-[var(--border-color)]/50"}`}>
@@ -342,11 +346,11 @@ function StandardZone({ id, tasks, onToggleSelect, selectedIds }: any) {
 
 export default function CrystalGarden() {
     const {
-        isPremiumUser, tasks, shards, addTask, completeTask, updateTask, deleteTask,
-        activeFramework, setActiveFramework, lastPlannedDate, isInitialized,
-        triggerChumToast, openFocusModal, openEditModal, openViewModal,
+        tasks, shards, activeFramework, setActiveFramework, isInitialized, lastPlannedDate,
+        completeTask, deleteTask, addTask, updateTask, triggerChumToast, isPremiumUser,
         protocolLimits, updateProtocolLimits
     } = useStudyStore();
+    const { terms } = useTerms();
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -767,9 +771,9 @@ export default function CrystalGarden() {
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 shrink-0 relative z-[100]">
                     <div>
                         <h1 className="text-3xl font-bold text-[var(--text-main)] flex items-center gap-3">
-                            <Sprout className="text-[var(--accent-teal)]" size={32} /> Crystal Garden
+                            <Sprout className="text-[var(--accent-teal)]" size={32} /> {terms.crystalGarden}
                         </h1>
-                        <p className="text-[var(--text-muted)] mt-1">Cultivate and manage your active quests.</p>
+                        <p className="text-[var(--text-muted)] mt-1">Cultivate and manage your active {terms.shards.toLowerCase()}.</p>
                     </div>
 
                     <div className="flex gap-3 w-full md:w-auto flex-wrap pb-2 md:pb-0 hide-scrollbar shrink-0">
@@ -786,7 +790,7 @@ export default function CrystalGarden() {
                                 onClick={() => setShowFrameworkMenu(!showFrameworkMenu)}
                                 className={`h-full px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border transition-all ${activeFramework ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/50 text-[var(--accent-teal)]' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-teal)]'}`}
                             >
-                                {activeFramework ? `Framework: ${activeFramework}` : 'Standard List'}
+                                {activeFramework ? `${terms.framework}: ${activeFramework}` : `Standard ${terms.shards}`}
                                 <ChevronDown size={14} className={`transition-transform duration-300 ${showFrameworkMenu ? 'rotate-180' : ''}`} />
                             </button>
 
@@ -848,7 +852,7 @@ export default function CrystalGarden() {
                                     )}
                                 </div>
                                 <span className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
-                                    {activeFramework === 'eisenhower' ? 'Eisenhower Matrix' : activeFramework === '1-3-5' ? '1-3-5 Protocol' : activeFramework === 'ivy' ? 'Ivy Lee Method' : 'Standard List'}
+                                    {activeFramework === 'eisenhower' ? terms.eisenhowerQuadrant : activeFramework === '1-3-5' ? '1-3-5 Protocol' : activeFramework === 'ivy' ? terms.ivyRank : `Standard ${terms.shards}`}
                                 </span>
                             </div>
 
@@ -895,10 +899,10 @@ export default function CrystalGarden() {
                                             className="absolute inset-0 flex flex-col gap-4"
                                         >
                                             <div className="grid grid-cols-2 grid-rows-2 gap-3 flex-1 min-h-0">
-                                                <MatrixZone id="quadrant-1" title="Do First" subtitle="Urgent & Important" tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 1)} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" activeBorder="border-red-400" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
-                                                <MatrixZone id="quadrant-2" title="Schedule" subtitle="Not Urgent, Important" tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 2)} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" activeBorder="border-[var(--accent-teal)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
-                                                <MatrixZone id="quadrant-3" title="Delegate" subtitle="Urgent, Not Imp." tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 3)} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" activeBorder="border-[var(--accent-yellow)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
-                                                <MatrixZone id="quadrant-4" title="Don't Do" subtitle="Not Urgent, Not Imp." tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 4)} color="text-[var(--text-muted)]" bg="bg-[var(--bg-dark)]" border="border-[var(--border-color)]" activeBorder="border-[var(--text-muted)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                <MatrixZone id="quadrant-1" title="Do First" subtitle={`${terms.urgency} & ${terms.importance}`} tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 1)} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" activeBorder="border-red-400" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                <MatrixZone id="quadrant-2" title="Schedule" subtitle={`Not ${terms.urgency}, ${terms.importance}`} tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 2)} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" activeBorder="border-[var(--accent-teal)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                <MatrixZone id="quadrant-3" title="Delegate" subtitle={`${terms.urgency}, Not ${terms.importance}`} tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 3)} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" activeBorder="border-[var(--accent-yellow)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                <MatrixZone id="quadrant-4" title="Don't Do" subtitle={`Not ${terms.urgency}, Not ${terms.importance}`} tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 4)} color="text-[var(--text-muted)]" bg="bg-[var(--bg-dark)]" border="border-[var(--border-color)]" activeBorder="border-[var(--text-muted)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
                                             </div>
                                             {activeQuests.filter(t => !t.eisenhowerQuadrant).length > 0 && (
                                                 <div className="h-[30%] min-h-[160px] shrink-0">

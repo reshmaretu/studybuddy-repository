@@ -7,6 +7,7 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ZAxis
 } from 'recharts';
 import { useStudyStore } from "@/store/useStudyStore";
+import { useTerms } from "@/hooks/useTerms";
 
 // 🔥 FIX 1: Extracted Tooltip OUTSIDE the component to prevent Recharts rendering crashes!
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -40,6 +41,7 @@ export default function InsightsPage() {
         dailyFocusScores = {},
         totalSecondsTracked = 0
     } = useStudyStore();
+    const { terms } = useTerms();
 
     useEffect(() => setIsMounted(true), []);
 
@@ -239,14 +241,12 @@ export default function InsightsPage() {
         <div className="max-w-6xl mx-auto space-y-6 pb-12 px-4">
 
             {/* HEADER */}
-            <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-3">
-                        <div className="p-2 bg-[var(--accent-teal)]/10 rounded-xl text-[var(--accent-teal)]">
-                            <BarChart3 size={24} />
-                        </div>
-                        Performance Insights
+                    <h1 className="text-3xl font-bold text-[var(--text-main)] flex items-center gap-3">
+                        <BarChart3 className="text-[var(--accent-teal)]" size={32} /> {terms.insights}
                     </h1>
+                    <p className="text-[var(--text-muted)] mt-1">Measuring the growth of your spirit and productivity.</p>
                 </div>
 
                 <div className="flex items-center gap-1 bg-[var(--bg-card)] border border-[var(--border-color)] p-1 rounded-xl shadow-sm">
@@ -284,11 +284,11 @@ export default function InsightsPage() {
                     <p className="text-3xl font-bold text-[var(--accent-teal)]">{actualTotalHours}</p>
                 </div>
                 <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 rounded-2xl shadow-sm">
-                    <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest mb-1">Quests Conquered</p>
+                    <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest mb-1">{terms.completed}</p>
                     <p className="text-3xl font-bold text-green-400">{displayCompleted}</p>
                 </div>
                 <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 rounded-2xl shadow-sm">
-                    <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest mb-1">Average Focus Score</p>
+                    <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest mb-1">Average {terms.focusScore}</p>
                     <p className="text-3xl font-bold text-[var(--accent-yellow)]">{averageFocusScore}</p>
                 </div>
             </div>
@@ -343,7 +343,7 @@ export default function InsightsPage() {
             {/* FULL WIDTH LINE CHART */}
             <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl shadow-sm h-[300px] flex flex-col">
                 <h3 className="text-sm font-bold text-[var(--text-main)] mb-6 flex items-center gap-2">
-                    <TrendingUp size={16} className="text-[var(--accent-teal)]" /> Focus Score History (Last 7 Days)
+                    <TrendingUp size={16} className="text-[var(--accent-teal)]" /> {terms.focusScore} History (Last 7 Days)
                 </h3>
                 <div className="flex-1 w-full">
                     <ResponsiveContainer width="100%" height="100%">

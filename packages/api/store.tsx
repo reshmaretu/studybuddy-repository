@@ -219,6 +219,8 @@ export interface StudyState {
     performanceSettings: PerformanceSettings;
     accessibilitySettings: AccessibilitySettings;
     setSettings: (settings: Partial<{ doubleClickToComplete: boolean; dndEnabled: boolean; isSidebarHidden: boolean; performanceSettings: Partial<PerformanceSettings>; accessibilitySettings: Partial<AccessibilitySettings> }>) => void;
+    useThematicUI: boolean;
+    setThematicUI: (val: boolean) => void;
     handleLogout: () => Promise<void>;
 }
 
@@ -248,6 +250,8 @@ export const useStudyStore = create<StudyState>()(
             setProfileModalOpen: (open) => set({ isProfileModalOpen: open }),
             setIsBrainResetOpen: (open) => set({ isBrainResetOpen: open }),
             setIsNotificationCenterOpen: (open) => set({ isNotificationCenterOpen: open }),
+            useThematicUI: true,
+            setThematicUI: (val) => set({ useThematicUI: val }),
             setLastLevelUp: (val) => set({ lastLevelUp: val }),
 
             addMockInvoice: (invoice) => set((state) => ({
@@ -979,6 +983,7 @@ export const useStudyStore = create<StudyState>()(
                 tabSwitches: state.tabSwitches, sessionsSinceLastReset: state.sessionsSinceLastReset,
                 lastResetHighlightAt: state.lastResetHighlightAt, notifications: state.notifications,
                 hasCompletedTutorial: state.hasCompletedTutorial, enableDevRoomOptions: state.enableDevRoomOptions,
+                useThematicUI: state.useThematicUI,
             })
         }
     )

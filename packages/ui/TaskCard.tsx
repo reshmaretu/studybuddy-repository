@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { useStudyStore, Task } from "@studybuddy/api";
+import { useStudyStore, Task, useTerms } from "@studybuddy/api";
 import { MoreHorizontal, Pin, Clock, Edit2, Trash2, X, Check, Zap, Lock, Eye, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -21,6 +21,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
         openEditModal, openViewModal, completeTask, 
         doubleClickToComplete = true, dndEnabled = true 
     } = useStudyStore();
+    const { terms } = useTerms();
 
     const [showMenu, setShowMenu] = useState(false);
     const [showFrogReaction, setShowFrogReaction] = useState(false);
@@ -56,7 +57,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                 >
                     {!task.isCompleted && (
                         <button onClick={() => { completeTask(task.id); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-(--text-main) hover:bg-(--accent-teal)/10 flex items-center gap-2 border-b border-(--border-color)">
-                            <Check size={12} className="text-(--accent-teal)" /> Finish Quest
+                            <Check size={12} className="text-(--accent-teal)" /> {terms.completed}
                         </button>
                     )}
                     <button onClick={() => { openViewModal(task.id); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold hover:bg-(--bg-dark) flex items-center gap-2 border-b border-(--border-color)">
