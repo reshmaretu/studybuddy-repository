@@ -39,6 +39,8 @@ export interface StudyState {
     setAvatarUrl: (url: string | null) => void;
     setProfileModalOpen: (open: boolean) => void;
     setIsBrainResetOpen: (open: boolean) => void;
+    isUnDoneModalOpen: boolean;
+    setIsUnDoneModalOpen: (open: boolean) => void;
     setIsNotificationCenterOpen: (open: boolean) => void;
     lastResetHighlightAt: string | null;
     setLastLevelUp: (level: number | null) => void;
@@ -209,6 +211,10 @@ export interface StudyState {
     openViewModal: (taskId: string) => void;
     closeViewModal: () => void;
 
+    // 💎 PREMIUM MODAL
+    isPremiumModalOpen: boolean;
+    setPremiumModalOpen: (val: boolean) => void;
+
     // ⚙️ SETTINGS
     doubleClickToComplete: boolean;
     dndEnabled: boolean;
@@ -233,6 +239,7 @@ export const useStudyStore = create<StudyState>()(
             avatarUrl: null,
             isProfileModalOpen: false,
             isBrainResetOpen: false,
+            isUnDoneModalOpen: false,
             isNotificationCenterOpen: false,
             lastResetHighlightAt: null,
             lastLevelUp: null,
@@ -254,6 +261,7 @@ export const useStudyStore = create<StudyState>()(
             setAvatarUrl: (url) => set({ avatarUrl: url }),
             setProfileModalOpen: (open) => set({ isProfileModalOpen: open }),
             setIsBrainResetOpen: (open) => set({ isBrainResetOpen: open }),
+            setIsUnDoneModalOpen: (open) => set({ isUnDoneModalOpen: open }),
             setIsNotificationCenterOpen: (open) => set({ isNotificationCenterOpen: open }),
             useThematicUI: true,
             setThematicUI: (val) => set({ useThematicUI: val }),
@@ -438,6 +446,9 @@ export const useStudyStore = create<StudyState>()(
             closeEditModal: () => set({ isEditModalOpen: false, editingTaskId: null }),
             openViewModal: (taskId) => set({ isViewModalOpen: true, viewingTaskId: taskId }),
             closeViewModal: () => set({ isViewModalOpen: false, viewingTaskId: null }),
+
+            isPremiumModalOpen: false,
+            setPremiumModalOpen: (val) => set({ isPremiumModalOpen: val }),
 
             setActiveFramework: async (framework: 'eisenhower' | '1-3-5' | 'ivy' | null) => {
                 set({ activeFramework: framework });
@@ -693,8 +704,8 @@ export const useStudyStore = create<StudyState>()(
                     const [tasksResponse, shardsResponse, profileResponse, statsResponse, wardrobeResponse, sessionsResponse] = await Promise.all([
                         supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                        supabase.from('profiles').select('display_name, full_name, is_premium, is_dev, active_framework, last_planned_date, is_verified, openrouter_key, gemini_key, groq_key, avatar_url, has_completed_tutorial').eq('id', user.id).maybeSingle(),
-                        supabase.from('user_stats').select('focus_score, total_sessions, total_seconds_tracked, xp, level').eq('user_id', user.id).maybeSingle(),
+                        supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+                        supabase.from('user_stats').select('*').eq('user_id', user.id).maybeSingle(),
                         supabase.from('chum_wardrobe').select('*').eq('user_id', user.id).maybeSingle(),
                         supabase.from('ai_sessions').select('*, shards(title)').eq('user_id', user.id).order('created_at', { ascending: false })
                     ]);
@@ -742,7 +753,8 @@ export const useStudyStore = create<StudyState>()(
                             is_premium: false,
                             is_dev: false
                         };
-                        await supabase.from('profiles').insert([newProfile]);
+                        // Use upsert with ignoreDuplicates to avoid race condition 409s
+                        await supabase.from('profiles').upsert(newProfile, { onConflict: 'id' });
                         // Refresh cache for this run
                         set({
                             displayName: newProfile.display_name,
@@ -750,6 +762,53 @@ export const useStudyStore = create<StudyState>()(
                             isVerified: false
                         });
                     }
+
+                    // 🛠️ REALTIME SYNC: Listen for changes across the neural network
+                    supabase.channel('cloud-sync')
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
+                            if (payload.new) {
+                                const updated = payload.new as any;
+                                set({
+                                    displayName: updated.display_name || get().displayName,
+                                    fullName: updated.full_name || get().fullName,
+                                    isVerified: updated.is_verified,
+                                    isPremiumUser: updated.is_premium,
+                                    isDev: updated.is_dev,
+                                    avatarUrl: updated.avatar_url,
+                                    activeFramework: updated.active_framework,
+                                    lastPlannedDate: updated.last_planned_date,
+                                    hasCompletedTutorial: updated.has_completed_tutorial
+                                });
+                            }
+                        })
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'user_stats', filter: `user_id=eq.${user.id}` }, (payload) => {
+                            if (payload.new) {
+                                const stats = payload.new as any;
+                                set({
+                                    focusScore: stats.focus_score,
+                                    xp: stats.xp,
+                                    level: stats.level,
+                                    totalSessions: stats.total_sessions,
+                                    totalSecondsTracked: stats.total_seconds_tracked
+                                });
+                            }
+                        })
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `user_id=eq.${user.id}` }, (payload) => {
+                            // Fetch all tasks again to ensure correct order and state
+                            supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).then(({ data }) => {
+                                if (data) {
+                                    set({
+                                        tasks: data.map(t => ({
+                                            id: t.id, title: t.title, description: t.description,
+                                            load: t.load, deadline: t.deadline, isCompleted: t.is_completed, isPinned: t.is_pinned,
+                                            urgency: t.urgency, importance: t.importance, isFrog: t.is_frog,
+                                            eisenhowerQuadrant: t.eisenhower_quadrant, ivyRank: t.ivy_rank
+                                        }))
+                                    });
+                                }
+                            });
+                        })
+                        .subscribe();
 
                     // 🛠️ STATS AUTO-HEAL
                     if (!statsResponse.data) {

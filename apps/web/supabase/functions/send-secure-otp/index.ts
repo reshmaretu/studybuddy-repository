@@ -23,26 +23,43 @@ Deno.serve(async (req: Request) => {
         const action = body.action || body.type
         const { userId } = body
 
+        console.log(`[RELAY] Action: ${action}, Email: ${userEmail}, UserID: ${userId}`);
+
         if (!userEmail) throw new Error("userEmail missing in payload")
+
+        // Validation for environment keys
+        const serviceId = Deno.env.get('EMAILJS_SERVICE_ID')
+        const publicKey = Deno.env.get('EMAILJS_PUBLIC_KEY')
+        const privateKey = Deno.env.get('EMAILJS_PRIVATE_KEY')
+        
+        if (!serviceId || !publicKey || !privateKey) {
+            console.error("[CRITICAL] Missing EmailJS Environment Configuration");
+            throw new Error("Relay configuration incomplete. Check environment keys.");
+        }
 
         // ACTION: SEND OTP (for Account Settings)
         if (action === 'send_otp') {
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
 
-            await supabaseAdmin.from('recovery_codes').upsert({
+            const { error: dbError } = await supabaseAdmin.from('recovery_codes').upsert({
                 user_id: userId,
                 code: otpCode,
                 type: 'verify'
             })
 
+            if (dbError) throw new Error(`Database uplink failed: ${dbError.message}`);
+
+            const templateId = Deno.env.get('EMAILJS_OTP_TEMPLATE_ID')
+            if (!templateId) throw new Error("OTP Template ID missing.");
+
             const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
-                    template_id: Deno.env.get('EMAILJS_OTP_TEMPLATE_ID'),
-                    user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
-                    accessToken: Deno.env.get('EMAILJS_PRIVATE_KEY'),
+                    service_id: serviceId,
+                    template_id: templateId,
+                    user_id: publicKey,
+                    accessToken: privateKey,
                     template_params: {
                         email: userEmail,
                         otp_code: otpCode
@@ -50,7 +67,11 @@ Deno.serve(async (req: Request) => {
                 }),
             })
 
-            if (!emailResponse.ok) throw new Error("Email relay failed");
+            if (!emailResponse.ok) {
+                const errorText = await emailResponse.text();
+                console.error("[EMAILJS ERROR]", errorText);
+                throw new Error(`Email relay failed: ${errorText}`);
+            }
 
             return new Response(JSON.stringify({ success: true }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -59,7 +80,6 @@ Deno.serve(async (req: Request) => {
 
         // ACTION: RESET PASSWORD (for Login Page)
         if (action === 'reset_password') {
-            // FIX: Generate the link using Admin Auth, do not call .invoke() again!
             const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
                 type: 'recovery',
                 email: userEmail,
@@ -70,22 +90,28 @@ Deno.serve(async (req: Request) => {
 
             if (linkError) throw linkError;
 
+            const resetTemplateId = Deno.env.get('EMAILJS_RESET_TEMPLATE_ID')
+            if (!resetTemplateId) throw new Error("Reset Template ID missing.");
+
             const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
-                    template_id: Deno.env.get('EMAILJS_RESET_TEMPLATE_ID'),
-                    user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
-                    accessToken: Deno.env.get('EMAILJS_PRIVATE_KEY'),
+                    service_id: serviceId,
+                    template_id: resetTemplateId,
+                    user_id: publicKey,
+                    accessToken: privateKey,
                     template_params: {
                         email: userEmail,
-                        reset_link: data.properties.action_link // The actual magic link
+                        reset_link: data.properties.action_link
                     },
                 }),
             });
 
-            if (!emailResponse.ok) throw new Error("Email relay failed");
+            if (!emailResponse.ok) {
+                const errorText = await emailResponse.text();
+                throw new Error(`Email relay failed: ${errorText}`);
+            }
 
             return new Response(JSON.stringify({ success: true }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -95,6 +121,7 @@ Deno.serve(async (req: Request) => {
         throw new Error("Invalid action protocol");
 
     } catch (err: any) {
+        console.error("[RELAY ERROR]", err.message);
         return new Response(JSON.stringify({ error: err.message }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 400,

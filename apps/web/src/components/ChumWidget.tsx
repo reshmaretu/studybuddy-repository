@@ -756,12 +756,11 @@ export default function ChumWidget() {
                         {!isOpen && chumToasts?.map((toast: any, idx) => (
                             <motion.div
                                 key={toast.id}
-                                initial={{ opacity: 0, scale: 0.3, y: 20 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                transition={{ type: "spring", stiffness: 450, damping: 12, delay: idx * 0.1 }}
+                                initial={{ opacity: 0, scale: 0.3, y: 20, rotate: 0 }}
+                                animate={{ opacity: 1, scale: 1, y: 0, rotate: idx % 2 === 0 ? -1 : 1 }}
+                                transition={{ type: "spring", stiffness: 450, damping: 15, delay: idx * 0.1 }}
                                 exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
                                 style={{
-                                    rotate: idx % 2 === 0 ? '-1deg' : '1deg',
                                     zIndex: 100 - idx
                                 }}
                                 onClick={() => {
@@ -774,29 +773,32 @@ export default function ChumWidget() {
                                         setIsOpen(true);
                                     }
                                 }}
-                                className={`w-[320px] min-h-[60px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-4 rounded-[28px] shadow-[0_15px_40px_rgba(0,0,0,0.4)] cursor-pointer pointer-events-auto flex flex-col justify-center relative ${toast.type === 'warning' ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.15)]' :
-                                    toast.type === 'success' ? 'border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]' :
-                                        toast.type === 'info' ? 'border-sky-500/50 shadow-[0_0_20px_rgba(14,165,233,0.15)]' :
+                                className={`w-[320px] min-h-[60px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-5 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer pointer-events-auto flex flex-col justify-center relative hover:scale-[1.02] transition-transform ${toast.type === 'warning' ? 'border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.1)]' :
+                                    toast.type === 'success' ? 'border-emerald-500/40 shadow-[0_0_20_rgba(16,185,129,0.1)]' :
+                                        toast.type === 'info' ? 'border-sky-500/40 shadow-[0_0_20px_rgba(14,165,233,0.1)]' :
                                             'border-[var(--border-color)]'
                                     }`}
                             >
-                                <p className={`text-[10px] font-black uppercase tracking-wider mb-1 ${toast.type === 'warning' ? 'text-red-400' :
-                                    toast.type === 'success' ? 'text-emerald-400' :
-                                        toast.type === 'info' ? 'text-sky-400' :
-                                            'text-[var(--accent-teal)]'
-                                    }`}>
-                                    {toast.type === 'warning' ? '⚠️ Alert' : toast.type === 'success' ? '✨ Mastery Pulse' : 'ℹ️ Guidance'}
-                                </p>
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className={`text-[9px] font-black uppercase tracking-[0.2em] ${toast.type === 'warning' ? 'text-red-400' :
+                                        toast.type === 'success' ? 'text-emerald-400' :
+                                            toast.type === 'info' ? 'text-sky-400' :
+                                                'text-[var(--accent-teal)]'
+                                        }`}>
+                                        {toast.type === 'warning' ? 'Neural Warning' : toast.type === 'success' ? 'Mastery Pulse' : 'Guidance Shard'}
+                                    </p>
+                                    <Sparkles size={10} className={toast.type === 'warning' ? 'text-red-400' : 'text-(--accent-yellow)'} />
+                                </div>
                                 <div className="text-sm text-[var(--text-main)] leading-relaxed font-bold">
                                     {toast.message}
                                 </div>
                                 {idx === 0 && (
-                                    <div className={`absolute w-4 h-4 rotate-45 border-2 z-[-1] -bottom-2 ${widgetPos.isLeft ? 'left-6' : 'right-6'} ${toast.type === 'warning' ? 'bg-black border-red-500/50' :
-                                        toast.type === 'success' ? 'bg-black border-emerald-500/50' :
-                                            toast.type === 'info' ? 'bg-black border-sky-500/50' :
-                                                'bg-[var(--bg-card)] border-[var(--border-color)]'
+                                    <div className={`absolute w-5 h-5 bg-[var(--bg-card)] border-r-2 border-b-2 z-[-1] -bottom-[10px] ${widgetPos.isLeft ? 'left-8' : 'right-8'} ${toast.type === 'warning' ? 'border-red-500/40' :
+                                        toast.type === 'success' ? 'border-emerald-500/40' :
+                                            toast.type === 'info' ? 'border-sky-500/40' :
+                                                'border-(--border-color)'
                                         }`}
-                                        style={{ clipPath: 'polygon(100% 100%, 100% 0, 0 100%)' }} />
+                                        style={{ transform: 'rotate(45deg)' }} />
                                 )}
                             </motion.div>
                         ))}

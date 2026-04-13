@@ -17,6 +17,8 @@ import DevOverlay from "./DevOverlay";
 import NotificationCenter from "./NotificationCenter";
 import BrainResetModal from "./BrainResetModal";
 import TutorialIntro from "./TutorialIntro";
+import PremiumModal from "./PremiumModal";
+import UnDoneModal from "./UnDoneModal";
 
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -106,8 +108,12 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
                 <ProfileModal />
                 <NotificationCenter />
                 <BrainResetModal isOpen={useStudyStore.getState().isBrainResetOpen} onClose={() => useStudyStore.getState().setIsBrainResetOpen(false)} />
+                {useStudyStore(state => state.isUnDoneModalOpen) && (
+                    <UnDoneModal onClose={() => useStudyStore.getState().setIsUnDoneModalOpen(false)} />
+                )}
                 {isInitialized && <TutorialIntro />}
                 <DevOverlay />
+                <PremiumModal />
             </div>
         </div>
     );

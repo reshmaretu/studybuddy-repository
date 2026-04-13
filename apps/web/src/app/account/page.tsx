@@ -29,7 +29,7 @@ export default function AccountPage() {
     const {
         isPremiumUser, level, displayName, fullName, userEmail, setUserEmail, triggerChumToast,
         setPremiumStatus, setDisplayName, setFullName, mockInvoices, addMockInvoice,
-        isVerified, setIsVerified, avatarUrl, setProfileModalOpen,
+        isVerified, setIsVerified, avatarUrl, setProfileModalOpen, setPremiumModalOpen,
         doubleClickToComplete = true, dndEnabled = true, setSettings, handleLogout,
         requestNotificationPermission,
         performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true },
@@ -552,7 +552,7 @@ export default function AccountPage() {
                                 {displayName || fullName || userEmail.split('@')[0] || "Guardian"}
                             </h1>
                             <button
-                                onClick={() => setActiveModal('premium-status')}
+                                onClick={() => setPremiumModalOpen(true)}
                                 className={`p-2 rounded-2xl transition-all shadow-lg ${isPremiumUser ? 'bg-(--accent-yellow) text-black' : 'bg-(--bg-card) text-(--text-muted) hover:text-(--text-main) border border-(--border-color)'}`}
                             >
                                 <Crown size={20} fill={isPremiumUser ? "currentColor" : "none"} />
@@ -906,23 +906,51 @@ export default function AccountPage() {
                             {/* Identity Config */}
                             {activeModal === 'identity' && (
                                 <div className="space-y-8">
-                                    <h2 className="text-2xl font-black uppercase italic tracking-tighter">Identity Shards</h2>
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">Identity Shards</h2>
+                                        <div className="px-3 py-1 bg-(--accent-teal)/10 border border-(--accent-teal)/20 rounded-full text-[8px] font-black text-(--accent-teal) uppercase tracking-widest">Protocol V2.1</div>
+                                    </div>
+                                    
+                                    <div className="p-4 rounded-2xl bg-(--bg-dark)/50 border border-white/5 space-y-2">
+                                        <p className="text-[10px] font-black uppercase text-(--text-muted) tracking-widest mb-2 flex items-center gap-2">
+                                            <div className="w-1 h-1 rounded-full bg-(--accent-yellow)" /> Naming Conventions
+                                        </p>
+                                        <ul className="space-y-1">
+                                            <li className="text-[9px] font-bold text-(--text-muted)/60 flex justify-between">
+                                                <span>Minimum Length</span>
+                                                <span className="text-(--text-main)">3 Characters</span>
+                                            </li>
+                                            <li className="text-[9px] font-bold text-(--text-muted)/60 flex justify-between">
+                                                <span>Maximum Length</span>
+                                                <span className="text-(--text-main)">20 Characters</span>
+                                            </li>
+                                            <li className="text-[9px] font-bold text-(--text-muted)/60 flex justify-between">
+                                                <span>Allowed Glyphs</span>
+                                                <span className="text-(--text-main)">Alphanumeric & Spaces</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+
                                     <div className="space-y-6">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-[9px] font-black uppercase opacity-30 ml-3">First Name</label>
-                                                <input value={formData.newFirstName} onChange={e => setFormData({ ...formData, newFirstName: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm outline-none focus:border-(--accent-teal)" />
+                                                <input maxLength={20} value={formData.newFirstName} onChange={e => setFormData({ ...formData, newFirstName: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm outline-none focus:border-(--accent-teal) font-bold" />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[9px] font-black uppercase opacity-30 ml-3">Last Name</label>
-                                                <input value={formData.newLastName} onChange={e => setFormData({ ...formData, newLastName: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm outline-none focus:border-(--accent-teal)" />
+                                                <input maxLength={20} value={formData.newLastName} onChange={e => setFormData({ ...formData, newLastName: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm outline-none focus:border-(--accent-teal) font-bold" />
                                             </div>
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[9px] font-black uppercase opacity-30 ml-3">Display Label</label>
-                                            <input value={formData.newDisplayName} onChange={e => setFormData({ ...formData, newDisplayName: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm outline-none focus:border-(--accent-teal)" />
+                                            <input maxLength={20} value={formData.newDisplayName} onChange={e => setFormData({ ...formData, newDisplayName: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm outline-none focus:border-(--accent-teal) font-bold" />
                                         </div>
-                                        <button onClick={commitIdentity} className="w-full py-5 bg-(--accent-teal) text-black rounded-[24px] text-[11px] font-black uppercase shadow-lg">SYNCHRONIZE SHARDS</button>
+                                        <div className="pt-2">
+                                            <button onClick={commitIdentity} disabled={loading} className="w-full py-5 bg-(--accent-teal) text-black rounded-[24px] text-[11px] font-black uppercase shadow-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50">
+                                                {loading ? "SYNCHRONIZING..." : "SYNCHRONIZE SHARDS"}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}

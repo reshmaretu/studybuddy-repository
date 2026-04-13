@@ -421,29 +421,36 @@ export default function Dashboard() {
 
                 </section>
 
-                {/* 🌙 EVENING RITUAL: Wrap Up (Start at 9 PM) */}
-                <AnimatePresence>
-                    {currentHour >= 21 && (
-                        <motion.section
-                            initial={{ opacity: 0, scale: 0.95, y: 30 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 30 }}
-                            className="bg-(--bg-card) border-2 border-(--accent-yellow) rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_50px_rgba(232,195,125,0.2)] relative overflow-hidden"
-                        >
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-(--accent-yellow)/5 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2" />
-                            <div className="flex-1 relative z-10">
-                                <h2 className="text-2xl font-black text-(--text-main) mb-2">Evening Ritual 🌙</h2>
-                                <p className="text-(--text-muted) text-sm font-medium">The sun has set on today's garden. Perform a <strong>Neural Wrap-up</strong> to preserve your progress and clear your mind.</p>
-                            </div>
-                            <button
-                                onClick={() => setIsBrainResetOpen(true)}
-                                className="px-10 py-4 bg-(--accent-yellow) text-black rounded-2xl font-black uppercase tracking-widest text-sm hover:scale-105 hover:shadow-[0_0_30px_rgba(232,195,125,0.5)] transition-all animate-pulse relative z-10"
-                            >
-                                Wrap Up Day
-                            </button>
-                        </motion.section>
-                    )}
-                </AnimatePresence>
+    // 🌙 EVENING RITUAL: Wrap Up (Start at 9 PM)
+    useEffect(() => {
+        if (!isInitialized) return;
+        const currentHour = new Date().getHours();
+        if (currentHour >= 21) {
+            const alreadyNotified = notifications.some(n => n.title === "Evening Ritual 🌙" && (Date.now() - new Date(n.timestamp).getTime()) < 3600000 * 4);
+            if (!alreadyNotified) {
+                const ritualMsg = "The sun has set on today's garden. Perform a Neural Wrap-up to preserve your progress.";
+                
+                // 1. Activity Tab
+                addNotification({
+                    category: 'activity',
+                    type: 'info',
+                    title: "Evening Ritual 🌙",
+                    message: ritualMsg
+                });
+
+                // 2. Chum Toast
+                if (triggerChumToast) {
+                    triggerChumToast(
+                        <span><strong className="text-yellow-400">🌙 EVENING RITUAL</strong><br />Time to synchronize your day's growth.</span>,
+                        'info',
+                        () => useStudyStore.getState().setIsUnDoneModalOpen(true)
+                    );
+                }
+
+                // 3. Web Push (already handled inside addNotification if permission granted)
+            }
+        }
+    }, [isInitialized, notifications.length]);
 
                 {/* CURRENT FOCUS */}
                 <section className="pt-2 relative">

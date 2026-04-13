@@ -498,60 +498,80 @@ return (
                                             <h3 className="text-sm font-black text-(--text-main) flex items-center gap-2 mb-4 pb-4 border-b border-(--border-color) uppercase tracking-wide">
                                                 <Trophy size={18} className="text-(--accent-yellow)" /> Hall of Focus
                                             </h3>
-                                            <div className="space-y-2">
-                                                {isNetworkLoading ? (
-                                                    Array.from({ length: 3 }).map((_, i) => (
-                                                        <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-(--bg-dark)/30 animate-pulse">
-                                                            <div className="w-5 h-4 bg-(--border-color) rounded" />
-                                                            <div className="flex-1 h-4 bg-(--border-color) rounded w-24" />
+                                            <div className="relative">
+                                                {!isVerified && (
+                                                    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-6 text-center backdrop-blur-md bg-(--bg-card)/40 rounded-2xl border border-(--border-color) shadow-2xl">
+                                                        <div className="w-12 h-12 rounded-full bg-red-400/10 text-red-400 border border-red-400/30 flex items-center justify-center mb-4">
+                                                            <ShieldAlert size={24} />
                                                         </div>
-                                                    ))
-                                                ) : (
-                                                    filteredNetwork.sort((a, b) => b.hours - a.hours).slice(0, 10).map((user, index) => (
-                                                        <div
-                                                            key={user.id}
-                                                            className={`group/row flex items-center gap-3 p-3 rounded-2xl border transition-all ${user.id === 'me' ? 'bg-(--accent-teal)/10 border-(--accent-teal)/20' : 'bg-transparent border-transparent hover:border-(--border-color) hover:bg-(--bg-dark)'}`}
+                                                        <h4 className="text-sm font-black text-(--text-main) mb-2 uppercase tracking-tight">Identity Unverified</h4>
+                                                        <p className="text-[10px] font-bold text-(--text-muted) mb-4 leading-relaxed">
+                                                            The Hall of Focus is shielded. Verify your spirit link to witness the network hierarchy.
+                                                        </p>
+                                                        <button 
+                                                            onClick={() => router.push('/account')}
+                                                            className="w-full py-2 bg-red-400/10 text-red-400 border border-red-400/30 rounded-xl text-[10px] font-black uppercase hover:bg-red-400/20 transition-all"
                                                         >
-                                                            <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-(--accent-yellow)' : 'text-(--text-muted)'}`}>
-                                                                {index + 1}
-                                                            </span>
-                                                            <div className="w-8 h-8 rounded-full border border-(--border-color) shrink-0 bg-(--bg-dark) overflow-hidden flex items-center justify-center p-0.5 relative">
-                                                                {user.avatarUrl ? (
-                                                                    <img
-                                                                        src={user.avatarUrl}
-                                                                        alt="PFP"
-                                                                        className="w-full h-full object-cover z-20 relative rounded-full"
-                                                                        onError={(e) => {
-                                                                            (e.target as HTMLImageElement).style.display = 'none';
-                                                                            const fallback = (e.target as HTMLImageElement).parentElement?.querySelector('.fallback-chum');
-                                                                            if (fallback) fallback.classList.remove('invisible');
-                                                                        }}
-                                                                    />
-                                                                ) : null}
-                                                                <div className={`absolute inset-0 flex items-center justify-center p-0.5 fallback-chum ${user.avatarUrl ? 'invisible' : ''}`}>
-                                                                    <ChumRenderer
-                                                                        size="w-full h-full"
-                                                                        activeAccessoriesOverride={user.activeAccessories}
-                                                                    />
+                                                            Verification Relay
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                <div className={`space-y-2 ${!isVerified ? 'blur-sm select-none pointer-events-none grayscale' : ''}`}>
+                                                    {isNetworkLoading ? (
+                                                        Array.from({ length: 3 }).map((_, i) => (
+                                                            <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-(--bg-dark)/30 animate-pulse">
+                                                                <div className="w-5 h-4 bg-(--border-color) rounded" />
+                                                                <div className="flex-1 h-4 bg-(--border-color) rounded w-24" />
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        filteredNetwork.sort((a, b) => b.hours - a.hours).slice(0, 10).map((user, index) => (
+                                                            <div
+                                                                key={user.id}
+                                                                className={`group/row flex items-center gap-3 p-3 rounded-2xl border transition-all ${user.id === 'me' ? 'bg-(--accent-teal)/10 border-(--accent-teal)/20' : 'bg-transparent border-transparent hover:border-(--border-color) hover:bg-(--bg-dark)'}`}
+                                                            >
+                                                                <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-(--accent-yellow)' : 'text-(--text-muted)'}`}>
+                                                                    {index + 1}
+                                                                </span>
+                                                                <div className="w-8 h-8 rounded-full border border-(--border-color) shrink-0 bg-(--bg-dark) overflow-hidden flex items-center justify-center p-0.5 relative">
+                                                                    {user.avatarUrl ? (
+                                                                        <img
+                                                                            src={user.avatarUrl}
+                                                                            alt="PFP"
+                                                                            className="w-full h-full object-cover z-20 relative rounded-full"
+                                                                            onError={(e) => {
+                                                                                (e.target as HTMLImageElement).style.display = 'none';
+                                                                                const fallback = (e.target as HTMLImageElement).parentElement?.querySelector('.fallback-chum');
+                                                                                if (fallback) fallback.classList.remove('invisible');
+                                                                            }}
+                                                                        />
+                                                                    ) : null}
+                                                                    <div className={`absolute inset-0 flex items-center justify-center p-0.5 fallback-chum ${user.avatarUrl ? 'invisible' : ''}`}>
+                                                                        <ChumRenderer
+                                                                            size="w-full h-full"
+                                                                            activeAccessoriesOverride={user.activeAccessories}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex-1 flex flex-col overflow-hidden">
+                                                                    <span className="text-sm font-black text-(--text-main) truncate">{user.name}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 shrink-0">
+                                                                    <button
+                                                                        disabled={!isVerified}
+                                                                        onClick={() => { lanternRef.current?.warpToUser(user.id); setIsSidebarOpenMobile(false); }}
+                                                                        className="lg:opacity-0 group-hover/row:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-(--accent-teal)/10 text-(--text-muted) hover:text-(--accent-teal) disabled:opacity-0"
+                                                                    >
+                                                                        <Crosshair size={14} />
+                                                                    </button>
+                                                                    <span className="text-xs font-black text-(--text-muted) bg-(--bg-dark) px-2 py-1 rounded-lg">
+                                                                        {user.hours}h
+                                                                    </span>
                                                                 </div>
                                                             </div>
-                                                            <div className="flex-1 flex flex-col overflow-hidden">
-                                                                <span className="text-sm font-black text-(--text-main) truncate">{user.name}</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-2 shrink-0">
-                                                                <button
-                                                                    onClick={() => { lanternRef.current?.warpToUser(user.id); setIsSidebarOpenMobile(false); }}
-                                                                    className="lg:opacity-0 group-hover/row:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-(--accent-teal)/10 text-(--text-muted) hover:text-(--accent-teal)"
-                                                                >
-                                                                    <Crosshair size={14} />
-                                                                </button>
-                                                                <span className="text-xs font-black text-(--text-muted) bg-(--bg-dark) px-2 py-1 rounded-lg">
-                                                                    {user.hours}h
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    ))
-                                                )}
+                                                        ))
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </motion.div>

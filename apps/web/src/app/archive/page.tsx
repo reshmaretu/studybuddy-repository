@@ -15,7 +15,7 @@ function ShardCard({ shard, onRead }: { shard: Shard, onRead: (shard: Shard) => 
         checkPremiumStatus();
     }, []);
 
-    const { startTutorMode, deleteShard, isTutorModeActive } = useStudyStore();
+    const { startTutorMode, deleteShard, isTutorModeActive, triggerChumToast, setPremiumModalOpen } = useStudyStore();
     const formattedDate = new Date(shard.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
     return (
@@ -94,7 +94,11 @@ function ShardCard({ shard, onRead }: { shard: Shard, onRead: (shard: Shard) => 
                             onClick={() => {
                                 // 👇 THE BOUNCER LOGIC
                                 if (!isPremiumUser) {
-                                    alert("Unlock StudyBuddy Pro to train with the AI Tutor!");
+                                    triggerChumToast(
+                                        "The AI Tutor requires a higher neural link. Upgrade to StudyBuddy Pro to train this Shard.",
+                                        "warning",
+                                        () => setPremiumModalOpen(true)
+                                    );
                                     return;
                                 }
                                 startTutorMode(shard.id, useStudyStore.getState().tutorSessionState.preferredType);
@@ -157,13 +161,13 @@ export default function TheForge() {
             // 1. Validate File Type
             const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
             if (!ALLOWED_EXTENSIONS.includes(fileExtension)) {
-                alert(`Unsupported file type: ${file.name}. Please use PDF, TXT, CSV, MD, or RTF.`);
+                triggerChumToast(`Unsupported file type: ${file.name}. Please use PDF, TXT, CSV, MD, or RTF.`, "warning");
                 return;
             }
 
             // 2. Validate File Size
             if (file.size > MAX_FILE_SIZE) {
-                alert(`File too large: ${file.name}. Please keep files under 5MB.`);
+                triggerChumToast(`File too large: ${file.name}. Please keep files under 5MB.`, "warning");
                 return;
             }
 
@@ -208,7 +212,7 @@ export default function TheForge() {
             setFiles([]);
             setIsForgeModalOpen(false);
         } catch (error) {
-            alert("Failed to forge shard. Check the error!");
+            triggerChumToast("The Forge rejected the sequence. Check your network link.", "warning");
         } finally {
             setIsForging(false); // Unlock the button
         }

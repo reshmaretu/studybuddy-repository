@@ -18,13 +18,13 @@ Deno.serve(async (req: Request) => {
     }
 
     try {
-        const { code, userId } = await req.json()
+        const { code, userId, type, newEmail } = await req.json()
 
         if (!userId || !code) {
             throw new Error("Missing credentials in the neural relay.")
         }
 
-        // 2. Database verification
+        // 2. Database verification of the OTP
         const { data, error } = await supabaseAdmin
             .from('recovery_codes')
             .select('*')
@@ -36,13 +36,25 @@ Deno.serve(async (req: Request) => {
             throw new Error("Neural match failed. Incorrect or expired code.")
         }
 
-        // 3. Success Logic
-        const { error: updateError } = await supabaseAdmin
-            .from('profiles')
-            .update({ is_verified: true })
-            .eq('id', userId)
+        // 3. Success Logic based on Type
+        if (type === 'email' && newEmail) {
+            // Securely update the email in Auth
+            const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+                email: newEmail,
+                email_confirm: true
+            })
+            if (authError) throw authError
+            
+            // Sync with profile if needed (though store.tsx handles it via auth)
+        } else {
+            // Basic Identity Verification
+            const { error: updateError } = await supabaseAdmin
+                .from('profiles')
+                .update({ is_verified: true })
+                .eq('id', userId)
 
-        if (updateError) throw updateError
+            if (updateError) throw updateError
+        }
 
         // 4. Cleanup
         await supabaseAdmin.from('recovery_codes').delete().eq('id', data.id)
