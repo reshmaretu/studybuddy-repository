@@ -964,15 +964,6 @@ export const useStudyStore = create<StudyState>()(
                 normalChatHistory: [{ role: 'chum', text: "Ready to study." }],
                 tutorChatHistory: [], pastTutorSessions: [], sessionsSinceLastReset: 0, lastResetHighlightAt: null
             }),
-
-            // Dev actions omitted for brevity of this migration snippet but would be included in full
-            debrisSize: 0.4, debrisColor: "#2dd4bf", debrisCount: 3000, debrisSpread: 400,
-            setDebris: (settings) => set((state) => ({ ...state, ...settings })),
-            devOverlayEnabled: true, setDevOverlayEnabled: (val) => set({ devOverlayEnabled: val }),
-            enableDevRoomOptions: false, setEnableDevRoomOptions: (val) => set({ enableDevRoomOptions: val }),
-            mockUsers: [], setMockUsers: (val) => set((state) => ({ mockUsers: typeof val === 'function' ? val(state.mockUsers) : val })),
-            protocolLimits: { heavy: 1, medium: 3, light: 5 },
-            isSidebarHidden: false, showNodeBadge: true, setShowNodeBadge: (val) => set({ showNodeBadge: val })
         }),
         {
             name: 'studybuddy-storage',
