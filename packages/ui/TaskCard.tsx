@@ -24,9 +24,27 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
     const { terms } = useTerms();
 
     const [showMenu, setShowMenu] = useState(false);
-    const [showFrogReaction, setShowFrogReaction] = useState(false);
-    const [showFrogHover, setShowFrogHover] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+    // 🕒 3-PHASE DEADLINE ENFORCEMENT
+    const getDeadlinePhase = () => {
+        if (!task.deadline || task.isCompleted) return { phase: 1, label: "Neutral", color: "text-(--text-muted)" };
+        const now = new Date();
+        const dl = new Date(task.deadline).getTime();
+        const diffHours = (dl - now.getTime()) / (1000 * 60 * 60);
+
+        if (diffHours < 0) return { phase: 3, label: "CRITICAL", color: "text-red-500", bg: "bg-red-500/10", border: "border-red-500" };
+        if (diffHours <= 2) return { phase: 3, label: "URGENT", color: "text-red-500 animate-pulse", bg: "bg-red-500/5", border: "border-red-500/50" };
+        if (diffHours <= 12) return { phase: 2, label: "SOON", color: "text-orange-400", bg: "bg-orange-400/5", border: "border-orange-400/30" };
+        return { phase: 1, label: "LATER", color: "text-teal-400", bg: "bg-teal-400/5", border: "border-teal-400/20" };
+    };
+
+    const dlStatus = getDeadlinePhase();
+
+    const formatDeadline = (dl: string) => {
+        const d = new Date(dl);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    };
 
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: task.id,
@@ -53,7 +71,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
             {showMenu && (
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                    className="absolute right-0 top-8 w-36 bg-(--bg-sidebar) border border-(--border-color) rounded-xl shadow-xl z-[100] origin-top-right"
+                    className="absolute right-0 top-8 w-40 bg-(--bg-sidebar) border border-(--border-color) rounded-xl shadow-xl z-[100] origin-top-right backdrop-blur-md"
                 >
                     {!task.isCompleted && (
                         <button onClick={() => { completeTask(task.id); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-(--text-main) hover:bg-(--accent-teal)/10 flex items-center gap-2 border-b border-(--border-color)">
@@ -64,7 +82,17 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                         <Eye size={12} className="text-(--accent-teal)" /> Details
                     </button>
                     <button onClick={() => { openEditModal(task.id); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold hover:bg-(--bg-dark) flex items-center gap-2 border-b border-(--border-color)">
-                        <Edit2 size={12} className="text-(--accent-teal)" /> Edit
+                        <Edit2 size={12} className="text-(--accent-teal)" /> Edit Record
+                    </button>
+                    <button 
+                        onClick={() => { 
+                            updateTask(task.id, { isPinned: !task.isPinned }); 
+                            setShowMenu(false); 
+                        }} 
+                        className={`w-full px-3 py-2 text-xs font-bold flex items-center gap-2 border-b border-(--border-color) ${task.isPinned ? 'text-teal-400 bg-teal-400/5' : 'hover:bg-(--bg-dark)'}`}
+                    >
+                        <Pin size={12} className={task.isPinned ? 'text-teal-400' : 'text-(--text-muted)'} /> 
+                        {task.isPinned ? 'Unpin' : 'Pin to Top'}
                     </button>
                     <button 
                         onClick={() => { 
@@ -72,7 +100,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                             setShowMenu(false); 
                             triggerChumToast(task.isFrog ? "Frog released back into the wild." : "FROG CAPTURED. Tackle this first!", "info");
                         }} 
-                        className={`w-full px-3 py-2 text-xs font-bold flex items-center gap-2 border-b border-(--border-color) ${task.isFrog ? 'text-orange-400 bg-orange-400/5 hover:bg-orange-400/10' : 'hover:bg-(--bg-dark)'}`}
+                        className={`w-full px-3 py-2 text-xs font-bold flex items-center gap-2 border-b border-(--border-color) ${task.isFrog ? 'text-orange-400 bg-orange-400/5' : 'hover:bg-(--bg-dark)'}`}
                     >
                         <Flame size={12} className={task.isFrog ? 'text-orange-400' : 'text-(--text-muted)'} /> 
                         {task.isFrog ? 'Unmark Frog' : 'Mark as Frog'}
@@ -89,19 +117,64 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
         <div 
             ref={setNodeRef} style={style} {...listeners} {...attributes}
             onDoubleClick={handleDoubleClick}
-            className={`group relative bg-(--bg-card) border-2 rounded-2xl p-4 transition-all duration-300 ${isDragging ? 'opacity-40' : 'opacity-100'} ${isOverlay ? 'shadow-2xl border-(--accent-teal)' : 'border-(--border-color)'}`}
+            className={`group relative bg-(--bg-card) border-2 rounded-2xl p-4 transition-all duration-500 overflow-hidden ${isDragging ? 'opacity-40' : 'opacity-100'} ${dlStatus.phase === 3 && !task.isCompleted ? 'ring-1 ring-red-500/20' : ''} ${isOverlay ? 'shadow-2xl border-(--accent-teal)' : dlStatus.border || 'border-(--border-color)'}`}
         >
-            <div className="flex justify-between items-start mb-2">
-                <span className={`text-[10px] font-bold uppercase px-3 py-1 rounded-full border ${loadColors[task.load]}`}>{task.load}</span>
-                <button onClick={() => setShowMenu(!showMenu)} className="text-(--text-muted) hover:text-(--text-main)"><MoreHorizontal size={16} /></button>
+            {/* ⚡ PHASE OVERLAY (Subtle Glow) */}
+            {!task.isCompleted && dlStatus.phase > 1 && (
+                <div className={`absolute -right-4 -top-4 w-12 h-12 rounded-full blur-2xl opacity-20 ${dlStatus.bg}`} />
+            )}
+
+            <div className="flex justify-between items-start mb-2 relative z-10">
+                <div className="flex gap-2 items-center">
+                    <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-lg border tracking-tighter ${loadColors[task.load]}`}>{task.load}</span>
+                    {task.isPinned && !task.isCompleted && <Pin size={10} className="text-teal-400" />}
+                </div>
+                <div className="flex items-center gap-2">
+                    {dlStatus.phase > 1 && !task.isCompleted && (
+                        <span className={`text-[9px] font-black uppercase tracking-widest ${dlStatus.color}`}>{dlStatus.label}</span>
+                    )}
+                    <button onClick={() => setShowMenu(!showMenu)} className="text-(--text-muted) hover:text-(--text-main) transition-colors"><MoreHorizontal size={16} /></button>
+                </div>
                 {ActionMenu}
             </div>
-            <h3 className={`text-base font-bold mb-1 ${task.isCompleted ? 'text-(--text-muted) line-through' : ''}`}>{task.title}</h3>
-            {task.description && <p className="text-xs text-(--text-muted) line-clamp-2">{task.description}</p>}
-            {task.isFrog && !task.isCompleted && (
-                <div className="absolute -top-2 -right-2 bg-orange-400 text-black p-1.5 rounded-full shadow-lg border-2 border-(--bg-card) animate-bounce">
-                    <Flame size={12} />
+
+            <div className="relative z-10">
+                <h3 className={`text-[15px] font-bold leading-tight mb-1 transition-all ${task.isCompleted ? 'text-(--text-muted) line-through opacity-50' : 'text-(--text-main)'}`}>
+                    {task.title}
+                </h3>
+                {task.description && !isMinimized && (
+                    <p className="text-[11px] text-(--text-muted) line-clamp-2 leading-relaxed font-medium mb-3">
+                        {task.description}
+                    </p>
+                )}
+
+                <div className="flex justify-between items-center mt-auto pt-2 border-t border-(--border-color)/30">
+                    <div className="flex items-center gap-4">
+                        {task.deadline && !task.isCompleted && (
+                            <div className={`flex items-center gap-1.5 ${dlStatus.color}`}>
+                                {dlStatus.phase === 3 ? <AlertTriangle size={10} /> : <Clock size={10} />}
+                                <span className="text-[9px] font-black tracking-widest uppercase">{formatDeadline(task.deadline)}</span>
+                            </div>
+                        )}
+                        {task.isCompleted && task.completedAt && (
+                            <div className="flex items-center gap-1.5 text-teal-500/60">
+                                <Check size={10} />
+                                <span className="text-[9px] font-black tracking-widest uppercase">Archived</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
+            </div>
+
+            {/* FROG BADGE */}
+            {task.isFrog && !task.isCompleted && (
+                <motion.div 
+                    initial={{ scale: 0 }} animate={{ scale: 1 }}
+                    className="absolute bottom-2 right-2 bg-orange-400 text-black p-1.5 rounded-xl shadow-lg border-2 border-(--bg-card) flex items-center gap-1 group-hover:scale-110 transition-transform"
+                >
+                    <Flame size={12} className="fill-current" />
+                    <span className="text-[8px] font-black uppercase">Frog</span>
+                </motion.div>
             )}
         </div>
     );

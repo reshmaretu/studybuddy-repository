@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useStudyStore } from "@/store/useStudyStore";
-import { X, Clock, Edit2, Zap } from "lucide-react";
+import { X, Clock, Edit2, Zap, Pin } from "lucide-react";
 
 export default function TaskViewModal() {
     const { isViewModalOpen, viewingTaskId, tasks, closeViewModal, openEditModal } = useStudyStore();
@@ -36,6 +36,7 @@ export default function TaskViewModal() {
                         <div className="p-4 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--bg-sidebar)]/50">
                             <div className="flex items-center gap-3">
                                 <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${loadColors[task.load]}`}>{task.load}</span>
+                                {task.isPinned && <Pin size={14} className="text-[var(--accent-teal)] ml-2" />}
                                 {task.isFrog && <span className="text-xl">🐸</span>}
                             </div>
                             <button onClick={closeViewModal} className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-2 bg-[var(--bg-dark)] rounded-xl border border-[var(--border-color)] transition-all hover:scale-110 active:scale-95">

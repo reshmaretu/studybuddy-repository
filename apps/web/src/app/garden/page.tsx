@@ -403,7 +403,26 @@ export default function CrystalGarden() {
 
     // These are for the UI Columns (affected by search)
     const activeQuests = filteredTasks.filter(t => !t.isCompleted);
-    const sortedQuests = [...activeQuests].sort((a, b) => (b.isFrog ? 1 : 0) - (a.isFrog ? 1 : 0));
+    const getPhaseValue = (t: Task) => {
+        if (!t.deadline) return 0;
+        const diff = (new Date(t.deadline).getTime() - Date.now()) / 3600000;
+        if (diff < 0) return 4; // Overdue
+        if (diff <= 2) return 3; // Critical
+        if (diff <= 12) return 2; // Soon
+        return 1; // Later
+    };
+
+    const sortedQuests = [...activeQuests].sort((a, b) => {
+        // 1. Frog Priority
+        if (a.isFrog !== b.isFrog) return b.isFrog ? 1 : -1;
+        // 2. Deadline Phase Priority
+        const phaseA = getPhaseValue(a);
+        const phaseB = getPhaseValue(b);
+        if (phaseA !== phaseB) return phaseB - phaseA;
+        // 3. Pin Priority (if any)
+        if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
+        return 0;
+    });
     const archivedQuests = filteredTasks.filter(t => t.isCompleted);
     const masteredShards = shards.filter(s => s.isMastered);
 

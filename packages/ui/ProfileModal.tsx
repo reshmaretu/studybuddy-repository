@@ -37,7 +37,7 @@ const getCroppedImg = async (imageSrc: string, pixelCrop: any, rotation = 0): Pr
 export const ProfileModal = () => {
     const {
         isProfileModalOpen, setProfileModalOpen, avatarUrl, setAvatarUrl,
-        triggerChumToast, useThematicUI, setThematicUI, isDev, setIsDev
+        triggerChumToast, useThematicUI, setThematicUI, isDev
     } = useStudyStore();
     const { terms } = useTerms();
     const [activeTab, setActiveTab] = useState<'custom' | 'chum'>('chum');

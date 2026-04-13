@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStudyStore, TaskLoad } from "@/store/useStudyStore";
-import { Flame, X, Check, Clock, Edit3, Trash2 } from "lucide-react";
+import { Flame, X, Check, Clock, Edit3, Trash2, Pin } from "lucide-react";
 
 export default function TaskEditModal() {
     const { isEditModalOpen, editingTaskId, tasks, updateTask, closeEditModal } = useStudyStore();
@@ -14,6 +14,7 @@ export default function TaskEditModal() {
     const [load, setLoad] = useState<TaskLoad>("medium");
     const [deadline, setDeadline] = useState("");
     const [isFrog, setIsFrog] = useState(false);
+    const [isPinned, setIsPinned] = useState(false);
 
     useEffect(() => {
         if (task) {
@@ -22,6 +23,7 @@ export default function TaskEditModal() {
             setLoad(task.load);
             setDeadline(task.deadline || "");
             setIsFrog(task.isFrog || false);
+            setIsPinned(task.isPinned || false);
         }
     }, [task]);
 
@@ -34,7 +36,8 @@ export default function TaskEditModal() {
             description,
             load,
             deadline: deadline || undefined,
-            isFrog
+            isFrog,
+            isPinned
         });
         closeEditModal();
     };
@@ -128,19 +131,30 @@ export default function TaskEditModal() {
                                 </div>
                             </div>
 
-                            {/* 🐸 FROG TOGGLE */}
-                            <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-[2rem] p-6 flex items-center justify-between group hover:border-orange-400/30 transition-all cursor-pointer" onClick={() => setIsFrog(!isFrog)}>
-                                <div className="flex items-center gap-4">
-                                    <div className={`p-3 rounded-xl transition-all ${isFrog ? 'bg-orange-400 text-black animate-bounce' : 'bg-[var(--bg-sidebar)] text-[var(--text-muted)]'}`}>
-                                        <Flame size={20} />
+                            {/* 📌 PIN TOGGLE */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-[2rem] p-4 flex items-center justify-between group hover:border-[var(--accent-teal)]/30 transition-all cursor-pointer" onClick={() => setIsFrog(!isFrog)}>
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-xl transition-all ${isFrog ? 'bg-orange-400 text-black' : 'bg-[var(--bg-sidebar)] text-[var(--text-muted)]'}`}>
+                                            <Flame size={16} />
+                                        </div>
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-main)]">Frog</h4>
                                     </div>
-                                    <div>
-                                        <h4 className="text-xs font-black uppercase tracking-widest text-[var(--text-main)]">Eat The Frog</h4>
-                                        <p className="text-[10px] text-[var(--text-muted)] mt-0.5">Mark this as your #1 most important task.</p>
+                                    <div className={`w-10 h-5 rounded-full p-1 flex items-center transition-all ${isFrog ? 'bg-orange-400' : 'bg-[var(--bg-sidebar)] border border-[var(--border-color)]'}`}>
+                                        <div className={`w-3 h-3 rounded-full shadow-md transition-all ${isFrog ? 'translate-x-5 bg-black' : 'translate-x-0 bg-[var(--text-muted)]'}`} />
                                     </div>
                                 </div>
-                                <div className={`w-12 h-6 rounded-full p-1 flex items-center transition-all ${isFrog ? 'bg-orange-400' : 'bg-[var(--bg-sidebar)] border border-[var(--border-color)]'}`}>
-                                    <div className={`w-4 h-4 rounded-full shadow-md transition-all ${isFrog ? 'translate-x-6 bg-black' : 'translate-x-0 bg-[var(--text-muted)]'}`} />
+
+                                <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-[2rem] p-4 flex items-center justify-between group hover:border-[var(--accent-teal)]/30 transition-all cursor-pointer" onClick={() => setIsPinned(!isPinned)}>
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-xl transition-all ${isPinned ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'bg-[var(--bg-sidebar)] text-[var(--text-muted)]'}`}>
+                                            <Pin size={16} />
+                                        </div>
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-main)]">Pinned</h4>
+                                    </div>
+                                    <div className={`w-10 h-5 rounded-full p-1 flex items-center transition-all ${isPinned ? 'bg-[var(--accent-teal)]' : 'bg-[var(--bg-sidebar)] border border-[var(--border-color)]'}`}>
+                                        <div className={`w-3 h-3 rounded-full shadow-md transition-all ${isPinned ? 'translate-x-5 bg-[#0b1211]' : 'translate-x-0 bg-[var(--text-muted)]'}`} />
+                                    </div>
                                 </div>
                             </div>
                         </div>

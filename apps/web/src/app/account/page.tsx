@@ -34,7 +34,7 @@ export default function AccountPage() {
         requestNotificationPermission,
         performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true },
         accessibilitySettings = { highContrast: false, largeText: false, reducedMotion: false },
-        useThematicUI, setThematicUI, isDev, setIsDev
+        useThematicUI, setThematicUI, isDev
     } = useStudyStore();
 
     const [notificationPermission, setNotificationPermission] = useState<string>('default');
