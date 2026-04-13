@@ -944,18 +944,16 @@ export default function ChumWidget() {
                                 </div>
 
                                 {/* 🐸 FROG SPECIAL */}
-                                {activeFramework === 'frog' && (
-                                    <div 
-                                        onClick={() => setNewTask({ ...newTask, isFrog: !newTask.isFrog })}
-                                        className={`p-3 rounded-lg border-2 cursor-pointer transition-all flex justify-between items-center ${newTask.isFrog ? 'border-orange-400 bg-orange-400/10' : 'border-(--border-color) bg-(--bg-dark) opacity-60'}`}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <Flame size={14} className={newTask.isFrog ? 'text-orange-400' : 'text-(--text-muted)'} />
-                                            <span className={`text-[10px] font-black uppercase ${newTask.isFrog ? 'text-orange-400' : 'text-(--text-muted)'}`}>This is my Frog</span>
-                                        </div>
-                                        <div className={`w-3 h-3 rounded-full ${newTask.isFrog ? 'bg-orange-400 animate-pulse' : 'bg-transparent border border-(--border-color)'}`} />
+                                <div 
+                                    onClick={() => setNewTask({ ...newTask, isFrog: !newTask.isFrog })}
+                                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all flex justify-between items-center ${newTask.isFrog ? 'border-orange-400 bg-orange-400/10' : 'border-(--border-color) bg-(--bg-dark) opacity-60'}`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Flame size={14} className={newTask.isFrog ? 'text-orange-400' : 'text-(--text-muted)'} />
+                                        <span className={`text-[10px] font-black uppercase ${newTask.isFrog ? 'text-orange-400' : 'text-(--text-muted)'}`}>This is my Frog</span>
                                     </div>
-                                )}
+                                    <div className={`w-3 h-3 rounded-full ${newTask.isFrog ? 'bg-orange-400 animate-pulse' : 'bg-transparent border border-(--border-color)'}`} />
+                                </div>
 
                                 <button
                                     disabled={!newTask.title.trim()}

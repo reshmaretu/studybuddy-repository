@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { useStudyStore, Task, useTerms } from "@studybuddy/api";
-import { MoreHorizontal, Pin, Clock, Edit2, Trash2, X, Check, Zap, Lock, Eye, AlertTriangle } from "lucide-react";
+import { MoreHorizontal, Pin, Clock, Edit2, Trash2, X, Check, Zap, Lock, Eye, AlertTriangle, Flame } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface TaskCardProps {
@@ -66,6 +66,17 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                     <button onClick={() => { openEditModal(task.id); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold hover:bg-(--bg-dark) flex items-center gap-2 border-b border-(--border-color)">
                         <Edit2 size={12} className="text-(--accent-teal)" /> Edit
                     </button>
+                    <button 
+                        onClick={() => { 
+                            updateTask(task.id, { isFrog: !task.isFrog }); 
+                            setShowMenu(false); 
+                            triggerChumToast(task.isFrog ? "Frog released back into the wild." : "FROG CAPTURED. Tackle this first!", "info");
+                        }} 
+                        className={`w-full px-3 py-2 text-xs font-bold flex items-center gap-2 border-b border-(--border-color) ${task.isFrog ? 'text-orange-400 bg-orange-400/5 hover:bg-orange-400/10' : 'hover:bg-(--bg-dark)'}`}
+                    >
+                        <Flame size={12} className={task.isFrog ? 'text-orange-400' : 'text-(--text-muted)'} /> 
+                        {task.isFrog ? 'Unmark Frog' : 'Mark as Frog'}
+                    </button>
                     <button onClick={() => { setShowDeleteModal(true); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-400/10 flex items-center gap-2">
                         <Trash2 size={12} /> Release
                     </button>
@@ -87,6 +98,11 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
             </div>
             <h3 className={`text-base font-bold mb-1 ${task.isCompleted ? 'text-(--text-muted) line-through' : ''}`}>{task.title}</h3>
             {task.description && <p className="text-xs text-(--text-muted) line-clamp-2">{task.description}</p>}
+            {task.isFrog && !task.isCompleted && (
+                <div className="absolute -top-2 -right-2 bg-orange-400 text-black p-1.5 rounded-full shadow-lg border-2 border-(--bg-card) animate-bounce">
+                    <Flame size={12} />
+                </div>
+            )}
         </div>
     );
 };

@@ -43,7 +43,7 @@ export default function Dashboard() {
         tasks, focusScore, dailyStreak, totalSessions, totalSecondsTracked,
         timeLeft, isRunning, toggleTimer, resetTimer, decrementTimer, completeTask,
         isInitialized, xp, level, pomodoroFocus, isBrainResetOpen, setIsBrainResetOpen, lastResetHighlightAt,
-        notifications, setIsNotificationCenterOpen, addNotification
+        notifications, setIsNotificationCenterOpen, addNotification, triggerChumToast, activeFramework
     } = useStudyStore();
     const { terms } = useTerms();
 
@@ -159,7 +159,7 @@ export default function Dashboard() {
     
     // 🐸 FROG PROTOCOL: Morning Reminder
     useEffect(() => {
-        if (!isInitialized || activeFramework !== 'frog') return;
+        if (!isInitialized) return;
         const now = new Date();
         const frogTask = tasks.find(t => t.isFrog && !t.isCompleted);
         const currentHour = now.getHours();
