@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CanvasElement, Connection, CanvasSnapshot, CanvasEngine } from '@studybuddy/canvas-engine';
+import { CanvasElement, Connection, Layer, CanvasSnapshot, CanvasEngine } from '@studybuddy/canvas-engine';
 
 interface CanvasState {
     elements: CanvasElement[];
