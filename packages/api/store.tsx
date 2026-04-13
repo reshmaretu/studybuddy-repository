@@ -728,27 +728,60 @@ export const useStudyStore = create<StudyState>()(
                         });
                     }
 
+                    // 🛠️ IDENTITY AUTO-HEAL: If profile is missing, create it from metadata
+                    const profile = profileResponse.data;
+                    const metadata = user.user_metadata;
+                    
+                    if (!profile) {
+                        console.log("Profile missing, auto-creating from metadata...");
+                        const newProfile = {
+                            id: user.id,
+                            display_name: metadata?.display_name || user.email?.split('@')[0] || "Guardian",
+                            full_name: metadata?.full_name || metadata?.first_name ? `${metadata.first_name} ${metadata.last_name || ''}` : "Sprout Guardian",
+                            is_verified: false,
+                            is_premium: false,
+                            is_dev: false
+                        };
+                        await supabase.from('profiles').insert([newProfile]);
+                        // Refresh cache for this run
+                        set({
+                            displayName: newProfile.display_name,
+                            fullName: newProfile.full_name,
+                            isVerified: false
+                        });
+                    }
+
+                    // 🛠️ STATS AUTO-HEAL
+                    if (!statsResponse.data) {
+                        await supabase.from('user_stats').insert([{ user_id: user.id, focus_score: 100, level: 1, xp: 0 }]);
+                    }
+
+                    // 🛠️ WARDROBE AUTO-HEAL
+                    if (!wardrobeResponse.data) {
+                        await supabase.from('chum_wardrobe').insert([{ user_id: user.id, active_crystal_theme: 'quartz' }]);
+                    }
+
                     set({
-                        displayName: profileResponse.data?.display_name || "",
-                        fullName: profileResponse.data?.full_name || "",
-                        isVerified: profileResponse.data?.is_verified || false,
+                        displayName: profile?.display_name || metadata?.display_name || "Guardian",
+                        fullName: profile?.full_name || metadata?.full_name || "New Sprout",
+                        isVerified: profile?.is_verified || false,
                         userEmail: user.email || "",
                         focusScore: statsResponse.data?.focus_score ?? 100,
                         totalSessions: statsResponse.data?.total_sessions ?? 0,
                         totalSecondsTracked: statsResponse.data?.total_seconds_tracked ?? 0,
                         xp: statsResponse.data?.xp ?? 0,
                         level: statsResponse.data?.level ?? 1,
-                        avatarUrl: profileResponse.data?.avatar_url || null,
-                        isPremiumUser: profileResponse.data?.is_premium || false,
-                        isDev: profileResponse.data?.is_dev || false,
-                        activeFramework: profileResponse.data?.active_framework || null,
-                        lastPlannedDate: profileResponse.data?.last_planned_date || null,
+                        avatarUrl: profile?.avatar_url || null,
+                        isPremiumUser: profile?.is_premium || false,
+                        isDev: profile?.is_dev || false,
+                        activeFramework: profile?.active_framework || null,
+                        lastPlannedDate: profile?.last_planned_date || null,
                         aiKeys: {
-                            openrouter: profileResponse.data?.openrouter_key || "",
-                            gemini: profileResponse.data?.gemini_key || "",
-                            groq: profileResponse.data?.groq_key || ""
+                            openrouter: profile?.openrouter_key || "",
+                            gemini: profile?.gemini_key || "",
+                            groq: profile?.groq_key || ""
                         },
-                        hasCompletedTutorial: profileResponse.data?.has_completed_tutorial || false,
+                        hasCompletedTutorial: profile?.has_completed_tutorial || false,
                     });
 
                     const wardrobe = wardrobeResponse.data;
