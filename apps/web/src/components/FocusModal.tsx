@@ -30,7 +30,7 @@ export default function FocusModal() {
         t.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const selectedTask = tasks.find(t => t.id === selectedId);
+    const selectedTask = tasks.find(t => t.id === selectedId && !t.isCompleted);
 
     const handleDragStart = (event: DragStartEvent) => {
         setActiveDragId(event.active.id as string);

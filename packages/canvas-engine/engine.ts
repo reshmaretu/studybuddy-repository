@@ -71,14 +71,35 @@ export const CanvasEngine = {
     createMindmapNode(x: number, y: number, text: string, zIndex: number, layerId: string): CanvasElement {
         return {
             id: `node-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-            type: 'node',
-            x,
-            y,
-            width: 150,
-            height: 60,
-            zIndex,
-            layerId,
+            type: 'node', x, y, width: 150, height: 60, zIndex, layerId,
             data: { text, theme: 'default' }
+        };
+    },
+
+    // 🟦 SHAPE CREATION
+    createShape(type: 'rect' | 'circle' | 'arrow', x: number, y: number, color: string, zIndex: number, layerId: string): CanvasElement {
+        return {
+            id: `shape-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            type: 'shape', x, y, width: 100, height: 100, color, zIndex, layerId,
+            data: { shapeType: type, strokeWidth: 2, fill: 'transparent' }
+        };
+    },
+
+    // 📝 TEXT CREATION
+    createText(x: number, y: number, text: string, color: string, zIndex: number, layerId: string): CanvasElement {
+        return {
+            id: `text-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            type: 'text', x, y, width: 200, height: 50, color, zIndex, layerId,
+            data: { text, fontSize: 24, fontStyle: 'normal', align: 'left' }
+        };
+    },
+
+    // 📒 STICKY NOTE CREATION
+    createSticky(x: number, y: number, color: string, zIndex: number, layerId: string): CanvasElement {
+        return {
+            id: `sticky-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            type: 'sticky', x, y, width: 200, height: 200, color, zIndex, layerId,
+            data: { text: "Focus Shard", fontSize: 16 }
         };
     },
 

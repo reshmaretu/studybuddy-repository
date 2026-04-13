@@ -31,7 +31,8 @@ export default function AccountPage() {
         doubleClickToComplete = true, dndEnabled = true, setSettings, handleLogout,
         requestNotificationPermission,
         performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true },
-        accessibilitySettings = { highContrast: false, largeText: false, reducedMotion: false }
+        accessibilitySettings = { highContrast: false, largeText: false, reducedMotion: false },
+        useThematicUI, setThematicUI, isDev, setIsDev
     } = useStudyStore();
 
     const [notificationPermission, setNotificationPermission] = useState<string>('default');
@@ -671,6 +672,44 @@ export default function AccountPage() {
                                 className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${notificationPermission === 'granted' ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
                             >
                                 <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${notificationPermission === 'granted' ? 'translate-x-6' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+
+                        {/* UI Generation Toggle (Thematic UI) */}
+                        <div className="flex items-center justify-between p-6 rounded-3xl bg-(--bg-dark)/40 border border-(--border-color) group hover:border-[var(--accent-teal)]/20 transition-all">
+                            <div className="flex items-center gap-4">
+                                <div className={`p-2 rounded-xl transition-colors ${useThematicUI ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
+                                    <Sparkles size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main)">UI Atmosphere</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted)">Toggle Gamified Terminology</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setThematicUI(!useThematicUI)}
+                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${useThematicUI ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${useThematicUI ? 'translate-x-6' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+
+                        {/* Developer Mode Toggle */}
+                        <div className="flex items-center justify-between p-6 rounded-3xl bg-red-500/5 border border-red-500/10 group hover:border-red-500/40 transition-all">
+                            <div className="flex items-center gap-4">
+                                <div className={`p-2 rounded-xl transition-colors ${isDev ? 'bg-red-500/20 text-red-400' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
+                                    <Terminal size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main)">Architect Mode</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted)">Enable hidden dev overlays</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsDev(!isDev)}
+                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${isDev ? 'bg-red-500' : 'bg-white/10'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${isDev ? 'translate-x-6' : 'translate-x-0'}`} />
                             </button>
                         </div>
                     </div>

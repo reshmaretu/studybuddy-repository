@@ -6,7 +6,7 @@ interface CanvasState {
     elements: CanvasElement[];
     connections: Connection[];
     layers: Layer[];
-    activeTool: 'select' | 'pen' | 'node' | 'eraser' | 'sticky';
+    activeTool: 'select' | 'pen' | 'node' | 'eraser' | 'sticky' | 'rect' | 'circle' | 'arrow' | 'text';
     selectedElementIds: string[];
     
     // Viewport state

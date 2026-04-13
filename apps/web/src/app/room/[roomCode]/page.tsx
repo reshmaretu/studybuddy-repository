@@ -204,7 +204,13 @@ const Visualizer = ({
 
             const barCount = 48;
             const gap = 6;
-            const barWidth = ((width / (mirrored ? 2 : 1)) - gap * barCount) / barCount;
+            // ⚡ FIX: Normalize barWidth calculation to be consistent across modes
+            // In mirrored mode, we show barCount * 2 total bars (barCount on each side)
+            // In non-mirrored mode, we show just barCount bars.
+            // We'll calculate barWidth based on the space for 48 bars regardless to keep them same size.
+            const unitWidth = mirrored ? width / 2 : width;
+            const availableForBars = unitWidth - (gap * barCount);
+            const barWidth = Math.max(2, availableForBars / barCount);
             const opacity = isActive ? 0.9 : 0.2;
 
             const renderBars = (baseX: number, direction: number) => {
@@ -217,7 +223,6 @@ const Visualizer = ({
                     ctx.save();
                     ctx.translate(x + (barWidth / 2) * direction, height / 2);
                     
-                    // Handle both hex and rgba colors for dev customization
                     if (color && color.startsWith('#')) {
                         const r = parseInt(color.slice(1, 3), 16);
                         const g = parseInt(color.slice(3, 5), 16);
@@ -239,7 +244,10 @@ const Visualizer = ({
                 renderBars(width / 2, 1);
                 renderBars(width / 2, -1);
             } else {
-                renderBars(0, 1);
+                // ⚡ FIX: Center the non-mirrored bars to prevent "left-aligned" look
+                const totalContentWidth = (barWidth + gap) * barCount;
+                const offset = (width - totalContentWidth) / 2;
+                renderBars(offset, 1);
             }
         };
 

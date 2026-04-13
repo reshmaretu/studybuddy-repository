@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, X, Upload, Camera, Image as ImageIcon, Check, Ghost, Loader2, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
+import { Sparkles, X, Upload, Camera, Image as ImageIcon, Check, Ghost, Loader2, RotateCw, ZoomIn, ZoomOut, ShieldAlert, Terminal } from "lucide-react";
 import { useStudyStore, supabase, useTerms } from "@studybuddy/api";
 import { ChumRenderer } from "./ChumRenderer";
 import Cropper from 'react-easy-crop';
@@ -37,7 +37,7 @@ const getCroppedImg = async (imageSrc: string, pixelCrop: any, rotation = 0): Pr
 export const ProfileModal = () => {
     const {
         isProfileModalOpen, setProfileModalOpen, avatarUrl, setAvatarUrl,
-        triggerChumToast, useThematicUI, setThematicUI
+        triggerChumToast, useThematicUI, setThematicUI, isDev, setIsDev
     } = useStudyStore();
     const { terms } = useTerms();
     const [activeTab, setActiveTab] = useState<'custom' | 'chum'>('chum');
@@ -104,6 +104,20 @@ export const ProfileModal = () => {
                                 >
                                     {useThematicUI ? <Sparkles size={14} /> : <div className="w-3.5 h-3.5 border border-current rounded-sm" />}
                                     Switch to {useThematicUI ? "Simple Mode" : "Gamified Mode"}
+                                </button>
+
+                                <div className="flex justify-between items-center mt-2">
+                                    <span className="text-xs font-bold text-(--text-muted) uppercase tracking-widest">System Protocols</span>
+                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${isDev ? 'bg-red-500/10 text-red-500' : 'bg-(--text-muted)/10 text-(--text-muted)'}`}>
+                                        {isDev ? "ARCHITECT" : "USER"}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={() => setIsDev(!isDev)}
+                                    className={`w-full py-3 rounded-2xl border-2 font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${isDev ? 'border-red-500/50 text-red-500 bg-red-500/5 hover:bg-red-500/10' : 'border-(--border-color) text-(--text-muted) hover:border-red-500/30 hover:text-red-400'}`}
+                                >
+                                    {isDev ? <ShieldAlert size={14} /> : <Terminal size={14} />}
+                                    {isDev ? "Disable Architect Mode" : "Enable Architect Mode"}
                                 </button>
                             </div>
                         </div>
