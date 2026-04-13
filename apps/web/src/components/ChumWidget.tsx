@@ -756,10 +756,11 @@ export default function ChumWidget() {
                         {!isOpen && chumToasts?.map((toast: any, idx) => (
                             <motion.div
                                 key={toast.id}
-                                initial={{ opacity: 0, scale: 0.3, y: 20, rotate: 0 }}
-                                animate={{ opacity: 1, scale: 1, y: 0, rotate: idx % 2 === 0 ? -1 : 1 }}
-                                transition={{ type: "spring", stiffness: 450, damping: 15, delay: idx * 0.1 }}
-                                exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
+                                initial={{ opacity: 0, scale: 0.5, y: 50, x: 20, rotate: 10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0, x: 0, rotate: -2 }}
+                                whileHover={{ scale: 1.02 }}
+                                transition={{ type: "spring", stiffness: 800, damping: 30, mass: 0.8 }}
+                                exit={{ opacity: 0, scale: 0.8, filter: "blur(4px)", transition: { duration: 0.1 } }}
                                 style={{
                                     zIndex: 100 - idx
                                 }}
@@ -773,7 +774,7 @@ export default function ChumWidget() {
                                         setIsOpen(true);
                                     }
                                 }}
-                                className={`w-[320px] min-h-[60px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-5 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer pointer-events-auto flex flex-col justify-center relative hover:scale-[1.02] transition-transform ${toast.type === 'warning' ? 'border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.1)]' :
+                                className={`w-[320px] min-h-[60px] bg-[var(--bg-card)]/95 backdrop-blur-xl border-2 p-5 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer pointer-events-auto flex flex-col justify-center relative ${toast.type === 'warning' ? 'border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.1)]' :
                                     toast.type === 'success' ? 'border-emerald-500/40 shadow-[0_0_20_rgba(16,185,129,0.1)]' :
                                         toast.type === 'info' ? 'border-sky-500/40 shadow-[0_0_20px_rgba(14,165,233,0.1)]' :
                                             'border-[var(--border-color)]'
@@ -793,12 +794,12 @@ export default function ChumWidget() {
                                     {toast.message}
                                 </div>
                                 {idx === 0 && (
-                                    <div className={`absolute w-5 h-5 bg-[var(--bg-card)] border-r-2 border-b-2 z-[-1] -bottom-[10px] ${widgetPos.isLeft ? 'left-8' : 'right-8'} ${toast.type === 'warning' ? 'border-red-500/40' :
+                                    <div className={`absolute w-6 h-6 bg-[var(--bg-card)] border-r-2 border-b-2 z-[-1] -bottom-[12px] ${widgetPos.isLeft ? 'left-10' : 'right-10'} ${toast.type === 'warning' ? 'border-red-500/40' :
                                         toast.type === 'success' ? 'border-emerald-500/40' :
                                             toast.type === 'info' ? 'border-sky-500/40' :
-                                                'border-(--border-color)'
+                                                'border-[var(--border-color)]'
                                         }`}
-                                        style={{ transform: 'rotate(45deg)' }} />
+                                        style={{ transform: 'rotate(45deg) skew(10deg, 10deg)' }} />
                                 )}
                             </motion.div>
                         ))}
@@ -821,8 +822,8 @@ export default function ChumWidget() {
                                     <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)] animate-pulse" />
                                     <span className="text-[9px] font-black uppercase tracking-tighter text-[var(--accent-teal)]">Neural Link</span>
                                 </div>
-                                <div className={`absolute w-4 h-4 rotate-45 bg-[var(--bg-card)] border-b-2 border-r-2 border-[var(--border-color)] z-0 -bottom-2 ${widgetPos.isLeft ? 'left-6' : 'right-6'}`}
-                                    style={{ clipPath: 'polygon(100% 100%, 100% 0, 0 100%)' }} />
+                                <div className={`absolute w-5 h-5 bg-[var(--bg-card)] border-b-2 border-r-2 border-[var(--border-color)] z-[-1] -bottom-2 ${widgetPos.isLeft ? 'left-8' : 'right-8'}`}
+                                    style={{ transform: 'rotate(45deg) skew(5deg, 5deg)' }} />
                             </motion.div>
                         )}
                     </AnimatePresence>
