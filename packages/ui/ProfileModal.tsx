@@ -1,0 +1,94 @@
+"use client";
+
+import React, { useState, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Upload, Camera, Image as ImageIcon, Check, Ghost, Loader2, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
+import { useStudyStore, supabase } from "@studybuddy/api";
+import { ChumRenderer } from "./ChumRenderer";
+import Cropper from 'react-easy-crop';
+
+const createImage = (url: string): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+        const image = new Image();
+        image.addEventListener('load', () => resolve(image));
+        image.addEventListener('error', (error) => reject(error));
+        image.setAttribute('crossOrigin', 'anonymous');
+        image.src = url;
+    });
+
+const getCroppedImg = async (imageSrc: string, pixelCrop: any, rotation = 0): Promise<Blob> => {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    const rotRad = (rotation * Math.PI) / 180;
+    canvas.width = Math.abs(Math.cos(rotRad) * image.width) + Math.abs(Math.sin(rotRad) * image.height);
+    canvas.height = Math.abs(Math.sin(rotRad) * image.width) + Math.abs(Math.cos(rotRad) * image.height);
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(rotRad);
+    ctx.translate(-image.width / 2, -image.height / 2);
+    ctx.drawImage(image, 0, 0);
+    const data = ctx.getImageData(pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height);
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+    ctx.putImageData(data, 0, 0);
+    return new Promise((r, j) => canvas.toBlob(b => b ? r(b) : j(new Error('Canvas empty')), 'image/jpeg'));
+};
+
+export const ProfileModal = () => {
+    const { isProfileModalOpen, setProfileModalOpen, avatarUrl, setAvatarUrl, triggerChumToast } = useStudyStore();
+    const [activeTab, setActiveTab] = useState<'custom' | 'chum'>('chum');
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [image, setImage] = useState<string | null>(null);
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [rotation, setRotation] = useState(0);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+
+    const onCropComplete = useCallback((_: any, pixelArea: any) => setCroppedAreaPixels(pixelArea), []);
+
+    if (!isProfileModalOpen) return null;
+
+    const handleUpload = async () => {
+        if (!image || !croppedAreaPixels) return;
+        setUploading(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Unauthenticated");
+            const blob = await getCroppedImg(image, croppedAreaPixels, rotation);
+            const fileName = `${user.id}-${Date.now()}.jpg`;
+            await supabase.storage.from('avatars').upload(fileName, blob, { upsert: true });
+            const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
+            const finalUrl = `${publicUrl}?v=${Date.now()}`;
+            await supabase.from('profiles').update({ avatar_url: finalUrl }).eq('id', user.id);
+            setAvatarUrl(finalUrl);
+            triggerChumToast("Identity appearance harmonized.", "success");
+            setImage(null);
+        } catch (err) {
+            triggerChumToast("Shard uplink failed.", "warning");
+        } finally { setUploading(false); }
+    };
+
+    return (
+        <AnimatePresence>
+            {isProfileModalOpen && (
+                <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setProfileModalOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-(--bg-card) border-2 border-(--border-color) rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl relative z-10">
+                        <div className="p-6 border-b border-(--border-color) flex justify-between items-center bg-(--bg-sidebar)/30">
+                            <h3 className="text-xl font-black flex items-center gap-3"><Camera size={20} className="text-(--accent-teal)" /> Identity Mask</h3>
+                            <button onClick={() => setProfileModalOpen(false)} className="p-2 rounded-xl hover:bg-(--bg-dark) transition-all"><X size={20} /></button>
+                        </div>
+                        <div className="p-8 flex flex-col items-center gap-6">
+                            <div className="w-32 h-32 rounded-full border-4 border-(--accent-teal)/20 p-4 bg-(--bg-dark) flex items-center justify-center relative">
+                                {avatarUrl ? <img src={avatarUrl} className="w-full h-full rounded-full object-cover" /> : <ChumRenderer size="w-20 h-20" />}
+                            </div>
+                            <button onClick={() => fileInputRef.current?.click()} className="w-full py-4 rounded-2xl bg-(--accent-teal) text-black font-black uppercase tracking-widest transition-all">Upload Shard</button>
+                            <input type="file" ref={fileInputRef} onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = () => setImage(r.result as string); r.readAsDataURL(f); } }} accept="image/*" className="hidden" />
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+    );
+};
