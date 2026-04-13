@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, use, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Timer, Info, LogOut, Users, Play, Pause, RotateCcw, Sparkles, Shield, Lock, Activity, ChevronDown, Check, ChevronRight } from "lucide-react";
+import { Zap, Timer, Info, LogOut, Users, Play, Pause, RotateCcw, Sparkles, Shield, Lock, Activity, ChevronDown, Check, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useStudyStore } from "@/store/useStudyStore";

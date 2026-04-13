@@ -27,7 +27,10 @@
         "./src/*"
       ],
       "@studybuddy/api": [
-        "../../packages/api/src"
+        "../../packages/api"
+      ],
+      "@studybuddy/ui": [
+        "../../packages/ui"
       ]
     }
   },
@@ -35,14 +38,17 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "../../packages/*/src/**/*.ts",
-    "../../packages/*/src/**/*.tsx",
+    "../../packages/*/*.ts",
+    "../../packages/*/*.tsx",
+    "../../packages/*/hooks/*.ts",
+    "../../packages/*/hooks/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
   "exclude": [
     "node_modules",
+    "../../packages/*/node_modules",
     "supabase"
   ]
 }
