@@ -21,7 +21,7 @@ export default function DevOverlay() {
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (isDev && devOverlayEnabled && e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
+            if (isDev && e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
                 e.preventDefault();
                 setIsOpen(prev => !prev);
             }
@@ -29,7 +29,7 @@ export default function DevOverlay() {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isDev, devOverlayEnabled]);
+    }, [isDev]);
 
     const generateMockUser = (id: string): any => {
         const statuses = ['idle', 'drafting', 'hosting', 'joined', 'flowState', 'cafe', 'mastering', 'offline'];

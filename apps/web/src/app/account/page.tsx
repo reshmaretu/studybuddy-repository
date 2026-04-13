@@ -700,24 +700,6 @@ export default function AccountPage() {
                             </button>
                         </div>
 
-                        {/* Developer Mode Toggle */}
-                        <div className="flex items-center justify-between p-6 rounded-3xl bg-red-500/5 border border-red-500/10 group hover:border-red-500/40 transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className={`p-2 rounded-xl transition-colors ${isDev ? 'bg-red-500/20 text-red-400' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
-                                    <Terminal size={18} />
-                                </div>
-                                <div>
-                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main)">Architect Mode</p>
-                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted)">Enable hidden dev overlays</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setIsDev(!isDev)}
-                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${isDev ? 'bg-red-500' : 'bg-white/10'}`}
-                            >
-                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${isDev ? 'translate-x-6' : 'translate-x-0'}`} />
-                            </button>
-                        </div>
                     </div>
 
                     {/* ⚡ ENVIRONMENTAL OPTIMIZATION (Performance) */}

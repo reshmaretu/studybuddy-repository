@@ -171,7 +171,6 @@ export interface StudyState {
 
     updateUserTheme: (themeId: string) => Promise<void>;
     isDev: boolean;
-    setIsDev: (val: boolean) => Promise<void>;
 
     // 🛠️ DEV TOOLS (Global)
     debrisSize: number;
@@ -179,8 +178,7 @@ export interface StudyState {
     debrisCount: number;
     debrisSpread: number;
     setDebris: (settings: Partial<{ size: number, color: string, count: number, spread: number }>) => void;
-    devOverlayEnabled: boolean;
-    setDevOverlayEnabled: (val: boolean) => void;
+    setDebris: (settings: Partial<{ size: number, color: string, count: number, spread: number }>) => void;
     enableDevRoomOptions: boolean;
     setEnableDevRoomOptions: (val: boolean) => void;
 
@@ -345,7 +343,6 @@ export const useStudyStore = create<StudyState>()(
             activeFramework: null,
             lastPlannedDate: null,
             isDev: false,
-            devOverlayEnabled: true,
             enableDevRoomOptions: false,
             setEnableDevRoomOptions: (val) => set({ enableDevRoomOptions: val }),
             protocolLimits: { heavy: 1, medium: 3, light: 5 },
@@ -453,16 +450,6 @@ export const useStudyStore = create<StudyState>()(
                 set({ lastPlannedDate: date });
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) await supabase.from('profiles').update({ last_planned_date: date }).eq('id', user.id);
-            },
-
-            setIsDev: async (val) => {
-                set({ isDev: val });
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) await supabase.from('profiles').update({ is_dev: val }).eq('id', user.id);
-                get().triggerChumToast?.(
-                    val ? "Architect Mode Initialized. Press Ctrl+Shift+D for console." : "Architect Mode Offline.",
-                    val ? "success" : "info"
-                );
             },
 
             debrisSize: 0.4,

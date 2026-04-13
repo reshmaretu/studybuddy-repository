@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Search, Trophy, Radio, Plus, X, Crosshair } from "lucide-react";
+import { Search, Trophy, Radio, Plus, X, Crosshair, ShieldAlert } from "lucide-react";
 import ThreeLanternNet, { LanternNetHandle } from "@/components/LanternNetwork";
 import ChumRenderer from "@/components/ChumRenderer";
 import { useStudyStore } from "@/store/useStudyStore";
@@ -120,7 +120,7 @@ export default function LanternNetPage() {
     const {
         totalSessions, activeMode, isTutorModeActive, isDev, devOverlayEnabled,
         debrisSize, debrisColor, debrisCount, debrisSpread, setDebris,
-        mockUsers, setMockUsers, isPremiumUser, setSettings, totalSecondsTracked
+        mockUsers, setMockUsers, isPremiumUser, setSettings, totalSecondsTracked, isVerified, triggerChumToast
     } = useStudyStore();
     const router = useRouter();
 
@@ -248,6 +248,12 @@ const handleBroadcast = async () => {
     setIsSubmitting(true);
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (!isVerified) {
+        triggerChumToast?.("Access Denied: You must verify your spirit link (email) before broadcasting to the network.", "warning");
+        setIsSubmitting(false);
+        return;
+    }
 
     if (!user || authError) {
         alert("Session expired. Please log in again.");
@@ -592,6 +598,22 @@ return (
         </AnimatePresence>
 
         <div id="lantern-map-container" className="flex-1 h-full rounded-[40px] overflow-hidden border border-(--border-color) shadow-xl relative min-h-0">
+            {!isVerified && (
+                <div className="absolute inset-0 z-[100] bg-(--bg-dark)/80 backdrop-blur-md flex items-center justify-center p-8 text-center">
+                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md space-y-6">
+                        <div className="w-20 h-20 bg-red-500/20 border-2 border-red-500/40 rounded-full flex items-center justify-center mx-auto text-red-400">
+                            <ShieldAlert size={40} />
+                        </div>
+                        <h2 className="text-2xl font-black text-white uppercase tracking-widest">Neural Link Unverified</h2>
+                        <p className="text-sm text-(--text-muted) leading-relaxed font-bold">
+                            The Lantern Network requires a verified spirit link to prevent interference. Check your neural archives (email) to confirm your identity.
+                        </p>
+                        <button onClick={() => router.push('/account')} className="px-8 py-4 bg-(--accent-teal) text-black rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all">
+                            Verify Identity
+                        </button>
+                    </motion.div>
+                </div>
+            )}
             <ThreeLanternNet
                 ref={lanternRef}
                 users={combinedNetwork}
