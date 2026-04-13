@@ -22,14 +22,13 @@ import UnDoneModal from "./UnDoneModal";
 
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const isInitialized = useStudyStore(state => state.isInitialized);
-    const initializeData = useStudyStore(state => state.initializeData);
-    const isSidebarHidden = useStudyStore(state => state.isSidebarHidden);
-    const userEmail = useStudyStore(state => state.userEmail);
-    const hasCompletedTutorial = useStudyStore(state => state.hasCompletedTutorial);
+    const { 
+        isInitialized, initializeData, isSidebarHidden, userEmail, hasCompletedTutorial,
+        isBrainResetOpen, setIsBrainResetOpen, isUnDoneModalOpen, setIsUnDoneModalOpen,
+        accessibilitySettings 
+    } = useStudyStore();
     const router = useRouter();
     const [isMounted, setIsMounted] = useState(false);
-    const { accessibilitySettings } = useStudyStore();
 
     const isRoomPage = pathname.startsWith("/room/");
     const appPages = ["/dashboard", "/garden", "/insights", "/lantern", "/account", "/cafe", "/canvas", "/wardrobe", "/archive", "/calendar"];
@@ -107,9 +106,9 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
                 <TaskViewModal />
                 <ProfileModal />
                 <NotificationCenter />
-                <BrainResetModal isOpen={useStudyStore.getState().isBrainResetOpen} onClose={() => useStudyStore.getState().setIsBrainResetOpen(false)} />
-                {useStudyStore(state => state.isUnDoneModalOpen) && (
-                    <UnDoneModal onClose={() => useStudyStore.getState().setIsUnDoneModalOpen(false)} />
+                <BrainResetModal isOpen={isBrainResetOpen} onClose={() => setIsBrainResetOpen(false)} />
+                {isUnDoneModalOpen && (
+                    <UnDoneModal onClose={() => setIsUnDoneModalOpen(false)} />
                 )}
                 {isInitialized && <TutorialIntro />}
                 <DevOverlay />
