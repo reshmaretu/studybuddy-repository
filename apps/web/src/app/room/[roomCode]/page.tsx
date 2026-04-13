@@ -710,7 +710,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     setSecondsLeft(prev => {
                         // ⚡ Count UP mode (Stopwatch / Free)
                         if (settings.mode === 'free' || settings.mode === 'stopwatch') {
-                            useStudyStore.getState().incrementSecondsTracked(secondsMissed);
+                            useStudyStore.setState((state) => ({
+                                totalSecondsTracked: state.totalSecondsTracked + secondsMissed
+                            }));
                             return prev + secondsMissed;
                         }
 
