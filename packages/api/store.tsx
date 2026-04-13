@@ -463,7 +463,7 @@ export const useStudyStore = create<StudyState>()(
                 debrisSpread: settings.spread ?? state.debrisSpread
             })),
 
-            setDevOverlayEnabled: (val) => set({ devOverlayEnabled: val }),
+
 
             mockUsers: [],
             setMockUsers: (val) => set((state) => ({
@@ -975,7 +975,7 @@ export const useStudyStore = create<StudyState>()(
                 selectedModel: state.selectedModel, ollamaUrl: state.ollamaUrl,
                 pomodoroFocus: state.pomodoroFocus, pomodoroShortBreak: state.pomodoroShortBreak,
                 pomodoroLongBreak: state.pomodoroLongBreak, pomodoroCycles: state.pomodoroCycles,
-                devOverlayEnabled: state.devOverlayEnabled, activeCrystalTheme: state.activeCrystalTheme,
+                activeCrystalTheme: state.activeCrystalTheme,
                 activeAccessories: state.activeAccessories || [], windSpeed: state.windSpeed,
                 swayAmount: state.swayAmount, flowerCount: state.flowerCount, swayEnabled: state.swayEnabled,
                 dailyFocusScores: state.dailyFocusScores, flowBreaks: state.flowBreaks,

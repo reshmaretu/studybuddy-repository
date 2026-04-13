@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 
 export default function DevOverlay() {
     const {
-        isDev, devOverlayEnabled, setLastPlannedDate,
+        isDev, setLastPlannedDate,
         debrisSize, debrisColor, debrisCount, debrisSpread, setDebris,
         windSpeed, swayAmount, setWindSettings,
         triggerChumToast,
