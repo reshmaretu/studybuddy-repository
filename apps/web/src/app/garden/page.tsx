@@ -437,7 +437,9 @@ export default function CrystalGarden() {
             today4AM.setDate(today4AM.getDate() - 1);
         }
 
-        const needsPlanning = !lastPlannedDate || new Date(lastPlannedDate as string) < today4AM;
+        const lastPlan = lastPlannedDate ? new Date(lastPlannedDate as string) : null;
+        const needsPlanning = !lastPlan || isNaN(lastPlan.getTime()) || lastPlan < today4AM;
+        
         if (needsPlanning) setShowMorningModal(true);
         else setShowMorningModal(false);
     }, [isInitialized, lastPlannedDate]);

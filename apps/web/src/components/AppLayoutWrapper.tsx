@@ -24,6 +24,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
     const initializeData = useStudyStore(state => state.initializeData);
     const isSidebarHidden = useStudyStore(state => state.isSidebarHidden);
     const userEmail = useStudyStore(state => state.userEmail);
+    const hasCompletedTutorial = useStudyStore(state => state.hasCompletedTutorial);
     const router = useRouter();
     const [isMounted, setIsMounted] = useState(false);
     const { accessibilitySettings } = useStudyStore();
@@ -95,7 +96,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
                 >
                     {children}
                 </main>
-                {!useStudyStore.getState().hasCompletedTutorial ? null : <ChumWidget />}
+                {isInitialized && hasCompletedTutorial && <ChumWidget />}
                 <FocusModal />
                 <FlowStateOverlay />
                 <StudyCafeOverlay />
@@ -105,7 +106,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
                 <ProfileModal />
                 <NotificationCenter />
                 <BrainResetModal isOpen={useStudyStore.getState().isBrainResetOpen} onClose={() => useStudyStore.getState().setIsBrainResetOpen(false)} />
-                <TutorialIntro />
+                {isInitialized && <TutorialIntro />}
                 <DevOverlay />
             </div>
         </div>

@@ -308,14 +308,18 @@ export default function AccountPage() {
             if (profileError) throw profileError;
 
             // Update store immediately
-            if (isChangingDisplay) setDisplayName(formData.newDisplayName);
-            if (isChangingIdentity) setFullName(finalFullName);
+            if (isChangingDisplay) await setDisplayName(formData.newDisplayName);
+            if (isChangingIdentity) await setFullName(finalFullName);
 
             triggerChumToast("Garden identity harmonized.", "success");
             setActiveModal(null);
 
-            // Allow state to settle before reload (or skip reload if store is enough)
-            setTimeout(() => window.location.reload(), 2000);
+            // Updated last identity change locally to reflect cooldown immediately
+            setMeta(prev => ({
+                ...prev,
+                lastDisplayUpdate: isChangingDisplay ? nowMs : prev.lastDisplayUpdate,
+                lastIdentityUpdate: isChangingIdentity ? nowMs : prev.lastIdentityUpdate
+            }));
         } catch (err: any) {
             triggerChumToast(err.message || "Sync failed. Reverting shards.", "warning");
         } finally {

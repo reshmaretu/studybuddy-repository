@@ -32,8 +32,8 @@ export interface StudyState {
     isBrainResetOpen: boolean;
     isNotificationCenterOpen: boolean;
 
-    setDisplayName: (name: string) => void;
-    setFullName: (name: string) => void;
+    setDisplayName: (name: string) => Promise<void>;
+    setFullName: (name: string) => Promise<void>;
     setUserEmail: (email: string) => void;
     setIsVerified: (val: boolean) => void;
     setAvatarUrl: (url: string | null) => void;
@@ -242,8 +242,16 @@ export const useStudyStore = create<StudyState>()(
             lastXpGain: null,
             mockInvoices: [],
 
-            setDisplayName: (name) => set({ displayName: name }),
-            setFullName: (name) => set({ fullName: name }),
+            setDisplayName: async (name) => {
+                set({ displayName: name });
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) await supabase.from('profiles').update({ display_name: name }).eq('id', user.id);
+            },
+            setFullName: async (name) => {
+                set({ fullName: name });
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) await supabase.from('profiles').update({ full_name: name }).eq('id', user.id);
+            },
             setUserEmail: (email) => set({ userEmail: email }),
             setIsVerified: (val) => set({ isVerified: val }),
             setAvatarUrl: (url) => set({ avatarUrl: url }),
@@ -451,6 +459,10 @@ export const useStudyStore = create<StudyState>()(
                 set({ isDev: val });
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) await supabase.from('profiles').update({ is_dev: val }).eq('id', user.id);
+                get().triggerChumToast?.(
+                    val ? "Architect Mode Initialized. Press Ctrl+Shift+D for console." : "Architect Mode Offline.",
+                    val ? "success" : "info"
+                );
             },
 
             debrisSize: 0.4,

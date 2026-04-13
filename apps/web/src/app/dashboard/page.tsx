@@ -208,7 +208,8 @@ export default function Dashboard() {
 
     // Attempt to grab the user's name from the store, falling back to "Guardian"
     const store = useStudyStore();
-    const displayName = store.displayName || store.fullName || store.userEmail?.split('@')[0] || "Guardian";
+    const rawName = (store.displayName?.trim() || store.fullName?.trim());
+    const displayName = rawName || store.userEmail?.split('@')[0] || "Guardian";
     
     // Check if we should highlight the brain reset button (10 minute window)
     const isResetHighlighted = useMemo(() => {
