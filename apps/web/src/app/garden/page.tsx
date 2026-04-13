@@ -29,9 +29,6 @@ function DropZoneContainer({ id, title, subtitle, children, isEmpty, emptyText }
 
 function MasteryContainer({ id, masteryTab, setMasteryTab, children, isEmpty, emptyText }: any) {
     const { isOver, setNodeRef } = useDroppable({ id });
-    return (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col h-full overflow-hidden">
-            {/* STYLING FIX: Added missing Header! */}
     const { terms } = useTerms();
     return (
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col h-full overflow-hidden">
