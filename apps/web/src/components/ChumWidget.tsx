@@ -799,7 +799,11 @@ export default function ChumWidget() {
                                             toast.type === 'info' ? 'border-sky-500/40' :
                                                 'border-[var(--border-color)]'
                                         }`}
-                                        style={{ transform: 'rotate(45deg) skew(10deg, 10deg)' }} />
+                                        style={{ 
+                                            transform: widgetPos.isLeft 
+                                                ? 'rotate(25deg) skew(-15deg, -15deg)' 
+                                                : 'rotate(65deg) skew(15deg, 15deg)' 
+                                        }} />
                                 )}
                             </motion.div>
                         ))}

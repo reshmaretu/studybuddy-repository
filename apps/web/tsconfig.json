@@ -24,7 +24,10 @@
     ],
     "paths": {
       "@/*": [
-        "./apps/web/src/*"
+        "./src/*"
+      ],
+      "@studybuddy/api": [
+        "../../packages/api/src"
       ]
     }
   },
