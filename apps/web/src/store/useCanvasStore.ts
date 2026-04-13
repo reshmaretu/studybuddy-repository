@@ -5,6 +5,7 @@ import { CanvasElement, Connection, CanvasSnapshot, CanvasEngine } from '@studyb
 interface CanvasState {
     elements: CanvasElement[];
     connections: Connection[];
+    layers: Layer[];
     activeTool: 'select' | 'pen' | 'node' | 'eraser' | 'sticky';
     selectedElementIds: string[];
     
@@ -47,6 +48,7 @@ export const useCanvasStore = create<CanvasState>()(
         (set, get) => ({
             elements: [],
             connections: [],
+            layers: [CanvasEngine.createDefaultLayer()],
             activeTool: 'select',
             selectedElementIds: [],
             stageConfig: { scale: 1, x: 0, y: 0 },
@@ -127,6 +129,7 @@ export const useCanvasStore = create<CanvasState>()(
                     set({
                         elements: prevSnapshot.elements,
                         connections: prevSnapshot.connections,
+                        layers: prevSnapshot.layers || [],
                         stageConfig: prevSnapshot.stageConfig,
                         historyIndex: historyIndex - 1
                     });
@@ -140,6 +143,7 @@ export const useCanvasStore = create<CanvasState>()(
                     set({
                         elements: nextSnapshot.elements,
                         connections: nextSnapshot.connections,
+                        layers: nextSnapshot.layers || [],
                         stageConfig: nextSnapshot.stageConfig,
                         historyIndex: historyIndex + 1
                     });
@@ -149,6 +153,7 @@ export const useCanvasStore = create<CanvasState>()(
             getSnapshot: () => ({
                 elements: get().elements,
                 connections: get().connections,
+                layers: get().layers,
                 stageConfig: get().stageConfig
             }),
 
@@ -157,6 +162,7 @@ export const useCanvasStore = create<CanvasState>()(
                     set({
                         elements: snapshot.elements,
                         connections: snapshot.connections,
+                        layers: snapshot.layers,
                         stageConfig: snapshot.stageConfig,
                         history: [snapshot],
                         historyIndex: 0
@@ -170,6 +176,7 @@ export const useCanvasStore = create<CanvasState>()(
                 // Only persist the actual canvas data, not UI/History state
                 elements: state.elements,
                 connections: state.connections,
+                layers: state.layers,
                 stageConfig: state.stageConfig
             })
         }
