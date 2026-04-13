@@ -185,7 +185,7 @@ export default function Dashboard() {
     // Check if we should highlight the brain reset button (10 minute window)
     const isResetHighlighted = useMemo(() => {
         if (!lastResetHighlightAt) return false;
-        const diff = (new Date().getTime() - new Date(lastResetHighlightAt).getTime()) / 60000;
+        const diff = (new Date().getTime() - new Date(lastResetHighlightAt as string).getTime()) / 60000;
         return diff < 10;
     }, [lastResetHighlightAt]);
     // 👆 END OF GREETING LOGIC

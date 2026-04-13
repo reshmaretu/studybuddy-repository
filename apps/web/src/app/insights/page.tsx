@@ -55,8 +55,8 @@ export default function InsightsPage() {
             if (timeRange === 'all') return true;
 
             // Safe date parsing fallback
-            const completedDate = (task.completedAt && !isNaN(new Date(task.completedAt).getTime()))
-                ? new Date(task.completedAt)
+            const completedDate = (task.completedAt && !isNaN(new Date(task.completedAt as string).getTime()))
+                ? new Date(task.completedAt as string)
                 : now;
 
             const diffTime = Math.abs(now.getTime() - completedDate.getTime());
@@ -101,8 +101,8 @@ export default function InsightsPage() {
     const hourlyData = useMemo(() => {
         const blocks = [0, 0, 0, 0, 0, 0];
         filteredTasks.forEach(task => {
-            const hour = (task.completedAt && !isNaN(new Date(task.completedAt).getTime()))
-                ? new Date(task.completedAt).getHours()
+            const hour = (task.completedAt && !isNaN(new Date(task.completedAt as string).getTime()))
+                ? new Date(task.completedAt as string).getHours()
                 : new Date().getHours();
 
             if (hour < 10) blocks[0]++;
@@ -140,8 +140,8 @@ export default function InsightsPage() {
             let dayHeavy = 0;
 
             tasks.filter(t => t?.isCompleted).forEach(task => {
-                const cDate = (task.completedAt && !isNaN(new Date(task.completedAt).getTime()))
-                    ? new Date(task.completedAt)
+                const cDate = (task.completedAt && !isNaN(new Date(task.completedAt as string).getTime()))
+                    ? new Date(task.completedAt as string)
                     : now;
 
                 if (cDate.toDateString() === d.toDateString()) {

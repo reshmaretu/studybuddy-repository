@@ -48,7 +48,7 @@ export default function TaskViewModal() {
                                 <h2 className="text-2xl font-black text-[var(--text-main)] leading-tight">{task.title}</h2>
                                 {task.deadline && (
                                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[var(--accent-teal)] mt-3">
-                                        <Clock size={14} /> Due: {new Date(task.deadline).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                        <Clock size={14} /> Due: {task.deadline ? new Date(task.deadline).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'No deadline'}
                                     </div>
                                 )}
                             </div>

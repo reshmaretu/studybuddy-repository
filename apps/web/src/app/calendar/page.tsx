@@ -143,11 +143,11 @@ export default function TactileCalendar() {
     const monthGrid = getMonthGrid(baseDate);
 
     // Data Routing (Using our highly filtered list!)
-    const stashedTasks = filteredTasks.filter(t => !t.deadline || isNaN(new Date(t.deadline).getTime()));
+    const stashedTasks = filteredTasks.filter(t => !t.deadline || isNaN(new Date(t.deadline as string).getTime()));
 
     const scheduledTasksMap = filteredTasks.reduce((acc, task) => {
         if (task.deadline) {
-            const dateObj = new Date(task.deadline);
+            const dateObj = new Date(task.deadline as string);
             if (!isNaN(dateObj.getTime())) {
                 const dateStr = dateObj.toISOString().split('T')[0];
                 if (!acc[dateStr]) acc[dateStr] = [];
