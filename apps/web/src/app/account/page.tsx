@@ -17,6 +17,7 @@ import jsPDF from 'jspdf';
 import { motion, AnimatePresence } from "framer-motion";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useTerms } from "@/hooks/useTerms";
 import ChumRenderer from "@/components/ChumRenderer";
 
 export default function AccountPage() {
@@ -27,6 +28,8 @@ export default function AccountPage() {
     }, []);
 
     const router = useRouter();
+    const { getTerm } = useTerms();
+
     const {
         isPremiumUser, level, displayName, fullName, userEmail, setUserEmail, triggerChumToast,
         setPremiumStatus, setDisplayName, setFullName, mockInvoices, addMockInvoice,
@@ -558,7 +561,7 @@ export default function AccountPage() {
                                 {displayName || fullName || userEmail.split('@')[0] || "Guardian"}
                             </h1>
                             <button
-                                onClick={() => setPremiumModalOpen(true)}
+                                onClick={() => setActiveModal('premium-status')}
                                 className={`p-2 rounded-2xl transition-all shadow-lg ${isPremiumUser ? 'bg-(--accent-yellow) text-black' : 'bg-(--bg-card) text-(--text-muted) hover:text-(--text-main) border border-(--border-color)'}`}
                             >
                                 <Crown size={20} fill={isPremiumUser ? "currentColor" : "none"} />
@@ -566,7 +569,7 @@ export default function AccountPage() {
                         </div>
                         <p className="text-sm font-medium text-[var(--accent-teal)]/80 tracking-wide">{userEmail}</p>
                         <div id="account-security-vault" className="flex items-center justify-center gap-2 mt-2">
-                            <span className="text-[10px] font-bold bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] border border-[var(--accent-teal)]/20 px-3 py-1 rounded-full uppercase tracking-wider">Level {level}</span>
+                            <span className="text-[10px] font-bold bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] border border-[var(--accent-teal)]/20 px-3 py-1 rounded-full uppercase tracking-wider">{getTerm('level')} {level}</span>
                             <div className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase flex items-center gap-2 border shadow-sm ${isVerified ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] border-[var(--accent-teal)]/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                                 {isVerified ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
                                 {isVerified ? 'Verified' : 'Unverified'}
@@ -579,7 +582,7 @@ export default function AccountPage() {
                                 className="mt-4 px-6 py-2.5 rounded-full bg-(--accent-teal) text-white text-[10px] font-bold uppercase hover:opacity-90 transition-all flex items-center gap-2 mx-auto active:scale-95 shadow-xl"
                             >
                                 {loading ? <RefreshCcw size={14} className="animate-spin" /> : <Fingerprint size={14} />}
-                                Verify Email
+                                {useThematicUI ? "Verify Relay" : "Verify Email"}
                             </button>
                         )}
                     </div>
@@ -588,23 +591,23 @@ export default function AccountPage() {
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full mt-6">
                     <button onClick={() => setActiveModal('identity')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-(--bg-card) border-(--border-color) hover:bg-[var(--accent-teal)]/10 hover:border-[var(--accent-teal)]/30 transition-all group shadow-sm">
                         <User size={28} className="text-[var(--accent-teal)] group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">Identity</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">{useThematicUI ? "Identity" : "Profile"}</span>
                     </button>
                     <button onClick={() => setActiveModal('email')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-(--bg-card) border-(--border-color) hover:bg-[var(--accent-teal)]/10 hover:border-[var(--accent-teal)]/30 transition-all group shadow-sm">
                         <Mail size={28} className="text-[var(--accent-teal)] group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">Email</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">{useThematicUI ? "Relay" : "Email"}</span>
                     </button>
                     <button onClick={() => setActiveModal('password')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-(--bg-card) border-(--border-color) hover:bg-[var(--accent-teal)]/10 hover:border-[var(--accent-teal)]/30 transition-all group shadow-sm">
                         <Lock size={28} className="text-[var(--accent-teal)] group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">Password</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">{useThematicUI ? "Cipher" : "Password"}</span>
                     </button>
                     <button onClick={() => setActiveModal('delete')} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-(--bg-card) border-(--border-color) hover:border-red-500/40 hover:bg-red-500/5 transition-all group shadow-sm">
                         <Trash2 size={28} className="text-red-400 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">Delete Account</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">{useThematicUI ? "Sever Link" : "Delete Account"}</span>
                     </button>
                     <button onClick={handleLogout} className="flex flex-col items-center justify-center gap-4 p-8 rounded-[40px] border bg-(--bg-card) border-(--border-color) hover:border-red-500/40 hover:bg-red-500/5 transition-all group shadow-sm">
                         <LogOut size={28} className="text-red-500 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/80">Logout</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/80">{useThematicUI ? "Log out" : "Logout"}</span>
                     </button>
                 </div>
 
@@ -615,8 +618,10 @@ export default function AccountPage() {
                             <Settings size={20} className="text-[var(--accent-teal)]" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-(--text-main)">Neural Protocols</h3>
-                            <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mt-1 text-(--text-muted)">Configure your garden interaction nodes</p>
+                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-(--text-main)">{getTerm('neuralProtocols')}</h3>
+                            <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mt-1 text-(--text-muted)">
+                                {useThematicUI ? "Configure your garden interaction nodes" : "Manage your app preferences"}
+                            </p>
                         </div>
                     </div>
 
@@ -913,7 +918,9 @@ export default function AccountPage() {
                             {activeModal === 'identity' && (
                                 <div className="space-y-8">
                                     <div className="flex items-center justify-between">
-                                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">Identity Shards</h2>
+                                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">
+                                            {useThematicUI ? "Identity Shards" : "Profile Details"}
+                                        </h2>
                                         <div className="px-3 py-1 bg-(--accent-teal)/10 border border-(--accent-teal)/20 rounded-full text-[8px] font-black text-(--accent-teal) uppercase tracking-widest">Protocol V2.1</div>
                                     </div>
                                     
@@ -974,8 +981,12 @@ export default function AccountPage() {
                                 <div className="space-y-8 py-4">
                                     <div className="text-center space-y-2">
                                         <Fingerprint size={48} className="mx-auto text-(--accent-teal) animate-pulse" />
-                                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">Neural Verification</h2>
-                                        <p className="text-[10px] font-bold opacity-30 uppercase">Enter the 6-digit sync code sent to your relay.</p>
+                                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">
+                                            {useThematicUI ? "Neural Verification" : "Email Verification"}
+                                        </h2>
+                                        <p className="text-[10px] font-bold opacity-30 uppercase">
+                                            {useThematicUI ? "Enter the 6-digit sync code sent to your relay." : "Enter the 6-digit code sent to your email."}
+                                        </p>
                                     </div>
                                     <div className="space-y-6">
                                         <input
@@ -1132,12 +1143,12 @@ export default function AccountPage() {
                                 <div className="space-y-8 animate-in fade-in zoom-in duration-200">
                                     <div className="text-center space-y-2">
                                         <h2 className="text-2xl font-black uppercase italic tracking-tighter">
-                                            {recoveryStep === 'request' ? "Cipher Update" : "Verify Relay"}
+                                            {recoveryStep === 'request' ? (useThematicUI ? "Cipher Update" : "Change Password") : (useThematicUI ? "Verify Relay" : "Enter Code")}
                                         </h2>
                                         <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest">
                                             {recoveryStep === 'request'
-                                                ? "Secure your neural connection"
-                                                : "Check your terminal for a code"}
+                                                ? (useThematicUI ? "Secure your neural connection" : "Update your account password")
+                                                : (useThematicUI ? "Check your terminal for a code" : "Check your email for a code")}
                                         </p>
                                     </div>
 
@@ -1263,8 +1274,14 @@ export default function AccountPage() {
                             {activeModal === 'delete' && (
                                 <div className="space-y-8 text-center py-4">
                                     <Trash2 size={48} className="mx-auto text-red-500" />
-                                    <h2 className="text-2xl font-black uppercase italic">Lay to Rest?</h2>
-                                    <p className="text-[10px] uppercase font-bold opacity-30">This garden will be forgotten forever. All memory shards will be lost. Enter your password to proceed with account deletion.</p>
+                                    <h2 className="text-2xl font-black uppercase italic">
+                                        {useThematicUI ? "Lay to Rest?" : "Delete Account?"}
+                                    </h2>
+                                    <p className="text-[10px] uppercase font-bold opacity-30">
+                                        {useThematicUI
+                                            ? "This garden will be forgotten forever. All memory shards will be lost. Enter your password to proceed."
+                                            : "This action is permanent and cannot be undone. Enter your password to proceed."}
+                                    </p>
 
                                     {deletionCountdown === null ? (
                                         <>
