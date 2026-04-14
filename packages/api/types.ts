@@ -85,3 +85,26 @@ export interface Shard {
     isMastered: boolean;
     createdAt: string;
 }
+
+export interface LanternUser {
+    id: string;
+    name: string;
+    chumLabel: string;
+    focusScore: number;
+    status: 'offline' | 'idle' | 'drafting' | 'hosting' | 'joined' | 'flowState' | 'cafe' | 'mastering';
+    hours: number;
+    roomCode?: string;
+    roomTitle?: string;
+    roomDescription?: string;
+    isPremium: boolean;
+    isHosting: boolean;
+    gridX: number;
+    gridY: number;
+    gridZ: number;
+    jitterX: number;
+    jitterY: number;
+    jitterZ: number;
+    avatarUrl?: string;
+    activeAccessories?: WardrobeAccessory[];
+    isVerified?: boolean;
+}

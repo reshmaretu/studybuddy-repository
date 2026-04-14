@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useStudyStore, TaskLoad, Task } from "@/store/useStudyStore";
 import { Sprout, Plus, Search, Moon, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit, Edit3, Maximize2, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,7 +11,7 @@ import UnDoneModal from "@/components/UnDoneModal";
 import GeodeScene from "@/components/GeodeScene";
 import { useTerms } from "@/hooks/useTerms";
 
-import { Shard } from "@/store/useStudyStore";
+import { Shard, LanternUser } from "@/store/useStudyStore";
 
 interface DropZoneContainerProps {
     id: string;
@@ -214,7 +214,7 @@ function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, borde
     const [isOpen, setIsOpen] = useState(false);
 
     // 1. Filter all tasks by cognitive load (Heavy/Medium/Light)
-    const categoryTasks = allTasks.filter((t: Task) => (t as any).load === loadType);
+    const categoryTasks = allTasks.filter((t: Task) => t.load === loadType);
 
     // 2. Separate into "Equipped" (Pinned) and "Backlog" (Unpinned)
     const selectedTasks = categoryTasks.filter((t: Task) => t.isPinned);
@@ -432,7 +432,7 @@ export default function CrystalGarden() {
     const [draggedToMasteryTask, setDraggedToMasteryTask] = useState<Task | null>(null);
     const [masteryTab, setMasteryTab] = useState<'tasks' | 'shards'>('tasks');
     const [draggedToGeodeTask, setDraggedToGeodeTask] = useState<Task | null>(null);
-    const [snipingShard, setSnipingShard] = useState<any>(null);
+    const [snipingShard, setSnipingShard] = useState<Shard | null>(null);
 
     const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
 
@@ -468,10 +468,12 @@ export default function CrystalGarden() {
 
     // These are for the UI Columns (affected by search)
     const activeQuests = filteredTasks.filter(t => !t.isCompleted);
+    const now = useMemo(() => Date.now(), []);
+
     const getPhaseValue = (t: Task) => {
         const deadline = t.deadline;
         if (!deadline) return 0;
-        const diff = (new Date(deadline as string).getTime() - Date.now()) / 3600000;
+        const diff = (new Date(deadline as string).getTime() - now) / 3600000;
         if (diff < 0) return 4; // Overdue
         if (diff <= 2) return 3; // Critical
         if (diff <= 12) return 2; // Soon

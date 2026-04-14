@@ -2,7 +2,7 @@
 import React, { useState, useRef, useMemo, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Html, OrbitControls, PerspectiveCamera, QuadraticBezierLine, Float, Points, PointMaterial } from "@react-three/drei";
+import { Html, OrbitControls, PerspectiveCamera, QuadraticBezierLine, QuadraticBezierLineRef, Float, Points, PointMaterial } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldAlert, BoxSelect, Layers, Zap, Maximize2, Minimize2 } from "lucide-react";
 import { LanternUser } from "@/app/lantern/page";
@@ -276,17 +276,19 @@ function AnimatedSanctuaryLink({ start, end, is3D, isSelf, isHosting }: {
     isSelf: boolean,
     isHosting: boolean
 }) {
-    const lineRef = useRef<any>(null);
+    const lineRef = useRef<QuadraticBezierLineRef>(null);
 
     useFrame((state) => {
         if (!lineRef.current) return;
+        const mat = lineRef.current.material as THREE.MeshBasicMaterial;
         if (isHosting) {
             const t = state.clock.elapsedTime * 5;
-            lineRef.current.lineWidth = 2 + Math.sin(t) * 1;
-            lineRef.current.opacity = 0.6 + Math.sin(t) * 0.2;
+            // lineWidth is a custom property in the drei QuadraticBezierLine material
+            (mat as any).lineWidth = 2 + Math.sin(t) * 1;
+            mat.opacity = 0.6 + Math.sin(t) * 0.2;
         } else {
-            lineRef.current.lineWidth = 1;
-            lineRef.current.opacity = 0.3;
+            (mat as any).lineWidth = 1;
+            mat.opacity = 0.3;
         }
     });
 

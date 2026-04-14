@@ -194,9 +194,9 @@ export interface StudyState {
     reset: () => void;
 
     // 🎭 MOCK USERS & INVOICES (Dev Only)
-    mockUsers: any[];
+    mockUsers: LanternUser[];
     mockInvoices: any[];
-    setMockUsers: (val: any[] | ((prev: any[]) => any[])) => void;
+    setMockUsers: (val: LanternUser[] | ((prev: LanternUser[]) => LanternUser[])) => void;
     addMockInvoice: (invoice: any) => void;
     setPremiumStatus: (status: boolean) => void;
 

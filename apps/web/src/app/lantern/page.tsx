@@ -4,33 +4,12 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { Search, Trophy, Radio, Plus, X, Crosshair, ShieldAlert } from "lucide-react";
 import ThreeLanternNet, { LanternNetHandle } from "@/components/LanternNetwork";
 import ChumRenderer from "@/components/ChumRenderer";
-import { useStudyStore, WardrobeAccessory } from "@/store/useStudyStore";
+import { useStudyStore, WardrobeAccessory, LanternUser } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
-export interface LanternUser {
-    id: string;
-    name: string;
-    chumLabel: string;
-    focusScore: number;
-    status: 'offline' | 'idle' | 'drafting' | 'hosting' | 'joined' | 'flowState' | 'cafe' | 'mastering';
-    hours: number;
-    roomCode?: string;
-    roomTitle?: string;
-    roomDescription?: string;
-    isPremium: boolean;
-    isHosting: boolean;
-    gridX: number;
-    gridY: number;
-    gridZ: number;
-    jitterX: number;
-    jitterY: number;
-    jitterZ: number;
-    avatarUrl?: string;
-    activeAccessories?: WardrobeAccessory[];
-    isVerified?: boolean;
-}
+// LanternUser moved to global types.ts
 
 const getStableRandom = (id: string, seed: string) => {
     let hash = 0;

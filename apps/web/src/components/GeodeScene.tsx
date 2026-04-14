@@ -5,20 +5,9 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Float, ContactShadows } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { Move3D, Minimize, MousePointerClick, X, Sparkles, Lock, Check } from "lucide-react";
-import { useStudyStore, Shard, TaskLoad } from "@/store/useStudyStore";
+import { Move3D, Minimize, MousePointerClick, X, Sparkles } from "lucide-react";
+import { useStudyStore, Shard } from "@/store/useStudyStore";
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
-import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
-
-// --- TYPES ---
-interface TrilliumPosition {
-    pos: [number, number, number];
-    stemHeight: number;
-    scale: number;
-    rotY: number;
-    tiltX: number;
-    tiltZ: number;
-}
 
 // --- DICTIONARIES ---
 const CRYSTAL_CATALOG: Record<string, { color: string, emissive: string }> = {
@@ -42,6 +31,15 @@ const SCENE_FILTERS = {
     cool: { bg: '#082f49', fogStart: 15, fogEnd: 60, amb: '#0284c7', mainLight: '#7dd3fc', fillLight: '#0c4a6e' }
 };
 
+interface TrilliumPosition {
+    pos: [number, number, number];
+    stemHeight: number;
+    scale: number;
+    rotY: number;
+    tiltX: number;
+    tiltZ: number;
+}
+
 function CylinderGlitter({ count, completionRatio }: { count: number, completionRatio: number }) {
     const pointsRef = useRef<THREE.Points>(null);
     const geoRef = useRef<THREE.BufferGeometry>(null);
@@ -49,12 +47,11 @@ function CylinderGlitter({ count, completionRatio }: { count: number, completion
     const positions = useMemo(() => {
         const pos = new Float32Array(count * 3);
         for (let i = 0; i < count; i++) {
-            const theta = (i * 1337.42) % (Math.PI * 2); 
-            const radius = Math.sqrt((i * 42.123) % 1) * 25; 
-
-            pos[i * 3] = Math.cos(theta) * radius;     
-            pos[i * 3 + 1] = ((i * 99.9) % 1) * 40;       
-            pos[i * 3 + 2] = Math.sin(theta) * radius; 
+            const theta = Math.random() * Math.PI * 2;
+            const radius = Math.sqrt(Math.random()) * 25;
+            pos[i * 3] = Math.cos(theta) * radius;
+            pos[i * 3 + 1] = Math.random() * 40;
+            pos[i * 3 + 2] = Math.sin(theta) * radius;
         }
         return pos;
     }, [count]);
@@ -76,22 +73,9 @@ function CylinderGlitter({ count, completionRatio }: { count: number, completion
     return (
         <points ref={pointsRef}>
             <bufferGeometry ref={geoRef}>
-                <bufferAttribute
-                    attach="attributes-position"
-                    count={count}
-                    args={[positions, 3]}
-                />
+                <bufferAttribute attach="attributes-position" count={count} args={[positions, 3]} />
             </bufferGeometry>
-            <pointsMaterial
-                size={0.15}
-                color={new THREE.Color("#e0f2fe").multiplyScalar(5)}
-                toneMapped={false}
-                transparent
-                opacity={0.8}
-                sizeAttenuation
-                depthWrite={false}
-                blending={THREE.AdditiveBlending}
-            />
+            <pointsMaterial size={0.15} color={new THREE.Color("#e0f2fe").multiplyScalar(5)} toneMapped={false} transparent opacity={0.8} sizeAttenuation depthWrite={false} blending={THREE.AdditiveBlending} />
         </points>
     );
 }
@@ -102,94 +86,67 @@ export function createMasterFlowerGeometry() {
         cleanGeo.deleteAttribute('uv');
         return cleanGeo;
     };
-
     const stem = prep(new THREE.CylinderGeometry(0.015, 0.015, 1, 4));
     stem.translate(0, 0.5, 0);
-
     const core = prep(new THREE.DodecahedronGeometry(0.025, 0));
     core.translate(0, 1.08, 0);
-
     const basePetal = prep(new THREE.SphereGeometry(0.12, 7, 5));
     basePetal.scale(1.5, 0.1, 2.5);
-
-    const petals: THREE.BufferGeometry[] = [];
+    const petals = [];
     for (let i = 0; i < 3; i++) {
         const petal = basePetal.clone();
         const matrix = new THREE.Matrix4();
         matrix.makeTranslation(0, 0, 0.18);
-
         const droop = new THREE.Matrix4().makeRotationX(0.4);
         matrix.multiply(droop);
-
         const rotationY = new THREE.Matrix4().makeRotationY((Math.PI * 2 / 3) * i);
         matrix.premultiply(rotationY);
-
         const moveUp = new THREE.Matrix4().makeTranslation(0, 1.0, 0);
         matrix.premultiply(moveUp);
-
         petal.applyMatrix4(matrix);
         petals.push(petal);
     }
-
-    const mergedGeometry = BufferGeometryUtils.mergeGeometries(
-        [stem, core, ...petals],
-        true
-    );
-
+    const mergedGeometry = BufferGeometryUtils.mergeGeometries([stem, core, petals[0], petals[1], petals[2]], true);
     mergedGeometry.computeBoundingSphere();
     mergedGeometry.computeBoundingBox();
-
     return mergedGeometry;
 }
 
-// --- PROCEDURAL GENERATORS ---
 function generateTrilliums(count: number): TrilliumPosition[] {
-    const flowers: TrilliumPosition[] = [];
+    const flowers = [];
     for (let i = 0; i < count; i++) {
-        const angle = ((i * 77.7) % 1) * Math.PI * 2;
-        const radius = 2.5 + Math.sqrt((i * 11.1) % 1) * 21.5;
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 2.5 + Math.sqrt(Math.random()) * 21.5;
         const x = Math.cos(angle) * radius;
         const z = Math.sin(angle) * radius;
-
-        const stemHeight = 0.15 + ((i * 22.2) % 1) * 0.35;
-        const scale = 1.0 + ((i * 33.3) % 1) * 2.0; 
-
-        const tiltX = (((i * 44.4) % 1) - 0.5) * 0.5;
-        const tiltZ = (((i * 55.5) % 1) - 0.5) * 0.5;
-
-        flowers.push({
-            pos: [x, -0.4, z],
-            stemHeight,
-            scale,
-            rotY: ((i * 66.6) % 1) * Math.PI * 2,
-            tiltX,
-            tiltZ
-        });
+        const stemHeight = 0.15 + Math.random() * 0.35;
+        const scale = 1.0 + Math.random() * 2.0;
+        const tiltX = (Math.random() - 0.5) * 0.5;
+        const tiltZ = (Math.random() - 0.5) * 0.5;
+        flowers.push({ pos: [x, -0.4, z] as [number, number, number], stemHeight, scale, rotY: Math.random() * Math.PI * 2, tiltX, tiltZ });
     }
     return flowers;
 }
 
 function generateCrystalCluster(count: number) {
     const crystals = [];
-    crystals.push({ pos: [0, 0.1, 0], rot: [0, 1.2, 0], radius: 0.5, height: 2.2 });
-    crystals.push({ pos: [0.15, 0.05, 0.2], rot: [0.15, 2.5, -0.1], radius: 0.45, height: 1.8 });
-    crystals.push({ pos: [-0.2, 0.1, -0.1], rot: [-0.1, 0.8, 0.15], radius: 0.4, height: 1.9 });
-
+    crystals.push({ pos: [0, 0.1, 0], rot: [0, Math.random(), 0], radius: 0.5, height: 2.2 });
+    crystals.push({ pos: [0.15, 0.05, 0.2], rot: [0.15, Math.random(), -0.1], radius: 0.45, height: 1.8 });
+    crystals.push({ pos: [-0.2, 0.1, -0.1], rot: [-0.1, Math.random(), 0.15], radius: 0.4, height: 1.9 });
     for (let i = 0; i < count; i++) {
-        const angle = ((i * 77.7) % 1) * Math.PI * 2;
-        const dist = 0.2 + ((i * 11.1) % 1) * 0.7;
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 0.2 + Math.random() * 0.7;
         const x = Math.cos(angle) * dist;
         const z = Math.sin(angle) * dist;
-        const tiltX = z * 0.6 + (((i * 44.4) % 1) - 0.5) * 0.2;
-        const tiltZ = -x * 0.6 + (((i * 55.5) % 1) - 0.5) * 0.2;
-        const radius = 0.15 + ((i * 22.2) % 1) * 0.15;
-        const height = 0.4 + ((i * 33.3) % 1) * 1.2;
-        crystals.push({ pos: [x, 0.1, z], rot: [tiltX, ((i * 66.6) % 1) * Math.PI, tiltZ], radius, height });
+        const tiltX = z * 0.6 + (Math.random() - 0.5) * 0.2;
+        const tiltZ = -x * 0.6 + (Math.random() - 0.5) * 0.2;
+        const radius = 0.15 + Math.random() * 0.15;
+        const height = 0.4 + Math.random() * 1.2;
+        crystals.push({ pos: [x, 0.1, z], rot: [tiltX, Math.random() * Math.PI, tiltZ], radius, height });
     }
     return crystals;
 }
 
-// --- MAIN COMPONENTS ---
 function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions, masteredShards, flowerCount }: {
     progress: number;
     themeKey: string;
@@ -198,65 +155,80 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
     masteredShards: Shard[];
     flowerCount: number;
 }) {
-    const shardsRef = useRef<THREE.Group>(null);
     const coreLightRef = useRef<THREE.PointLight>(null);
     const bgMeshRef = useRef<THREE.InstancedMesh>(null);
     const masteredMeshRef = useRef<THREE.InstancedMesh>(null);
+    const crystalMeshRef = useRef<THREE.InstancedMesh>(null);
 
     const { windSpeed, swayAmount, swayEnabled = true } = useStudyStore();
-
     const crystalData = useMemo(() => generateCrystalCluster(35), []);
     const theme = CRYSTAL_CATALOG[themeKey] || CRYSTAL_CATALOG.quartz;
     const masterFlowerGeometry = useMemo(() => createMasterFlowerGeometry(), []);
 
-    const shaderUniforms = useMemo(() => ({
-        uTime: { value: 0 },
-        uSwayAmount: { value: swayAmount }
-    }), [swayAmount]);
+    const crystalGeometry = useMemo(() => {
+        const base = new THREE.CylinderGeometry(1, 1, 1, 6);
+        base.translate(0, 0.5, 0);
+        const top = new THREE.ConeGeometry(1, 1.2, 6);
+        top.translate(0, 1.1, 0);
+        return BufferGeometryUtils.mergeGeometries([base, top]);
+    }, []);
 
-    const materials = useMemo(() => {
-        const mats = {
+    const shaderUniforms = useRef({
+        uTime: { value: 0 },
+        uSwayAmount: { value: swayAmount },
+        uProgress: { value: progress }
+    });
+
+    useEffect(() => {
+        shaderUniforms.current.uSwayAmount.value = swayAmount;
+        shaderUniforms.current.uProgress.value = progress;
+    }, [swayAmount, progress]);
+
+    const materials = useRef<{
+        quartz: THREE.MeshPhysicalMaterial,
+        rock: THREE.MeshStandardMaterial,
+        grass: THREE.MeshStandardMaterial,
+        stem: THREE.MeshStandardMaterial,
+        center: THREE.MeshStandardMaterial,
+        petal: THREE.MeshStandardMaterial,
+        masteredPetal: THREE.MeshStandardMaterial
+    }>(null as any);
+
+    if (!materials.current) {
+        materials.current = {
             quartz: new THREE.MeshPhysicalMaterial({
                 color: theme.color, emissive: theme.emissive, emissiveIntensity: progress * 0.25,
                 transmission: 0.95, opacity: 1, transparent: true, roughness: 0.1, thickness: 3.5,
                 ior: 1.55, flatShading: true, clearcoat: 1, clearcoatRoughness: 0.1
             }),
             rock: new THREE.MeshStandardMaterial({ color: "#475560", roughness: 0.9, flatShading: true }),
-            grass: new THREE.MeshStandardMaterial({ color: "#4a685e", roughness: 1 }),
-            stem: new THREE.MeshStandardMaterial({ color: "#166534", roughness: 0.9 }),
-            center: new THREE.MeshStandardMaterial({ color: "#fef08a", roughness: 0.8 }),
+            grass: new THREE.MeshStandardMaterial({ color: "#d1d5db", roughness: 1 }),
+            stem: new THREE.MeshStandardMaterial({ color: "#94a3b8", roughness: 0.9 }),
+            center: new THREE.MeshStandardMaterial({ color: "#cbd5e1", roughness: 0.8 }),
             petal: new THREE.MeshStandardMaterial({
-                color: "#ffffff",
-                emissive: "#ffffff",
-                emissiveIntensity: 0.65, 
-                roughness: 0.6,
-                flatShading: true
+                color: "#f8fafc", emissive: "#ffffff", emissiveIntensity: 0.65, roughness: 0.6, flatShading: true
             }),
             masteredPetal: new THREE.MeshStandardMaterial({
-                color: "#ffffff",
-                emissive: new THREE.Color(theme.emissive),
-                emissiveIntensity: 6.0,
-                roughness: 0.6,
-                flatShading: true
+                color: "#ffffff", emissive: new THREE.Color(theme.emissive), emissiveIntensity: 6.0, roughness: 0.6, flatShading: true
             })
         };
-
-        [mats.stem, mats.petal, mats.masteredPetal, mats.center].forEach(mat => {
+        [materials.current.stem, materials.current.petal, materials.current.masteredPetal, materials.current.center].forEach(mat => {
             mat.onBeforeCompile = (shader) => {
-                shader.uniforms.uTime = shaderUniforms.uTime;
-                shader.uniforms.uSwayAmount = shaderUniforms.uSwayAmount;
+                shader.uniforms.uTime = shaderUniforms.current.uTime;
+                shader.uniforms.uSwayAmount = shaderUniforms.current.uSwayAmount;
+                shader.uniforms.uProgress = shaderUniforms.current.uProgress;
                 shader.vertexShader = `uniform float uTime;\nuniform float uSwayAmount;\n${shader.vertexShader}`;
-                shader.vertexShader = shader.vertexShader.replace(
-                    `#include <begin_vertex>`,
-                    `#include <begin_vertex>\nfloat sway = sin(uTime + position.x * 0.5 + position.z * 0.5) * uSwayAmount;\ntransformed.x += sway * position.y;\ntransformed.z += sway * position.y;`
-                );
+                shader.vertexShader = shader.vertexShader.replace(`#include <begin_vertex>`, `#include <begin_vertex>\nfloat sway = sin(uTime + position.x * 0.5 + position.z * 0.5) * uSwayAmount;\ntransformed.x += sway * position.y;\ntransformed.z += sway * position.y;`);
+                if (mat === materials.current?.petal) {
+                    shader.fragmentShader = `uniform float uProgress;\n${shader.fragmentShader}`;
+                    shader.fragmentShader = shader.fragmentShader.replace(`#include <emissivemap_fragment>`, `#include <emissivemap_fragment>\ntotalEmissiveRadiance *= (0.2 + uProgress * 2.5);`);
+                }
             };
         });
-        return mats;
-    }, [theme, shaderUniforms]);
+    }
 
-    const bgMaterialArray = useMemo(() => [materials.stem, materials.center, materials.petal, materials.petal, materials.petal], [materials]);
-    const masteredMaterialArray = useMemo(() => [materials.stem, materials.center, materials.masteredPetal, materials.masteredPetal, materials.masteredPetal], [materials]);
+    const bgMaterialArray = useMemo(() => [materials.current!.stem, materials.current!.center, materials.current!.petal, materials.current!.petal, materials.current!.petal], []);
+    const masteredMaterialArray = useMemo(() => [materials.current!.stem, materials.current!.center, materials.current!.masteredPetal, materials.current!.masteredPetal, materials.current!.masteredPetal], []);
 
     useEffect(() => {
         const dummy = new THREE.Object3D();
@@ -280,9 +252,10 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
 
         if (bgMeshRef.current) {
             const bgCount = Math.max(0, flowerCount - safeMasteredCount);
+            bgMeshRef.current.count = bgCount;
             for (let i = 0; i < bgCount; i++) {
                 const f = allFlowerPositions[i + safeMasteredCount];
-                if (!f) break; 
+                if (!f) break;
                 dummy.position.set(f.pos[0], f.pos[1], f.pos[2]);
                 dummy.rotation.set(f.tiltX, f.rotY, f.tiltZ);
                 const scale = f.scale * 0.45;
@@ -293,45 +266,45 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
             }
             bgMeshRef.current.instanceMatrix.needsUpdate = true;
         }
-    }, [allFlowerPositions, masteredShards.length, flowerCount]);
+
+        if (crystalMeshRef.current) {
+            for (let i = 0; i < crystalData.length; i++) {
+                const c = crystalData[i];
+                dummy.position.set(c.pos[0], c.pos[1], c.pos[2]);
+                dummy.rotation.set(c.rot[0], c.rot[1], c.rot[2]);
+                dummy.scale.set(c.radius, c.height, c.radius);
+                dummy.updateMatrix();
+                crystalMeshRef.current.setMatrixAt(i, dummy.matrix);
+            }
+            crystalMeshRef.current.instanceMatrix.needsUpdate = true;
+        }
+    }, [allFlowerPositions, masteredShards.length, flowerCount, crystalData]);
 
     useFrame((state) => {
-        if (shardsRef.current && coreLightRef.current) {
+        if (crystalMeshRef.current && coreLightRef.current) {
             const targetYScale = progress === 0 ? 0.05 : 0.2 + (progress * 1.2);
             const targetXZScale = progress === 0 ? 0.05 : 0.6 + (progress * 0.6);
-            shardsRef.current.scale.lerp(new THREE.Vector3(targetXZScale, targetYScale, targetXZScale), 0.05);
+            crystalMeshRef.current.scale.lerp(new THREE.Vector3(targetXZScale, targetYScale, targetXZScale), 0.05);
             const targetIntensity = progress === 0 ? 0.2 : 1.5 + (progress * 5);
             coreLightRef.current.intensity = THREE.MathUtils.lerp(coreLightRef.current.intensity, targetIntensity, 0.05);
-            materials.quartz.emissiveIntensity = THREE.MathUtils.lerp(materials.quartz.emissiveIntensity, progress * 0.25, 0.05);
+            materials.current!.quartz.emissiveIntensity = THREE.MathUtils.lerp(materials.current!.quartz.emissiveIntensity, progress * 0.25, 0.05);
         }
-        shaderUniforms.uTime.value = state.clock.elapsedTime * windSpeed;
-        shaderUniforms.uSwayAmount.value = swayEnabled ? swayAmount : 0;
+        shaderUniforms.current.uTime.value = state.clock.elapsedTime * windSpeed;
+        shaderUniforms.current.uSwayAmount.value = swayEnabled ? swayAmount : 0;
     });
 
     return (
         <group position={[0, -0.5, 0]}>
             <pointLight ref={coreLightRef} color={theme.color} distance={10} decay={2} position={[0, 1.5, 0]} />
-
-            <mesh position={[0, -0.4, 0]} receiveShadow material={materials.grass}><cylinderGeometry args={[25, 25, 0.4, 64]} /></mesh>
-
+            <mesh position={[0, -0.4, 0]} receiveShadow material={materials.current!.grass}><cylinderGeometry args={[25, 25, 0.4, 64]} /></mesh>
             <ContactShadows frames={1} position={[0, -0.19, 0]} scale={50} blur={1.5} opacity={0.65} resolution={512} color="#000000" raycast={() => null} />
-
-            <instancedMesh
-                ref={bgMeshRef}
-                args={[masterFlowerGeometry, bgMaterialArray, 20000]}
-                castShadow={false} receiveShadow={false}
-                frustumCulled={false}
-                raycast={() => null} 
-            />
-
+            <instancedMesh ref={bgMeshRef} args={[masterFlowerGeometry, bgMaterialArray, 20000]} castShadow={false} receiveShadow={false} frustumCulled={false} raycast={() => null} />
             {masteredShards.length > 0 && (
                 <instancedMesh
                     ref={masteredMeshRef}
-                    args={[masterFlowerGeometry, masteredMaterialArray, 500]}
+                    args={[masterFlowerGeometry, masteredMaterialArray, 100]}
                     count={masteredShards.length}
-                    castShadow={false}
-                    receiveShadow={false}
-                    frustumCulled={false}
+                    castShadow={false} receiveShadow={false} frustumCulled={false}
                     onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer'; }}
                     onPointerOut={() => { document.body.style.cursor = 'auto'; }}
                     onClick={(e) => {
@@ -343,30 +316,17 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
                     }}
                 />
             )}
-
-            <mesh position={[0, 0.1, 0]} castShadow receiveShadow material={materials.rock}>
+            <mesh position={[0, 0.1, 0]} castShadow receiveShadow material={materials.current!.rock}>
                 <dodecahedronGeometry args={[1.5, 1]} />
             </mesh>
-
             <Float speed={1.5} rotationIntensity={0.02} floatIntensity={0.05}>
-                <group ref={shardsRef} position={[0, 0.3, 0]}>
-                    {crystalData.map((c, i) => (
-                        <group key={i} position={c.pos as [number, number, number]} rotation={c.rot as [number, number, number]}>
-                            <mesh position={[0, c.height / 2, 0]} material={materials.quartz} castShadow>
-                                <cylinderGeometry args={[c.radius, c.radius, c.height, 6]} />
-                                <mesh position={[0, c.height / 2 + (c.radius * 0.6), 0]} material={materials.quartz}>
-                                    <coneGeometry args={[c.radius, c.radius * 1.2, 6]} />
-                                </mesh>
-                            </mesh>
-                        </group>
-                    ))}
-                </group>
+                <instancedMesh ref={crystalMeshRef} args={[crystalGeometry, materials.current!.quartz, crystalData.length]} position={[0, 0.3, 0]} castShadow />
             </Float>
         </group>
     );
 }
 
-function LowPolyClouds({ filter }: { filter: any }) {
+function LowPolyClouds({ filter }: { filter: { bg: string, amb: string, fillLight: string } }) {
     return (
         <Float speed={0.4} floatIntensity={0.6}>
             <group position={[0, 4, -20]}>
@@ -390,11 +350,10 @@ function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, 
     allFlowerPositions: TrilliumPosition[];
     masteredShards: Shard[];
 }) {
-    const controlsRef = useRef<OrbitControlsImpl>(null);
+    const controlsRef = useRef<any>(null);
     const velocity = useRef(new THREE.Vector3());
     const isReturning = useRef(false);
     const isSniping = useRef(false);
-
     const defaultCamPos = useMemo(() => new THREE.Vector3(0, 8, 14), []);
     const defaultTarget = useMemo(() => new THREE.Vector3(0, 1.5, 0), []);
 
@@ -403,12 +362,7 @@ function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, 
     }, [snipingShard]);
 
     useEffect(() => {
-        const cancelSnipe = () => {
-            if (isSniping.current) {
-                isSniping.current = false;
-                setSnipingShard(null);
-            }
-        };
+        const cancelSnipe = () => { if (isSniping.current) { isSniping.current = false; setSnipingShard(null); } };
         const canvas = controlsRef.current?.domElement;
         if (canvas) {
             canvas.addEventListener('wheel', cancelSnipe);
@@ -419,32 +373,24 @@ function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, 
                 canvas.removeEventListener('wheel', cancelSnipe);
                 canvas.removeEventListener('pointerdown', cancelSnipe);
             }
-        }
+        };
     }, [setSnipingShard]);
 
     useEffect(() => {
-        if (!isFreecam && isFocused) {
-            if (!snipingShard) isReturning.current = true;
-        }
-        if (isFreecam) {
-            setSnipingShard(null);
-            isSniping.current = false;
-        }
+        if (!isFreecam && isFocused && !snipingShard) isReturning.current = true;
+        if (isFreecam) { setSnipingShard(null); isSniping.current = false; }
     }, [isFreecam, isFocused, snipingShard, setSnipingShard]);
 
     useFrame((state) => {
         if (!controlsRef.current) return;
-
         if (isSniping.current && snipingShard) {
             const index = masteredShards.findIndex((s) => s.id === snipingShard.id);
             if (index !== -1 && allFlowerPositions[index]) {
                 const fPos = allFlowerPositions[index].pos;
                 const targetPos = new THREE.Vector3(fPos[0], fPos[1] + 0.5, fPos[2]);
                 const camPos = new THREE.Vector3(fPos[0], fPos[1] + 1.5, fPos[2] + 2.5);
-
                 state.camera.position.lerp(camPos, 0.04);
                 controlsRef.current.target.lerp(targetPos, 0.05);
-
                 if (state.camera.position.distanceTo(camPos) < 0.2 && controlsRef.current.target.distanceTo(targetPos) < 0.2) {
                     state.camera.position.copy(camPos);
                     controlsRef.current.target.copy(targetPos);
@@ -456,17 +402,14 @@ function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, 
                 return;
             }
         }
-
         if (isFreecam) {
             isReturning.current = false;
-
             const { camera } = state;
             const dir = new THREE.Vector3();
             const right = new THREE.Vector3();
             camera.getWorldDirection(dir);
             dir.normalize(); dir.y = 0; dir.normalize();
             right.crossVectors(camera.up, dir).normalize();
-
             const accel = new THREE.Vector3();
             if (keys.current.w) accel.add(dir);
             if (keys.current.s) accel.sub(dir);
@@ -474,14 +417,11 @@ function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, 
             if (keys.current.d) accel.sub(right);
             if (keys.current.e) accel.y += 1;
             if (keys.current.q) accel.y -= 1;
-
             if (accel.lengthSq() > 0) accel.normalize().multiplyScalar(0.015);
             velocity.current.add(accel);
             velocity.current.multiplyScalar(0.92);
-
             camera.position.add(velocity.current);
             controlsRef.current.target.add(velocity.current);
-
             const bound = 20;
             camera.position.x = THREE.MathUtils.clamp(camera.position.x, -bound, bound);
             camera.position.y = THREE.MathUtils.clamp(camera.position.y, 0.5, 12);
@@ -489,12 +429,10 @@ function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, 
             controlsRef.current.target.x = THREE.MathUtils.clamp(controlsRef.current.target.x, -bound, bound);
             controlsRef.current.target.y = THREE.MathUtils.clamp(controlsRef.current.target.y, 0, 10);
             controlsRef.current.target.z = THREE.MathUtils.clamp(controlsRef.current.target.z, -bound, bound);
-
             controlsRef.current.update();
         } else if (isFocused && isReturning.current) {
             state.camera.position.lerp(defaultCamPos, 0.05);
             controlsRef.current.target.lerp(defaultTarget, 0.08);
-
             if (controlsRef.current.target.distanceTo(defaultTarget) < 0.05) {
                 controlsRef.current.target.copy(defaultTarget);
                 isReturning.current = false;
@@ -517,39 +455,27 @@ function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, 
     );
 }
 
-// ─── COMPONENT ENTRY ───
-export default function GeodeScene({ completionRatio, snipingShard, setSnipingShard }: { completionRatio: number, snipingShard?: Shard | null, setSnipingShard?: (s: Shard | null) => void }) {
+export default function GeodeScene({ completionRatio, snipingShard = null, setSnipingShard = () => {} }: { 
+    completionRatio: number; 
+    snipingShard?: Shard | null; 
+    setSnipingShard?: (s: Shard | null) => void;
+}) {
     const [isFocused, setIsFocused] = useState(false);
     const [isFreecam, setIsFreecam] = useState(false);
     const [viewingShard, setViewingShard] = useState<Shard | null>(null);
-
     const containerRef = useRef<HTMLDivElement>(null);
     const keys = useRef<Record<string, boolean>>({ w: false, a: false, s: false, d: false, q: false, e: false });
-
-    const { 
-        activeCrystalTheme, 
-        activeAtmosphereFilter, 
-        shards, 
-        flowerCount = 10000, 
-        performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true } 
-    } = useStudyStore();
-    
-    // Performance Heuristics
+    const { activeCrystalTheme, activeAtmosphereFilter, shards, flowerCount = 10000, performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true } } = useStudyStore();
     const isPerformanceLow = performanceSettings.mode === 'low' || (performanceSettings.mode === 'auto' && typeof window !== 'undefined' && window.innerWidth < 768);
     const resolvedFlowerCount = isPerformanceLow ? Math.min(flowerCount, 2000) : performanceSettings.mode === 'balanced' ? Math.min(flowerCount, 5000) : flowerCount;
     const resolvedGlitterCount = isPerformanceLow ? 1000 : performanceSettings.mode === 'balanced' ? 3000 : 6000;
-    const resolvedBloomIntensity = !performanceSettings.bloomEnabled || isPerformanceLow ? 0 : (performanceSettings.mode === 'balanced' ? 0.4 : 0.5 + (completionRatio * 2.0));
+    const resolvedBloomIntensity = !performanceSettings.bloomEnabled || isPerformanceLow ? 0 : performanceSettings.mode === 'balanced' ? 0.4 : 0.5 + (completionRatio * 2.0);
     const activeAtmosphere = SCENE_FILTERS[activeAtmosphereFilter as keyof typeof SCENE_FILTERS] || SCENE_FILTERS.default;
-
     const allFlowerPositions = useMemo(() => generateTrilliums(resolvedFlowerCount), [resolvedFlowerCount]);
     const masteredShards = useMemo(() => shards.filter(s => s.isMastered), [shards]);
 
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                setIsFocused(false); setIsFreecam(false);
-            }
-        };
+        const handleClickOutside = (event: MouseEvent) => { if (containerRef.current && !containerRef.current.contains(event.target as Node)) { setIsFocused(false); setIsFreecam(false); } };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
@@ -557,19 +483,13 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
     useEffect(() => {
         if (!isFocused) return;
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === ' ' || e.key.toLowerCase() === 'c') {
-                e.preventDefault(); setIsFreecam(prev => !prev);
-            }
+            if (e.key === ' ' || e.key.toLowerCase() === 'c') { e.preventDefault(); setIsFreecam(prev => !prev); }
             const key = e.key.toLowerCase();
-            if (key in keys.current) {
-                (keys.current as Record<string, boolean>)[key] = true;
-            }
+            if (key in keys.current) { (keys.current as Record<string, boolean>)[key] = true; }
         };
         const handleKeyUp = (e: KeyboardEvent) => {
             const key = e.key.toLowerCase();
-            if (key in keys.current) {
-                (keys.current as Record<string, boolean>)[key] = false;
-            }
+            if (key in keys.current) { (keys.current as Record<string, boolean>)[key] = false; }
         };
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
@@ -581,13 +501,7 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
     }, [isFocused]);
 
     return (
-        <div
-            ref={containerRef}
-            tabIndex={0}
-            className={`w-full h-full relative transition-all duration-300 outline-none ${isFocused ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer hover:opacity-90'}`}
-            onClick={() => { if (!isFocused) setIsFocused(true); }}
-        >
-
+        <div ref={containerRef} tabIndex={0} className={`w-full h-full relative transition-all duration-300 outline-none ${isFocused ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer hover:opacity-90'}`} onClick={() => { if (!isFocused) setIsFocused(true); }}>
             {isFocused && (
                 <div className="absolute bottom-4 left-4 z-10 flex flex-col items-start gap-2">
                     <button onClick={(e) => { e.stopPropagation(); setIsFreecam(!isFreecam); }} className={`backdrop-blur-md px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors flex items-center gap-2 ${isFreecam ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] border-[var(--accent-teal)]/50' : 'bg-black/40 text-white/90 hover:bg-black/60 border-white/10'}`}>
@@ -603,63 +517,27 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
                     </div>
                 </div>
             )}
-
             {viewingShard && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm" onClick={(e) => { e.stopPropagation(); setViewingShard(null); }}>
                     <div className="bg-[var(--bg-card)] border border-[var(--accent-teal)] rounded-2xl p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto custom-scrollbar relative shadow-[0_0_30px_rgba(20,184,166,0.2)]" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => setViewingShard(null)} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white transition-colors">
-                            <X size={20} />
-                        </button>
-                        <h2 className="text-2xl font-black text-[var(--text-main)] mb-2 flex items-center gap-2">
-                            <Sparkles className="text-[var(--accent-teal)]" size={20} />
-                            {viewingShard.title}
-                        </h2>
-                        <div className="text-[10px] text-[var(--accent-teal)] font-bold uppercase tracking-widest mb-6">
-                            Mastered Knowledge Seed
-                        </div>
-                        <div className="prose prose-invert prose-sm text-[var(--text-main)] whitespace-pre-wrap">
-                            {viewingShard.content}
-                        </div>
+                        <button onClick={() => setViewingShard(null)} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white transition-colors"><X size={20} /></button>
+                        <h2 className="text-2xl font-black text-[var(--text-main)] mb-2 flex items-center gap-2"><Sparkles className="text-[var(--accent-teal)]" size={20} />{viewingShard.title}</h2>
+                        <div className="text-[10px] text-[var(--accent-teal)] font-bold uppercase tracking-widest mb-6">Mastered Knowledge Seed</div>
+                        <div className="prose prose-invert prose-sm text-[var(--text-main)] whitespace-pre-wrap">{viewingShard.content}</div>
                     </div>
                 </div>
             )}
-
             <Canvas shadows camera={{ position: [0, 3, 8], fov: 45 }}>
                 <color attach="background" args={[activeAtmosphere.bg]} />
                 <fog attach="fog" args={[activeAtmosphere.bg, activeAtmosphere.fogStart, activeAtmosphere.fogEnd]} />
-
                 <ambientLight intensity={0.5} color={activeAtmosphere.amb} />
                 <directionalLight position={[5, 10, -5]} intensity={1.2} color={activeAtmosphere.mainLight} castShadow shadow-mapSize={[1024, 1024]} />
                 <directionalLight position={[-5, 5, 5]} intensity={0.4} color={activeAtmosphere.fillLight} />
-
                 <LowPolyClouds filter={activeAtmosphere} />
-
-                <QuartzCluster
-                    progress={completionRatio}
-                    themeKey={activeCrystalTheme}
-                    setViewingShard={setViewingShard}
-                    allFlowerPositions={allFlowerPositions}
-                    masteredShards={masteredShards}
-                    flowerCount={resolvedFlowerCount}
-                />
-
-                <CameraRig
-                    isFocused={isFocused}
-                    isFreecam={isFreecam}
-                    keys={keys}
-                    snipingShard={snipingShard || null}
-                    setSnipingShard={setSnipingShard || (() => {})}
-                    setViewingShard={setViewingShard}
-                    allFlowerPositions={allFlowerPositions}
-                    masteredShards={masteredShards}
-                />
-                {completionRatio > 0 && performanceSettings.showParticles && (
-                    <CylinderGlitter count={resolvedGlitterCount} completionRatio={completionRatio} />
-                )}
-
-                <EffectComposer enabled={resolvedBloomIntensity > 0}>
-                    <Bloom luminanceThreshold={1} mipmapBlur intensity={resolvedBloomIntensity} />
-                </EffectComposer>
+                <QuartzCluster progress={completionRatio} themeKey={activeCrystalTheme} setViewingShard={setViewingShard} allFlowerPositions={allFlowerPositions} masteredShards={masteredShards} flowerCount={resolvedFlowerCount} />
+                <CameraRig isFocused={isFocused} isFreecam={isFreecam} keys={keys} snipingShard={snipingShard} setSnipingShard={setSnipingShard} setViewingShard={setViewingShard} allFlowerPositions={allFlowerPositions} masteredShards={masteredShards} />
+                {completionRatio > 0 && performanceSettings.showParticles && <CylinderGlitter count={resolvedGlitterCount} completionRatio={completionRatio} />}
+                <EffectComposer enabled={resolvedBloomIntensity > 0}><Bloom luminanceThreshold={1} mipmapBlur intensity={resolvedBloomIntensity} /></EffectComposer>
             </Canvas>
         </div>
     );
