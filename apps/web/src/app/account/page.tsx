@@ -28,7 +28,7 @@ export default function AccountPage() {
     }, []);
 
     const router = useRouter();
-    const { getTerm } = useTerms();
+    const { terms } = useTerms();
 
     const {
         isPremiumUser, level, displayName, fullName, userEmail, setUserEmail, triggerChumToast,
@@ -569,7 +569,7 @@ export default function AccountPage() {
                         </div>
                         <p className="text-sm font-medium text-[var(--accent-teal)]/80 tracking-wide">{userEmail}</p>
                         <div id="account-security-vault" className="flex items-center justify-center gap-2 mt-2">
-                            <span className="text-[10px] font-bold bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] border border-[var(--accent-teal)]/20 px-3 py-1 rounded-full uppercase tracking-wider">{getTerm('level')} {level}</span>
+                            <span className="text-[10px] font-bold bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] border border-[var(--accent-teal)]/20 px-3 py-1 rounded-full uppercase tracking-wider">{terms.level} {level}</span>
                             <div className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase flex items-center gap-2 border shadow-sm ${isVerified ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] border-[var(--accent-teal)]/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                                 {isVerified ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
                                 {isVerified ? 'Verified' : 'Unverified'}
@@ -618,7 +618,7 @@ export default function AccountPage() {
                             <Settings size={20} className="text-[var(--accent-teal)]" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-(--text-main)">{getTerm('neuralProtocols')}</h3>
+                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-(--text-main)">{terms.neuralProtocols}</h3>
                             <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mt-1 text-(--text-muted)">
                                 {useThematicUI ? "Configure your garden interaction nodes" : "Manage your app preferences"}
                             </p>
