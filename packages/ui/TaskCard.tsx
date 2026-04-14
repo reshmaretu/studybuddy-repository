@@ -135,7 +135,9 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                     {task.isPinned && !task.isCompleted && <Pin size={10} className="text-teal-400" />}
                 </div>
                 <div className="flex items-center gap-2">
-                    {dlStatus.phase > 1 && !task.isCompleted && (
+                    {task.isCompleted ? (
+                        <span className="text-[9px] font-black uppercase tracking-widest text-[var(--accent-teal)]">MASTERED</span>
+                    ) : dlStatus.phase > 1 && (
                         <span className={`text-[9px] font-black uppercase tracking-widest ${dlStatus.color}`}>{dlStatus.label}</span>
                     )}
                     <button id="task-card-menu-trigger" onClick={() => setShowMenu(!showMenu)} className="text-(--text-muted) hover:text-(--text-main) transition-colors"><MoreHorizontal size={16} /></button>

@@ -248,6 +248,7 @@ export const useStudyStore = create<StudyState>()(
             setIsMorningModalOpen: (open) => set({ isMorningModalOpen: open }),
             isUnDoneModalOpen: false,
             isNotificationCenterOpen: false,
+            hasCompletedTutorial: false,
             lastResetHighlightAt: null,
             lastLevelUp: null,
             lastXpGain: null,
@@ -412,7 +413,6 @@ export const useStudyStore = create<StudyState>()(
                 const permission = await Notification.requestPermission();
                 return permission === "granted";
             },
-            hasCompletedTutorial: false,
             setCompletedTutorial: async (val) => {
                 set({ hasCompletedTutorial: val });
                 const { data: { user } } = await supabase.auth.getUser();

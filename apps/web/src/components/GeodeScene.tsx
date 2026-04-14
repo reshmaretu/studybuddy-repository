@@ -118,35 +118,39 @@ export function createMasterFlowerGeometry() {
     basePetal.scale(1.5, 0.1, 2.5);
 
     const petals = [];
-    for (let i = 0; i < 3; i++) {
-        const petal = basePetal.clone();
-        const matrix = new THREE.Matrix4();
+    const flowerCountInCluster = 4;
+    const clusterGeometries = [];
+    
+    for (let c = 0; c < flowerCountInCluster; c++) {
+        // Randomly offset each flower in the "patch"
+        const offsetX = (Math.random() - 0.5) * 0.8;
+        const offsetZ = (Math.random() - 0.5) * 0.8;
+        const clusterScale = 0.5 + Math.random() * 0.4;
+        const patchRotY = Math.random() * Math.PI * 2;
 
-        // 2. PUSH OUT: Move them further from the center core so they separate
-        matrix.makeTranslation(0, 0, 0.18);
+        const petals = [];
+        for (let i = 0; i < 3; i++) {
+            const petal = basePetal.clone();
+            const matrix = new THREE.Matrix4();
+            matrix.makeTranslation(0, 0, 0.15); // Slightly tighter petals
+            const droop = new THREE.Matrix4().makeRotationX(0.35); // Less droopy
+            matrix.multiply(droop);
+            const rotationY = new THREE.Matrix4().makeRotationY((Math.PI * 2 / 3) * i);
+            matrix.premultiply(rotationY);
+            const moveUp = new THREE.Matrix4().makeTranslation(0, 1.0, 0);
+            matrix.premultiply(moveUp);
+            petal.applyMatrix4(matrix);
+            petals.push(petal);
+        }
 
-        // 3. BLOOM ANGLE: Tilt them outward more (0.4 instead of 0.15) so they fan out
-        const droop = new THREE.Matrix4().makeRotationX(0.4);
-        matrix.multiply(droop);
-
-        // 120-degree perfectly distinct spacing
-        const rotationY = new THREE.Matrix4().makeRotationY((Math.PI * 2 / 3) * i);
-        matrix.premultiply(rotationY);
-
-        // Move to the top of the stem
-        const moveUp = new THREE.Matrix4().makeTranslation(0, 1.0, 0);
-        matrix.premultiply(moveUp);
-
-        petal.applyMatrix4(matrix);
-        petals.push(petal);
+        const flowerGeo = BufferGeometryUtils.mergeGeometries([stem.clone(), core.clone(), ...petals], true);
+        flowerGeo.rotateY(patchRotY);
+        flowerGeo.translate(offsetX, 0, offsetZ);
+        flowerGeo.scale(clusterScale, clusterScale, clusterScale);
+        clusterGeometries.push(flowerGeo);
     }
 
-    // MERGE!
-    const mergedGeometry = BufferGeometryUtils.mergeGeometries(
-        [stem, core, petals[0], petals[1], petals[2]],
-        true
-    );
-
+    const mergedGeometry = BufferGeometryUtils.mergeGeometries(clusterGeometries, true);
     mergedGeometry.computeBoundingSphere();
     mergedGeometry.computeBoundingBox();
 
@@ -157,22 +161,23 @@ export function createMasterFlowerGeometry() {
 function generateTrilliums(count: number) {
     const flowers = [];
     for (let i = 0; i < count; i++) {
-        const angle = ((i * 123.456) % 1) * Math.PI * 2;
-        const radius = 2.5 + Math.sqrt((i * 789.012) % 1) * 21.5;
+        // Use the old-style natural distribution
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 2.5 + Math.sqrt(Math.random()) * 21.5;
         const x = Math.cos(angle) * radius;
         const z = Math.sin(angle) * radius;
 
-        const stemHeight = 0.15 + ((i * 55.5) % 1) * 0.35;
-        const scale = 1.0 + ((i * 33.3) % 1) * 2.0; 
+        const stemHeight = 0.1 + Math.random() * 0.3;
+        const scale = 0.82 + Math.random() * 1.5;
 
-        const tiltX = (((i * 11.1) % 1) - 0.5) * 0.5;
-        const tiltZ = (((i * 22.2) % 1) - 0.5) * 0.5;
+        const tiltX = (Math.random() - 0.5) * 0.4;
+        const tiltZ = (Math.random() - 0.5) * 0.4;
 
         flowers.push({
             pos: [x, -0.4, z],
             stemHeight,
             scale,
-            rotY: ((i * 99.9) % 1) * Math.PI * 2,
+            rotY: Math.random() * Math.PI * 2,
             tiltX,
             tiltZ
         });
@@ -562,9 +567,9 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
     
     // Performance Heuristics
     const isPerformanceLow = performanceSettings.mode === 'low' || (performanceSettings.mode === 'auto' && typeof window !== 'undefined' && window.innerWidth < 768);
-    const resolvedFlowerCount = isPerformanceLow ? Math.min(flowerCount, 2000) : performanceSettings.mode === 'balanced' ? Math.min(flowerCount, 5000) : flowerCount;
-    const resolvedGlitterCount = isPerformanceLow ? 1000 : performanceSettings.mode === 'balanced' ? 3000 : 6000;
-    const resolvedBloomIntensity = !performanceSettings.bloomEnabled || isPerformanceLow ? 0 : performanceSettings.mode === 'balanced' ? 0.4 : 0.5 + (completionRatio * 2.0);
+    const resolvedFlowerCount = isPerformanceLow ? Math.min(flowerCount, 4000) : performanceSettings.mode === 'balanced' ? Math.min(flowerCount, 8000) : flowerCount * 1.5;
+    const resolvedGlitterCount = isPerformanceLow ? 1000 : performanceSettings.mode === 'balanced' ? 4000 : 10000;
+    const resolvedBloomIntensity = !performanceSettings.bloomEnabled || isPerformanceLow ? 0 : performanceSettings.mode === 'balanced' ? 0.35 : 0.4 + (completionRatio * 1.5);
     const activeAtmosphere = SCENE_FILTERS[activeAtmosphereFilter as keyof typeof SCENE_FILTERS] || SCENE_FILTERS.default;
 
     const allFlowerPositions = useMemo(() => generateTrilliums(resolvedFlowerCount), [resolvedFlowerCount]);
