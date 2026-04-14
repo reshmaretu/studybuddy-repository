@@ -279,7 +279,7 @@ function AnimatedSanctuaryLink({ start, end, is3D, isSelf, isHosting }: {
 
     useFrame((state) => {
         if (!lineRef.current) return;
-        const mat = lineRef.current.material as THREE.MeshBasicMaterial;
+        const mat = lineRef.current.material as any;
         if (isHosting) {
             const t = state.clock.elapsedTime * 5;
             // lineWidth is a custom property in the drei QuadraticBezierLine material

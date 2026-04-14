@@ -2,6 +2,7 @@
 
 import { useStudyStore } from "@/store/useStudyStore";
 import PasswordValidator from "@/components/PasswordValidator";
+import { Invoice } from "@studybuddy/api";
 import {
     Terminal,
     Sparkles,
@@ -289,7 +290,12 @@ export default function AccountPage() {
 
         setLoading(true);
         const nowISO = new Date().toISOString();
-        const profileUpdates: any = {};
+        const profileUpdates: {
+            display_name?: string;
+            last_display_name_change?: string;
+            full_name?: string;
+            last_full_name_change?: string;
+        } = {};
         if (isChangingDisplay) {
             profileUpdates.display_name = formData.newDisplayName;
             profileUpdates.last_display_name_change = nowISO;
@@ -380,7 +386,7 @@ export default function AccountPage() {
 
     // --- PAYMENT & RECEIPTS ---
 
-    const generateReceiptPDF = async (targetInvoice?: any) => {
+    const generateReceiptPDF = async (targetInvoice?: Invoice) => {
         const doc = new jsPDF({
             orientation: 'portrait',
             unit: 'mm',

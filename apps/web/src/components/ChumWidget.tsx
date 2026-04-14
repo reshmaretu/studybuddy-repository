@@ -316,9 +316,9 @@ export default function ChumWidget() {
             } else if (aiTier === 'local') {
                 try {
                     setIsTyping(true);
-                    const historyToUse = [...(isTutorModeActive ? tutorChatHistory : normalChatHistory), { role: 'user', text: messageText }].map(msg => ({
+                    const historyToUse = [...(isTutorModeActive ? tutorChatHistory : normalChatHistory), { role: 'user' as const, text: messageText }].map(msg => ({
                         role: msg.role === 'chum' ? 'assistant' : 'user',
-                        content: (msg as any).text
+                        content: msg.text
                     }));
 
                     const res = await fetch(`${ollamaUrl}/api/chat`, {

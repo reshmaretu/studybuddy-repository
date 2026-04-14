@@ -9,12 +9,23 @@ import {
 import { useStudyStore } from "@/store/useStudyStore";
 import { useTerms } from "@/hooks/useTerms";
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: Array<{
+        name: string;
+        value: number;
+        color: string;
+        payload?: any;
+    }>;
+    label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length > 0) {
         return (
             <div className="bg-[var(--bg-dark)]/90 backdrop-blur-md border border-[var(--border-color)] p-3 rounded-xl shadow-xl z-50">
                 <p className="text-[var(--text-main)] font-bold text-sm mb-2">{label || payload[0]?.payload?.name}</p>
-                {payload.map((entry: any, index: number) => (
+                {payload.map((entry, index) => (
                     <p key={index} className="text-xs font-bold" style={{ color: entry.color }}>
                         {entry.name}: {entry.value}
                     </p>

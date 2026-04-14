@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useStudyStore } from "@/store/useStudyStore";
+import { useStudyStore, LanternUser } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Terminal, RefreshCw, ShieldAlert, Skull, CheckCircle2, BrainCircuit, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from '@/lib/supabase';
-import { LanternUser } from "@/app/lantern/page";
 export default function DevOverlay() {
     const {
         isDev, setLastPlannedDate,
