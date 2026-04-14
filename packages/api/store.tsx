@@ -5,7 +5,7 @@ import { supabase } from './index';
 import { 
     Task, TaskLoad, ChumToast, AppNotification, 
     PerformanceSettings, AccessibilitySettings, 
-    ChatMessage, TutorSession, TutorSessionState, Shard, LanternUser, WardrobeAccessory 
+    ChatMessage, TutorSession, TutorSessionState, Shard, LanternUser, WardrobeAccessory, Invoice 
 } from './types';
 
 export const calculateXpRequirement = (level: number) => {
@@ -190,9 +190,9 @@ export interface StudyState {
 
     // 🎭 MOCK USERS & INVOICES (Dev Only)
     mockUsers: LanternUser[];
-    mockInvoices: any[];
+    mockInvoices: Invoice[];
     setMockUsers: (val: LanternUser[] | ((prev: LanternUser[]) => LanternUser[])) => void;
-    addMockInvoice: (invoice: any) => void;
+    addMockInvoice: (invoice: Invoice) => void;
     setPremiumStatus: (status: boolean) => void;
 
     chumToasts: ChumToast[];
@@ -673,7 +673,12 @@ export const useStudyStore = create<StudyState>()(
                         supabase.from('user_stats').update({ total_sessions: newTotal }).eq('user_id', user.id).then();
                     }
 
-                    const dbUpdate: any = { is_completed: true, completed_at: now };
+                    const dbUpdate: {
+                        is_completed?: boolean;
+                        completed_at?: string;
+                        actual_pomodoros?: number;
+                        stress_level?: number;
+                    } = { is_completed: true, completed_at: now };
                     if (premiumStats?.actualPomos !== undefined) dbUpdate.actual_pomodoros = premiumStats.actualPomos;
                     if (premiumStats?.stressLevel !== undefined) dbUpdate.stress_level = premiumStats.stressLevel;
 
@@ -765,7 +770,14 @@ export const useStudyStore = create<StudyState>()(
 
                     if (sessionsResponse.data) {
                         set({
-                            pastTutorSessions: sessionsResponse.data.map((s: any) => ({
+                            pastTutorSessions: sessionsResponse.data.map((s: {
+                                id: string;
+                                shard_id: string;
+                                chat_history: ChatMessage[];
+                                mastery_gained: number;
+                                created_at: string;
+                                shards: { title: string } | null;
+                            }): TutorSession => ({
                                 id: s.id, shardId: s.shard_id, shardTitle: s.shards?.title || "Unknown Shard",
                                 date: s.created_at, history: s.chat_history, masteryGained: s.mastery_gained
                             }))
@@ -813,17 +825,27 @@ export const useStudyStore = create<StudyState>()(
                     supabase.channel('cloud-sync')
                         .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
                             if (payload.new) {
-                                const updated = payload.new as any;
+                                const updated = payload.new as {
+                                    display_name?: string;
+                                    full_name?: string;
+                                    is_verified?: boolean;
+                                    is_premium?: boolean;
+                                    is_dev?: boolean;
+                                    avatar_url?: string;
+                                    active_framework?: string;
+                                    last_planned_date?: string;
+                                    has_completed_tutorial?: boolean;
+                                };
                                 set({
                                     displayName: updated.display_name || get().displayName,
                                     fullName: updated.full_name || get().fullName,
-                                    isVerified: updated.is_verified,
-                                    isPremiumUser: updated.is_premium,
-                                    isDev: updated.is_dev,
-                                    avatarUrl: updated.avatar_url,
-                                    activeFramework: updated.active_framework,
-                                    lastPlannedDate: updated.last_planned_date,
-                                    hasCompletedTutorial: updated.has_completed_tutorial
+                                    isVerified: updated.is_verified ?? get().isVerified,
+                                    isPremiumUser: updated.is_premium ?? get().isPremiumUser,
+                                    isDev: updated.is_dev ?? get().isDev,
+                                    avatarUrl: updated.avatar_url || get().avatarUrl,
+                                    activeFramework: (updated.active_framework as any) || get().activeFramework,
+                                    lastPlannedDate: updated.last_planned_date || get().lastPlannedDate,
+                                    hasCompletedTutorial: updated.has_completed_tutorial ?? get().hasCompletedTutorial
                                 });
                             }
                         })

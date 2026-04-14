@@ -115,3 +115,10 @@ export interface LanternUser {
     activeAccessories?: WardrobeAccessory[];
     isVerified?: boolean;
 }
+
+export interface Invoice {
+    id: string;
+    date: string;
+    amount: string;
+    method: string;
+}

@@ -27,9 +27,9 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     // 🕒 3-PHASE DEADLINE ENFORCEMENT
-    const getDeadlinePhase = () => {
+    const dlStatus = React.useMemo(() => {
         const deadline = task.deadline;
-        if (!deadline || task.isCompleted) return { phase: 1, label: "Neutral", color: "text-(--text-muted)" };
+        if (!deadline || task.isCompleted) return { phase: 1, label: "Neutral", color: "text-(--text-muted)", bg: "", border: "" };
         const now = new Date();
         const dl = new Date(deadline).getTime();
         const diffHours = (dl - now.getTime()) / (1000 * 60 * 60);
@@ -38,15 +38,13 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
         if (diffHours <= 2) return { phase: 3, label: "URGENT", color: "text-red-500 animate-pulse", bg: "bg-red-500/5", border: "border-red-500/50" };
         if (diffHours <= 12) return { phase: 2, label: "SOON", color: "text-orange-400", bg: "bg-orange-400/5", border: "border-orange-400/30" };
         return { phase: 1, label: "LATER", color: "text-teal-400", bg: "bg-teal-400/5", border: "border-teal-400/20" };
-    };
+    }, [task.deadline, task.isCompleted]);
 
-    const dlStatus = getDeadlinePhase();
-
-    const formatDeadline = (dl: string | undefined) => {
+    const formatDeadline = React.useCallback((dl: string | undefined) => {
         if (!dl) return "";
         const d = new Date(dl);
         return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    };
+    }, []);
 
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: task.id,
