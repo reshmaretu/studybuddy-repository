@@ -5,7 +5,7 @@ import { supabase } from './index';
 import { 
     Task, TaskLoad, ChumToast, AppNotification, 
     PerformanceSettings, AccessibilitySettings, 
-    ChatMessage, TutorSession, TutorSessionState, Shard 
+    ChatMessage, TutorSession, TutorSessionState, Shard, LanternUser, WardrobeAccessory 
 } from './types';
 
 export const calculateXpRequirement = (level: number) => {
@@ -22,12 +22,7 @@ export const getTitleForLevel = (level: number) => {
     return "New Sprout";
 };
 
-export interface WardrobeAccessory {
-    id: string;
-    fileName: string;
-    zIndex: number;
-    name?: string;
-}
+// WardrobeAccessory moved to types.ts
 
 export interface StudyState {
     displayName: string;

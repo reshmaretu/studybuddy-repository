@@ -2,6 +2,13 @@ import React from 'react';
 
 export type TaskLoad = 'light' | 'medium' | 'heavy';
 
+export interface WardrobeAccessory {
+    id: string;
+    fileName: string;
+    zIndex: number;
+    name?: string;
+}
+
 export interface ChumToast {
     id: string; // Add ID for tracking
     message: string | React.ReactNode;
