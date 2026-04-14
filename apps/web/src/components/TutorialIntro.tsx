@@ -80,10 +80,10 @@ const STEPS: Step[] = [
     },
     {
         title: "Eat the Frog",
-        message: "Identify your one most difficult, most procrastinated, but most important task—the 'Frog'. Eat it first thing in the morning to conquer the day.",
+        message: "Identify your one most difficult, most procrastinated, but most important task—the 'Frog'. Click the three dots on any quest and mark it first thing to conquer the day.",
         icon: <Flame className="text-orange-400" size={24} />,
         path: "/dashboard",
-        selector: "#morning-protocol-nexus",
+        selector: "#task-card-menu-trigger",
         skipIfMissing: true
     },
     {
@@ -230,7 +230,7 @@ const STEPS: Step[] = [
 ];
 
 export default function TutorialIntro() {
-    const { hasCompletedTutorial, setCompletedTutorial, triggerChumToast } = useStudyStore();
+    const { hasCompletedTutorial, setCompletedTutorial, triggerChumToast, isInitialized } = useStudyStore();
     const [step, setStep] = useState(0);
     const [isVisible, setIsVisible] = useState(false);
     const [isTransitioning, setIsTransitioning] = useState(false);
@@ -239,15 +239,17 @@ export default function TutorialIntro() {
     const pathname = usePathname();
     const [spotlight, setSpotlight] = useState({ x: 0, y: 0, w: 0, h: 0, opacity: 0, radius: '16px' });
 
+    const hasTriggered = useRef(false);
     useEffect(() => {
-        if (!hasCompletedTutorial) {
+        if (isInitialized && !hasCompletedTutorial && !hasTriggered.current) {
+            hasTriggered.current = true;
             setStep(0);
             const timer = setTimeout(() => setIsVisible(true), 1500);
             return () => clearTimeout(timer);
-        } else {
+        } else if (hasCompletedTutorial) {
             setIsVisible(false);
         }
-    }, [hasCompletedTutorial]);
+    }, [isInitialized, hasCompletedTutorial]);
 
     useEffect(() => {
         if (!isVisible) return;

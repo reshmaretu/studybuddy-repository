@@ -11,6 +11,7 @@ export default function MorningPlanningModal() {
         if (!selected) return;
         setActiveFramework(selected);
         setLastPlannedDate(new Date().toISOString());
+        useStudyStore.getState().setIsMorningModalOpen(false);
     };
 
     return (

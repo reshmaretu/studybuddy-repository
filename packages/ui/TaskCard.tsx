@@ -119,12 +119,15 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
         <div 
             ref={setNodeRef} style={style} {...listeners} {...attributes}
             onDoubleClick={handleDoubleClick}
-            className={`group relative bg-(--bg-card) border-2 rounded-2xl p-4 transition-all duration-500 overflow-hidden ${isDragging ? 'opacity-40' : 'opacity-100'} ${dlStatus.phase === 3 && !task.isCompleted ? 'ring-1 ring-red-500/20' : ''} ${isOverlay ? 'shadow-2xl border-(--accent-teal)' : dlStatus.border || 'border-(--border-color)'}`}
+            className={`group relative bg-(--bg-card) border-2 rounded-2xl p-4 transition-all duration-500 ${isDragging ? 'opacity-40' : 'opacity-100'} ${dlStatus.phase === 3 && !task.isCompleted ? 'ring-1 ring-red-500/20' : ''} ${isOverlay ? 'shadow-2xl border-(--accent-teal)' : dlStatus.border || 'border-(--border-color)'}`}
         >
-            {/* ⚡ PHASE OVERLAY (Subtle Glow) */}
-            {!task.isCompleted && dlStatus.phase > 1 && (
-                <div className={`absolute -right-4 -top-4 w-12 h-12 rounded-full blur-2xl opacity-20 ${dlStatus.bg}`} />
-            )}
+            {/* ⚡ CLIPPING CONTAINER FOR BG EFFECTS */}
+            <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                {/* ⚡ PHASE OVERLAY (Subtle Glow) */}
+                {!task.isCompleted && dlStatus.phase > 1 && (
+                    <div className={`absolute -right-4 -top-4 w-12 h-12 rounded-full blur-2xl opacity-20 ${dlStatus.bg}`} />
+                )}
+            </div>
 
             <div className="flex justify-between items-start mb-2 relative z-10">
                 <div className="flex gap-2 items-center">
@@ -135,7 +138,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                     {dlStatus.phase > 1 && !task.isCompleted && (
                         <span className={`text-[9px] font-black uppercase tracking-widest ${dlStatus.color}`}>{dlStatus.label}</span>
                     )}
-                    <button onClick={() => setShowMenu(!showMenu)} className="text-(--text-muted) hover:text-(--text-main) transition-colors"><MoreHorizontal size={16} /></button>
+                    <button id="task-card-menu-trigger" onClick={() => setShowMenu(!showMenu)} className="text-(--text-muted) hover:text-(--text-main) transition-colors"><MoreHorizontal size={16} /></button>
                 </div>
                 {ActionMenu}
             </div>

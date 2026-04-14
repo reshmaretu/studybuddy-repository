@@ -246,7 +246,7 @@ useEffect(() => {
         isSubscribed = false;
         supabase.removeChannel(channel);
     };
-}, [totalSessions, activeMode, isTutorModeActive]);
+}, [totalSessions, activeMode, isTutorModeActive, totalSecondsTracked]);
 
 const handleBroadcast = async () => {
     if (isSubmitting) return;

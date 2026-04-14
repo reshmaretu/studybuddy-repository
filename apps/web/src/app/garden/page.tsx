@@ -14,7 +14,7 @@ import { useTerms } from "@/hooks/useTerms";
 function DropZoneContainer({ id, title, subtitle, children, isEmpty, emptyText }: any) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col h-full overflow-hidden">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col h-full">
             <div className="flex justify-between items-center mb-4 shrink-0">
                 <h2 className="text-xl font-bold text-[var(--text-main)]">{title}</h2>
                 <span className="text-xs font-medium text-[var(--text-muted)]">{subtitle}</span>
@@ -31,7 +31,7 @@ function MasteryContainer({ id, masteryTab, setMasteryTab, children, isEmpty, em
     const { isOver, setNodeRef } = useDroppable({ id });
     const { terms } = useTerms();
     return (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col h-full overflow-hidden">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col h-full">
             <div className="flex justify-between items-center mb-4 shrink-0">
                 <h2 className="text-xl font-bold text-[var(--text-main)]">{terms.hallOfMastery}</h2>
                 <span className="text-xs font-medium text-[var(--text-muted)]">{terms.completed}</span>
@@ -625,9 +625,9 @@ export default function CrystalGarden() {
                     {isAdding && (
                         <div className="fixed inset-0 z-[100005] flex items-center justify-center p-4">
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAdding(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
-                            <motion.form
+                                <motion.form
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                onSubmit={handlePlantQuest} className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-6 shadow-2xl relative z-10 w-full max-w-2xl flex flex-col"
+                                onSubmit={handlePlantQuest} className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-6 shadow-2xl relative z-10 w-full max-w-sm flex flex-col"
                             >
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-lg font-bold text-[var(--text-main)]">Seed a New Quest</h3>
@@ -639,11 +639,8 @@ export default function CrystalGarden() {
                                         <textarea placeholder="Description..." rows={3} value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] resize-none" />
                                     </div>
                                     <div className="space-y-4">
-                                        <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl p-3">
-                                            <label className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2 block">Cognitive Load</label>
-                                            <div className="flex-1 relative min-h-[300px]">
-                                                <StandardZone id="active-list" tasks={activeQuests} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
-                                            </div>
+                                <div className="bg-[var(--bg-dark)] border border-(--border-color) rounded-xl p-3">
+                                            <label className="text-xs font-bold text-(--text-muted) uppercase mb-3 block">Cognitive Load</label>
                                             <div className="flex gap-2">
                                                 {['light', 'medium', 'heavy'].map((weight) => (
                                                     <button key={weight} type="button" onClick={() => setNewTask({ ...newTask, load: weight as TaskLoad })} className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase border transition-colors ${newTask.load === weight ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>{weight}</button>

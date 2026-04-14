@@ -801,8 +801,8 @@ export default function ChumWidget() {
                                         }`}
                                         style={{ 
                                             transform: widgetPos.isLeft 
-                                                ? 'rotate(25deg) skew(-15deg, -15deg)' 
-                                                : 'rotate(65deg) skew(15deg, 15deg)' 
+                                                ? 'rotate(15deg) skew(-15deg, -15deg)' 
+                                                : 'rotate(-45deg) skew(15deg, 15deg)' 
                                         }} />
                                 )}
                             </motion.div>
@@ -827,7 +827,7 @@ export default function ChumWidget() {
                                     <span className="text-[9px] font-black uppercase tracking-tighter text-[var(--accent-teal)]">Neural Link</span>
                                 </div>
                                 <div className={`absolute w-5 h-5 bg-[var(--bg-card)] border-b-2 border-r-2 border-[var(--border-color)] z-[-1] -bottom-2 ${widgetPos.isLeft ? 'left-8' : 'right-8'}`}
-                                    style={{ transform: 'rotate(45deg) skew(5deg, 5deg)' }} />
+                                    style={{ transform: widgetPos.isLeft ? 'rotate(15deg) skew(-15deg, -15deg)' : 'rotate(45deg) skew(5deg, 5deg)' }} />
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -844,7 +844,7 @@ export default function ChumWidget() {
                 {viewingLog && (
                     <div className="fixed inset-0 z-100005 flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setViewingLog(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
-                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-(--bg-sidebar) border border-(--border-color) rounded-3xl w-full max-w-lg max-h-[80vh] overflow-hidden relative z-10 shadow-2xl flex flex-col cursor-default" onPointerDown={(e) => e.stopPropagation()}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-(--bg-sidebar) border border-(--border-color) rounded-3xl w-full max-w-sm max-h-[80vh] overflow-hidden relative z-10 shadow-2xl flex flex-col cursor-default" onPointerDown={(e) => e.stopPropagation()}>
 
                             <div className="p-4 border-b border-(--border-color) flex justify-between items-center bg-(--bg-card)">
                                 <div>

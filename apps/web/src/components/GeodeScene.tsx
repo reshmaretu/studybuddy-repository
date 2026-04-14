@@ -252,15 +252,25 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
             mat.onBeforeCompile = (shader) => {
                 shader.uniforms.uTime = shaderUniforms.uTime;
                 shader.uniforms.uSwayAmount = shaderUniforms.uSwayAmount;
+                shader.uniforms.uProgress = { value: progress };
+                
                 shader.vertexShader = `uniform float uTime;\nuniform float uSwayAmount;\n${shader.vertexShader}`;
                 shader.vertexShader = shader.vertexShader.replace(
                     `#include <begin_vertex>`,
                     `#include <begin_vertex>\nfloat sway = sin(uTime + position.x * 0.5 + position.z * 0.5) * uSwayAmount;\ntransformed.x += sway * position.y;\ntransformed.z += sway * position.y;`
                 );
+
+                if (mat === mats.petal) {
+                    shader.fragmentShader = `uniform float uProgress;\n${shader.fragmentShader}`;
+                    shader.fragmentShader = shader.fragmentShader.replace(
+                        `#include <emissivemap_fragment>`,
+                        `#include <emissivemap_fragment>\ntotalEmissiveRadiance *= (0.2 + uProgress * 2.5);`
+                    );
+                }
             };
         });
         return mats;
-    }, [theme, shaderUniforms]);
+    }, [theme, progress, shaderUniforms]);
 
     const bgMaterialArray = useMemo(() => [materials.stem, materials.center, materials.petal, materials.petal, materials.petal], [materials]);
     const masteredMaterialArray = useMemo(() => [materials.stem, materials.center, materials.masteredPetal, materials.masteredPetal, materials.masteredPetal], [materials]);

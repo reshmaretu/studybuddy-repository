@@ -212,6 +212,10 @@ export interface StudyState {
     openViewModal: (taskId: string) => void;
     closeViewModal: () => void;
 
+    // ☀️ MORNING MODAL
+    isMorningModalOpen: boolean;
+    setIsMorningModalOpen: (val: boolean) => void;
+
     // 💎 PREMIUM MODAL
     isPremiumModalOpen: boolean;
     setPremiumModalOpen: (val: boolean) => void;
@@ -240,6 +244,8 @@ export const useStudyStore = create<StudyState>()(
             avatarUrl: null,
             isProfileModalOpen: false,
             isBrainResetOpen: false,
+            isMorningModalOpen: false,
+            setIsMorningModalOpen: (open) => set({ isMorningModalOpen: open }),
             isUnDoneModalOpen: false,
             isNotificationCenterOpen: false,
             lastResetHighlightAt: null,
