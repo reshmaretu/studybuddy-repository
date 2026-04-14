@@ -99,7 +99,8 @@ export default function WardrobePage() {
         isPremiumUser, checkPremiumStatus, level,
         activeCrystalTheme, setActiveCrystalTheme,
         activeAtmosphereFilter, setActiveAtmosphereFilter,
-        activeAccessories, setActiveAccessories
+        activeAccessories, setActiveAccessories,
+        setPremiumModalOpen
     } = useStudyStore();
 
     const [activeAppTheme, setActiveAppTheme] = useState("deep-teal");
@@ -118,6 +119,7 @@ export default function WardrobePage() {
     const handleAppThemeChange = (themeId: string, isPremium: boolean) => {
         if (isPremium && !isPremiumUser) {
             setShakeTarget(themeId);
+            setPremiumModalOpen(true);
             setTimeout(() => setShakeTarget(null), 400);
             return;
         }
@@ -129,6 +131,7 @@ export default function WardrobePage() {
     const handleCrystalChange = (crystalId: string, crystal: Crystal) => {
         if (crystal.isPremium && !isPremiumUser) {
             setShakeTarget(crystalId);
+            setPremiumModalOpen(true);
             setTimeout(() => setShakeTarget(null), 400);
             return;
         }
@@ -143,6 +146,7 @@ export default function WardrobePage() {
     const handleToggleAccessory = (accessory: Accessory) => {
         if (accessory.isPremium && !isPremiumUser) {
             setShakeTarget(accessory.id);
+            setPremiumModalOpen(true);
             setTimeout(() => setShakeTarget(null), 400);
             return;
         }

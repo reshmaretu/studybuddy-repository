@@ -278,7 +278,13 @@ export const useStudyStore = create<StudyState>()(
             addMockInvoice: (invoice) => set((state) => ({
                 mockInvoices: [invoice, ...state.mockInvoices]
             })),
-            setPremiumStatus: (status) => set({ isPremiumUser: status }),
+            setPremiumStatus: async (status) => {
+                set({ isPremiumUser: status });
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    await supabase.from('profiles').update({ is_premium: status }).eq('id', user.id);
+                }
+            },
             checkPremiumStatus: async () => {
                 try {
                     const { data: { session } } = await supabase.auth.getSession();
@@ -784,7 +790,20 @@ export const useStudyStore = create<StudyState>()(
                         set({
                             displayName: newProfile.display_name,
                             fullName: newProfile.full_name,
-                            isVerified: false
+                            isVerified: false,
+                            isPremiumUser: false
+                        });
+                    } else {
+                        // 🛠️ LOAD EXISTING PROFILE
+                        set({
+                            displayName: profile.display_name || "Guardian",
+                            fullName: profile.full_name || "Sprout Guardian",
+                            isVerified: profile.is_verified || false,
+                            isPremiumUser: profile.is_premium || false,
+                            isDev: profile.is_dev || false,
+                            hasCompletedTutorial: profile.has_completed_tutorial || false,
+                            activeFramework: profile.active_framework || null,
+                            lastPlannedDate: profile.last_planned_date || null
                         });
                     }
 

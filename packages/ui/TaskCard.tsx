@@ -73,7 +73,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
             {showMenu && (
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                    className="absolute right-0 top-8 w-40 bg-(--bg-sidebar) border border-(--border-color) rounded-xl shadow-xl z-[100] origin-top-right backdrop-blur-md"
+                    className="absolute right-0 top-0 w-40 bg-(--bg-sidebar) border border-(--border-color) rounded-xl shadow-2xl z-[1001] origin-top-right backdrop-blur-xl"
                 >
                     {!task.isCompleted && (
                         <button onClick={() => { completeTask(task.id); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-(--text-main) hover:bg-(--accent-teal)/10 flex items-center gap-2 border-b border-(--border-color)">
@@ -119,7 +119,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
         <div 
             ref={setNodeRef} style={style} {...listeners} {...attributes}
             onDoubleClick={handleDoubleClick}
-            className={`group relative bg-(--bg-card) border-2 rounded-2xl p-4 transition-all duration-500 ${isDragging ? 'opacity-40' : 'opacity-100'} ${dlStatus.phase === 3 && !task.isCompleted ? 'ring-1 ring-red-500/20' : ''} ${isOverlay ? 'shadow-2xl border-(--accent-teal)' : dlStatus.border || 'border-(--border-color)'}`}
+            className={`group relative bg-(--bg-card) border-2 rounded-2xl p-4 transition-all duration-500 z-10 hover:z-20 min-h-[140px] flex flex-col ${isDragging ? 'opacity-40' : 'opacity-100'} ${dlStatus.phase === 3 && !task.isCompleted ? 'ring-1 ring-red-500/20' : ''} ${isOverlay ? 'shadow-2xl border-(--accent-teal) z-[1000]' : dlStatus.border || 'border-(--border-color)'}`}
         >
             {/* ⚡ CLIPPING CONTAINER FOR BG EFFECTS */}
             <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
@@ -129,7 +129,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                 )}
             </div>
 
-            <div className="flex justify-between items-start mb-2 relative z-10">
+            <div className="flex justify-between items-start mb-2 relative z-30">
                 <div className="flex gap-2 items-center">
                     <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-lg border tracking-tighter ${loadColors[task.load]}`}>{task.load}</span>
                     {task.isPinned && !task.isCompleted && <Pin size={10} className="text-teal-400" />}
@@ -140,12 +140,14 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                     ) : dlStatus.phase > 1 && (
                         <span className={`text-[9px] font-black uppercase tracking-widest ${dlStatus.color}`}>{dlStatus.label}</span>
                     )}
-                    <button id="task-card-menu-trigger" onClick={() => setShowMenu(!showMenu)} className="text-(--text-muted) hover:text-(--text-main) transition-colors"><MoreHorizontal size={16} /></button>
+                    <button id="task-card-menu-trigger" onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-(--text-muted) hover:text-(--text-main) transition-colors relative z-40"><MoreHorizontal size={16} /></button>
                 </div>
-                {ActionMenu}
+                <div className="absolute right-0 top-0">
+                    {ActionMenu}
+                </div>
             </div>
 
-            <div className="relative z-10">
+            <div className="relative z-10 flex-1">
                 <h3 className={`text-[15px] font-bold leading-tight mb-1 transition-all ${task.isCompleted ? 'text-(--text-muted) line-through opacity-50' : 'text-(--text-main)'}`}>
                     {task.title}
                 </h3>

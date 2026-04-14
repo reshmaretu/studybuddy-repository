@@ -64,7 +64,7 @@ function CylinderGlitter({ count, completionRatio }: { count: number, completion
     // 3. Dynamically update how many particles to draw based on completion
     useEffect(() => {
         if (geoRef.current) {
-            const displayCount = Math.floor(completionRatio * count);
+            const displayCount = Math.max(500, Math.floor(completionRatio * count)); // Minimum base glitter
             geoRef.current.setDrawRange(0, displayCount);
         }
     }, [completionRatio, count]);
@@ -75,22 +75,17 @@ function CylinderGlitter({ count, completionRatio }: { count: number, completion
                 <bufferAttribute
                     attach="attributes-position"
                     count={count}
-                    // Pass the array and itemSize directly into the constructor args
                     args={[positions, 3]}
                 />
             </bufferGeometry>
-            {/* sizeAttenuation ensures particles get smaller when further from the camera */}
-            {/* The Glowing Material Setup */}
             <pointsMaterial
-                size={0.15}
-                // Multiply the color by 5 to push it past the Bloom threshold!
-                color={new THREE.Color("#e0f2fe").multiplyScalar(5)}
-                toneMapped={false} // Prevents Three.js from dimming our artificially bright color
+                size={0.25}
+                color={new THREE.Color("#e0f2fe").multiplyScalar(8)}
+                toneMapped={false}
                 transparent
                 opacity={0.8}
                 sizeAttenuation
                 depthWrite={false}
-                // Additive blending makes them intensely bright when they overlap (like real light)
                 blending={THREE.AdditiveBlending}
             />
         </points>
@@ -226,6 +221,11 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
     }), [swayAmount]);
 
     const materials = useMemo(() => {
+        // Derive darkened white/theme versions for grass and stems
+        const baseColor = new THREE.Color(theme.color);
+        const darkenedColor = baseColor.clone().multiplyScalar(0.2); // Darkened version of theme
+        const neutralWhite = new THREE.Color("#d1d5db"); // Darkened white version
+
         const mats = {
             quartz: new THREE.MeshPhysicalMaterial({
                 color: theme.color, emissive: theme.emissive, emissiveIntensity: progress * 0.25,
@@ -233,8 +233,8 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
                 ior: 1.55, flatShading: true, clearcoat: 1, clearcoatRoughness: 0.1
             }),
             rock: new THREE.MeshStandardMaterial({ color: "#475560", roughness: 0.9, flatShading: true }),
-            grass: new THREE.MeshStandardMaterial({ color: "#4a685e", roughness: 1 }),
-            stem: new THREE.MeshStandardMaterial({ color: "#166534", roughness: 0.9 }),
+            grass: new THREE.MeshStandardMaterial({ color: neutralWhite, roughness: 1 }),
+            stem: new THREE.MeshStandardMaterial({ color: darkenedColor, roughness: 0.9 }),
             center: new THREE.MeshStandardMaterial({ color: "#fef08a", roughness: 0.8 }),
             petal: new THREE.MeshStandardMaterial({
                 color: "#ffffff",
@@ -284,19 +284,17 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
     useEffect(() => {
         const dummy = new THREE.Object3D();
         const masteredCount = masteredShards.length;
-        // Make sure we don't try to draw more mastered flowers than we generated positions for
         const safeMasteredCount = Math.min(masteredCount, flowerCount);
 
         // A. Populate Mastered Flowers
         if (masteredMeshRef.current && safeMasteredCount > 0) {
             for (let i = 0; i < safeMasteredCount; i++) {
                 const f = allFlowerPositions[i];
+                if (!f) continue;
                 dummy.position.set(f.pos[0], f.pos[1], f.pos[2]);
                 dummy.rotation.set(f.tiltX, f.rotY, f.tiltZ);
-                // 🌸 BIGGER MASTERED FLOWERS
                 const scale = f.scale * 0.65;
                 dummy.scale.set(scale, scale, scale);
-                // Lift them slightly higher so they sit proudly above the grass
                 dummy.position.set(f.pos[0], f.pos[1] + 0.15, f.pos[2]);
                 dummy.updateMatrix();
                 masteredMeshRef.current.setMatrixAt(i, dummy.matrix);
@@ -307,12 +305,14 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
         // B. Populate Background Flowers
         if (bgMeshRef.current) {
             const bgCount = Math.max(0, flowerCount - safeMasteredCount);
+            // We must update the count property of the InstancedMesh
+            bgMeshRef.current.count = bgCount;
+            
             for (let i = 0; i < bgCount; i++) {
                 const f = allFlowerPositions[i + safeMasteredCount];
-                if (!f) break; // Safety catch
+                if (!f) break; 
                 dummy.position.set(f.pos[0], f.pos[1], f.pos[2]);
                 dummy.rotation.set(f.tiltX, f.rotY, f.tiltZ);
-                // 🌸 BIGGER BACKGROUND FLOWERS
                 const scale = f.scale * 0.45;
                 dummy.scale.set(scale, scale, scale);
                 dummy.position.set(f.pos[0], f.pos[1], f.pos[2]);
@@ -334,7 +334,6 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
             mats.quartz.emissiveIntensity = THREE.MathUtils.lerp(mats.quartz.emissiveIntensity, progress * 0.25, 0.05);
         }
         shaderUniforms.uTime.value = state.clock.elapsedTime * windSpeed;
-        // Turn off sway instantly if toggled in dev tools
         shaderUniforms.uSwayAmount.value = swayEnabled ? swayAmount : 0;
     });
 
@@ -348,18 +347,17 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
 
             <instancedMesh
                 ref={bgMeshRef}
-                args={[masterFlowerGeometry, bgMaterialArray, Math.max(0, flowerCount - masteredShards.length)]}
+                // Pre-allocate large space to avoid re-instantiation flicker
+                args={[masterFlowerGeometry, bgMaterialArray, 20000]}
                 castShadow={false} receiveShadow={false}
                 frustumCulled={false}
-                raycast={() => null} // PREVENTS BACKGROUND FROM STEALING YOUR HOVER/CLICKS
+                raycast={() => null} 
             />
 
             {masteredShards.length > 0 && (
                 <instancedMesh
                     ref={masteredMeshRef}
-                    // Pre-allocate space for 100 mastered shards maximum
-                    args={[masterFlowerGeometry, masteredMaterialArray, 100]}
-                    // Dynamically tell the GPU how many of those 100 slots to actually draw
+                    args={[masterFlowerGeometry, masteredMaterialArray, 500]}
                     count={masteredShards.length}
                     castShadow={false}
                     receiveShadow={false}

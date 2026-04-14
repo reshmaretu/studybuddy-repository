@@ -42,12 +42,35 @@ export default function Dashboard() {
 
     const {
         tasks, focusScore, dailyStreak, totalSessions, totalSecondsTracked,
-        timeLeft, isRunning, toggleTimer, resetTimer, decrementTimer, completeTask,
+        timeLeft, isRunning, toggleTimer, resetTimer, decrementTimer, completeTask, deleteTask,
         isInitialized, xp, level, pomodoroFocus, isBrainResetOpen, setIsBrainResetOpen, lastResetHighlightAt,
         notifications, setIsNotificationCenterOpen, addNotification, triggerChumToast, activeFramework,
         isMorningModalOpen, setIsMorningModalOpen, lastPlannedDate
     } = useStudyStore();
     const { terms } = useTerms();
+
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const onToggleSelect = (id: string) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    };
+
+    const handleBulkComplete = async () => {
+        if (!window.confirm(`Master ${selectedIds.length} blooms simultaneously?`)) return;
+        for (const id of selectedIds) {
+            await completeTask(id);
+        }
+        setSelectedIds([]);
+        triggerChumToast("Bulk calibration complete.", "success");
+    };
+
+    const handleBulkDelete = async () => {
+        if (!window.confirm(`Release ${selectedIds.length} quests back to the void?`)) return;
+        for (const id of selectedIds) {
+            await deleteTask(id);
+        }
+        setSelectedIds([]);
+        triggerChumToast("Quests released.", "info");
+    };
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -491,24 +514,52 @@ export default function Dashboard() {
                             ) : (
                                 <>
                                     {activeTasks.slice(0, 3).map((task) => (
-                                        <TaskCard key={task.id} task={task} />
-                                    ))}
+                                         <TaskCard 
+                                             key={task.id} 
+                                             task={task} 
+                                             onToggleSelect={onToggleSelect}
+                                             selected={selectedIds.includes(task.id)}
+                                         />
+                                     ))}
 
-                                    {Array.from({ length: Math.max(0, 3 - activeTasks.length) }).map((_, i) => (
-                                        <div key={`empty-${i}`} className="h-24 md:h-32 border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs md:text-sm font-bold tracking-wide">
-                                            + Open Slot
-                                        </div>
-                                    ))}
-                                </>
+                                     {Array.from({ length: Math.max(0, 3 - activeTasks.length) }).map((_, i) => (
+                                         <div key={`empty-${i}`} className="min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs md:text-sm font-bold tracking-wide">
+                                             + Open Slot
+                                         </div>
+                                     ))}
+                                 </>
                             )}
                         </AnimatePresence>
 
-                        <div className="h-24 md:h-32 border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex flex-col items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--accent-teal)]">
+                        <div className="min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex flex-col items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--accent-teal)]">
                             <span className="text-lg md:text-xl mb-1">✨</span>
                             <span className="text-[10px] md:text-xs font-bold tracking-wide uppercase">{terms.crystalGarden}</span>
                             <span className="text-[9px] md:text-[10px] opacity-70 mt-1">+{Math.max(0, activeTasks.length - 3)} hidden blooms</span>
                         </div>
                     </div>
+
+                    {/* BULK ACTION BAR */}
+                    <AnimatePresence>
+                        {selectedIds.length > 0 && (
+                            <motion.div
+                                initial={{ y: 100, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                exit={{ y: 100, opacity: 0 }}
+                                className="fixed bottom-28 left-1/2 -translate-x-1/2 bg-(--bg-sidebar) border-2 border-(--accent-teal) rounded-2xl px-6 py-4 shadow-2xl flex items-center gap-6 z-[60] backdrop-blur-xl"
+                            >
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-(--accent-teal) uppercase tracking-widest">{selectedIds.length} Selected</span>
+                                    <span className="text-[9px] font-bold text-(--text-muted) uppercase">Bulk Mode Active</span>
+                                </div>
+                                <div className="h-8 w-[1px] bg-(--border-color)" />
+                                <div className="flex gap-2">
+                                    <button onClick={handleBulkComplete} className="px-4 py-2 bg-(--accent-teal) text-black rounded-xl text-[10px] font-black uppercase hover:bg-white transition-all">Master All</button>
+                                    <button onClick={handleBulkDelete} className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-[10px] font-black uppercase hover:bg-red-500 hover:text-white transition-all">Release All</button>
+                                    <button onClick={() => setSelectedIds([])} className="p-2 text-(--text-muted) hover:text-white transition-colors"><X size={16} /></button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-8 shadow-sm">
                         <h3 className="text-lg font-bold text-[var(--text-main)] mb-6">Garden Strength</h3>
