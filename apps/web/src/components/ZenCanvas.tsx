@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Save, Cloud, CloudOff } from "lucide-react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { getSnapshot, loadSnapshot } from "tldraw";
 import "tldraw/tldraw.css";
-import "tldraw/tldraw.css"; // ✅ Keep the official v2 styles
 
 // ⚡ THE SHIELD: Dynamically import Tldraw for Client-Side only
 const TldrawComponent = dynamic(
@@ -16,6 +15,7 @@ const TldrawComponent = dynamic(
 );
 
 export default function ZenCanvas() {
+    const channelRef = useRef<import('@supabase/supabase-js').RealtimeChannel | null>(null);
     const [app, setApp] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [canvasId, setCanvasId] = useState("studybuddy-zen-canvas-guest");

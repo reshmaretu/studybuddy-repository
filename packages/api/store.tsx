@@ -22,6 +22,13 @@ export const getTitleForLevel = (level: number) => {
     return "New Sprout";
 };
 
+export interface WardrobeAccessory {
+    id: string;
+    fileName: string;
+    zIndex: number;
+    name?: string;
+}
+
 export interface StudyState {
     displayName: string;
     fullName: string;
@@ -117,10 +124,10 @@ export interface StudyState {
     setActiveCrystalTheme: (themeId: string) => void;
     setActiveAtmosphereFilter: (filter: 'default' | 'dark' | 'refreshing' | 'cool') => void;
 
-    activeAccessories: { id: string; fileName: string; zIndex: number; name?: string }[];
-    unlockedThemes: ['default'],
-    toggleAccessory: (acc: any) => void;
-    setActiveAccessories: (accessories: { id: string; fileName: string; zIndex: number; name?: string }[]) => Promise<void>;
+    activeAccessories: WardrobeAccessory[];
+    unlockedThemes: string[];
+    toggleAccessory: (acc: WardrobeAccessory) => void;
+    setActiveAccessories: (accessories: WardrobeAccessory[]) => Promise<void>;
     syncWardrobe: () => Promise<void>;
 
     windSpeed: number;
@@ -444,12 +451,12 @@ export const useStudyStore = create<StudyState>()(
             chumToasts: [],
             triggerChumToast: (message, type = 'info', action) => {
                 const id = Math.random().toString(36).substring(7);
-                const newToast = { message, type, action, id } as any;
+                const newToast = { message, type, action, id };
                 set((state) => ({ chumToasts: [...state.chumToasts, newToast] }));
 
                 setTimeout(() => {
                     set((state) => ({
-                        chumToasts: state.chumToasts.filter((t: any) => t.id !== id)
+                        chumToasts: state.chumToasts.filter((t) => t.id !== id)
                     }));
                 }, 8000);
             },

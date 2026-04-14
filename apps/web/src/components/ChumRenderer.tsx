@@ -1,11 +1,11 @@
 "use client";
 
-import { useStudyStore } from "@/store/useStudyStore";
+import { useStudyStore, WardrobeAccessory } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ChumRendererProps {
     size?: string;
-    activeAccessoriesOverride?: any[];
+    activeAccessoriesOverride?: WardrobeAccessory[];
 }
 
 export default function ChumRenderer({ size = "w-64 h-64", activeAccessoriesOverride }: ChumRendererProps) {

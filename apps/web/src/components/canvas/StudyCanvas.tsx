@@ -5,29 +5,33 @@ import { Stage, Layer, Line, Rect, Text, Group, Path, Circle, Arrow } from "reac
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { CanvasEngine, getSvgPathFromStroke, Point } from "@studybuddy/canvas-engine";
 
+import Konva from "konva";
+
 /**
  * StudyCanvas: The Mega-Engine Renderer
  * Supports Free-drawing, Mindmapping, and Object Manipulation
  */
 export default function StudyCanvas() {
-    const stageRef = useRef<any>(null);
-    const { 
-        elements, 
-        connections, 
-        activeTool, 
-        addElement, 
+    const stageRef = useRef<Konva.Stage>(null);
+    const {
+        elements,
+        connections,
+        activeTool,
+        addElement,
         updateElement,
         stageConfig,
-        setStageConfig 
+        setStageConfig
     } = useCanvasStore();
 
     const [isDrawing, setIsDrawing] = useState(false);
     const [currentPath, setCurrentPath] = useState<Point[]>([]);
 
     // 🎨 MOUSE EVENTS: Drawing & Navigation
-    const handleMouseDown = (e: any) => {
+    const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
         const stage = e.target.getStage();
+        if (!stage) return;
         const pos = stage.getRelativePointerPosition();
+        if (!pos) return;
 
         if (activeTool === 'pen') {
             setIsDrawing(true);
@@ -35,8 +39,8 @@ export default function StudyCanvas() {
         } else if (activeTool === 'node') {
             const newNode = CanvasEngine.createMindmapNode(pos.x - 75, pos.y - 30, "New Idea", elements.length, 'layer-0');
             addElement(newNode);
-        } else if (['rect', 'circle', 'arrow'].includes(activeTool as any)) {
-            const newShape = CanvasEngine.createShape(activeTool as any, pos.x - 50, pos.y - 50, "#2dd4bf", elements.length, 'layer-0');
+        } else if (activeTool === 'rect' || activeTool === 'circle' || activeTool === 'arrow') {
+            const newShape = CanvasEngine.createShape(activeTool, pos.x - 50, pos.y - 50, "#2dd4bf", elements.length, 'layer-0');
             addElement(newShape);
         } else if (activeTool === 'text') {
             const newText = CanvasEngine.createText(pos.x - 100, pos.y - 25, "Transcribe Theory", "#e2e8f0", elements.length, 'layer-0');
@@ -47,10 +51,12 @@ export default function StudyCanvas() {
         }
     };
 
-    const handleMouseMove = (e: any) => {
+    const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
         if (!isDrawing || activeTool !== 'pen') return;
         const stage = e.target.getStage();
+        if (!stage) return;
         const pos = stage.getRelativePointerPosition();
+        if (!pos) return;
         setCurrentPath([...currentPath, pos]);
     };
 
@@ -145,10 +151,10 @@ export default function StudyCanvas() {
                             if (el.data.shapeType === 'circle') {
                                 return (
                                     <Circle
-                                        key={el.id} x={el.x + el.width!/2} y={el.y + el.height!/2} radius={el.width!/2}
+                                        key={el.id} x={el.x + el.width! / 2} y={el.y + el.height! / 2} radius={el.width! / 2}
                                         fill={el.data.fill} stroke={el.color} strokeWidth={el.data.strokeWidth}
                                         draggable={isSelect}
-                                        onDragEnd={(e) => updateElement(el.id, { x: e.target.x() - el.width!/2, y: e.target.y() - el.height!/2 })}
+                                        onDragEnd={(e) => updateElement(el.id, { x: e.target.x() - el.width! / 2, y: e.target.y() - el.height! / 2 })}
                                     />
                                 );
                             }
@@ -193,7 +199,7 @@ export default function StudyCanvas() {
                                 </Group>
                             );
                         }
-                        
+
                         return null;
                     })}
 
@@ -210,7 +216,7 @@ export default function StudyCanvas() {
 
             {/* 🛠️ OVERLAY UI (Mini Toolbar) */}
             <div className="absolute top-6 left-1/2 -translate-x-1/2 flex gap-2 bg-(--bg-card)/80 backdrop-blur-xl p-2 rounded-2xl border border-(--border-color) shadow-2xl z-50">
-               {/* Toolbar buttons moved to separate component but keeping placeholder */}
+                {/* Toolbar buttons moved to separate component but keeping placeholder */}
             </div>
         </div>
     );

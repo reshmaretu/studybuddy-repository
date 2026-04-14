@@ -9,7 +9,6 @@ import {
 import { useStudyStore } from "@/store/useStudyStore";
 import { useTerms } from "@/hooks/useTerms";
 
-// 🔥 FIX 1: Extracted Tooltip OUTSIDE the component to prevent Recharts rendering crashes!
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length > 0) {
         return (

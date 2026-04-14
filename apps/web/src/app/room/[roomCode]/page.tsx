@@ -29,7 +29,19 @@ const AUDIO_TRACKS = [
     { name: 'Deep Focus Ambient', pro: true }, { name: 'Binaural Alpha Waves', pro: true }
 ];
 
-const CustomSelect = ({ options, value, onChange, disabled = false, isPremiumUser = true, isOpen, onToggle }: any) => {
+import { RealtimeChannel } from "@supabase/supabase-js";
+
+interface CustomSelectProps {
+    options: (string | { name: string, pro: boolean })[];
+    value: string;
+    onChange: (val: string) => void;
+    disabled?: boolean;
+    isPremiumUser?: boolean;
+    isOpen: boolean;
+    onToggle: () => void;
+}
+
+const CustomSelect = ({ options, value, onChange, disabled = false, isPremiumUser = true, isOpen, onToggle }: CustomSelectProps) => {
     return (
         <div className={`relative ${isOpen ? 'z-[100]' : 'z-10'}`}>
             <button
@@ -47,9 +59,9 @@ const CustomSelect = ({ options, value, onChange, disabled = false, isPremiumUse
                         initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
                         className="absolute top-full left-0 right-0 mt-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl z-[110] overflow-hidden max-h-48 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                     >
-                        {options.map((opt: any) => {
+                        {options.map((opt) => {
                             const optName = typeof opt === 'string' ? opt : opt.name;
-                            const isProLocked = (typeof opt === 'string' && opt.includes('(Pro)') && !isPremiumUser) || (opt.pro && !isPremiumUser);
+                            const isProLocked = (typeof opt === 'string' && opt.includes('(Pro)') && !isPremiumUser) || (typeof opt !== 'string' && opt.pro && !isPremiumUser);
                             return (
                                 <button
                                     key={optName} disabled={isProLocked}
@@ -70,7 +82,7 @@ const CustomSelect = ({ options, value, onChange, disabled = false, isPremiumUse
 };
 
 // --- REUSEABLE COMPONENTS ---
-const AtmosphereVisuals = ({ settings }: { settings: any }) => {
+const AtmosphereVisuals = ({ settings }: { settings: RoomSettings }) => {
     const devAsset = [...DEV_LIVE_BGS, ...DEV_STATIC_BGS].find(t => t.name === settings.vibeAsset);
 
     if (settings.vibeCategory === 'Live Lo-Fi (Pro)') {
@@ -92,7 +104,7 @@ const AtmosphereVisuals = ({ settings }: { settings: any }) => {
     return <div className="w-full h-full bg-cover bg-center opacity-70 transition-all duration-1000" style={{ backgroundImage: bgUrl }} />;
 };
 
-const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: any, isActive: boolean, onAnalyserCreated?: (analyser: AnalyserNode) => void }) => {
+const MediaEngine = ({ settings, isActive, onAnalyserCreated }: { settings: RoomSettings, isActive: boolean, onAnalyserCreated?: (analyser: AnalyserNode) => void }) => {
     const audioRef = useRef<HTMLAudioElement>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
     const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
@@ -258,8 +270,41 @@ const Visualizer = ({
     return <canvas ref={canvasRef} width={width} height={height} className="max-w-full opacity-50 mix-blend-overlay pointer-events-none filter blur-[1px]" />;
 };
 
+interface RoomSettings {
+    name: string;
+    mode: string;
+    workDuration: number;
+    breakDuration: number;
+    longBreakDuration: number;
+    cyclesBeforeLongBreak: number;
+    currentCycle: number;
+    vibeCategory: string;
+    vibeAsset: string;
+    roomTheme: string | null;
+    audioTrack: string;
+    showVisualizer: boolean;
+    visualizerColor: string;
+    visualizerMirrored: boolean;
+    visualizerScale: number;
+    visualizerWidth: number;
+    visualizerHeight: number;
+    isGhostMode: boolean;
+}
+
+interface Participant {
+    id: string;
+    name: string;
+    chumAvatar: string;
+    avatarUrl: string | null;
+    status: string;
+    roomCode: string;
+    roomTitle: string;
+    focusScore: number;
+    totalHours: number;
+}
+
 export default function StudyRoom({ params }: { params: Promise<{ roomCode: string }> }) {
-    const channelRef = useRef<any>(null);
+    const channelRef = useRef<RealtimeChannel | null>(null);
     const { roomCode } = use(params);
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -273,7 +318,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
     const [status, setStatus] = useState<'DRAFT' | 'LAUNCHING' | 'ACTIVE'>('DRAFT');
     const [isHost, setIsHost] = useState(false);
     const [hostId, setHostId] = useState<string | null>(null);
-    const [participants, setParticipants] = useState<any[]>([]);
+    const [participants, setParticipants] = useState<Participant[]>([]);
     const [countdown, setCountdown] = useState(5);
     const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
     const [resolvedName, setResolvedName] = useState("Chum");
@@ -381,7 +426,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
     // 2. INIT REALTIME & AUTH
     useEffect(() => {
-        let activeChannel: any = null;
+        let activeChannel: RealtimeChannel | null = null;
 
         const initRoom = async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -417,9 +462,9 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                 supabase.from('chum_wardrobe').select('base_emoji, hat_emoji').eq('user_id', user.id).single()
             ]);
 
-            const myProfile: any = profileRes.data || {};
-            const myStats: any = statsRes.data || {};
-            const myWardrobe: any = wardrobeRes.data || {};
+            const myProfile = (profileRes.data || {}) as any;
+            const myStats = (statsRes.data || {}) as any;
+            const myWardrobe = (wardrobeRes.data || {}) as any;
 
             const finalName = (myProfile.display_name && myProfile.display_name.trim() !== '') ? myProfile.display_name
                 : (myProfile.full_name && myProfile.full_name.trim() !== '') ? myProfile.full_name
@@ -481,7 +526,7 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
                     const state = channel.presenceState();
                     const all = Object.values(state).flat();
                     // ⚡ FIX: Deduplicate by unique ID to prevent multiple "You" or duplicate joiners
-                    const unique = Array.from(new Map(all.map((p: any) => [p.id, p])).values());
+                    const unique = Array.from(new Map(all.map((p) => [(p as unknown as Participant).id, p as unknown as Participant])).values());
                     setParticipants(unique);
                 })
                 .on('broadcast', { event: 'launch' }, () => setStatus('LAUNCHING'))

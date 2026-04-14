@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useStudyStore } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Terminal, RefreshCw, ShieldAlert, Skull, CheckCircle2, BrainCircuit, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from '@/lib/supabase';
-
+import { LanternUser } from "@/app/lantern/page";
 export default function DevOverlay() {
     const {
         isDev, setLastPlannedDate,
@@ -31,8 +31,8 @@ export default function DevOverlay() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isDev]);
 
-    const generateMockUser = (id: string): any => {
-        const statuses = ['idle', 'drafting', 'hosting', 'joined', 'flowState', 'cafe', 'mastering', 'offline'];
+    const generateMockUser = (id: string): LanternUser => {
+        const statuses = ['idle', 'drafting', 'hosting', 'joined', 'flowState', 'cafe', 'mastering', 'offline'] as const;
         const status = statuses[Math.floor(Math.random() * statuses.length)];
         const isHosting = status === 'hosting' || status === 'drafting';
 
@@ -49,8 +49,10 @@ export default function DevOverlay() {
             roomTitle: isHosting ? `Mock Sanctuary ${id}` : undefined,
             gridX: Math.floor(Math.random() * 24) - 6,
             gridY: Math.floor(Math.random() * 24) - 6,
+            gridZ: 0,
             jitterX: (Math.random() - 0.5) * 40,
             jitterY: (Math.random() - 0.5) * 40,
+            jitterZ: (Math.random() - 0.5) * 40,
         };
     };
 

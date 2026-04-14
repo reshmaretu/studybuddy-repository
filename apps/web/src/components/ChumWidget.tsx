@@ -7,6 +7,14 @@ import { useStudyStore, ChatMessage, TutorSession, Shard, TaskLoad } from "@/sto
 import { supabase } from '@/lib/supabase';
 import ChumRenderer from "@/components/ChumRenderer";
 
+interface ChumToast {
+    id: string;
+    message: string | React.ReactNode;
+    type?: 'info' | 'success' | 'warning' | 'error';
+    action?: () => void;
+    duration?: number;
+}
+
 function TypewriterText({ text, speed = 40 }: { text: string, speed?: number }) {
     const [displayedText, setDisplayedText] = useState("");
 
@@ -117,7 +125,7 @@ export default function ChumWidget() {
 
                 // Remove it from the store queue since we're displaying it internally
                 useStudyStore.setState((state) => ({
-                    chumToasts: state.chumToasts.filter((t: any) => t.id !== (toast as any).id)
+                    chumToasts: state.chumToasts.filter((t: ChumToast) => t.id !== toast.id)
                 }));
             }
         }
@@ -250,7 +258,7 @@ export default function ChumWidget() {
                         },
                         body: JSON.stringify({
                             messages: messagesPayload,
-                            user_id: (session as any).user.id,
+                            user_id: session?.user.id,
                             selected_model: useStudyStore.getState().selectedModel,
                             primary_node: useStudyStore.getState().aiPrimaryNode,
                             openrouter_key: useStudyStore.getState().aiKeys.openrouter,
@@ -287,11 +295,11 @@ export default function ChumWidget() {
                             return updated;
                         });
                     }
-                    aiResponse = fullText;
                     return true; // SUCCESS!
-                } catch (e: any) {
-                    lastErrorMessage = e.message;
-                    console.warn(`[WATERFALL] ${provider} failed, trying next...`, e.message);
+                } catch (e: unknown) {
+                    const err = e as Error;
+                    lastErrorMessage = err.message;
+                    console.warn(`[WATERFALL] ${provider} failed, trying next...`, err.message);
                 }
             }
             throw new Error(lastErrorMessage || "All cloud providers failed.");
@@ -310,7 +318,7 @@ export default function ChumWidget() {
                     setIsTyping(true);
                     const historyToUse = [...(isTutorModeActive ? tutorChatHistory : normalChatHistory), { role: 'user', text: messageText }].map(msg => ({
                         role: msg.role === 'chum' ? 'assistant' : 'user',
-                        content: (msg as any).text || (msg as any).content
+                        content: (msg as any).text
                     }));
 
                     const res = await fetch(`${ollamaUrl}/api/chat`, {
@@ -332,9 +340,10 @@ export default function ChumWidget() {
                     setCurrentHistory([...newHistory, { role: 'chum', text: "Neural link failed. If using Ollama, ensure it is running and CORS is allowed.", node: "Fallback" }]);
                 }
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const e = err as Error;
             setIsTyping(false);
-            setCurrentHistory([...newHistory, { role: 'chum', text: err.message || "Neural link failed.", node: "Error" }]);
+            setCurrentHistory([...newHistory, { role: 'chum', text: e.message || "Neural link failed.", node: "Error" }]);
         }
 
         if (isTutorModeActive && activeShard && !forcePrimer) {
@@ -753,7 +762,7 @@ export default function ChumWidget() {
                 <div className={`absolute ${bubbleXPos} ${bubbleYPos} flex flex-col-reverse gap-3 items-end pointer-events-none`}>
                     <AnimatePresence>
                         {/* 1. System Toasts (Stacked) */}
-                        {!isOpen && chumToasts?.map((toast: any, idx) => (
+                        {!isOpen && (chumToasts as ChumToast[])?.map((toast, idx) => (
                             <motion.div
                                 key={toast.id}
                                 initial={{ opacity: 0, scale: 0.5, y: 50, x: widgetPos.isLeft ? -30 : 30, rotate: widgetPos.isLeft ? -15 : 15 }}
@@ -768,7 +777,7 @@ export default function ChumWidget() {
                                     if (toast.action) {
                                         toast.action();
                                         useStudyStore.setState((state) => ({
-                                            chumToasts: state.chumToasts.filter((t: any) => t.id !== toast.id)
+                                            chumToasts: state.chumToasts.filter((t: ChumToast) => t.id !== toast.id)
                                         }));
                                     } else {
                                         setIsOpen(true);

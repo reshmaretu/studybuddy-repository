@@ -7,10 +7,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ShieldAlert, BoxSelect, Layers, Zap, Maximize2, Minimize2 } from "lucide-react";
 import { LanternUser } from "@/app/lantern/page";
 import { useRouter } from "next/navigation";
-import { useStudyStore } from "@/store/useStudyStore";
+import { useStudyStore, WardrobeAccessory } from "@/store/useStudyStore";
 import ChumRenderer from "./ChumRenderer";
-import * as random from 'maath/random/dist/maath-random.esm';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 
 // --- CONFIG & UTILS ---
 
@@ -57,7 +57,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
 }>(function ThreeLanternNet({ users, isInitialLoading, isMaximized, onToggleMaximize, debrisSize = 0.4, debrisColor = "#2dd4bf", debrisCount = 3000, debrisSpread = 400 }, ref) {
     const [is3D, setIs3D] = useState(false);
     const [warpTarget, setWarpTarget] = useState<THREE.Vector3 | null>(null);
-    const controlsRef = useRef<any>(null);
+    const controlsRef = useRef<OrbitControlsImpl>(null);
     const { performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true } } = useStudyStore();
 
     const isPerformanceLow = performanceSettings.mode === 'low' || (performanceSettings.mode === 'auto' && typeof window !== 'undefined' && window.innerWidth < 768);
@@ -157,7 +157,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                 </div>
                 {/* --- HUD LOADER --- */}
                 {isInitialLoading && (
-                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-100 flex items-center gap-3 bg-[var(--bg-card)]/60 backdrop-blur-md px-6 py-3 rounded-full border border-[var(--border-color)] animate-pulse shadow-xl">
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-[var(--bg-card)]/60 backdrop-blur-md px-6 py-3 rounded-full border border-[var(--border-color)] animate-pulse shadow-xl">
                         <div className="w-3 h-3 border-2 border-[var(--accent-teal)]/30 border-t-[var(--accent-teal)] rounded-full animate-spin" />
                         <span className="text-[10px] font-black tracking-widest uppercase text-[var(--accent-teal)]">Syncing Void...</span>
                     </div>
@@ -254,17 +254,52 @@ function LanternConstellation({ users, is3D, onWarp, intensity }: { users: Lante
                             }}
                         />
                         {isConnected && (
-                            <QuadraticBezierLine
-                                start={myPos} end={userPos} mid={[(myPos[0] + userPos[0]) / 2, (myPos[1] + userPos[1]) / 2 + (is3D ? 15 : 0), (myPos[2] + userPos[2]) / 2 + (is3D ? 10 : 0)] as [number, number, number]}
-                                color={isSelf ? "#ff007f" : "#2dd4bf"}
-                                lineWidth={user.status === 'hosting' ? 2 + Math.sin(Date.now() * 0.005) * 1 : 1}
-                                transparent opacity={user.status === 'hosting' ? 0.6 + Math.sin(Date.now() * 0.005) * 0.2 : 0.3}
+                            <AnimatedSanctuaryLink 
+                                start={myPos} 
+                                end={userPos} 
+                                is3D={is3D} 
+                                isSelf={isSelf} 
+                                isHosting={user.status === 'hosting'} 
                             />
                         )}
                     </React.Fragment>
                 );
             })}
         </group>
+    );
+}
+
+function AnimatedSanctuaryLink({ start, end, is3D, isSelf, isHosting }: {
+    start: [number, number, number],
+    end: [number, number, number],
+    is3D: boolean,
+    isSelf: boolean,
+    isHosting: boolean
+}) {
+    const lineRef = useRef<any>(null);
+
+    useFrame((state) => {
+        if (!lineRef.current) return;
+        if (isHosting) {
+            const t = state.clock.elapsedTime * 5;
+            lineRef.current.lineWidth = 2 + Math.sin(t) * 1;
+            lineRef.current.opacity = 0.6 + Math.sin(t) * 0.2;
+        } else {
+            lineRef.current.lineWidth = 1;
+            lineRef.current.opacity = 0.3;
+        }
+    });
+
+    return (
+        <QuadraticBezierLine
+            ref={lineRef}
+            start={start}
+            end={end}
+            mid={[(start[0] + end[0]) / 2, (start[1] + end[1]) / 2 + (is3D ? 15 : 0), (start[2] + end[2]) / 2 + (is3D ? 10 : 0)] as [number, number, number]}
+            color={isSelf ? "#ff007f" : "#2dd4bf"}
+            transparent
+            opacity={0.3}
+        />
     );
 }
 
@@ -284,7 +319,10 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
     const spriteRef = useRef<THREE.Sprite>(null);
     const groupRef = useRef<THREE.Group>(null);
     const router = useRouter();
-    const glowTexture = useMemo(() => createGlowTexture(), []);
+    const glowTexture = useMemo(() => {
+        if (typeof document === 'undefined') return null;
+        return createGlowTexture();
+    }, []);
 
     const xPos = (user.gridX - 6) * 12 + (user.jitterX / 8);
     const yPos = (user.gridY - 6) * 12 + (user.jitterY / 8);
@@ -297,7 +335,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
     }, []);
 
     useFrame((state, delta) => {
-        if (!meshRef.current || !materialRef.current || !spriteRef.current || !groupRef.current) return;
+        if (!meshRef.current || !materialRef.current || !groupRef.current) return;
 
         const statusKey = user.status as keyof typeof STATUS_CONFIG;
         const config = STATUS_CONFIG[statusKey] || STATUS_CONFIG.idle;
@@ -324,27 +362,31 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
             delta * 4
         );
 
-        spriteRef.current.material.opacity = THREE.MathUtils.lerp(
-            spriteRef.current.material.opacity,
-            (baseIntensity > 10 ? 0.6 : 0.2),
-            delta * 2
-        );
-
         const s = isHovered || isSelected ? config.scale + 0.2 : config.scale;
         meshRef.current.scale.lerp(new THREE.Vector3(s, s, s), delta * 4);
 
-        const isHighEnergy = ['hosting', 'flowState', 'mastering'].includes(user.status);
-        spriteRef.current.material.opacity = THREE.MathUtils.lerp(spriteRef.current.material.opacity, isHighEnergy ? 0.5 : 0.1, delta * 2);
-        spriteRef.current.scale.setScalar(THREE.MathUtils.lerp(spriteRef.current.scale.x, isSelf ? 6 : 4, delta * 2));
-        spriteRef.current.material.color.lerp(targetColor, delta * 4);
+        if (spriteRef.current) {
+            spriteRef.current.material.opacity = THREE.MathUtils.lerp(
+                spriteRef.current.material.opacity,
+                (baseIntensity > 10 ? 0.6 : 0.2),
+                delta * 2
+            );
+
+            const isHighEnergy = ['hosting', 'flowState', 'mastering'].includes(user.status);
+            spriteRef.current.material.opacity = THREE.MathUtils.lerp(spriteRef.current.material.opacity, isHighEnergy ? 0.5 : 0.1, delta * 2);
+            spriteRef.current.scale.setScalar(THREE.MathUtils.lerp(spriteRef.current.scale.x, isSelf ? 6 : 4, delta * 2));
+            spriteRef.current.material.color.lerp(targetColor, delta * 4);
+        }
     });
 
     return (
         <group ref={groupRef}>
             <Float speed={isSelf ? 3 : 1.5}>
-                <sprite ref={spriteRef}>
-                    <spriteMaterial map={glowTexture} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
-                </sprite>
+                {glowTexture && (
+                    <sprite ref={spriteRef}>
+                        <spriteMaterial map={glowTexture} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+                    </sprite>
+                )}
 
                 <mesh
                     ref={meshRef}
@@ -382,9 +424,9 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                         </p>
                                     </div>
                                     <div className="w-12 h-12 rounded-full border border-[var(--border-color)] overflow-hidden flex-shrink-0 bg-black/40 relative">
-                                        {(user as any).avatarUrl ? (
+                                        {user.avatarUrl ? (
                                             <img
-                                                src={(user as any).avatarUrl}
+                                                src={user.avatarUrl}
                                                 alt="PFP"
                                                 className="w-full h-full object-cover z-20 relative"
                                                 onError={(e) => {
@@ -394,10 +436,10 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                                 }}
                                             />
                                         ) : null}
-                                        <div className={`absolute inset-0 flex items-center justify-center p-1 bg-[var(--bg-dark)] fallback-chum ${(user as any).avatarUrl ? 'invisible' : ''}`}>
+                                        <div className={`absolute inset-0 flex items-center justify-center p-1 bg-[var(--bg-dark)] fallback-chum ${user.avatarUrl ? 'invisible' : ''}`}>
                                             <ChumRenderer
                                                 size="w-full h-full"
-                                                activeAccessoriesOverride={(user as any).activeAccessories}
+                                                activeAccessoriesOverride={user.activeAccessories}
                                             />
                                         </div>
                                     </div>
@@ -446,7 +488,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                             </p>
                                             {user.roomDescription && (
                                                 <p className="text-[10px] text-[var(--text-muted)] leading-relaxed line-clamp-2 italic">
-                                                    {user.roomDescription}
+                                                    &quot;{user.roomDescription}&quot;
                                                 </p>
                                             )}
                                         </div>
@@ -476,7 +518,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
 
 function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete, isFocused, isFreeCam, setIsFreeCam, intensity }: {
     is3D: boolean;
-    controlsRef: React.RefObject<any>;
+    controlsRef: React.RefObject<OrbitControlsImpl | null>;
     warpTarget: THREE.Vector3 | null;
     onWarpComplete: () => void;
     isFocused: boolean;
@@ -591,14 +633,18 @@ function CameraRig({ is3D, controlsRef, warpTarget, onWarpComplete, isFocused, i
                 const offset = new THREE.Vector3(0, 0, 40);
                 const targetPos = warpTarget.clone().add(offset);
                 cam.position.lerp(targetPos, transSpeed);
-                controlsRef.current.target.lerp(warpTarget, transSpeed);
-                controlsRef.current.update();
+                if (controlsRef.current) {
+                    controlsRef.current.target.lerp(warpTarget, transSpeed);
+                    controlsRef.current.update();
+                }
                 if (cam.position.distanceTo(targetPos) < 1) onWarpComplete();
             } else if (isTransitioning.current) {
                 const targetPos = is3D ? new THREE.Vector3(0, 10, 80) : new THREE.Vector3(0, 0, 120);
                 cam.position.lerp(targetPos, transSpeed);
-                controlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), transSpeed);
-                controlsRef.current.update();
+                if (controlsRef.current) {
+                    controlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), transSpeed);
+                    controlsRef.current.update();
+                }
                 if (cam.position.distanceTo(targetPos) < 1) {
                     isTransitioning.current = false;
                 }
@@ -657,8 +703,14 @@ function FloatingParticles({ size, color, count, spread }: { size: number, color
 
     const sphere = useMemo(() => {
         const positions = new Float32Array(count * 3);
+        // Using a simple seeded random for purity
+        let seed = 42;
+        const seededRandom = () => {
+            seed = (seed * 16807) % 2147483647;
+            return (seed - 1) / 2147483646;
+        };
         for (let i = 0; i < count * 3; i++) {
-            positions[i] = (Math.random() - 0.5) * spread; // 👈 Dynamic field
+            positions[i] = (seededRandom() - 0.5) * spread;
         }
         return positions;
     }, [count, spread]);

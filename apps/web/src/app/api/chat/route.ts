@@ -27,7 +27,7 @@ export async function POST(req: Request) {
         // 1. Premium & Profile Check
         const { data: profile } = await supabase.from('profiles').select('is_premium').eq('id', user_id).single();
         const isPremium = profile?.is_premium === true;
-        const isTutorRequest = messages.some((m: any) => m.content.includes("You are Chum, a cozy lo-fi tutor AI"));
+        const isTutorRequest = messages.some((m: { content: string }) => m.content.includes("You are Chum, a cozy lo-fi tutor AI"));
 
         if (isTutorRequest && !isPremium) {
             return NextResponse.json({ error: "Premium subscription required to access the Pro Tutor." }, { status: 403 });
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 
                 if (!error && matchedShards && matchedShards.length > 0) {
                     contextSnippet = "\n\n--- RELEVANT NOTES FROM USER'S DATABASE ---\n";
-                    contextSnippet += matchedShards.map((s: any) => `Title: ${s.title}\nContent: ${s.content}`).join('\n\n');
+                    contextSnippet += (matchedShards as { title: string, content: string }[]).map((s) => `Title: ${s.title}\nContent: ${s.content}`).join('\n\n');
                     contextSnippet += "\n-------------------------------------------\n";
                 }
             } catch (e: any) {
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
             }
         }
 
-        const formattedMessages = messages.map((m: any) => {
+        const formattedMessages = messages.map((m: { role: string, content: string }) => {
             if (m.role === 'system' && contextSnippet) return { ...m, content: m.content + contextSnippet };
             return m;
         });
@@ -135,9 +135,10 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ response: result, node: usedNode });
 
-    } catch (error: any) {
-        console.error("Chat API Error:", error.message);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const err = error as Error;
+        console.error("Chat API Error:", err.message);
+        return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }
 

@@ -6,7 +6,10 @@ import { OrbitControls, Float, ContactShadows } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { Move3D, Minimize, MousePointerClick, X, Sparkles } from "lucide-react";
-import { useStudyStore, PerformanceMode } from "@/store/useStudyStore";
+import { useStudyStore, WardrobeAccessory } from "@/store/useStudyStore";
+import { Shard } from "@/store/useStudyStore";
+import { LanternUser } from "@/app/lantern/page";
+import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
 
 
@@ -152,9 +155,18 @@ export function createMasterFlowerGeometry() {
     return mergedGeometry;
 }
 
+interface TrilliumPosition {
+    pos: [number, number, number];
+    stemHeight: number;
+    scale: number;
+    rotY: number;
+    tiltX: number;
+    tiltZ: number;
+}
+
 // --- PROCEDURAL GENERATORS ---
-function generateTrilliums(count: number) {
-    const flowers = [];
+function generateTrilliums(count: number): TrilliumPosition[] {
+    const flowers: TrilliumPosition[] = [];
     for (let i = 0; i < count; i++) {
         // Use the old-style natural distribution
         const angle = Math.random() * Math.PI * 2;
@@ -201,7 +213,14 @@ function generateCrystalCluster(count: number) {
 }
 
 // --- MAIN COMPONENTS ---
-function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions, masteredShards, flowerCount }: any) {
+function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions, masteredShards, flowerCount }: {
+    progress: number;
+    themeKey: string;
+    setViewingShard: (s: Shard | null) => void;
+    allFlowerPositions: TrilliumPosition[];
+    masteredShards: Shard[];
+    flowerCount: number;
+}) {
     const shardsRef = useRef<THREE.Group>(null);
     const coreLightRef = useRef<THREE.PointLight>(null);
     const bgMeshRef = useRef<THREE.InstancedMesh>(null);
@@ -382,7 +401,7 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
             <Float speed={1.5} rotationIntensity={0.02} floatIntensity={0.05}>
                 <group ref={shardsRef} position={[0, 0.3, 0]}>
                     {crystalData.map((c, i) => (
-                        <group key={i} position={c.pos as any} rotation={c.rot as any}>
+                        <group key={i} position={c.pos as [number, number, number]} rotation={c.rot as [number, number, number]}>
                             <mesh position={[0, c.height / 2, 0]} material={materials.quartz} castShadow>
                                 <cylinderGeometry args={[c.radius, c.radius, c.height, 6]} />
                                 <mesh position={[0, c.height / 2 + (c.radius * 0.6), 0]} material={materials.quartz}>
@@ -397,7 +416,7 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
     );
 }
 
-function LowPolyClouds({ filter }: { filter: any }) {
+function LowPolyClouds({ filter }: { filter: typeof SCENE_FILTERS.default }) {
     return (
         <Float speed={0.4} floatIntensity={0.6}>
             <group position={[0, 4, -20]}>
@@ -414,8 +433,17 @@ function LowPolyClouds({ filter }: { filter: any }) {
     );
 }
 
-function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, setViewingShard, allFlowerPositions, masteredShards }: any) {
-    const controlsRef = useRef<any>(null);
+function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, setViewingShard, allFlowerPositions, masteredShards }: {
+    isFocused: boolean;
+    isFreecam: boolean;
+    keys: React.MutableRefObject<Record<string, boolean>>;
+    snipingShard: Shard | null;
+    setSnipingShard: (s: Shard | null) => void;
+    setViewingShard: (s: Shard | null) => void;
+    allFlowerPositions: TrilliumPosition[];
+    masteredShards: Shard[];
+}) {
+    const controlsRef = useRef<OrbitControlsImpl>(null);
     const velocity = useRef(new THREE.Vector3());
     const isReturning = useRef(false);
     const isSniping = useRef(false);
@@ -464,7 +492,7 @@ function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, 
         if (!controlsRef.current) return;
 
         if (isSniping.current && snipingShard) {
-            const index = masteredShards.findIndex((s: any) => s.id === snipingShard.id);
+            const index = masteredShards.findIndex((s) => s.id === snipingShard.id);
             if (index !== -1 && allFlowerPositions[index]) {
                 const fPos = allFlowerPositions[index].pos;
                 const targetPos = new THREE.Vector3(fPos[0], fPos[1] + 0.5, fPos[2]);
@@ -547,10 +575,10 @@ function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, 
 }
 
 // ─── COMPONENT ENTRY ───
-export default function GeodeScene({ completionRatio, snipingShard, setSnipingShard }: { completionRatio: number, snipingShard?: any, setSnipingShard?: any }) {
+export default function GeodeScene({ completionRatio, snipingShard, setSnipingShard }: { completionRatio: number, snipingShard?: Shard | null, setSnipingShard?: (s: Shard | null) => void }) {
     const [isFocused, setIsFocused] = useState(false);
     const [isFreecam, setIsFreecam] = useState(false);
-    const [viewingShard, setViewingShard] = useState<any>(null);
+    const [viewingShard, setViewingShard] = useState<Shard | null>(null);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const keys = useRef({ w: false, a: false, s: false, d: false, q: false, e: false });
@@ -567,10 +595,10 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
     const isPerformanceLow = performanceSettings.mode === 'low' || (performanceSettings.mode === 'auto' && typeof window !== 'undefined' && window.innerWidth < 768);
     const resolvedFlowerCount = isPerformanceLow ? Math.min(flowerCount, 4000) : performanceSettings.mode === 'balanced' ? Math.min(flowerCount, 8000) : flowerCount * 1.5;
     const resolvedGlitterCount = isPerformanceLow ? 1000 : performanceSettings.mode === 'balanced' ? 4000 : 10000;
-    const resolvedBloomIntensity = !performanceSettings.bloomEnabled || isPerformanceLow ? 0 : performanceSettings.mode === 'balanced' ? 0.35 : 0.4 + (completionRatio * 1.5);
+    const resolvedBloomIntensity = !performanceSettings.bloomEnabled || isPerformanceLow ? 0 : (performanceSettings.mode === 'balanced' ? 0.35 : 0.4 + (completionRatio * 1.5));
     const activeAtmosphere = SCENE_FILTERS[activeAtmosphereFilter as keyof typeof SCENE_FILTERS] || SCENE_FILTERS.default;
 
-    const allFlowerPositions = useMemo(() => generateTrilliums(resolvedFlowerCount), [resolvedFlowerCount]);
+    const allFlowerPositions: TrilliumPosition[] = useMemo(() => generateTrilliums(resolvedFlowerCount), [resolvedFlowerCount]);
     const masteredShards = useMemo(() => shards.filter(s => s.isMastered), [shards]);
 
     useEffect(() => {
@@ -590,11 +618,15 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
                 e.preventDefault(); setIsFreecam(prev => !prev);
             }
             const key = e.key.toLowerCase();
-            if (keys.current.hasOwnProperty(key)) (keys.current as any)[key] = true;
+            if (key in keys.current) {
+                (keys.current as Record<string, boolean>)[key] = true;
+            }
         };
         const handleKeyUp = (e: KeyboardEvent) => {
             const key = e.key.toLowerCase();
-            if (keys.current.hasOwnProperty(key)) (keys.current as any)[key] = false;
+            if (key in keys.current) {
+                (keys.current as Record<string, boolean>)[key] = false;
+            }
         };
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
@@ -675,8 +707,8 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
                     isFocused={isFocused}
                     isFreecam={isFreecam}
                     keys={keys}
-                    snipingShard={snipingShard}
-                    setSnipingShard={setSnipingShard}
+                    snipingShard={snipingShard || null}
+                    setSnipingShard={setSnipingShard || (() => {})}
                     setViewingShard={setViewingShard}
                     allFlowerPositions={allFlowerPositions}
                     masteredShards={masteredShards}

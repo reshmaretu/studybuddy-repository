@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { Search, Trophy, Radio, Plus, X, Crosshair, ShieldAlert } from "lucide-react";
 import ThreeLanternNet, { LanternNetHandle } from "@/components/LanternNetwork";
 import ChumRenderer from "@/components/ChumRenderer";
-import { useStudyStore } from "@/store/useStudyStore";
+import { useStudyStore, WardrobeAccessory } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
@@ -28,7 +28,7 @@ export interface LanternUser {
     jitterY: number;
     jitterZ: number;
     avatarUrl?: string;
-    activeAccessories?: any[];
+    activeAccessories?: WardrobeAccessory[];
     isVerified?: boolean;
 }
 
@@ -61,7 +61,31 @@ const getUniqueCoordinates = (pId: string, isMe: boolean) => {
     };
 };
 
-const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: number): LanternUser => {
+interface RawProfile {
+    id: string;
+    display_name?: string | null;
+    full_name?: string | null;
+    status?: string | null;
+    is_in_flowstate?: boolean;
+    active_session_type?: string | null;
+    is_premium?: boolean;
+    avatar_url?: string | null;
+    is_verified?: boolean;
+    joined_room_code?: string | null;
+    user_stats?: { total_seconds_tracked?: number; focus_score?: number } | null;
+    chum_wardrobe?: { base_emoji?: string | null; hat_emoji?: string | null; active_accessories?: WardrobeAccessory[] } | null;
+}
+
+interface RawRoom {
+    room_code: string;
+    host_id: string;
+    name: string;
+    description?: string | null;
+    status: string;
+    mode: string;
+}
+
+const formatUser = (p: RawProfile, rooms: RawRoom[], currentUserId: string | null, index: number): LanternUser => {
     const hostedRoom = rooms.find(r => r.host_id === p.id);
     const joinedRoom = p.joined_room_code ? rooms.find(r => r.room_code === p.joined_room_code) : null;
     const isMe = p.id === currentUserId;
@@ -78,7 +102,7 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
     } else if (p.is_in_flowstate) {
         currentStatus = 'flowState';
     } else {
-        currentStatus = (p.status as any) || 'offline';
+        currentStatus = (p.status as LanternUser['status']) || 'offline';
     }
 
     const stats = Array.isArray(p.user_stats) ? p.user_stats[0] : p.user_stats;
@@ -111,7 +135,7 @@ const formatUser = (p: any, rooms: any[], currentUserId: string | null, index: n
         jitterX: isMe ? 0 : (getStableRandom(p.id, "jitterX") - 0.5) * 45,
         jitterY: isMe ? 0 : (getStableRandom(p.id, "jitterY") - 0.5) * 45,
         jitterZ: isMe ? 0 : (getStableRandom(p.id, "jitterZ") - 0.5) * 45,
-        avatarUrl: p.avatar_url,
+        avatarUrl: p.avatar_url || undefined,
         activeAccessories: wardrobe?.active_accessories || []
     };
 };
@@ -151,102 +175,106 @@ export default function LanternNetPage() {
     const [activeTab, setActiveTab] = useState<'chums' | 'rooms'>('chums');
     const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
 
-useEffect(() => {
-    setSettings({ isSidebarHidden: isMaximized });
-}, [isMaximized, setSettings]);
-const [roomSettings, setRoomSettings] = useState({
-    title: "Deep Work Session",
-    description: "",
-    mode: 'flowstate' as 'flowstate' | 'cafe',
-    capacity: 4,
-    isLocked: false,
-    password: "",
-    workDuration: 25,
-    breakDuration: 5
-});
-const [isSubmitting, setIsSubmitting] = useState(false);
+    useEffect(() => {
+        setSettings({ isSidebarHidden: isMaximized });
+    }, [isMaximized, setSettings]);
 
-useEffect(() => {
-    let isSubscribed = true;
-    let currentUserId: string | null = null;
+    const [roomSettings, setRoomSettings] = useState({
+        title: "Deep Work Session",
+        description: "",
+        mode: 'flowstate' as 'flowstate' | 'cafe',
+        capacity: 4,
+        isLocked: false,
+        password: "",
+        workDuration: 25,
+        breakDuration: 5
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const fetchNetwork = async () => {
-        const { data: authData } = await supabase.auth.getUser();
-        const user = authData?.user;
-        if (!user || !isSubscribed) return;
-        currentUserId = user.id;
+    const totalSecondsTrackedRef = useRef(totalSecondsTracked);
+    useEffect(() => { totalSecondsTrackedRef.current = totalSecondsTracked; }, [totalSecondsTracked]);
 
-        if (isFirstLoad.current) {
-            setIsNetworkLoading(true);
-        }
-        try {
-            // Fetch all data in parallel
-            const results = await Promise.all([
-                supabase.from('profiles').select('id, display_name, full_name, status, is_in_flowstate, active_session_type, is_premium, avatar_url, is_verified'),
-                supabase.from('rooms').select('*'),
-                supabase.from('user_stats').select('user_id, focus_score, total_seconds_tracked'),
-                supabase.from('chum_wardrobe').select('user_id, active_accessories'),
-            ]);
+    useEffect(() => {
+        let isSubscribed = true;
+        let currentUserId: string | null = null;
 
-            const [profilesRes, roomsRes, statsRes, wardrobeRes] = results;
+        const fetchNetwork = async () => {
+            const { data: authData } = await supabase.auth.getUser();
+            const user = authData?.user;
+            if (!user || !isSubscribed) return;
+            currentUserId = user.id;
 
-            if (profilesRes.data && isSubscribed) {
-                const rooms = roomsRes.data || [];
-                const statsMap = new Map((statsRes.data || []).map(s => [s.user_id, s]));
-                const wardrobeMap = new Map((wardrobeRes.data || []).map(w => [w.user_id, w]));
-
-                const users: LanternUser[] = profilesRes.data.map((p, index) => {
-                    const mergedProfile = {
-                        ...p,
-                        user_stats: statsMap.get(p.id) || null,
-                        chum_wardrobe: wardrobeMap.get(p.id) || null
-                    };
-
-                    if (p.id === currentUserId) {
-                        return formatUser({
-                            ...mergedProfile,
-                            user_stats: {
-                                ...(mergedProfile.user_stats || {}),
-                                total_seconds_tracked: totalSecondsTracked // Use local real-time value
-                            },
-                            is_in_flowstate: activeMode === 'flowState',
-                            active_session_type: isTutorModeActive ? 'AI_TUTOR' : null,
-                            status: activeMode === 'none' ? 'idle' : activeMode
-                        }, rooms, currentUserId, index);
-                    }
-                    return formatUser(mergedProfile, rooms, currentUserId, index);
-                });
-                setFullNetwork(users);
+            if (isFirstLoad.current) {
+                setIsNetworkLoading(true);
             }
-        } catch (err) {
-            console.error("Lantern Network Fetch Error:", err);
-        } finally {
-            if (isSubscribed) {
-                setIsNetworkLoading(false);
-                isFirstLoad.current = false;
+            try {
+                // Fetch all data in parallel
+                const results = await Promise.all([
+                    supabase.from('profiles').select('id, display_name, full_name, status, is_in_flowstate, active_session_type, is_premium, avatar_url, is_verified'),
+                    supabase.from('rooms').select('*'),
+                    supabase.from('user_stats').select('user_id, focus_score, total_seconds_tracked'),
+                    supabase.from('chum_wardrobe').select('user_id, active_accessories'),
+                ]);
+
+                const [profilesRes, roomsRes, statsRes, wardrobeRes] = results;
+
+                if (profilesRes.data && isSubscribed) {
+                    const rooms = roomsRes.data || [];
+                    const statsMap = new Map((statsRes.data || []).map(s => [s.user_id, s]));
+                    const wardrobeMap = new Map((wardrobeRes.data || []).map(w => [w.user_id, w]));
+
+                    const users: LanternUser[] = profilesRes.data.map((p, index) => {
+                        const mergedProfile = {
+                            ...p,
+                            user_stats: statsMap.get(p.id) || null,
+                            chum_wardrobe: wardrobeMap.get(p.id) || null
+                        } as RawProfile;
+
+                        if (p.id === currentUserId) {
+                            return formatUser({
+                                ...mergedProfile,
+                                user_stats: {
+                                    ...(mergedProfile.user_stats || {}),
+                                    total_seconds_tracked: totalSecondsTrackedRef.current // Use current ref value
+                                },
+                                is_in_flowstate: activeMode === 'flowState',
+                                active_session_type: isTutorModeActive ? 'AI_TUTOR' : null,
+                                status: activeMode === 'none' ? 'idle' : activeMode
+                            }, rooms, currentUserId, index);
+                        }
+                        return formatUser(mergedProfile, rooms, currentUserId, index);
+                    });
+                    setFullNetwork(users);
+                }
+            } catch (err) {
+                console.error("Lantern Network Fetch Error:", err);
+            } finally {
+                if (isSubscribed) {
+                    setIsNetworkLoading(false);
+                    isFirstLoad.current = false;
+                }
             }
-        }
-    };
+        };
 
-    fetchNetwork();
+        fetchNetwork();
 
-    const channel = supabase.channel('lantern_sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
-            if (isSubscribed) fetchNetwork();
-        })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => {
-            if (isSubscribed) fetchNetwork();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'user_stats' }, () => {
-            if (isSubscribed) fetchNetwork();
-        })
-        .subscribe();
+        const channel = supabase.channel('lantern_sync')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => {
+                if (isSubscribed) fetchNetwork();
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => {
+                if (isSubscribed) fetchNetwork();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'user_stats' }, () => {
+                if (isSubscribed) fetchNetwork();
+            })
+            .subscribe();
 
-    return () => {
-        isSubscribed = false;
-        supabase.removeChannel(channel);
-    };
-}, [totalSessions, activeMode, isTutorModeActive, totalSecondsTracked]);
+        return () => {
+            isSubscribed = false;
+            supabase.removeChannel(channel);
+        };
+    }, [totalSessions, activeMode, isTutorModeActive]);
 
 const handleBroadcast = async () => {
     if (isSubmitting) return;
@@ -307,7 +335,7 @@ return (
 
         <AnimatePresence>
             {isHostModalOpen && (
-                <div className="fixed inset-0 z-1000 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         onClick={() => setIsHostModalOpen(false)} className="absolute inset-0 bg-black/70 backdrop-blur-sm cursor-pointer" />
                     <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 40 }}
@@ -598,7 +626,7 @@ return (
                                                             <h4 className="text-xs font-black text-white group-hover/room:text-(--accent-teal) transition-colors truncate pr-2">{user.roomTitle || 'Sanctuary'}</h4>
                                                             <span className="text-[10px] bg-(--accent-teal)/10 text-(--accent-teal) px-2 py-0.5 rounded-full font-black uppercase">{user.status}</span>
                                                         </div>
-                                                        {user.roomDescription && <p className="text-[10px] text-(--text-muted) italic line-clamp-1 mb-3">"{user.roomDescription}"</p>}
+                                                        {user.roomDescription && <p className="text-[10px] text-(--text-muted) italic line-clamp-1 mb-3">&quot;{user.roomDescription}&quot;</p>}
                                                         <div className="flex items-center gap-2">
                                                             <div className="w-5 h-5 rounded-full bg-(--bg-dark) flex items-center justify-center text-[10px]">{user.chumLabel.split(' ')[0]}</div>
                                                             <span className="text-[10px] font-bold text-(--text-muted)">Hosted by {user.name}</span>

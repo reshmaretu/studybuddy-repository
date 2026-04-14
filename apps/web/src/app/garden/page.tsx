@@ -11,7 +11,18 @@ import UnDoneModal from "@/components/UnDoneModal";
 import GeodeScene from "@/components/GeodeScene";
 import { useTerms } from "@/hooks/useTerms";
 
-function DropZoneContainer({ id, title, subtitle, children, isEmpty, emptyText }: any) {
+import { Shard } from "@/store/useStudyStore";
+
+interface DropZoneContainerProps {
+    id: string;
+    title: string;
+    subtitle: string;
+    children: React.ReactNode;
+    isEmpty: boolean;
+    emptyText: string;
+}
+
+function DropZoneContainer({ id, title, subtitle, children, isEmpty, emptyText }: DropZoneContainerProps) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col h-full">
@@ -27,7 +38,16 @@ function DropZoneContainer({ id, title, subtitle, children, isEmpty, emptyText }
     );
 }
 
-function MasteryContainer({ id, masteryTab, setMasteryTab, children, isEmpty, emptyText }: any) {
+interface MasteryContainerProps {
+    id: string;
+    masteryTab: 'tasks' | 'shards';
+    setMasteryTab: (tab: 'tasks' | 'shards') => void;
+    children: React.ReactNode;
+    isEmpty: boolean;
+    emptyText: string;
+}
+
+function MasteryContainer({ id, masteryTab, setMasteryTab, children, isEmpty, emptyText }: MasteryContainerProps) {
     const { isOver, setNodeRef } = useDroppable({ id });
     const { terms } = useTerms();
     return (
@@ -49,7 +69,7 @@ function MasteryContainer({ id, masteryTab, setMasteryTab, children, isEmpty, em
     );
 }
 
-function MasteredShardCard({ shard, onSnipe }: { shard: any, onSnipe: () => void }) {
+function MasteredShardCard({ shard, onSnipe }: { shard: Shard, onSnipe: () => void }) {
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.8, rotateX: -15 }}
@@ -96,7 +116,20 @@ function MasteredShardCard({ shard, onSnipe }: { shard: any, onSnipe: () => void
 // 🎨 FRAMEWORK UI COMPONENTS
 // ==========================================
 
-function MatrixZone({ id, title, subtitle, tasks, color, bg, border, activeBorder, onToggleSelect, selectedIds }: any) {
+interface MatrixZoneProps {
+    id: string;
+    title: string;
+    subtitle: string;
+    tasks: Task[];
+    color: string;
+    bg: string;
+    border: string;
+    activeBorder: string;
+    onToggleSelect: (id: string) => void;
+    selectedIds: string[];
+}
+
+function MatrixZone({ id, title, subtitle, tasks, color, bg, border, activeBorder, onToggleSelect, selectedIds }: MatrixZoneProps) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
         <div ref={setNodeRef} className={`flex flex-col rounded-2xl border-2 transition-all duration-300 ${isOver ? activeBorder + ' bg-black/40 ring-1 ring-current brightness-125 shadow-[inset_0_0_30px_rgba(255,255,255,0.05)] z-10' : border + ' ' + bg}`}>
@@ -107,7 +140,7 @@ function MatrixZone({ id, title, subtitle, tasks, color, bg, border, activeBorde
                 <p className="text-[8px] sm:text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mt-0.5 hidden sm:block">{subtitle}</p>
             </div>
             <div style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} className="flex-1 p-2 sm:p-3 overflow-y-auto overflow-x-hidden space-y-2 [&::-webkit-scrollbar]:hidden rounded-b-xl pb-12">
-                {tasks.map((task: any) => (
+                {tasks.map((task: Task) => (
                     <TaskCard 
                         key={task.id} 
                         task={task} 
@@ -120,7 +153,14 @@ function MatrixZone({ id, title, subtitle, tasks, color, bg, border, activeBorde
     );
 }
 
-function IvySlot({ rank, task, isLocked, isActive, onToggleSelect, selectedIds }: any) {
+function IvySlot({ rank, task, isLocked, isActive, onToggleSelect, selectedIds }: {
+    rank: number;
+    task: Task | null;
+    isLocked: boolean;
+    isActive: boolean;
+    onToggleSelect: (id: string) => void;
+    selectedIds: string[];
+}) {
     const id = `ivy-${rank}`;
     const { isOver, setNodeRef } = useDroppable({ id, disabled: isLocked && !!task });
     return (
@@ -157,15 +197,28 @@ function IvySlot({ rank, task, isLocked, isActive, onToggleSelect, selectedIds }
     );
 }
 
-function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, border, updateTask, onToggleSelect, selectedIds }: any) {
+interface DropdownCapacityZoneProps {
+    loadType: TaskLoad;
+    title: string;
+    max: number;
+    allTasks: Task[];
+    color: string;
+    bg: string;
+    border: string;
+    updateTask: (id: string, updates: Partial<Task>) => void;
+    onToggleSelect: (id: string) => void;
+    selectedIds: string[];
+}
+
+function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, border, updateTask, onToggleSelect, selectedIds }: DropdownCapacityZoneProps) {
     const [isOpen, setIsOpen] = useState(false);
 
     // 1. Filter all tasks by cognitive load (Heavy/Medium/Light)
-    const categoryTasks = allTasks.filter((t: any) => t.load === loadType);
+    const categoryTasks = allTasks.filter((t: Task) => (t as any).load === loadType);
 
     // 2. Separate into "Equipped" (Pinned) and "Backlog" (Unpinned)
-    const selectedTasks = categoryTasks.filter((t: any) => t.isPinned);
-    const availableTasks = categoryTasks.filter((t: any) => !t.isPinned);
+    const selectedTasks = categoryTasks.filter((t: Task) => t.isPinned);
+    const availableTasks = categoryTasks.filter((t: Task) => !t.isPinned);
 
     const isFull = selectedTasks.length >= max;
 
@@ -225,7 +278,7 @@ function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, borde
                             {availableTasks.length === 0 ? (
                                 <div className="text-center text-xs text-[var(--text-muted)] italic py-4">No unassigned {loadType} quests.</div>
                             ) : (
-                                availableTasks.map((task: any) => (
+                                availableTasks.map((task: Task) => (
                                     // 🎨 Task Container inside dropdown now uses thematic base colors!
                                     <div key={task.id} className={`flex items-center justify-between p-2.5 rounded-lg border transition-all duration-300 cursor-default ${theme.cardBase} ${theme.cardHover}`}>
                                         <span className="text-xs font-bold text-white truncate max-w-[75%] pr-2">{task.title}</span>
@@ -249,7 +302,7 @@ function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, borde
 
             {/* Equipped Tasks Display */}
             <div style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} className={`flex-1 p-3 sm:p-4 overflow-y-auto overflow-x-hidden space-y-3 [&::-webkit-scrollbar]:hidden min-h-[120px] rounded-b-xl ${isOpen ? 'pb-4' : 'pb-8'}`}>
-                {selectedTasks.map((task: any) => (
+                {selectedTasks.map((task: Task) => (
                     <div key={task.id} className="relative group animate-in fade-in zoom-in duration-300">
                         {/* 🎨 Wrapped the equipped TaskCard in a thematic border to match the zone */}
                         <div className={`rounded-xl border-2 p-1 bg-black/20 transition-all ${theme.wrapperBorder}`}>
@@ -282,7 +335,14 @@ function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, borde
     );
 }
 
-function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll, onToggleSelect, selectedIds }: any) {
+function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll, onToggleSelect, selectedIds }: {
+    id: string;
+    tasks: Task[];
+    title?: string;
+    onViewAll?: () => void;
+    onToggleSelect: (id: string) => void;
+    selectedIds: string[];
+}) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
         <div ref={setNodeRef} className={`h-full flex flex-col rounded-2xl border-2 border-dashed transition-all duration-300 ${isOver ? 'border-[var(--accent-teal)] bg-[var(--accent-teal)]/10 ring-1 ring-[var(--accent-teal)] brightness-125' : 'border-[var(--border-color)] bg-[var(--bg-dark)]'}`}>
@@ -307,7 +367,7 @@ function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll, onToggl
                 {tasks.length === 0 ? (
                     <div className="h-full flex items-center justify-center text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest italic opacity-50">All Quests Assigned</div>
                 ) : (
-                    tasks.map((task: any) => (
+                    tasks.map((task: Task) => (
                         <TaskCard 
                             key={task.id} 
                             task={task} 
@@ -321,14 +381,19 @@ function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll, onToggl
     );
 }
 
-function StandardZone({ id, tasks, onToggleSelect, selectedIds }: any) {
+function StandardZone({ id, tasks, onToggleSelect, selectedIds }: {
+    id: string;
+    tasks: Task[];
+    onToggleSelect: (id: string) => void;
+    selectedIds: string[];
+}) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
         <div ref={setNodeRef} style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} className={`absolute inset-0 rounded-xl transition-all duration-300 flex flex-col gap-3 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden border-2 border-dashed p-1 min-h-[150px] pb-16 ${isOver ? "bg-[var(--accent-teal)]/10 border-[var(--accent-teal)] ring-1 ring-[var(--accent-teal)] brightness-110 z-10" : "border-transparent"}`}>
             {tasks.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-[var(--text-muted)] text-sm font-medium">No active quests yet</div>
             ) : (
-                tasks.map((task: any) => (
+                tasks.map((task: Task) => (
                     <TaskCard 
                         key={task.id} 
                         task={task} 
@@ -406,7 +471,7 @@ export default function CrystalGarden() {
     const getPhaseValue = (t: Task) => {
         const deadline = t.deadline;
         if (!deadline) return 0;
-        const diff = (new Date(deadline).getTime() - Date.now()) / 3600000;
+        const diff = (new Date(deadline as string).getTime() - Date.now()) / 3600000;
         if (diff < 0) return 4; // Overdue
         if (diff <= 2) return 3; // Critical
         if (diff <= 12) return 2; // Soon
@@ -960,9 +1025,9 @@ export default function CrystalGarden() {
                                                         const t = activeQuests.find(t => t.ivyRank === r);
                                                         return !t || !t.isCompleted;
                                                     }) || 1;
-                                                    const isLocked = task && rank > activeRank;
+                                                    const isLocked = !!(task && rank > activeRank);
 
-                                                    return <IvySlot key={rank} rank={rank} task={task} isLocked={isLocked} isActive={rank === activeRank} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />;
+                                                    return <IvySlot key={rank} rank={rank} task={task || null} isLocked={isLocked} isActive={rank === activeRank} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />;
                                                 })}
                                             </div>
                                             {activeQuests.filter(t => !t.ivyRank).length > 0 && (

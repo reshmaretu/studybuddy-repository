@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Play, Coffee, Waves, Lock, FileSignature, Timer } from "lucide-react";
-import { useStudyStore } from "@/store/useStudyStore";
+import { useStudyStore, Task } from "@/store/useStudyStore";
 import { useState } from "react";
 import { DndContext, useDraggable, useDroppable, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
 
@@ -44,14 +44,14 @@ export default function FocusModal() {
         }
     };
 
-    const OverlayMiniTask = ({ task }: { task: any }) => (
-        <div className="bg-[var(--bg-dark)] border border-[var(--accent-teal)] rounded-xl p-3 shadow-2xl opacity-90 scale-105 cursor-grabbing">
-            <h4 className="text-[var(--text-main)] font-bold text-sm truncate">{task?.title}</h4>
-            <span className="text-[10px] text-[var(--accent-teal)] uppercase tracking-wider font-bold">{task?.load} Load</span>
+    const OverlayMiniTask = ({ task }: { task: Task }) => (
+        <div className="flex items-center gap-3 bg-[var(--bg-sidebar)] p-3 rounded-2xl border border-[var(--border-color)] shadow-xl w-64 opacity-50">
+            <div className="w-2 h-2 rounded-full bg-[var(--accent-teal)]" />
+            <span className="text-xs font-bold text-[var(--text-main)] truncate">{task.title}</span>
         </div>
     );
 
-    const DraggableMiniTask = ({ task }: { task: any }) => {
+    const DraggableMiniTask = ({ task }: { task: Task }) => {
         const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id });
         return (
             <div
@@ -185,7 +185,10 @@ export default function FocusModal() {
                             <CrucibleDropZone />
                         </div>
                         <DragOverlay>
-                            {activeDragId ? <OverlayMiniTask task={tasks.find(t => t.id === activeDragId)} /> : null}
+                            {(() => {
+                                const draggedTask = tasks.find(t => t.id === activeDragId);
+                                return draggedTask ? <OverlayMiniTask task={draggedTask} /> : null;
+                            })()}
                         </DragOverlay>
                     </DndContext>
                 </div>

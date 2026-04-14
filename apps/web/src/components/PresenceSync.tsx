@@ -8,7 +8,7 @@ export default function PresenceSync() {
     const pathname = usePathname();
     const { activeMode, isTutorModeActive } = useStudyStore();
     const userIdRef = useRef<string | null>(null);
-    const channelRef = useRef<any>(null);
+    const channelRef = useRef<import('@supabase/supabase-js').RealtimeChannel | null>(null);
 
     const isInRoom = pathname.startsWith('/room/');
     // 🛑 EMBARGO: If any of these are active, this component stays SILENT

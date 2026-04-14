@@ -3,6 +3,7 @@ import React from 'react';
 export type TaskLoad = 'light' | 'medium' | 'heavy';
 
 export interface ChumToast {
+    id: string; // Add ID for tracking
     message: string | React.ReactNode;
     type?: 'info' | 'success' | 'warning' | 'error';
     action?: () => void;

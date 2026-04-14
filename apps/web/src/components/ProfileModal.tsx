@@ -80,9 +80,9 @@ export default function ProfileModal() {
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [rotation, setRotation] = useState(0);
-    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 
-    const onCropComplete = useCallback((_: any, pixelArea: any) => {
+    const onCropComplete = useCallback((_: unknown, pixelArea: { x: number; y: number; width: number; height: number }) => {
         setCroppedAreaPixels(pixelArea);
     }, []);
 
@@ -114,8 +114,8 @@ export default function ProfileModal() {
             const blob = await getCroppedImg(image, croppedAreaPixels, rotation);
             const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
 
-            const fileName = `${user.id}-${Date.now()}.jpg`;
-            const filePath = `${fileName}`;
+            const fileName = `avatar-${Date.now()}.jpg`;
+            const filePath = `${user.id}/${fileName}`;
 
             // Upload
             const { error: uploadError } = await supabase.storage
@@ -140,7 +140,7 @@ export default function ProfileModal() {
             triggerChumToast("Identity appearance harmonized.", "success");
             setImage(null);
             setActiveTab('custom');
-        } catch (err: any) {
+        } catch (err) {
             console.error(err);
             triggerChumToast("Shard uplink failed.", "warning");
         } finally {
