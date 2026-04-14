@@ -5,13 +5,20 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Float, ContactShadows } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { Move3D, Minimize, MousePointerClick, X, Sparkles } from "lucide-react";
-import { useStudyStore, WardrobeAccessory } from "@/store/useStudyStore";
-import { Shard } from "@/store/useStudyStore";
-import { LanternUser } from "@/app/lantern/page";
-import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
+import { Move3D, Minimize, MousePointerClick, X, Sparkles, Lock, Check } from "lucide-react";
+import { useStudyStore, Shard, TaskLoad } from "@/store/useStudyStore";
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
+import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 
+// --- TYPES ---
+interface TrilliumPosition {
+    pos: [number, number, number];
+    stemHeight: number;
+    scale: number;
+    rotY: number;
+    tiltX: number;
+    tiltZ: number;
+}
 
 // --- DICTIONARIES ---
 const CRYSTAL_CATALOG: Record<string, { color: string, emissive: string }> = {
@@ -39,11 +46,9 @@ function CylinderGlitter({ count, completionRatio }: { count: number, completion
     const pointsRef = useRef<THREE.Points>(null);
     const geoRef = useRef<THREE.BufferGeometry>(null);
 
-    // 1. Calculate the perfect cylinder ONLY ONCE
     const positions = useMemo(() => {
         const pos = new Float32Array(count * 3);
         for (let i = 0; i < count; i++) {
-            // Deterministic pseudo-randomness for React purity
             const theta = (i * 1337.42) % (Math.PI * 2); 
             const radius = Math.sqrt((i * 42.123) % 1) * 25; 
 
@@ -54,20 +59,16 @@ function CylinderGlitter({ count, completionRatio }: { count: number, completion
         return pos;
     }, [count]);
 
-    // 2. Animate the floating effect
     useFrame((state) => {
         if (pointsRef.current) {
-            // Gentle rotation like a slow tornado
             pointsRef.current.rotation.y = state.clock.elapsedTime * 0.02;
-            // Gentle floating up and down
             pointsRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 1.5;
         }
     });
 
-    // 3. Dynamically update how many particles to draw based on completion
     useEffect(() => {
         if (geoRef.current) {
-            const displayCount = Math.max(500, Math.floor(completionRatio * count)); // Minimum base glitter
+            const displayCount = Math.floor(completionRatio * count);
             geoRef.current.setDrawRange(0, displayCount);
         }
     }, [completionRatio, count]);
@@ -82,8 +83,8 @@ function CylinderGlitter({ count, completionRatio }: { count: number, completion
                 />
             </bufferGeometry>
             <pointsMaterial
-                size={0.25}
-                color={new THREE.Color("#e0f2fe").multiplyScalar(8)}
+                size={0.15}
+                color={new THREE.Color("#e0f2fe").multiplyScalar(5)}
                 toneMapped={false}
                 transparent
                 opacity={0.8}
@@ -106,85 +107,61 @@ export function createMasterFlowerGeometry() {
     stem.translate(0, 0.5, 0);
 
     const core = prep(new THREE.DodecahedronGeometry(0.025, 0));
-    // Raised it from 1.0 to 1.05 so it sits on top of the massive petals
     core.translate(0, 1.08, 0);
 
-    // 1. MASSIVE PETALS: Increased base radius and adjusted segments for better lighting
     const basePetal = prep(new THREE.SphereGeometry(0.12, 7, 5));
-    // Scale X (width), Y (thickness), Z (length)
-    // Making them much longer (2.5) and nicely wide (1.5)
     basePetal.scale(1.5, 0.1, 2.5);
 
-    const petals = [];
-    const flowerCountInCluster = 4;
-    const clusterGeometries = [];
-    
-    for (let c = 0; c < flowerCountInCluster; c++) {
-        // Randomly offset each flower in the "patch"
-        const offsetX = (Math.random() - 0.5) * 0.8;
-        const offsetZ = (Math.random() - 0.5) * 0.8;
-        const clusterScale = 0.5 + Math.random() * 0.4;
-        const patchRotY = Math.random() * Math.PI * 2;
+    const petals: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < 3; i++) {
+        const petal = basePetal.clone();
+        const matrix = new THREE.Matrix4();
+        matrix.makeTranslation(0, 0, 0.18);
 
-        const petals = [];
-        for (let i = 0; i < 3; i++) {
-            const petal = basePetal.clone();
-            const matrix = new THREE.Matrix4();
-            matrix.makeTranslation(0, 0, 0.15); // Slightly tighter petals
-            const droop = new THREE.Matrix4().makeRotationX(0.35); // Less droopy
-            matrix.multiply(droop);
-            const rotationY = new THREE.Matrix4().makeRotationY((Math.PI * 2 / 3) * i);
-            matrix.premultiply(rotationY);
-            const moveUp = new THREE.Matrix4().makeTranslation(0, 1.0, 0);
-            matrix.premultiply(moveUp);
-            petal.applyMatrix4(matrix);
-            petals.push(petal);
-        }
+        const droop = new THREE.Matrix4().makeRotationX(0.4);
+        matrix.multiply(droop);
 
-        const flowerGeo = BufferGeometryUtils.mergeGeometries([stem.clone(), core.clone(), ...petals], true);
-        flowerGeo.rotateY(patchRotY);
-        flowerGeo.translate(offsetX, 0, offsetZ);
-        flowerGeo.scale(clusterScale, clusterScale, clusterScale);
-        clusterGeometries.push(flowerGeo);
+        const rotationY = new THREE.Matrix4().makeRotationY((Math.PI * 2 / 3) * i);
+        matrix.premultiply(rotationY);
+
+        const moveUp = new THREE.Matrix4().makeTranslation(0, 1.0, 0);
+        matrix.premultiply(moveUp);
+
+        petal.applyMatrix4(matrix);
+        petals.push(petal);
     }
 
-    const mergedGeometry = BufferGeometryUtils.mergeGeometries(clusterGeometries, true);
+    const mergedGeometry = BufferGeometryUtils.mergeGeometries(
+        [stem, core, ...petals],
+        true
+    );
+
     mergedGeometry.computeBoundingSphere();
     mergedGeometry.computeBoundingBox();
 
     return mergedGeometry;
 }
 
-interface TrilliumPosition {
-    pos: [number, number, number];
-    stemHeight: number;
-    scale: number;
-    rotY: number;
-    tiltX: number;
-    tiltZ: number;
-}
-
 // --- PROCEDURAL GENERATORS ---
 function generateTrilliums(count: number): TrilliumPosition[] {
     const flowers: TrilliumPosition[] = [];
     for (let i = 0; i < count; i++) {
-        // Use the old-style natural distribution
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 2.5 + Math.sqrt(Math.random()) * 21.5;
+        const angle = ((i * 77.7) % 1) * Math.PI * 2;
+        const radius = 2.5 + Math.sqrt((i * 11.1) % 1) * 21.5;
         const x = Math.cos(angle) * radius;
         const z = Math.sin(angle) * radius;
 
-        const stemHeight = 0.1 + Math.random() * 0.3;
-        const scale = 0.82 + Math.random() * 1.5;
+        const stemHeight = 0.15 + ((i * 22.2) % 1) * 0.35;
+        const scale = 1.0 + ((i * 33.3) % 1) * 2.0; 
 
-        const tiltX = (Math.random() - 0.5) * 0.4;
-        const tiltZ = (Math.random() - 0.5) * 0.4;
+        const tiltX = (((i * 44.4) % 1) - 0.5) * 0.5;
+        const tiltZ = (((i * 55.5) % 1) - 0.5) * 0.5;
 
         flowers.push({
             pos: [x, -0.4, z],
             stemHeight,
             scale,
-            rotY: Math.random() * Math.PI * 2,
+            rotY: ((i * 66.6) % 1) * Math.PI * 2,
             tiltX,
             tiltZ
         });
@@ -226,10 +203,8 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
     const bgMeshRef = useRef<THREE.InstancedMesh>(null);
     const masteredMeshRef = useRef<THREE.InstancedMesh>(null);
 
-    // 1. ONLY PULL WHAT WE STILL NEED FROM THE STORE
     const { windSpeed, swayAmount, swayEnabled = true } = useStudyStore();
 
-    // 2. KEEP ONLY THESE TWO USE-MEMOS (The rest are passed in as props now!)
     const crystalData = useMemo(() => generateCrystalCluster(35), []);
     const theme = CRYSTAL_CATALOG[themeKey] || CRYSTAL_CATALOG.quartz;
     const masterFlowerGeometry = useMemo(() => createMasterFlowerGeometry(), []);
@@ -240,11 +215,6 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
     }), [swayAmount]);
 
     const materials = useMemo(() => {
-        // Derive darkened white/theme versions for grass and stems
-        const baseColor = new THREE.Color(theme.color);
-        const darkenedColor = baseColor.clone().multiplyScalar(0.2); // Darkened version of theme
-        const neutralWhite = new THREE.Color("#d1d5db"); // Darkened white version
-
         const mats = {
             quartz: new THREE.MeshPhysicalMaterial({
                 color: theme.color, emissive: theme.emissive, emissiveIntensity: progress * 0.25,
@@ -252,17 +222,16 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
                 ior: 1.55, flatShading: true, clearcoat: 1, clearcoatRoughness: 0.1
             }),
             rock: new THREE.MeshStandardMaterial({ color: "#475560", roughness: 0.9, flatShading: true }),
-            grass: new THREE.MeshStandardMaterial({ color: neutralWhite, roughness: 1 }),
-            stem: new THREE.MeshStandardMaterial({ color: darkenedColor, roughness: 0.9 }),
+            grass: new THREE.MeshStandardMaterial({ color: "#4a685e", roughness: 1 }),
+            stem: new THREE.MeshStandardMaterial({ color: "#166534", roughness: 0.9 }),
             center: new THREE.MeshStandardMaterial({ color: "#fef08a", roughness: 0.8 }),
             petal: new THREE.MeshStandardMaterial({
                 color: "#ffffff",
                 emissive: "#ffffff",
-                emissiveIntensity: 0.65, // Low intensity so it stays white but still catches the Bloom
+                emissiveIntensity: 0.65, 
                 roughness: 0.6,
                 flatShading: true
             }),
-            // MASTERED PETAL: Blindingly bright glow using the crystal's theme color
             masteredPetal: new THREE.MeshStandardMaterial({
                 color: "#ffffff",
                 emissive: new THREE.Color(theme.emissive),
@@ -276,36 +245,24 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
             mat.onBeforeCompile = (shader) => {
                 shader.uniforms.uTime = shaderUniforms.uTime;
                 shader.uniforms.uSwayAmount = shaderUniforms.uSwayAmount;
-                shader.uniforms.uProgress = { value: progress };
-                
                 shader.vertexShader = `uniform float uTime;\nuniform float uSwayAmount;\n${shader.vertexShader}`;
                 shader.vertexShader = shader.vertexShader.replace(
                     `#include <begin_vertex>`,
                     `#include <begin_vertex>\nfloat sway = sin(uTime + position.x * 0.5 + position.z * 0.5) * uSwayAmount;\ntransformed.x += sway * position.y;\ntransformed.z += sway * position.y;`
                 );
-
-                if (mat === mats.petal) {
-                    shader.fragmentShader = `uniform float uProgress;\n${shader.fragmentShader}`;
-                    shader.fragmentShader = shader.fragmentShader.replace(
-                        `#include <emissivemap_fragment>`,
-                        `#include <emissivemap_fragment>\ntotalEmissiveRadiance *= (0.2 + uProgress * 2.5);`
-                    );
-                }
             };
         });
         return mats;
-    }, [theme, progress, shaderUniforms]);
+    }, [theme, shaderUniforms]);
 
     const bgMaterialArray = useMemo(() => [materials.stem, materials.center, materials.petal, materials.petal, materials.petal], [materials]);
     const masteredMaterialArray = useMemo(() => [materials.stem, materials.center, materials.masteredPetal, materials.masteredPetal, materials.masteredPetal], [materials]);
 
-    // 3. POPULATE THE TWO MESHES
     useEffect(() => {
         const dummy = new THREE.Object3D();
         const masteredCount = masteredShards.length;
         const safeMasteredCount = Math.min(masteredCount, flowerCount);
 
-        // A. Populate Mastered Flowers
         if (masteredMeshRef.current && safeMasteredCount > 0) {
             for (let i = 0; i < safeMasteredCount; i++) {
                 const f = allFlowerPositions[i];
@@ -321,12 +278,8 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
             masteredMeshRef.current.instanceMatrix.needsUpdate = true;
         }
 
-        // B. Populate Background Flowers
         if (bgMeshRef.current) {
             const bgCount = Math.max(0, flowerCount - safeMasteredCount);
-            // We must update the count property of the InstancedMesh
-            bgMeshRef.current.count = bgCount;
-            
             for (let i = 0; i < bgCount; i++) {
                 const f = allFlowerPositions[i + safeMasteredCount];
                 if (!f) break; 
@@ -343,14 +296,13 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
     }, [allFlowerPositions, masteredShards.length, flowerCount]);
 
     useFrame((state) => {
-        const mats = materials;
         if (shardsRef.current && coreLightRef.current) {
             const targetYScale = progress === 0 ? 0.05 : 0.2 + (progress * 1.2);
             const targetXZScale = progress === 0 ? 0.05 : 0.6 + (progress * 0.6);
             shardsRef.current.scale.lerp(new THREE.Vector3(targetXZScale, targetYScale, targetXZScale), 0.05);
             const targetIntensity = progress === 0 ? 0.2 : 1.5 + (progress * 5);
             coreLightRef.current.intensity = THREE.MathUtils.lerp(coreLightRef.current.intensity, targetIntensity, 0.05);
-            mats.quartz.emissiveIntensity = THREE.MathUtils.lerp(mats.quartz.emissiveIntensity, progress * 0.25, 0.05);
+            materials.quartz.emissiveIntensity = THREE.MathUtils.lerp(materials.quartz.emissiveIntensity, progress * 0.25, 0.05);
         }
         shaderUniforms.uTime.value = state.clock.elapsedTime * windSpeed;
         shaderUniforms.uSwayAmount.value = swayEnabled ? swayAmount : 0;
@@ -366,7 +318,6 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
 
             <instancedMesh
                 ref={bgMeshRef}
-                // Pre-allocate large space to avoid re-instantiation flicker
                 args={[masterFlowerGeometry, bgMaterialArray, 20000]}
                 castShadow={false} receiveShadow={false}
                 frustumCulled={false}
@@ -385,7 +336,6 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
                     onPointerOut={() => { document.body.style.cursor = 'auto'; }}
                     onClick={(e) => {
                         e.stopPropagation();
-                        // Prevent interacting with invisible/unallocated slots
                         if (e.instanceId !== undefined && e.instanceId < masteredShards.length) {
                             const shard = masteredShards[e.instanceId];
                             if (shard) setViewingShard(shard);
@@ -416,15 +366,12 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
     );
 }
 
-function LowPolyClouds({ filter }: { filter: typeof SCENE_FILTERS.default }) {
+function LowPolyClouds({ filter }: { filter: any }) {
     return (
         <Float speed={0.4} floatIntensity={0.6}>
             <group position={[0, 4, -20]}>
-                {/* Grand, distant background clouds */}
                 <mesh position={[-30, 8, -15]} scale={2.5}><dodecahedronGeometry args={[8]} /><meshStandardMaterial color={filter.fillLight} flatShading opacity={0.6} transparent /></mesh>
                 <mesh position={[25, 12, -10]} scale={3.0}><dodecahedronGeometry args={[6]} /><meshStandardMaterial color={filter.bg} flatShading opacity={0.5} transparent /></mesh>
-
-                {/* Mid-ground scatter */}
                 <mesh position={[-15, 14, -5]} scale={1.5}><dodecahedronGeometry args={[10]} /><meshStandardMaterial color={filter.amb} flatShading opacity={0.4} transparent /></mesh>
                 <mesh position={[10, 18, 5]} scale={1.8}><dodecahedronGeometry args={[7]} /><meshStandardMaterial color={filter.fillLight} flatShading opacity={0.7} transparent /></mesh>
                 <mesh position={[0, 22, -8]} scale={2.0}><dodecahedronGeometry args={[5]} /><meshStandardMaterial color={filter.amb} flatShading opacity={0.5} transparent /></mesh>
@@ -455,12 +402,11 @@ function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, 
         if (snipingShard) isSniping.current = true;
     }, [snipingShard]);
 
-    // 🔥 CANCEL SNIPE ON MOUSE/WHEEL INTERACTION 🔥
     useEffect(() => {
         const cancelSnipe = () => {
             if (isSniping.current) {
                 isSniping.current = false;
-                setSnipingShard(null); // Instantly abort
+                setSnipingShard(null);
             }
         };
         const canvas = controlsRef.current?.domElement;
@@ -476,10 +422,8 @@ function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, 
         }
     }, [setSnipingShard]);
 
-    // 🔥 FREECAM AND RETURN LOGIC 🔥
     useEffect(() => {
         if (!isFreecam && isFocused) {
-            // Always return to crystal if we aren't actively sniping
             if (!snipingShard) isReturning.current = true;
         }
         if (isFreecam) {
@@ -501,7 +445,6 @@ function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, 
                 state.camera.position.lerp(camPos, 0.04);
                 controlsRef.current.target.lerp(targetPos, 0.05);
 
-                // Relaxed distance check prevents rubber-banding at the very end of the animation
                 if (state.camera.position.distanceTo(camPos) < 0.2 && controlsRef.current.target.distanceTo(targetPos) < 0.2) {
                     state.camera.position.copy(camPos);
                     controlsRef.current.target.copy(targetPos);
@@ -581,7 +524,7 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
     const [viewingShard, setViewingShard] = useState<Shard | null>(null);
 
     const containerRef = useRef<HTMLDivElement>(null);
-    const keys = useRef({ w: false, a: false, s: false, d: false, q: false, e: false });
+    const keys = useRef<Record<string, boolean>>({ w: false, a: false, s: false, d: false, q: false, e: false });
 
     const { 
         activeCrystalTheme, 
@@ -593,12 +536,12 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
     
     // Performance Heuristics
     const isPerformanceLow = performanceSettings.mode === 'low' || (performanceSettings.mode === 'auto' && typeof window !== 'undefined' && window.innerWidth < 768);
-    const resolvedFlowerCount = isPerformanceLow ? Math.min(flowerCount, 4000) : performanceSettings.mode === 'balanced' ? Math.min(flowerCount, 8000) : flowerCount * 1.5;
-    const resolvedGlitterCount = isPerformanceLow ? 1000 : performanceSettings.mode === 'balanced' ? 4000 : 10000;
-    const resolvedBloomIntensity = !performanceSettings.bloomEnabled || isPerformanceLow ? 0 : (performanceSettings.mode === 'balanced' ? 0.35 : 0.4 + (completionRatio * 1.5));
+    const resolvedFlowerCount = isPerformanceLow ? Math.min(flowerCount, 2000) : performanceSettings.mode === 'balanced' ? Math.min(flowerCount, 5000) : flowerCount;
+    const resolvedGlitterCount = isPerformanceLow ? 1000 : performanceSettings.mode === 'balanced' ? 3000 : 6000;
+    const resolvedBloomIntensity = !performanceSettings.bloomEnabled || isPerformanceLow ? 0 : (performanceSettings.mode === 'balanced' ? 0.4 : 0.5 + (completionRatio * 2.0));
     const activeAtmosphere = SCENE_FILTERS[activeAtmosphereFilter as keyof typeof SCENE_FILTERS] || SCENE_FILTERS.default;
 
-    const allFlowerPositions: TrilliumPosition[] = useMemo(() => generateTrilliums(resolvedFlowerCount), [resolvedFlowerCount]);
+    const allFlowerPositions = useMemo(() => generateTrilliums(resolvedFlowerCount), [resolvedFlowerCount]);
     const masteredShards = useMemo(() => shards.filter(s => s.isMastered), [shards]);
 
     useEffect(() => {
@@ -645,7 +588,6 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
             onClick={() => { if (!isFocused) setIsFocused(true); }}
         >
 
-            {/* UI OVERLAYS FOR FREECAM */}
             {isFocused && (
                 <div className="absolute bottom-4 left-4 z-10 flex flex-col items-start gap-2">
                     <button onClick={(e) => { e.stopPropagation(); setIsFreecam(!isFreecam); }} className={`backdrop-blur-md px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors flex items-center gap-2 ${isFreecam ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] border-[var(--accent-teal)]/50' : 'bg-black/40 text-white/90 hover:bg-black/60 border-white/10'}`}>
@@ -662,7 +604,6 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
                 </div>
             )}
 
-            {/* THE MASTERED SHARD READING MODAL */}
             {viewingShard && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm" onClick={(e) => { e.stopPropagation(); setViewingShard(null); }}>
                     <div className="bg-[var(--bg-card)] border border-[var(--accent-teal)] rounded-2xl p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto custom-scrollbar relative shadow-[0_0_30px_rgba(20,184,166,0.2)]" onClick={(e) => e.stopPropagation()}>
@@ -683,7 +624,6 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
                 </div>
             )}
 
-            {/* THE 3D CANVAS */}
             <Canvas shadows camera={{ position: [0, 3, 8], fov: 45 }}>
                 <color attach="background" args={[activeAtmosphere.bg]} />
                 <fog attach="fog" args={[activeAtmosphere.bg, activeAtmosphere.fogStart, activeAtmosphere.fogEnd]} />
