@@ -614,6 +614,7 @@ const ToolSettings: React.FC<ToolSettingsProps> = ({ tool }) => {
 const ColorPicker: React.FC = () => {
   const store = useCanvasToolStore();
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const activeColor = getActiveColor(store);
 
   const colors = [
     '#2dd4bf', // teal
@@ -685,6 +686,41 @@ const ColorPicker: React.FC = () => {
     return [{ id: 'brush', label: 'Stroke' }];
   })();
 
+  const parseCssColorToHex = (value: string) => {
+    if (typeof window === 'undefined') return null;
+    const probe = document.createElement('div');
+    probe.style.color = value.trim();
+    document.body.appendChild(probe);
+    const computed = window.getComputedStyle(probe).color || '';
+    document.body.removeChild(probe);
+    const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+    if (!match) return null;
+    return rgbToHex(Number(match[1]), Number(match[2]), Number(match[3]));
+  };
+
+  const normalizeColorInput = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith('#')) return trimmed;
+    if (/^[0-9a-fA-F]{3,8}$/.test(trimmed)) return `#${trimmed}`;
+    return parseCssColorToHex(trimmed);
+  };
+
+  const hexValue = normalizeColorInput(activeColor) || activeColor;
+  const rgbValue = (() => {
+    const parsed = parseCssColorToHex(activeColor);
+    if (!parsed) return '';
+    const { r, g, b } = hexToRgb(parsed);
+    return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+  })();
+  const hslValue = (() => {
+    const parsed = parseCssColorToHex(activeColor);
+    if (!parsed) return '';
+    const { r, g, b } = hexToRgb(parsed);
+    const { h, s, l } = rgbToHsl(r, g, b);
+    return `hsl(${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%)`;
+  })();
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
@@ -721,6 +757,64 @@ const ColorPicker: React.FC = () => {
       >
         {showAdvanced ? 'Hide' : 'Advanced'} Picker
       </button>
+
+      <div className="space-y-2">
+        <div className="text-[10px] uppercase tracking-widest text-white/40">Color Code</div>
+        <div className="space-y-2">
+          <ColorCodeInput
+            label="Hex"
+            value={hexValue}
+            placeholder="#14b8a6"
+            onCommit={(value) => {
+              const parsed = normalizeColorInput(value);
+              if (parsed) applyColor(parsed);
+            }}
+          />
+          <ColorCodeInput
+            label="RGB"
+            value={rgbValue}
+            placeholder="rgb(20 184 166)"
+            onCommit={(value) => {
+              const parsed = normalizeColorInput(value);
+              if (parsed) applyColor(parsed);
+            }}
+          />
+          <ColorCodeInput
+            label="HSL"
+            value={hslValue}
+            placeholder="hsl(173 80% 40%)"
+            onCommit={(value) => {
+              const parsed = normalizeColorInput(value);
+              if (parsed) applyColor(parsed);
+            }}
+          />
+          <ColorCodeInput
+            label="OKLCH"
+            value=""
+            placeholder="oklch(0.7 0.1 200)"
+            onCommit={(value) => {
+              const parsed = normalizeColorInput(value);
+              if (parsed) applyColor(parsed);
+            }}
+          />
+        </div>
+        <button
+          onClick={async () => {
+            const EyeDropperCtor = (window as any)?.EyeDropper;
+            if (!EyeDropperCtor) return;
+            try {
+              const picker = new EyeDropperCtor();
+              const result = await picker.open();
+              if (result?.sRGBHex) applyColor(result.sRGBHex);
+            } catch {
+              // User cancelled
+            }
+          }}
+          className="w-full rounded-xl border border-white/10 px-3 py-2 text-xs uppercase tracking-widest text-white/60 hover:text-white"
+        >
+          Eyedropper
+        </button>
+      </div>
 
       {showAdvanced && (
         <AdvancedColorPicker
@@ -774,6 +868,67 @@ const rgbToHex = (r: number, g: number, b: number) =>
   `#${[r, g, b]
     .map((v) => clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0'))
     .join('')}`;
+
+const rgbToHsl = (r: number, g: number, b: number) => {
+  const rNorm = r / 255;
+  const gNorm = g / 255;
+  const bNorm = b / 255;
+  const max = Math.max(rNorm, gNorm, bNorm);
+  const min = Math.min(rNorm, gNorm, bNorm);
+  const delta = max - min;
+  const l = (max + min) / 2;
+
+  let h = 0;
+  let s = 0;
+  if (delta !== 0) {
+    s = delta / (1 - Math.abs(2 * l - 1));
+    if (max === rNorm) h = ((gNorm - bNorm) / delta) % 6;
+    else if (max === gNorm) h = (bNorm - rNorm) / delta + 2;
+    else h = (rNorm - gNorm) / delta + 4;
+    h *= 60;
+  }
+
+  return { h: (h + 360) % 360, s, l };
+};
+
+interface ColorCodeInputProps {
+  label: string;
+  value: string;
+  placeholder: string;
+  onCommit: (value: string) => void;
+}
+
+const ColorCodeInput: React.FC<ColorCodeInputProps> = ({
+  label,
+  value,
+  placeholder,
+  onCommit,
+}) => {
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  return (
+    <label className="flex items-center gap-2 rounded-xl border border-white/10 px-2 py-1 text-[10px] text-white/70">
+      <span className="w-12 uppercase tracking-widest text-white/40">{label}</span>
+      <input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => onCommit(draft)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            onCommit(draft);
+            (e.currentTarget as HTMLInputElement).blur();
+          }
+        }}
+        placeholder={placeholder}
+        className="flex-1 bg-transparent text-white/80 placeholder:text-white/20 outline-none"
+      />
+    </label>
+  );
+};
 
 const rgbToHsv = (r: number, g: number, b: number) => {
   const rNorm = r / 255;

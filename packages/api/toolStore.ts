@@ -4,8 +4,10 @@
  */
 
 import { create } from 'zustand';
+import * as Y from 'yjs';
 import { devtools } from 'zustand/middleware';
 import type { HitTestResult } from '@studybuddy/canvas-engine';
+import { v4 as uuid } from 'uuid';
 
 export type ToolType = 'select' | 'pen' | 'eraser' | 'mindmap' | 'sticky' | 'rect' | 'circle' | 'line' | 'text';
 export type PenMode = 'ballpoint' | 'marker' | 'highlighter' | 'calligraphy';
@@ -265,18 +267,151 @@ export function executeErase(
 
   if (!hit) return;
 
+  const world = engine.canvasToWorld(canvasX, canvasY);
+  const radius = settings.size / 2;
+
+  const splitStrokeIfNeeded = (strokeId: string) => {
+    const strokeIndex = findStrokeIndexById(ystrokes, strokeId);
+    if (strokeIndex === -1) return false;
+    const strokeMap = ystrokes.get(strokeIndex);
+    if (!strokeMap) return false;
+
+    const pointsArray = (strokeMap.get('points') as any)?.toArray?.() || [];
+    const points = pointsArray.map((pt: any) => pt?.toArray?.() || [0, 0, 1]);
+    if (points.length < 2) {
+      deleteObjectFromYjs(strokeId, yshapes, ystrokes, yconnections, ylayers);
+      return true;
+    }
+
+    const segments: Array<Array<[number, number, number]>> = [];
+    let current: Array<[number, number, number]> = [];
+
+    points.forEach(([px, py, pressure]: [number, number, number]) => {
+      const dx = px - world.x;
+      const dy = py - world.y;
+      const inside = Math.hypot(dx, dy) <= radius;
+      if (inside) {
+        if (current.length >= 2) segments.push(current);
+        current = [];
+      } else {
+        current.push([px, py, pressure ?? 1]);
+      }
+    });
+
+    if (current.length >= 2) segments.push(current);
+
+    if (segments.length === 0) {
+      deleteObjectFromYjs(strokeId, yshapes, ystrokes, yconnections, ylayers);
+      return true;
+    }
+
+    const originalLayerIndex = ylayers.toArray().indexOf(strokeId);
+    const baseData = {
+      color: strokeMap.get('color'),
+      strokeWidth: strokeMap.get('strokeWidth'),
+      eraserMode: strokeMap.get('eraserMode'),
+      pressureEnabled: strokeMap.get('pressureEnabled'),
+      zIndex: strokeMap.get('zIndex') ?? 0,
+      userId: strokeMap.get('userId'),
+      layerId: strokeMap.get('layerId'),
+    };
+
+    replaceStrokePoints(strokeMap, segments[0]);
+
+    for (let i = 1; i < segments.length; i++) {
+      const newId = uuid();
+      const newStroke = new Y.Map();
+      const ypoints = new Y.Array();
+      segments[i].forEach((pt) => {
+        const ypoint = new Y.Array();
+        ypoint.push([pt[0], pt[1], pt[2]]);
+        ypoints.push([ypoint]);
+      });
+
+      newStroke.set('id', newId);
+      newStroke.set('points', ypoints);
+      newStroke.set('color', baseData.color);
+      newStroke.set('strokeWidth', baseData.strokeWidth);
+      newStroke.set('eraserMode', baseData.eraserMode);
+      newStroke.set('pressureEnabled', baseData.pressureEnabled);
+      newStroke.set('zIndex', baseData.zIndex);
+      newStroke.set('userId', baseData.userId);
+      newStroke.set('layerId', baseData.layerId);
+      newStroke.set('createdAt', Date.now());
+
+      ystrokes.push([newStroke]);
+      ylayers.push([newId]);
+
+      if (originalLayerIndex !== -1) {
+        const lastIdx = ylayers.length - 1;
+        if (lastIdx !== originalLayerIndex + i) {
+          ylayers.delete(lastIdx, 1);
+          ylayers.insert(originalLayerIndex + i, [newId]);
+        }
+      }
+    }
+
+    reindexLayers(ylayers, yshapes, ystrokes, yconnections);
+    return true;
+  };
+
   // In 'area' mode, delete all objects in radius
   // In 'precise' mode, only delete the topmost
   if (settings.mode === 'area') {
     const allHits = engine.hitTestArea(canvasX, canvasY, settings.size);
     allHits.forEach((result: HitTestResult) => {
-      deleteObjectFromYjs(result.objectId, yshapes, ystrokes, yconnections, ylayers);
+      if (isStrokeId(result.objectId, ystrokes)) {
+        splitStrokeIfNeeded(result.objectId);
+      } else {
+        deleteObjectFromYjs(result.objectId, yshapes, ystrokes, yconnections, ylayers);
+      }
     });
   } else {
-    deleteObjectFromYjs(hit.objectId, yshapes, ystrokes, yconnections, ylayers);
+    if (!splitStrokeIfNeeded(hit.objectId)) {
+      deleteObjectFromYjs(hit.objectId, yshapes, ystrokes, yconnections, ylayers);
+    }
   }
 
   engine._markDirty?.();
+}
+
+function findStrokeIndexById(ystrokes: any, id: string) {
+  for (let i = 0; i < ystrokes.length; i++) {
+    if (ystrokes.get(i)?.get('id') === id) return i;
+  }
+  return -1;
+}
+
+function isStrokeId(id: string, ystrokes: any) {
+  return findStrokeIndexById(ystrokes, id) !== -1;
+}
+
+function replaceStrokePoints(strokeMap: any, points: Array<[number, number, number]>) {
+  const ypoints = strokeMap.get('points');
+  if (!ypoints) return;
+  ypoints.delete(0, ypoints.length);
+  points.forEach((pt) => {
+    const ypoint = new Y.Array();
+    ypoint.push([pt[0], pt[1], pt[2]]);
+    ypoints.push([ypoint]);
+  });
+}
+
+function reindexLayers(ylayers: any, yshapes: any, ystrokes: any, yconnections: any) {
+  const strokeMap = new Map<string, any>();
+  for (let i = 0; i < ystrokes.length; i++) {
+    const stroke = ystrokes.get(i);
+    if (stroke) strokeMap.set(stroke.get('id'), stroke);
+  }
+
+  ylayers.toArray().forEach((layerId: string, index: number) => {
+    const shape = yshapes.get(layerId);
+    if (shape) shape.set('zIndex', index);
+    const stroke = strokeMap.get(layerId);
+    if (stroke) stroke.set('zIndex', index);
+    const conn = yconnections.get(layerId);
+    if (conn) conn.set('zIndex', index);
+  });
 }
 
 function deleteObjectFromYjs(

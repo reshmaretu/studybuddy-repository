@@ -58,6 +58,7 @@ export class StudyBuddyCanvasEngine {
   private yconnections: Y.Map<Y.Map<any>>;
   private ylayers: Y.Array<string>;
   private ymetadata: Y.Map<any>;
+  private ylayerGroups: Y.Array<Y.Map<any>>;
 
   // Animation frame for render loop
   private rafId?: number;
@@ -77,6 +78,7 @@ export class StudyBuddyCanvasEngine {
     this.yconnections = schema.yconnections;
     this.ylayers = schema.ylayers;
     this.ymetadata = schema.ymetadata;
+    this.ylayerGroups = schema.ylayerGroups;
 
     this._setupEventListeners();
     this._subscribeToYjsChanges();
@@ -100,8 +102,9 @@ export class StudyBuddyCanvasEngine {
     const yconnections = this.ydoc.getMap<Y.Map<any>>('connections');
     const ylayers = this.ydoc.getArray<string>('layerOrder');
     const ymetadata = this.ydoc.getMap<any>('metadata');
+    const ylayerGroups = this.ydoc.getArray<Y.Map<any>>('layers');
 
-    return { yshapes, ystrokes, yconnections, ylayers, ymetadata };
+    return { yshapes, ystrokes, yconnections, ylayers, ymetadata, ylayerGroups };
   }
 
   private _subscribeToYjsChanges() {
@@ -151,6 +154,12 @@ export class StudyBuddyCanvasEngine {
 
   private _render() {
     const { ctx, canvas, viewport } = this;
+    const hiddenLayerIds = new Set<string>();
+    this.ylayerGroups.forEach((layer) => {
+      if (layer?.get('hidden')) {
+        hiddenLayerIds.add(layer.get('id'));
+      }
+    });
 
     // Clear canvas
     ctx.fillStyle = '#0b1211';
@@ -172,6 +181,9 @@ export class StudyBuddyCanvasEngine {
       // Try shape
       const shape = this.yshapes.get(id);
       if (shape) {
+        if (hiddenLayerIds.has(shape.get('layerId'))) {
+          continue;
+        }
         this._renderShape(shape);
         continue;
       }
@@ -180,6 +192,9 @@ export class StudyBuddyCanvasEngine {
       for (let i = 0; i < this.ystrokes.length; i++) {
         const stroke = this.ystrokes.get(i);
         if (stroke?.get('id') === id) {
+          if (hiddenLayerIds.has(stroke.get('layerId'))) {
+            break;
+          }
           this._renderStroke(stroke);
           break;
         }
@@ -188,6 +203,9 @@ export class StudyBuddyCanvasEngine {
       // Try connection
       const conn = this.yconnections.get(id);
       if (conn) {
+        if (hiddenLayerIds.has(conn.get('layerId'))) {
+          continue;
+        }
         this._renderConnection(conn);
       }
     }
@@ -206,25 +224,29 @@ export class StudyBuddyCanvasEngine {
     const { ctx, canvas, viewport } = this;
     const width = canvas.width / viewport.zoom;
     const height = canvas.height / viewport.zoom;
+    const worldLeft = canvas.width / 2 - viewport.x - width / 2;
+    const worldTop = canvas.height / 2 - viewport.y - height / 2;
+    const worldRight = worldLeft + width;
+    const worldBottom = worldTop + height;
 
-    const startX = Math.floor((-viewport.x) / gridSize) * gridSize - width / 2;
-    const startY = Math.floor((-viewport.y) / gridSize) * gridSize - height / 2;
+    const startX = Math.floor(worldLeft / gridSize) * gridSize;
+    const startY = Math.floor(worldTop / gridSize) * gridSize;
 
     ctx.save();
     ctx.strokeStyle = 'rgba(255,255,255,0.04)';
     ctx.lineWidth = 1 / viewport.zoom;
 
-    for (let x = startX; x <= startX + width + gridSize; x += gridSize) {
+    for (let x = startX; x <= worldRight + gridSize; x += gridSize) {
       ctx.beginPath();
-      ctx.moveTo(x, startY);
-      ctx.lineTo(x, startY + height + gridSize);
+      ctx.moveTo(x, worldTop - gridSize);
+      ctx.lineTo(x, worldBottom + gridSize);
       ctx.stroke();
     }
 
-    for (let y = startY; y <= startY + height + gridSize; y += gridSize) {
+    for (let y = startY; y <= worldBottom + gridSize; y += gridSize) {
       ctx.beginPath();
-      ctx.moveTo(startX, y);
-      ctx.lineTo(startX + width + gridSize, y);
+      ctx.moveTo(worldLeft - gridSize, y);
+      ctx.lineTo(worldRight + gridSize, y);
       ctx.stroke();
     }
 
@@ -254,9 +276,7 @@ export class StudyBuddyCanvasEngine {
 
     if (type === 'rect') {
       if (fillEnabled) {
-        this.ctx.fillStyle = `${fillColor}${Math.round(fillOpacity * 255)
-          .toString(16)
-          .padStart(2, '0')}`;
+        this.ctx.fillStyle = this._applyAlphaToColor(fillColor, fillOpacity);
         this.ctx.fillRect(0, 0, w, h);
       }
       if (strokeEnabled) {
@@ -268,9 +288,7 @@ export class StudyBuddyCanvasEngine {
       this.ctx.beginPath();
       this.ctx.arc(w / 2, h / 2, Math.min(w, h) / 2, 0, Math.PI * 2);
       if (fillEnabled) {
-        this.ctx.fillStyle = `${fillColor}${Math.round(fillOpacity * 255)
-          .toString(16)
-          .padStart(2, '0')}`;
+        this.ctx.fillStyle = this._applyAlphaToColor(fillColor, fillOpacity);
         this.ctx.fill();
       }
       if (strokeEnabled) {
@@ -373,7 +391,19 @@ export class StudyBuddyCanvasEngine {
         .padStart(2, '0');
       return `#${normalized}${alphaHex}`;
     }
-    return color;
+    const clampedAlpha = Math.max(0, Math.min(1, alpha));
+    const prev = this.ctx.fillStyle;
+    this.ctx.fillStyle = color;
+    const normalized = `${this.ctx.fillStyle}`;
+    this.ctx.fillStyle = prev;
+
+    const match = normalized.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/i);
+    if (!match) return color;
+    const r = Number(match[1]);
+    const g = Number(match[2]);
+    const b = Number(match[3]);
+    const a = match[4] ? Number(match[4]) : 1;
+    return `rgba(${r}, ${g}, ${b}, ${a * clampedAlpha})`;
   }
 
   private _renderConnection(ymap: Y.Map<any>) {
@@ -433,29 +463,36 @@ export class StudyBuddyCanvasEngine {
       const handleSize = 6 / this.viewport.zoom;
       const midStroke = 2 / this.viewport.zoom;
 
-      // Draw selection box
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const rad = (rotation * Math.PI) / 180;
+
       this.ctx.save();
+      this.ctx.translate(cx, cy);
+      this.ctx.rotate(rad);
+      this.ctx.translate(-w / 2, -h / 2);
+
+      // Draw selection box
       this.ctx.strokeStyle = '#14b8a6';
       this.ctx.lineWidth = midStroke;
       this.ctx.setLineDash([3 / this.viewport.zoom, 3 / this.viewport.zoom]);
-      this.ctx.strokeRect(x, y, w, h);
+      this.ctx.strokeRect(0, 0, w, h);
       this.ctx.setLineDash([]);
-      this.ctx.restore();
 
       // Corner handles (yellow) - for resize 1:1 or rotate
       const corners = [
-        { pos: 'nw', x: x, y: y },
-        { pos: 'ne', x: x + w, y: y },
-        { pos: 'sw', x: x, y: y + h },
-        { pos: 'se', x: x + w, y: y + h },
+        { pos: 'nw', x: 0, y: 0 },
+        { pos: 'ne', x: w, y: 0 },
+        { pos: 'sw', x: 0, y: h },
+        { pos: 'se', x: w, y: h },
       ];
 
       // Side handles (teal) - for width/height
       const sides = [
-        { pos: 'n', x: x + w / 2, y: y },
-        { pos: 's', x: x + w / 2, y: y + h },
-        { pos: 'w', x: x, y: y + h / 2 },
-        { pos: 'e', x: x + w, y: y + h / 2 },
+        { pos: 'n', x: w / 2, y: 0 },
+        { pos: 's', x: w / 2, y: h },
+        { pos: 'w', x: 0, y: h / 2 },
+        { pos: 'e', x: w, y: h / 2 },
       ];
 
       // Draw corner handles
@@ -472,18 +509,15 @@ export class StudyBuddyCanvasEngine {
         this.ctx.fill();
       });
 
-      // Draw rotation indicator (arrow pointing from center to top-right)
-      const cx = x + w / 2;
-      const cy = y + h / 2;
+      // Draw rotation indicator (straight up in local space)
       const armLength = Math.max(w, h) / 2 + 20 / this.viewport.zoom;
-      const rad = (rotation * Math.PI) / 180;
-      const rx = cx + Math.cos(rad - Math.PI / 2) * armLength;
-      const ry = cy + Math.sin(rad - Math.PI / 2) * armLength;
+      const rx = w / 2;
+      const ry = -armLength;
 
       this.ctx.strokeStyle = '#a78bfa';
       this.ctx.lineWidth = midStroke;
       this.ctx.beginPath();
-      this.ctx.moveTo(cx, cy);
+      this.ctx.moveTo(w / 2, h / 2);
       this.ctx.lineTo(rx, ry);
       this.ctx.stroke();
 
@@ -493,7 +527,9 @@ export class StudyBuddyCanvasEngine {
       this.ctx.arc(rx, ry, handleSize / 1.5, 0, Math.PI * 2);
       this.ctx.fill();
 
-      // Angle label
+      this.ctx.restore();
+
+      // Angle label (screen-aligned)
       this.ctx.save();
       this.ctx.font = `${12 / this.viewport.zoom}px monospace`;
       this.ctx.fillStyle = '#a78bfa';
@@ -512,6 +548,11 @@ export class StudyBuddyCanvasEngine {
     const worldX = (canvasX - this.canvas.width / 2) / this.viewport.zoom + this.canvas.width / 2 - this.viewport.x;
     const worldY = (canvasY - this.canvas.height / 2) / this.viewport.zoom + this.canvas.height / 2 - this.viewport.y;
 
+    const hiddenLayerIds = new Set<string>();
+    this.ylayerGroups.forEach((layer) => {
+      if (layer?.get('hidden')) hiddenLayerIds.add(layer.get('id'));
+    });
+
     let closest: HitTestResult | null = null;
 
     // Check shapes (in reverse layer order for topmost first)
@@ -521,6 +562,7 @@ export class StudyBuddyCanvasEngine {
       const shape = this.yshapes.get(id);
 
       if (!shape) continue;
+      if (hiddenLayerIds.has(shape.get('layerId'))) continue;
 
       const x = shape.get('x');
       const y = shape.get('y');
@@ -555,6 +597,10 @@ export class StudyBuddyCanvasEngine {
       const points = (stroke.get('points') as Y.Array<any>).toArray();
       const strokeWidth = stroke.get('strokeWidth');
 
+      if (hiddenLayerIds.has(stroke.get('layerId'))) {
+        continue;
+      }
+
       const distance = this._pointToStrokeDistance(worldX, worldY, points, strokeWidth);
       if (distance !== null && distance <= tolerance) {
         const result: HitTestResult = {
@@ -575,12 +621,18 @@ export class StudyBuddyCanvasEngine {
     const world = this.canvasToWorld(canvasX, canvasY);
     const results: HitTestResult[] = [];
 
+    const hiddenLayerIds = new Set<string>();
+    this.ylayerGroups.forEach((layer) => {
+      if (layer?.get('hidden')) hiddenLayerIds.add(layer.get('id'));
+    });
+
     const layers = this.ylayers.toArray();
     for (let i = layers.length - 1; i >= 0; i--) {
       const id = layers[i];
       const shape = this.yshapes.get(id);
 
       if (shape) {
+        if (hiddenLayerIds.has(shape.get('layerId'))) continue;
         const distance = this._pointToShapeDistance(
           world.x,
           world.y,
@@ -600,6 +652,7 @@ export class StudyBuddyCanvasEngine {
       for (let j = 0; j < this.ystrokes.length; j++) {
         const stroke = this.ystrokes.get(j);
         if (!stroke || stroke.get('id') !== id) continue;
+        if (hiddenLayerIds.has(stroke.get('layerId'))) continue;
 
         const points = (stroke.get('points') as Y.Array<any>).toArray();
         const strokeWidth = stroke.get('strokeWidth');

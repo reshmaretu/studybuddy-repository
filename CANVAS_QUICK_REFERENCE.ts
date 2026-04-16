@@ -18,6 +18,7 @@ const rect = addShape(yshapes, ylayers, {
   color: '#3b82f6',
   fillOpacity: 0.8,
   rotation: 0,
+  layerId: activeLayerId,
   strokeWidth: 2,
   locked: false,
   userId: user.id,
@@ -31,6 +32,7 @@ const circle = addShape(yshapes, ylayers, {
   color: '#10b981',
   fillOpacity: 1,
   rotation: 0,
+  layerId: activeLayerId,
   strokeWidth: 1,
   locked: false,
   userId: user.id,
@@ -44,6 +46,7 @@ const sticky = addShape(yshapes, ylayers, {
   color: '#fef3c7',
   fillOpacity: 1,
   rotation: 0,
+  layerId: activeLayerId,
   strokeWidth: 0,
   locked: false,
   userId: user.id,
@@ -102,6 +105,7 @@ import { addPenStroke, appendPointToPenStroke } from '@/packages/canvas-engine/y
 // Start drawing
 const stroke = addPenStroke(ystrokes, ylayers, {
   points: [],
+  layerId: activeLayerId,
   color: '#2dd4bf',
   strokeWidth: 3,
   eraserMode: false,
@@ -122,6 +126,7 @@ onPointerMove((e) => {
 // Highlighter effect (low opacity)
 const highlight = addPenStroke(ystrokes, ylayers, {
   points: [],
+  layerId: activeLayerId,
   color: '#fbbf24',
   strokeWidth: 20,
   eraserMode: false,
@@ -134,6 +139,7 @@ const highlight = addPenStroke(ystrokes, ylayers, {
 // Eraser stroke
 const eraseStroke = addPenStroke(ystrokes, ylayers, {
   points: [],
+  layerId: activeLayerId,
   color: '#ffffff',
   strokeWidth: 15,
   eraserMode: true,

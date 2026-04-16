@@ -25,6 +25,7 @@ import {
   appendPointToPenStroke,
   finalizePenStroke,
   updateShape,
+  ensureDefaultLayer,
 } from '@studybuddy/canvas-engine';
 import { useCanvasToolStore, executeErase } from '@studybuddy/api';
 import { useStudyStore } from '@/store/useStudyStore';
@@ -75,6 +76,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   const penRafRef = useRef<number | null>(null);
   const pendingPenPointRef = useRef<[number, number, number] | null>(null);
   const lastPenAppendRef = useRef(0);
+  const dragRafRef = useRef<number | null>(null);
+  const pendingDragUpdateRef = useRef<(() => void) | null>(null);
   const eraseRafRef = useRef<number | null>(null);
   const pendingEraseRef = useRef<{ x: number; y: number } | null>(null);
   const lastOfflineToastRef = useRef(0);
@@ -128,6 +131,26 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     // Initialize schema
     const schema = createCanvasSchema(ydoc);
     schemaRef.current = schema;
+
+    const defaultLayerId = ensureDefaultLayer(schema);
+    if (defaultLayerId) {
+      schema.ymetadata.set('activeLayerId', defaultLayerId);
+      schema.yshapes.forEach((shape) => {
+        if (!shape.get('layerId')) {
+          shape.set('layerId', defaultLayerId);
+        }
+      });
+      schema.ystrokes.forEach((stroke) => {
+        if (!stroke.get('layerId')) {
+          stroke.set('layerId', defaultLayerId);
+        }
+      });
+      schema.yconnections.forEach((conn) => {
+        if (!conn.get('layerId')) {
+          conn.set('layerId', defaultLayerId);
+        }
+      });
+    }
 
     // Setup persistence & real-time sync
     new IndexeddbPersistence(roomId, ydoc);
@@ -232,6 +255,10 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         cancelAnimationFrame(penRafRef.current);
         penRafRef.current = null;
       }
+      if (dragRafRef.current !== null) {
+        cancelAnimationFrame(dragRafRef.current);
+        dragRafRef.current = null;
+      }
     };
   }, [roomId, realtimeProvider]);
 
@@ -269,17 +296,29 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       const y = shape.get('y');
       const w = shape.get('width');
       const h = shape.get('height');
+      const rotation = shape.get('rotation') || 0;
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const rad = (rotation * Math.PI) / 180;
+      const rotatePoint = (px: number, py: number) => {
+        const dx = px - cx;
+        const dy = py - cy;
+        return {
+          x: cx + dx * Math.cos(rad) - dy * Math.sin(rad),
+          y: cy + dx * Math.sin(rad) + dy * Math.cos(rad),
+        };
+      };
 
       const handles = [
-        { id: 'nw' as const, x, y },
-        { id: 'ne' as const, x: x + w, y },
-        { id: 'sw' as const, x, y: y + h },
-        { id: 'se' as const, x: x + w, y: y + h },
-        { id: 'n' as const, x: x + w / 2, y },
-        { id: 's' as const, x: x + w / 2, y: y + h },
-        { id: 'w' as const, x, y: y + h / 2 },
-        { id: 'e' as const, x: x + w, y: y + h / 2 },
-        { id: 'rotate' as const, x: x + w / 2, y: y - 25 / viewport.zoom },
+        { id: 'nw' as const, ...rotatePoint(x, y) },
+        { id: 'ne' as const, ...rotatePoint(x + w, y) },
+        { id: 'sw' as const, ...rotatePoint(x, y + h) },
+        { id: 'se' as const, ...rotatePoint(x + w, y + h) },
+        { id: 'n' as const, ...rotatePoint(x + w / 2, y) },
+        { id: 's' as const, ...rotatePoint(x + w / 2, y + h) },
+        { id: 'w' as const, ...rotatePoint(x, y + h / 2) },
+        { id: 'e' as const, ...rotatePoint(x + w, y + h / 2) },
+        { id: 'rotate' as const, ...rotatePoint(x + w / 2, y - 25 / viewport.zoom) },
       ];
 
       for (const handle of handles) {
@@ -342,6 +381,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           width: 200,
           height: 200,
           rotation: 0,
+          layerId: schema.ymetadata.get('activeLayerId') || ensureDefaultLayer(schema),
           zIndex: 0,
           color: store.sticky.backgroundColor,
           fillColor: store.sticky.backgroundColor,
@@ -457,10 +497,23 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           const dx = world.x - drag.startWorld.x;
           const dy = world.y - drag.startWorld.y;
 
+          const scheduleDragUpdate = (update: () => void) => {
+            pendingDragUpdateRef.current = update;
+            if (dragRafRef.current === null) {
+              dragRafRef.current = window.requestAnimationFrame(() => {
+                dragRafRef.current = null;
+                pendingDragUpdateRef.current?.();
+                pendingDragUpdateRef.current = null;
+              });
+            }
+          };
+
           if (drag.mode === 'move') {
-            updateShape(schema.yshapes, drag.id, {
-              x: snapValue(drag.startRect.x + dx),
-              y: snapValue(drag.startRect.y + dy),
+            scheduleDragUpdate(() => {
+              updateShape(schema.yshapes, drag.id, {
+                x: drag.startRect.x + dx,
+                y: drag.startRect.y + dy,
+              });
             });
           } else if (drag.mode === 'resize' && drag.handle) {
             const { x: startX, y: startY, width, height } = drag.startRect;
@@ -508,11 +561,13 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
             newW = Math.max(10, newW);
             newH = Math.max(10, newH);
 
-            updateShape(schema.yshapes, drag.id, {
-              x: snapValue(newX),
-              y: snapValue(newY),
-              width: snapValue(newW),
-              height: snapValue(newH),
+            scheduleDragUpdate(() => {
+              updateShape(schema.yshapes, drag.id, {
+                x: newX,
+                y: newY,
+                width: newW,
+                height: newH,
+              });
             });
           } else if (drag.mode === 'rotate' && drag.shapeCenter) {
             const startAngle = Math.atan2(
@@ -524,8 +579,10 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
               world.x - drag.shapeCenter.x
             );
             const deltaDeg = ((currentAngle - startAngle) * 180) / Math.PI;
-            updateShape(schema.yshapes, drag.id, {
-              rotation: drag.startRect.rotation + deltaDeg,
+            scheduleDragUpdate(() => {
+              updateShape(schema.yshapes, drag.id, {
+                rotation: drag.startRect.rotation + deltaDeg,
+              });
             });
           }
           if (canvasRef.current) {
@@ -716,6 +773,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           width: tool === 'text' ? 240 : 1,
           height: tool === 'text' ? 64 : 1,
           rotation: 0,
+          layerId: schema.ymetadata.get('activeLayerId') || ensureDefaultLayer(schema),
           zIndex: 0,
           color: tool === 'text' ? store.text.color : store.shape.fillColor,
           fillOpacity: tool === 'line' || tool === 'text' ? 0 : store.shape.fillOpacity,
@@ -794,6 +852,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       const strokeIndex = schema.ystrokes.length;
       addPenStroke(schema.ystrokes, schema.ylayers, {
         points: [[world.x, world.y, e.pressure || 1]],
+        layerId: schema.ymetadata.get('activeLayerId') || ensureDefaultLayer(schema),
         color: store.brush.color,
         strokeWidth: store.brush.size,
         eraserMode: false,
@@ -821,6 +880,11 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       if (!canvasRef.current || !ydocRef.current) return;
       if (dragStateRef.current) {
+        if (dragRafRef.current !== null) {
+          cancelAnimationFrame(dragRafRef.current);
+          dragRafRef.current = null;
+          pendingDragUpdateRef.current = null;
+        }
         if (isSynced && engineRef.current && canvasRef.current) {
           const rect = canvasRef.current.getBoundingClientRect();
           const x = e.clientX - rect.left;

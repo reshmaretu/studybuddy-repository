@@ -23,6 +23,7 @@ export interface ShapeData {
   width: number;
   height: number;
   rotation: number;
+  layerId: string;
   color: string;
   fillColor?: string;
   strokeColor?: string;
@@ -54,6 +55,7 @@ export interface StickyNoteData extends ShapeData {
 export interface PenStrokeData {
   id: string;
   points: Array<[number, number, number]>; // [x, y, pressure]
+  layerId: string;
   color: string;
   strokeWidth: number;
   eraserMode: boolean;
@@ -65,12 +67,20 @@ export interface PenStrokeData {
 
 export interface ConnectionData {
   id: string;
+  layerId: string;
   fromObjectId: string;
   toObjectId: string;
   label?: string;
   color: string;
   lineStyle: 'solid' | 'dashed' | 'curved';
   zIndex: number;
+  createdAt: number;
+}
+
+export interface LayerGroupData {
+  id: string;
+  name: string;
+  hidden: boolean;
   createdAt: number;
 }
 
@@ -94,6 +104,7 @@ export function createCanvasSchema(ydoc: Y.Doc) {
   const yconnections = ydoc.getMap<Y.Map<any>>('connections');
   const ymetadata = ydoc.getMap<any>('metadata');
   const ylayers = ydoc.getArray<string>('layerOrder'); // zIndex ordering
+  const ylayerGroups = ydoc.getArray<Y.Map<any>>('layers');
   const yuserPresence = ydoc.getMap<any>('userPresence');
 
   return {
@@ -102,8 +113,40 @@ export function createCanvasSchema(ydoc: Y.Doc) {
     yconnections,
     ymetadata,
     ylayers,
+    ylayerGroups,
     yuserPresence,
   };
+}
+
+export function ensureDefaultLayer(schema: ReturnType<typeof createCanvasSchema>) {
+  if (schema.ylayerGroups.length === 0) {
+    const layer = new Y.Map();
+    const id = uuid();
+    layer.set('id', id);
+    layer.set('name', 'Layer 1');
+    layer.set('hidden', false);
+    layer.set('createdAt', Date.now());
+    schema.ylayerGroups.push([layer]);
+  }
+
+  const existingActive = schema.ymetadata.get('activeLayerId');
+  if (existingActive) return existingActive;
+
+  const first = schema.ylayerGroups.get(0);
+  if (first?.get('id')) {
+    schema.ymetadata.set('activeLayerId', first.get('id'));
+    return first.get('id');
+  }
+
+  const fallbackId = uuid();
+  const fallbackLayer = new Y.Map();
+  fallbackLayer.set('id', fallbackId);
+  fallbackLayer.set('name', 'Layer 1');
+  fallbackLayer.set('hidden', false);
+  fallbackLayer.set('createdAt', Date.now());
+  schema.ylayerGroups.push([fallbackLayer]);
+  schema.ymetadata.set('activeLayerId', fallbackId);
+  return fallbackId;
 }
 
 // ═══════════════════════════════════════════════════════════════

@@ -15,8 +15,12 @@ import {
   Circle,
   Minus,
   Type,
+  Plus,
+  Eye,
+  EyeOff,
+  Trash2,
 } from "lucide-react";
-import { createCanvasSchema } from "@studybuddy/canvas-engine";
+import { createCanvasSchema, ensureDefaultLayer } from "@studybuddy/canvas-engine";
 import { useCanvasToolStore } from "@studybuddy/api";
 
 interface CanvasLayersPanelProps {
@@ -32,6 +36,12 @@ interface LayerEntry {
   shapeType?: string;
 }
 
+interface LayerGroupEntry {
+  id: string;
+  name: string;
+  hidden: boolean;
+}
+
 export const CanvasLayersPanel: React.FC<CanvasLayersPanelProps> = ({
   isOpen,
   ydoc,
@@ -39,8 +49,47 @@ export const CanvasLayersPanel: React.FC<CanvasLayersPanelProps> = ({
 }) => {
   const store = useCanvasToolStore();
   const [layers, setLayers] = useState<LayerEntry[]>([]);
+  const [layerGroups, setLayerGroups] = useState<LayerGroupEntry[]>([]);
+  const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
 
   const schema = useMemo(() => createCanvasSchema(ydoc), [ydoc]);
+
+  useEffect(() => {
+    ensureDefaultLayer(schema);
+    const syncActive = () => {
+      const active = schema.ymetadata.get("activeLayerId") || null;
+      setActiveLayerId(active);
+    };
+
+    syncActive();
+    const metadataObserver = () => syncActive();
+    schema.ymetadata.observe(metadataObserver);
+
+    return () => {
+      schema.ymetadata.unobserve(metadataObserver);
+    };
+  }, [schema]);
+
+  useEffect(() => {
+    const buildLayerGroups = () => {
+      const entries = schema.ylayerGroups
+        .toArray()
+        .map((layer) => ({
+          id: layer.get("id"),
+          name: layer.get("name"),
+          hidden: Boolean(layer.get("hidden")),
+        }));
+      setLayerGroups(entries);
+    };
+
+    buildLayerGroups();
+    const observer = () => buildLayerGroups();
+
+    schema.ylayerGroups.observe(observer);
+    return () => {
+      schema.ylayerGroups.unobserve(observer);
+    };
+  }, [schema]);
 
   useEffect(() => {
     const buildLayers = () => {
@@ -96,6 +145,61 @@ export const CanvasLayersPanel: React.FC<CanvasLayersPanelProps> = ({
       schema.yconnections.unobserve(observer);
     };
   }, [schema]);
+
+  const addLayer = () => {
+    const idx = schema.ylayerGroups.length + 1;
+    const layer = new Y.Map();
+    const id = crypto.randomUUID();
+    layer.set("id", id);
+    layer.set("name", `Layer ${idx}`);
+    layer.set("hidden", false);
+    layer.set("createdAt", Date.now());
+    schema.ylayerGroups.push([layer]);
+    schema.ymetadata.set("activeLayerId", id);
+  };
+
+  const toggleLayerHidden = (layerId: string) => {
+    const layer = schema.ylayerGroups.toArray().find((entry) => entry.get("id") === layerId);
+    if (!layer) return;
+    layer.set("hidden", !layer.get("hidden"));
+  };
+
+  const deleteLayer = (layerId: string) => {
+    if (schema.ylayerGroups.length <= 1) return;
+
+    const idx = schema.ylayerGroups.toArray().findIndex((entry) => entry.get("id") === layerId);
+    if (idx === -1) return;
+
+    const idsToDelete = new Set<string>();
+    schema.yshapes.forEach((shape, id) => {
+      if (shape.get("layerId") === layerId) idsToDelete.add(id);
+    });
+    schema.ystrokes.forEach((stroke) => {
+      if (stroke.get("layerId") === layerId) idsToDelete.add(stroke.get("id"));
+    });
+    schema.yconnections.forEach((conn, id) => {
+      if (conn.get("layerId") === layerId) idsToDelete.add(id);
+    });
+
+    idsToDelete.forEach((id) => {
+      schema.yshapes.delete(id);
+      for (let i = 0; i < schema.ystrokes.length; i++) {
+        if (schema.ystrokes.get(i)?.get("id") === id) {
+          schema.ystrokes.delete(i, 1);
+          break;
+        }
+      }
+      schema.yconnections.delete(id);
+      const layerIdx = schema.ylayers.toArray().indexOf(id);
+      if (layerIdx !== -1) schema.ylayers.delete(layerIdx, 1);
+    });
+
+    schema.ylayerGroups.delete(idx, 1);
+    if (schema.ymetadata.get("activeLayerId") === layerId) {
+      const next = schema.ylayerGroups.get(0);
+      if (next) schema.ymetadata.set("activeLayerId", next.get("id"));
+    }
+  };
 
   const reorderLayer = (id: string, direction: "up" | "down" | "front" | "back") => {
     const order = schema.ylayers.toArray();
@@ -154,6 +258,58 @@ export const CanvasLayersPanel: React.FC<CanvasLayersPanelProps> = ({
         >
           <X size={14} />
         </button>
+      </div>
+
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-[10px] uppercase tracking-widest text-white/40">Layer Groups</div>
+          <button
+            onClick={addLayer}
+            className="text-white/60 hover:text-white"
+            title="Add layer"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+        <div className="space-y-2">
+          {layerGroups.map((layer) => {
+            const isActive = layer.id === activeLayerId;
+            return (
+              <div
+                key={layer.id}
+                className={`flex items-center gap-2 rounded-2xl border px-2 py-2 transition-all ${
+                  isActive
+                    ? "border-[#14b8a6] bg-[#14b8a6]/10 text-white"
+                    : "border-white/10 bg-white/5 text-white/70 hover:border-white/20"
+                }`}
+              >
+                <button
+                  onClick={() => schema.ymetadata.set("activeLayerId", layer.id)}
+                  className="flex-1 text-left text-xs"
+                >
+                  {layer.name}
+                </button>
+                <button
+                  onClick={() => toggleLayerHidden(layer.id)}
+                  className="text-white/50 hover:text-white"
+                  title={layer.hidden ? "Show layer" : "Hide layer"}
+                >
+                  {layer.hidden ? <EyeOff size={12} /> : <Eye size={12} />}
+                </button>
+                <button
+                  onClick={() => deleteLayer(layer.id)}
+                  className="text-white/50 hover:text-white"
+                  title="Delete layer"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            );
+          })}
+          {layerGroups.length === 0 && (
+            <div className="text-xs text-white/40">No layers yet.</div>
+          )}
+        </div>
       </div>
 
       <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
