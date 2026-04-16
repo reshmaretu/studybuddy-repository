@@ -115,7 +115,9 @@ export default function StudyCanvas() {
                 id: `eraser-${Date.now()}`,
                 type: 'eraser',
                 x: 0, y: 0,
-                data: { points: currentEraserPoints, size: eraserSize || 25 }
+                data: { points: currentEraserPoints, size: eraserSize || 25 },
+                zIndex: elements.length,
+                layerId: 'layer-0'
             };
             addElement(newEraser);
 
