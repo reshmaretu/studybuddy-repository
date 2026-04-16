@@ -222,6 +222,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           width: 200,
           height: 200,
           rotation: 0,
+          zIndex: 0,
           color: store.sticky.backgroundColor,
           fillOpacity: 1,
           strokeWidth: 2,
