@@ -418,7 +418,6 @@ export class StudyBuddyCanvasEngine {
   }
 
   private _renderSelectionHandles() {
-    // Draw selection indicators (would be enhanced with Weave.js handles)
     if (this.selectedObjectIds.size === 0) return;
 
     this.selectedObjectIds.forEach((id) => {
@@ -429,18 +428,78 @@ export class StudyBuddyCanvasEngine {
       const y = shape.get('y');
       const w = shape.get('width');
       const h = shape.get('height');
+      const rotation = shape.get('rotation') || 0;
 
-      // Corner handles
-      const handleSize = 8 / this.viewport.zoom;
-      this.ctx.fillStyle = '#14b8a6';
-      [
-        [x, y],
-        [x + w, y],
-        [x, y + h],
-        [x + w, y + h],
-      ].forEach(([hx, hy]) => {
+      const handleSize = 6 / this.viewport.zoom;
+      const midStroke = 2 / this.viewport.zoom;
+
+      // Draw selection box
+      this.ctx.save();
+      this.ctx.strokeStyle = '#14b8a6';
+      this.ctx.lineWidth = midStroke;
+      this.ctx.setLineDash([3 / this.viewport.zoom, 3 / this.viewport.zoom]);
+      this.ctx.strokeRect(x, y, w, h);
+      this.ctx.setLineDash([]);
+      this.ctx.restore();
+
+      // Corner handles (yellow) - for resize 1:1 or rotate
+      const corners = [
+        { pos: 'nw', x: x, y: y },
+        { pos: 'ne', x: x + w, y: y },
+        { pos: 'sw', x: x, y: y + h },
+        { pos: 'se', x: x + w, y: y + h },
+      ];
+
+      // Side handles (teal) - for width/height
+      const sides = [
+        { pos: 'n', x: x + w / 2, y: y },
+        { pos: 's', x: x + w / 2, y: y + h },
+        { pos: 'w', x: x, y: y + h / 2 },
+        { pos: 'e', x: x + w, y: y + h / 2 },
+      ];
+
+      // Draw corner handles
+      this.ctx.fillStyle = '#fbbf24';
+      corners.forEach(({ x: hx, y: hy }) => {
         this.ctx.fillRect(hx - handleSize / 2, hy - handleSize / 2, handleSize, handleSize);
       });
+
+      // Draw side handles
+      this.ctx.fillStyle = '#14b8a6';
+      sides.forEach(({ x: hx, y: hy }) => {
+        this.ctx.beginPath();
+        this.ctx.arc(hx, hy, handleSize / 2, 0, Math.PI * 2);
+        this.ctx.fill();
+      });
+
+      // Draw rotation indicator (arrow pointing from center to top-right)
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const armLength = Math.max(w, h) / 2 + 20 / this.viewport.zoom;
+      const rad = (rotation * Math.PI) / 180;
+      const rx = cx + Math.cos(rad - Math.PI / 2) * armLength;
+      const ry = cy + Math.sin(rad - Math.PI / 2) * armLength;
+
+      this.ctx.strokeStyle = '#a78bfa';
+      this.ctx.lineWidth = midStroke;
+      this.ctx.beginPath();
+      this.ctx.moveTo(cx, cy);
+      this.ctx.lineTo(rx, ry);
+      this.ctx.stroke();
+
+      // Rotation handle (circle at end of arm)
+      this.ctx.fillStyle = '#a78bfa';
+      this.ctx.beginPath();
+      this.ctx.arc(rx, ry, handleSize / 1.5, 0, Math.PI * 2);
+      this.ctx.fill();
+
+      // Angle label
+      this.ctx.save();
+      this.ctx.font = `${12 / this.viewport.zoom}px monospace`;
+      this.ctx.fillStyle = '#a78bfa';
+      this.ctx.textAlign = 'center';
+      this.ctx.fillText(`${Math.round(rotation)}°`, cx, cy - 15 / this.viewport.zoom);
+      this.ctx.restore();
     });
   }
 

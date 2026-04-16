@@ -64,10 +64,11 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   const dragStateRef = useRef<
     | {
         id: string;
-        mode: 'move' | 'resize';
-        handle?: 'nw' | 'ne' | 'sw' | 'se';
+        mode: 'move' | 'resize' | 'rotate';
+        handle?: 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'w' | 'e' | 'rotate';
         startWorld: { x: number; y: number };
-        startRect: { x: number; y: number; width: number; height: number };
+        startRect: { x: number; y: number; width: number; height: number; rotation: number };
+        shapeCenter?: { x: number; y: number };
       }
     | null
   >(null);
@@ -262,16 +263,22 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   const getResizeHandle = useCallback(
     (shape: Y.Map<any>, point: { x: number; y: number }) => {
       const viewport = engineRef.current?.getViewport() || { zoom: 1, x: 0, y: 0 };
-      const handleSize = 8 / viewport.zoom;
+      const handleSize = 10 / viewport.zoom;
       const x = shape.get('x');
       const y = shape.get('y');
       const w = shape.get('width');
       const h = shape.get('height');
-      const handles: Array<{ id: 'nw' | 'ne' | 'sw' | 'se'; x: number; y: number }> = [
-        { id: 'nw', x, y },
-        { id: 'ne', x: x + w, y },
-        { id: 'sw', x, y: y + h },
-        { id: 'se', x: x + w, y: y + h },
+
+      const handles = [
+        { id: 'nw' as const, x, y },
+        { id: 'ne' as const, x: x + w, y },
+        { id: 'sw' as const, x, y: y + h },
+        { id: 'se' as const, x: x + w, y: y + h },
+        { id: 'n' as const, x: x + w / 2, y },
+        { id: 's' as const, x: x + w / 2, y: y + h },
+        { id: 'w' as const, x, y: y + h / 2 },
+        { id: 'e' as const, x: x + w, y: y + h / 2 },
+        { id: 'rotate' as const, x: x + w / 2, y: y - 25 / viewport.zoom },
       ];
 
       for (const handle of handles) {
@@ -578,10 +585,11 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
         const world = engineRef.current.canvasToWorld(x, y);
         const handle = getResizeHandle(shape, world);
+        let mode: 'move' | 'resize' | 'rotate' = handle === 'rotate' ? 'rotate' : handle ? 'resize' : 'move';
 
         dragStateRef.current = {
           id: hit.objectId,
-          mode: handle ? 'resize' : 'move',
+          mode,
           handle: handle ?? undefined,
           startWorld: world,
           startRect: {
@@ -589,7 +597,9 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
             y: shape.get('y'),
             width: shape.get('width'),
             height: shape.get('height'),
+            rotation: shape.get('rotation') || 0,
           },
+          shapeCenter: mode === 'rotate' ? { x: shape.get('x') + shape.get('width') / 2, y: shape.get('y') + shape.get('height') / 2 } : undefined,
         };
 
         activePointerIdRef.current = e.pointerId;
