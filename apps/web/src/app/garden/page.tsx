@@ -868,10 +868,10 @@ export default function CrystalGarden() {
                                         className="absolute top-full right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden"
                                     >
                                         {[
-                                            { id: null, label: 'Standard List' },
-                                            { id: '1-3-5', label: '1-3-5 Method' },
-                                            { id: 'eisenhower', label: 'Eisenhower Matrix' },
-                                            { id: 'ivy', label: 'Ivy Lee Method' }
+                                            { id: null as const, label: 'Standard List' },
+                                            { id: '1-3-5' as const, label: '1-3-5 Method' },
+                                            { id: 'eisenhower' as const, label: 'Eisenhower Matrix' },
+                                            { id: 'ivy' as const, label: 'Ivy Lee Method' }
                                         ].map((fw) => (
                                             <button
                                                 key={fw.label}
