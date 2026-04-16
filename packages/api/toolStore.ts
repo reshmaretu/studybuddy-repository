@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import type { HitTestResult } from '@studybuddy/canvas-engine';
 
 export type ToolType = 'select' | 'pen' | 'eraser' | 'mindmap' | 'sticky';
 export type PenMode = 'ballpoint' | 'marker' | 'highlighter' | 'calligraphy';
@@ -198,7 +199,7 @@ export function executeErase(
   // In 'precise' mode, only delete the topmost
   if (settings.mode === 'area') {
     const allHits = engine.hitTestArea(canvasX, canvasY, settings.size);
-    allHits.forEach((result) => {
+    allHits.forEach((result: HitTestResult) => {
       deleteObjectFromYjs(result.objectId, yshapes, ystrokes, yconnections, ylayers);
     });
   } else {
