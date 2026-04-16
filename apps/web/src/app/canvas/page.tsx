@@ -7,10 +7,13 @@ import { CanvasPresenceSidebar } from '@/components/CanvasPresenceSidebar';
 import { Loader } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
+import { useStudyStore } from '@/store/useStudyStore';
+import { PanelLeft, PanelRight } from 'lucide-react';
 
-export default function CanvasPage() {
+function CanvasPageContent() {
   const { user, isLoading } = useUser();
   const searchParams = useSearchParams();
+  const { isSidebarHidden, setSettings } = useStudyStore();
   const [profileName, setProfileName] = useState('Anonymous');
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [roomTitle, setRoomTitle] = useState<string | null>(null);
@@ -67,6 +70,7 @@ export default function CanvasPage() {
   }, [searchParams, user?.id]);
 
   const roomId = 'canvas-' + roomKey;
+  const isRoom = !!searchParams.get('room');
 
   if (isLoading || isProfileLoading) {
     return (
@@ -92,11 +96,30 @@ export default function CanvasPage() {
           roomDescription={roomDescription}
         />
       </Suspense>
-      <CanvasPresenceSidebar
-        roomId={roomId}
-        userId={user.id}
-        userName={profileName}
-      />
+      {!isRoom && (
+        <button
+          onClick={() => setSettings({ isSidebarHidden: !isSidebarHidden })}
+          className="fixed left-4 top-24 z-[450] flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0b1211]/95 px-3 py-2 text-xs text-white/70 shadow-2xl backdrop-blur-xl"
+        >
+          {isSidebarHidden ? <PanelRight size={14} /> : <PanelLeft size={14} />}
+          {isSidebarHidden ? 'Show' : 'Hide'} Sidebar
+        </button>
+      )}
+      {isRoom && (
+        <CanvasPresenceSidebar
+          roomId={roomId}
+          userId={user.id}
+          userName={profileName}
+        />
+      )}
     </div>
+  );
+}
+
+export default function CanvasPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center w-full h-screen"><Loader className="animate-spin" /></div>}>
+      <CanvasPageContent />
+    </Suspense>
   );
 }

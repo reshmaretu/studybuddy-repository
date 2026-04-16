@@ -1,7 +1,7 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react"; // ⚡ Add useState
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, Suspense } from "react"; // ⚡ Add useState
 import { useStudyStore } from "@/store/useStudyStore"; // ⚡ Import store
 import Sidebar from "./Sidebar";
 import ChumWidget from "./ChumWidget";
@@ -20,8 +20,9 @@ import TutorialIntro from "./TutorialIntro";
 import PremiumModal from "./PremiumModal";
 import UnDoneModal from "./UnDoneModal";
 
-export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
+function AppLayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { 
         isInitialized, initializeData, isSidebarHidden, userEmail, hasCompletedTutorial,
         isBrainResetOpen, setIsBrainResetOpen, isUnDoneModalOpen, setIsUnDoneModalOpen,
@@ -32,6 +33,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
 
     const isRoomPage = pathname.startsWith("/room/");
     const isCanvasPage = pathname.startsWith("/canvas");
+    const isCanvasRoom = isCanvasPage && !!searchParams.get("room");
     const appPages = ["/dashboard", "/garden", "/insights", "/lantern", "/account", "/cafe", "/canvas", "/wardrobe", "/archive", "/calendar"];
     const isAppPage = appPages.includes(pathname);
     const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/register" || pathname === "/reset-password" || pathname === "/error" || isRoomPage || !isAppPage;
@@ -90,7 +92,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
         `}>
             <PresenceSync />
             <div className={`flex flex-col md:flex-row h-screen w-full overflow-hidden bg-[var(--bg-dark)]`}>
-                {!isSidebarHidden && !isCanvasPage && <Sidebar />}
+                {!isSidebarHidden && !isCanvasRoom && <Sidebar />}
                 <main className={`flex-1 min-w-0 ${isCanvasPage ? 'p-0' : 'p-4 md:p-8 pb-24 md:pb-12'} h-screen relative z-[1] 
                     ${['/dashboard', '/insights', '/account', '/wardrobe', '/archive', '/calendar'].includes(pathname) 
                         ? 'overflow-y-auto no-scrollbar' 
@@ -116,5 +118,13 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
                 <PremiumModal />
             </div>
         </div>
+    );
+}
+
+export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
+    return (
+        <Suspense fallback={null}>
+            <AppLayoutContent>{children}</AppLayoutContent>
+        </Suspense>
     );
 }

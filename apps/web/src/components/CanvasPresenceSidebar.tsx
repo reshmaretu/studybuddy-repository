@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import ChumRenderer from "@/components/ChumRenderer";
 import { useStudyStore } from "@/store/useStudyStore";
@@ -35,6 +35,7 @@ export const CanvasPresenceSidebar: React.FC<CanvasPresenceSidebarProps> = ({
 }) => {
   const { activeAccessories, activeBaseColor } = useStudyStore();
   const [participants, setParticipants] = useState<PresenceUser[]>([]);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const channelName = useMemo(() => `canvas-presence:${roomId}`, [roomId]);
 
@@ -94,10 +95,32 @@ export const CanvasPresenceSidebar: React.FC<CanvasPresenceSidebarProps> = ({
     };
   }, [channelName, userId, userName, activeAccessories, activeBaseColor]);
 
+  if (isCollapsed) {
+    return (
+      <button
+        onClick={() => setIsCollapsed(false)}
+        className="fixed right-4 top-28 z-[450] flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0b1211]/95 px-3 py-2 text-xs text-white/70 shadow-2xl backdrop-blur-xl"
+        aria-label="Expand presence"
+      >
+        <Users size={14} /> {participants.length}
+        <ChevronLeft size={14} className="text-white/40" />
+      </button>
+    );
+  }
+
   return (
     <div className="fixed right-6 top-24 z-[450] w-64 rounded-3xl border border-white/10 bg-[#0b1211]/95 p-4 shadow-2xl backdrop-blur-xl">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-white/60 mb-3">
-        <Users size={14} /> Presence ({participants.length})
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-white/60">
+          <Users size={14} /> Presence ({participants.length})
+        </div>
+        <button
+          onClick={() => setIsCollapsed(true)}
+          className="rounded-full p-1 text-white/40 hover:text-white transition-colors"
+          aria-label="Collapse presence"
+        >
+          <ChevronRight size={14} />
+        </button>
       </div>
       <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
         {participants.map((user) => (

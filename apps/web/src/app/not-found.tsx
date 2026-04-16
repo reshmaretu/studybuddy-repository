@@ -4,6 +4,8 @@ import Link from "next/link";
 import { MoveLeft, Ghost } from "lucide-react";
 import { motion } from "framer-motion";
 
+export const dynamic = 'force-dynamic';
+
 export default function NotFound() {
     return (
         <div className="min-h-screen bg-(--bg-dark) flex flex-col items-center justify-center p-4">
