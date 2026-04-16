@@ -10,7 +10,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Y from 'yjs';
-import type { StickyNoteData } from '@/packages/canvas-engine/yjs-schema';
+import type { StickyNoteData } from '@studybuddy/canvas-engine';
 
 interface StickyNoteEditorProps {
   sticky: StickyNoteData;

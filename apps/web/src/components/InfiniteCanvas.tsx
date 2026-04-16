@@ -16,7 +16,7 @@ import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { UndoManager } from 'yjs';
-import { StudyBuddyCanvasEngine } from '@/packages/canvas-engine/weave-engine';
+import { StudyBuddyCanvasEngine } from '@studybuddy/canvas-engine';
 import { SupabaseYjsProvider } from '@/lib/yjs-supabase-provider';
 import {
   createCanvasSchema,
@@ -24,12 +24,12 @@ import {
   addPenStroke,
   appendPointToPenStroke,
   finalizePenStroke,
-} from '@/packages/canvas-engine/yjs-schema';
-import { useCanvasToolStore, executeErase } from '@/packages/api/toolStore';
+} from '@studybuddy/canvas-engine';
+import { useCanvasToolStore, executeErase } from '@studybuddy/api';
 import { useStudyStore } from '@/store/useStudyStore';
 import { CanvasToolbar } from './CanvasToolbar';
 import { StickyNoteEditor } from './StickyNoteEditor';
-import type { StickyNoteData } from '@/packages/canvas-engine/yjs-schema';
+import type { StickyNoteData } from '@studybuddy/canvas-engine';
 
 interface InfiniteCanvasProps {
   roomId: string;

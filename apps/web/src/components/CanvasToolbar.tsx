@@ -31,7 +31,7 @@ import {
   Settings,
   ChevronDown,
 } from 'lucide-react';
-import { useCanvasToolStore, type ToolType, type PenMode } from '@/packages/api/toolStore';
+import { useCanvasToolStore, type ToolType, type PenMode } from '@studybuddy/api';
 
 interface CanvasToolbarProps {
   onUndo?: () => void;
