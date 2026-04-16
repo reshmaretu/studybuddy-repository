@@ -223,7 +223,7 @@ export class StudyBuddyCanvasEngine {
       this.ctx.textBaseline = 'top';
       
       const lines = text.split('\n');
-      lines.forEach((line, i) => {
+      lines.forEach((line: string, i: number) => {
         this.ctx.fillText(line, 8, 8 + i * (fontSize + 4));
       });
     }
