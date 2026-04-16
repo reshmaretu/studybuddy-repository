@@ -184,7 +184,7 @@ export default function StudyCanvas() {
         setEditPos({
             x: absPos.x, y: absPos.y,
             width: textNode.width() * stageConfig.scale, height: textNode.height() * stageConfig.scale,
-            fontSize: textNode.fontSize() * stageConfig.scale, color: textNode.fill(),
+            fontSize: textNode.fontSize() * stageConfig.scale, color: String(textNode.fill()),
             padding: (textNode.padding() || 0) * stageConfig.scale, align: textNode.align() || 'left', fontStyle: textNode.fontStyle() || 'normal'
         });
     };
