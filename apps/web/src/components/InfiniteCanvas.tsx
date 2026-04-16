@@ -391,6 +391,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         strokeWidth: store.brush.size,
         eraserMode: false,
         pressureEnabled: store.brush.pressure,
+        zIndex: 0,
         userId,
       });
 
