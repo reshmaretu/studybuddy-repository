@@ -51,6 +51,9 @@ export const CanvasLayersPanel: React.FC<CanvasLayersPanelProps> = ({
   const [layers, setLayers] = useState<LayerEntry[]>([]);
   const [layerGroups, setLayerGroups] = useState<LayerGroupEntry[]>([]);
   const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
+  const [pendingDeleteLayer, setPendingDeleteLayer] = useState<
+    { id: string; name: string } | null
+  >(null);
 
   const schema = useMemo(() => createCanvasSchema(ydoc), [ydoc]);
 
@@ -165,6 +168,15 @@ export const CanvasLayersPanel: React.FC<CanvasLayersPanelProps> = ({
   };
 
   const deleteLayer = (layerId: string) => {
+    if (schema.ylayerGroups.length <= 1) return;
+    const layer = schema.ylayerGroups.toArray().find((entry) => entry.get("id") === layerId);
+    const name = layer?.get("name") || 'this layer';
+    setPendingDeleteLayer({ id: layerId, name });
+    return;
+
+  };
+
+  const deleteLayerNow = (layerId: string) => {
     if (schema.ylayerGroups.length <= 1) return;
 
     const idx = schema.ylayerGroups.toArray().findIndex((entry) => entry.get("id") === layerId);
@@ -383,6 +395,40 @@ export const CanvasLayersPanel: React.FC<CanvasLayersPanelProps> = ({
           <div className="text-xs text-white/40">No layers yet.</div>
         )}
       </div>
+
+      {pendingDeleteLayer && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => setPendingDeleteLayer(null)}
+          />
+          <div className="relative w-full max-w-md rounded-3xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6 shadow-2xl">
+            <div className="text-xs uppercase tracking-widest text-[#ef4444]">Destructive</div>
+            <div className="mt-2 text-lg font-bold text-white">Delete {pendingDeleteLayer.name}?</div>
+            <div className="mt-2 text-sm text-white/70">
+              This removes the layer and all items inside it.
+            </div>
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setPendingDeleteLayer(null)}
+                className="rounded-2xl border border-white/10 px-4 py-2 text-xs uppercase tracking-widest text-white/60 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const id = pendingDeleteLayer.id;
+                  setPendingDeleteLayer(null);
+                  deleteLayerNow(id);
+                }}
+                className="rounded-2xl border border-[#ef4444]/40 bg-[#ef4444]/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#ef4444] hover:bg-[#ef4444]/20"
+              >
+                Delete Layer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

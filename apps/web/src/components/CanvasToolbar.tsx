@@ -44,6 +44,7 @@ interface CanvasToolbarProps {
   connectionStatus?: 'connecting' | 'synced' | 'offline';
   onToggleLayers?: () => void;
   isLayersOpen?: boolean;
+  onClearBoard?: () => void;
 }
 
 export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
@@ -52,6 +53,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   connectionStatus = 'offline',
   onToggleLayers,
   isLayersOpen = false,
+  onClearBoard,
 }) => {
   const store = useCanvasToolStore();
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -307,6 +309,13 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                     <Slider.Thumb className="block w-5 h-5 bg-[#14b8a6] rounded-full shadow-lg hover:bg-[#0d9488] transition-colors" />
                   </Slider.Root>
                 </div>
+
+                <button
+                  onClick={() => onClearBoard?.()}
+                  className="w-full rounded-2xl border border-[#ef4444]/40 bg-[#ef4444]/10 px-3 py-2 text-xs font-bold uppercase tracking-widest text-[#ef4444] hover:bg-[#ef4444]/20"
+                >
+                  Clear Board
+                </button>
               </div>
             </motion.div>
           )}

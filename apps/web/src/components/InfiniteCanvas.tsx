@@ -105,6 +105,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   >(null);
   const [eraserCursor, setEraserCursor] = useState<{ x: number; y: number } | null>(null);
   const [showLayers, setShowLayers] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<
     'connecting' | 'synced' | 'offline'
   >('connecting');
@@ -862,6 +863,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       });
 
       activeStrokeIndexRef.current = strokeIndex;
+      lastPenAppendRef.current = 0;
     },
     [
       store.activeTool,
@@ -1008,6 +1010,21 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
       if (activeStrokeIndexRef.current !== null) {
         const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
+        if (engineRef.current && canvasRef.current) {
+          const rect = canvasRef.current.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const world = engineRef.current.canvasToWorld(x, y);
+          const strokeMap = schema.ystrokes.get(activeStrokeIndexRef.current);
+          const points = strokeMap?.get('points') as Y.Array<any> | undefined;
+          if (points && points.length < 2) {
+            appendPointToPenStroke(schema.ystrokes, activeStrokeIndexRef.current, [
+              world.x,
+              world.y,
+              e.pressure || 1,
+            ]);
+          }
+        }
         if (pendingPenPointRef.current) {
           appendPointToPenStroke(
             schema.ystrokes,
@@ -1025,6 +1042,31 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     },
     [store.activeTool]
   );
+
+  const handleClearBoard = useCallback(() => {
+    if (!ydocRef.current) return;
+    const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
+    ensureDefaultLayer(schema);
+
+    ydocRef.current.transact(() => {
+      schema.yshapes.clear();
+      schema.ystrokes.delete(0, schema.ystrokes.length);
+      schema.yconnections.clear();
+      schema.ylayers.delete(0, schema.ylayers.length);
+    });
+
+    store.clearSelection();
+    setActiveStickyNoteId(null);
+    setActiveStickyData(null);
+    setActiveTextId(null);
+    setActiveTextData(null);
+    triggerChumToast?.('Board cleared. Tap to undo.', 'warning', () => store.undo());
+  }, [store, triggerChumToast]);
+
+  const handleConfirmClear = useCallback(() => {
+    setShowClearConfirm(false);
+    handleClearBoard();
+  }, [handleClearBoard]);
 
   // ─────────────────────────────────────────────────────────────
   // KEYBOARD SHORTCUTS
@@ -1172,7 +1214,38 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         connectionStatus={connectionStatus}
         onToggleLayers={() => setShowLayers((prev) => !prev)}
         isLayersOpen={showLayers}
+        onClearBoard={() => setShowClearConfirm(true)}
       />
+
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => setShowClearConfirm(false)}
+          />
+          <div className="relative w-full max-w-md rounded-3xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6 shadow-2xl">
+            <div className="text-xs uppercase tracking-widest text-[#ef4444]">Destructive</div>
+            <div className="mt-2 text-lg font-bold text-white">Clear entire board?</div>
+            <div className="mt-2 text-sm text-white/70">
+              This removes all shapes, strokes, and connections. You can undo once after clearing.
+            </div>
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="rounded-2xl border border-white/10 px-4 py-2 text-xs uppercase tracking-widest text-white/60 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmClear}
+                className="rounded-2xl border border-[#ef4444]/40 bg-[#ef4444]/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#ef4444] hover:bg-[#ef4444]/20"
+              >
+                Clear Board
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Keyboard Shortcuts Legend (optional) */}
       <div className="fixed top-4 right-4 text-xs text-white/40 space-y-1">

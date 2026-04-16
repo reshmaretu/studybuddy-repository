@@ -4,10 +4,8 @@
  */
 
 import { create } from 'zustand';
-import * as Y from 'yjs';
 import { devtools } from 'zustand/middleware';
 import type { HitTestResult } from '@studybuddy/canvas-engine';
-import { v4 as uuid } from 'uuid';
 
 export type ToolType = 'select' | 'pen' | 'eraser' | 'mindmap' | 'sticky' | 'rect' | 'circle' | 'line' | 'text';
 export type PenMode = 'ballpoint' | 'marker' | 'highlighter' | 'calligraphy';
@@ -276,7 +274,8 @@ export function executeErase(
     const strokeMap = ystrokes.get(strokeIndex);
     if (!strokeMap) return false;
 
-    const pointsArray = (strokeMap.get('points') as any)?.toArray?.() || [];
+    const ypointsTemplate = strokeMap.get('points');
+    const pointsArray = (ypointsTemplate as any)?.toArray?.() || [];
     const points = pointsArray.map((pt: any) => pt?.toArray?.() || [0, 0, 1]);
     if (points.length < 2) {
       deleteObjectFromYjs(strokeId, yshapes, ystrokes, yconnections, ylayers);
@@ -319,11 +318,11 @@ export function executeErase(
     replaceStrokePoints(strokeMap, segments[0]);
 
     for (let i = 1; i < segments.length; i++) {
-      const newId = uuid();
-      const newStroke = new Y.Map();
-      const ypoints = new Y.Array();
+      const newId = generateId();
+      const newStroke = new (strokeMap.constructor as any)();
+      const ypoints = new ((ypointsTemplate ?? strokeMap.get('points')).constructor as any)();
       segments[i].forEach((pt) => {
-        const ypoint = new Y.Array();
+        const ypoint = new (ypoints.constructor as any)();
         ypoint.push([pt[0], pt[1], pt[2]]);
         ypoints.push([ypoint]);
       });
@@ -391,10 +390,17 @@ function replaceStrokePoints(strokeMap: any, points: Array<[number, number, numb
   if (!ypoints) return;
   ypoints.delete(0, ypoints.length);
   points.forEach((pt) => {
-    const ypoint = new Y.Array();
+    const ypoint = new (ypoints.constructor as any)();
     ypoint.push([pt[0], pt[1], pt[2]]);
     ypoints.push([ypoint]);
   });
+}
+
+function generateId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `stroke-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 function reindexLayers(ylayers: any, yshapes: any, ystrokes: any, yconnections: any) {
