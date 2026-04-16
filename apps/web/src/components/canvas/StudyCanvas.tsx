@@ -172,9 +172,10 @@ export default function StudyCanvas() {
     const handleDblClick = (el: (typeof elements)[number], e: Konva.KonvaEventObject<MouseEvent>) => {
         if (activeTool !== 'select') return;
         const node = e.currentTarget as Konva.Node;
+        const container = node instanceof Konva.Container ? node : node.getStage();
         const textNode = node.getClassName() === 'Text'
             ? (node as Konva.Text)
-            : node.findOne<Konva.Text>('Text');
+            : container?.findOne<Konva.Text>('Text');
         if (!textNode) return;
 
         const absPos = textNode.getAbsolutePosition();
