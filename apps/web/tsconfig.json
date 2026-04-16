@@ -24,7 +24,8 @@
       "@/*": ["./src/*"],
       "@/packages/*": ["../../packages/*"],
       "@studybuddy/api": ["../../packages/api"],
-      "@studybuddy/ui": ["../../packages/ui"]
+      "@studybuddy/ui": ["../../packages/ui"],
+      "@studybuddy/canvas-engine": ["../../packages/canvas-engine"]
     }
   },
   "include": [
