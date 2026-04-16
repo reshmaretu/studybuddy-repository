@@ -872,20 +872,18 @@ export default function CrystalGarden() {
                                             { id: '1-3-5' as const, label: '1-3-5 Method' },
                                             { id: 'eisenhower' as const, label: 'Eisenhower Matrix' },
                                             { id: 'ivy' as const, label: 'Ivy Lee Method' }
-                                        ].map((fw) => (
-                                            <button
-                                                key={fw.label}
-                                                onClick={() => {
-                                                    setShowFrameworkMenu(false);
-                                                    if (activeFramework !== fw.id) setPendingFramework(fw.id);
-                                                }}
-                                                className="w-full text-left px-4 py-3 text-sm font-bold text-[var(--text-muted)] hover:bg-[var(--bg-sidebar)] hover:text-[var(--text-main)] transition-colors border-b border-white/5 last:border-0"
-                                            >
-                                                {fw.label}
-                                            </button>
-                                        ))}
-                                    </motion.div>
-                                )}
+] as { id: "eisenhower" | "1-3-5" | "ivy" | null, label: string }[]).map((fw) => (
+    <button
+        key={fw.label}
+        onClick={() => {
+            setShowFrameworkMenu(false);
+            if (activeFramework !== fw.id) setPendingFramework(fw.id);
+        }}
+        className="w-full text-left px-4 py-3 text-sm font-bold text-[var(--text-muted)] hover:bg-[var(--bg-sidebar)] hover:text-[var(--text-main)] transition-colors border-b border-white/5 last:border-0"
+    >
+        {fw.label}
+    </button>
+))}
                             </AnimatePresence>
                         </div>
                         <button onClick={() => setShowUnDoneModal(true)} className="bg-[var(--bg-sidebar)] border border-(--border-color) px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-main)] hover:text-[var(--accent-teal)] hover:border-[var(--accent-teal)] transition-colors flex items-center justify-center whitespace-nowrap gap-2 shrink-0">
