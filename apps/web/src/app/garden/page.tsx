@@ -801,9 +801,9 @@ export default function CrystalGarden() {
                         </div>
                     )}
                     {/* 🔥 FRAMEWORK SWITCH CONFIRMATION MODAL 🔥 */}
-                    {pendingFramework !== undefined && (
+                    {pendingFramework !== null && (
                         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-6">
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setPendingFramework(undefined)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setPendingFramework(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
                             <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-[var(--bg-card)] border-2 border-[var(--border-color)] rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl relative z-10">
                                 <h3 className="text-xl font-black text-white mb-2">Switch Framework?</h3>
                                 <p className="text-sm text-[var(--text-muted)] mb-8">
@@ -816,10 +816,10 @@ export default function CrystalGarden() {
                                     </span>? This will change how your current quests are organized.
                                 </p>
                                 <div className="flex gap-3">
-                                    <button onClick={() => setPendingFramework(undefined)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/50 hover:bg-white/5 text-sm font-bold transition-all">Cancel</button>
+                                    <button onClick={() => setPendingFramework(null)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/50 hover:bg-white/5 text-sm font-bold transition-all">Cancel</button>
                                     <button onClick={() => {
                                         setActiveFramework(pendingFramework as typeof activeFramework);
-                                        setPendingFramework(undefined);
+                                        setPendingFramework(null);
                                     }} className="flex-1 py-3 rounded-xl bg-[var(--accent-teal)] text-black hover:brightness-110 text-sm font-black transition-all shadow-lg">Confirm</button>
                                 </div>
                             </motion.div>
