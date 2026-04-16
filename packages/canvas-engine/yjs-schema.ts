@@ -230,7 +230,7 @@ export function addPenStroke(
     if (key === 'points') {
       // Store as Y.Array of arrays for better sync
       const ypoints = new Y.Array();
-      value.forEach((pt) => {
+      value.forEach((pt: [number, number, number]) => {
         const ypoint = new Y.Array();
         ypoint.push([pt[0], pt[1], pt[2]]);
         ypoints.push([ypoint]);
