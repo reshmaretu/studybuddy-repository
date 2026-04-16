@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import { useStudyStore, TaskLoad, Task } from "@/store/useStudyStore";
-import { Sprout, Plus, Search, Moon, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit, Maximize2, CheckCircle2 } from "lucide-react";
+import { Sprout, Search, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit, Maximize2, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import TaskCard from "@/components/TaskCard";
@@ -406,7 +406,7 @@ export default function CrystalGarden() {
     const [showUnrankedModal, setShowUnrankedModal] = useState(false);
     const [draggedToMasteryTask, setDraggedToMasteryTask] = useState<Task | null>(null);
     const [masteryTab, setMasteryTab] = useState<'tasks' | 'shards'>('tasks');
-    const [draggedToGeodeTask, setDraggedToGeodeTask] = useState<Task | null>(null);
+    // Removed draggedToGeodeTask and setDraggedToGeodeTask as they are unused
     const [snipingShard, setSnipingShard] = useState<Shard | null>(null);
 
     const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -443,7 +443,8 @@ export default function CrystalGarden() {
 
     // These are for the UI Columns (affected by search)
     const activeQuests = filteredTasks.filter(t => !t.isCompleted);
-    const now = Date.now();
+    // Use a stable value for 'now' to avoid impure function in render
+    const [now] = useState(() => Date.now());
 
     const getPhaseValue = (t: Task) => {
         const deadline = t.deadline;
@@ -480,7 +481,8 @@ export default function CrystalGarden() {
     const [actualPomos, setActualPomos] = useState(1);
 
     // Auto-fill actual pomodoros with their estimate when the modal opens
-    useEffect(() => {
+    // Use useLayoutEffect for immediate state sync on modal open
+    useLayoutEffect(() => {
         if (draggedToMasteryTask) {
             setStressLevel(50);
             setActualPomos(draggedToMasteryTask.estimatedPomos || 1);
@@ -502,9 +504,10 @@ export default function CrystalGarden() {
         const lastPlan = lastPlannedDate ? new Date(lastPlannedDate as string) : null;
         const needsPlanning = !lastPlan || isNaN(lastPlan.getTime()) || lastPlan < today4AM;
 
-        if (needsPlanning) setShowMorningModal(true);
-        else setShowMorningModal(false);
-    }, [isInitialized, lastPlannedDate]);
+        if (needsPlanning !== showMorningModal) {
+            setShowMorningModal(needsPlanning);
+        }
+    }, [isInitialized, lastPlannedDate, showMorningModal]);
 
     // 9:00 PM Nudge Logic
     useEffect(() => {
@@ -545,7 +548,7 @@ export default function CrystalGarden() {
     const [isScheduled, setIsScheduled] = useState(false);
 
     // 👇 ADD THIS BLOCK: Auto-turns on the Scheduled toggle and sets the time to "now" when the modal opens
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (isAdding) {
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -607,10 +610,7 @@ export default function CrystalGarden() {
         const { active, over } = event;
         if (!over) return;
 
-        if (over.id === "geode-dropzone") {
-            const task = tasks.find(t => t.id === active.id);
-            if (task) setDraggedToGeodeTask(task);
-        } else if (over.id === "hall-of-mastery") {
+        if (over.id === "hall-of-mastery") {
             const task = tasks.find(t => t.id === active.id);
             if (task) setDraggedToMasteryTask(task);
         } else if (over.id.toString().startsWith('quadrant-')) {
@@ -652,7 +652,7 @@ export default function CrystalGarden() {
     const { isOver: isGeodeOver, setNodeRef: setGeodeRef } = useDroppable({ id: "geode-dropzone" });
 
     // ─── NEW: Terrarium Drop Zone & Filter State ───
-    const [activeFilter, setActiveFilter] = useState<'default' | 'dark' | 'refreshing' | 'cool'>('default');
+    // const [activeFilter, setActiveFilter] = useState<'default' | 'dark' | 'refreshing' | 'cool'>('default'); // Unused
 
     return (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -839,74 +839,75 @@ export default function CrystalGarden() {
                         <p className="text-[var(--text-muted)] mt-1">Cultivate and manage your active quests.</p>
                     </div>
 
-                    <div className="flex gap-3 w-full md:w-auto flex-wrap pb-2 md:pb-0 hide-scrollbar shrink-0">
-                        <div className="relative flex-1 md:w-48 shrink-0">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
-                            <input
-                                type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl pl-10 pr-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] transition-colors"
-                            />
-                        </div>
-                        {/* 🔥 THE NEW FRAMEWORK DROPDOWN 🔥 */}
-                        <div className="relative z-50">
-  <button
-    onClick={() => setShowFrameworkMenu(!showFrameworkMenu)}
-    className={`h-full px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border transition-all capitalize ${
-      activeFramework
-        ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/50 text-[var(--accent-teal)]'
-        : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-teal)]'
-    }`}
-  >
-    {activeFramework
-      ? `${terms.framework}: ${
-          activeFramework === 'ivy'
-            ? 'Ivy Lee Method'
-            : activeFramework === 'eisenhower'
-            ? 'Eisenhower Matrix'
-            : activeFramework === '1-3-5'
-            ? '1-3-5 Method'
-            : activeFramework
-        }`
-      : `Standard ${terms.shards}`}
-    <ChevronDown
-      size={14}
-      className={`transition-transform duration-300 ${
-        showFrameworkMenu ? 'rotate-180' : ''
-      }`}
-    />
-  </button>
-  <AnimatePresence>
-    {showFrameworkMenu && (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 10 }}
-        className="absolute top-full right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden"
-      >
-        {(
-          [
-            { id: null, label: 'Standard List' },
-            { id: '1-3-5', label: '1-3-5 Method' },
-            { id: 'eisenhower', label: 'Eisenhower Matrix' },
-            { id: 'ivy', label: 'Ivy Lee Method' },
-          ] as { id: 'eisenhower' | '1-3-5' | 'ivy' | null; label: string }[]
-        ).map((fw) => (
-          <button
-            key={fw.label}
-            onClick={() => {
-              setShowFrameworkMenu(false);
-              if (activeFramework !== fw.id) setPendingFramework(fw.id);
-            }}
-            className="w-full text-left px-4 py-3 text-sm font-bold text-[var(--text-muted)] hover:bg-[var(--bg-sidebar)] hover:text-[var(--text-main)] transition-colors border-b border-white/5 last:border-0"
-          >
-            {fw.label}
-          </button>
-        ))}
-      </motion.div>
-    )}
-  </AnimatePresence>
-</div>
-
+                                        <div className="flex gap-3 w-full md:w-auto flex-wrap pb-2 md:pb-0 hide-scrollbar shrink-0">
+                                                <div className="relative flex-1 md:w-48 shrink-0">
+                                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
+                                                        <input
+                                                                type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                                                                className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl pl-10 pr-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] transition-colors"
+                                                        />
+                                                </div>
+                                                {/* 🔥 THE NEW FRAMEWORK DROPDOWN 🔥 */}
+                                                <div className="relative z-50">
+                                                        <button
+                                                                onClick={() => setShowFrameworkMenu(!showFrameworkMenu)}
+                                                                className={`h-full px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border transition-all capitalize ${
+                                                                        activeFramework
+                                                                                ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/50 text-[var(--accent-teal)]'
+                                                                                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-teal)]'
+                                                                }`}
+                                                        >
+                                                                {activeFramework
+                                                                        ? `${terms.framework}: ${
+                                                                                activeFramework === 'ivy'
+                                                                                        ? 'Ivy Lee Method'
+                                                                                        : activeFramework === 'eisenhower'
+                                                                                                ? 'Eisenhower Matrix'
+                                                                                                : activeFramework === '1-3-5'
+                                                                                                        ? '1-3-5 Method'
+                                                                                                        : activeFramework
+                                                                        }`
+                                                                        : `Standard ${terms.shards}`}
+                                                                <ChevronDown
+                                                                        size={14}
+                                                                        className={`transition-transform duration-300 ${
+                                                                                showFrameworkMenu ? 'rotate-180' : ''
+                                                                        }`}
+                                                                />
+                                                        </button>
+                                                        <AnimatePresence>
+                                                                {showFrameworkMenu && (
+                                                                        <motion.div
+                                                                                initial={{ opacity: 0, y: 10 }}
+                                                                                animate={{ opacity: 1, y: 0 }}
+                                                                                exit={{ opacity: 0, y: 10 }}
+                                                                                className="absolute top-full right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden"
+                                                                        >
+                                                                                {(
+                                                                                        [
+                                                                                                { id: null, label: 'Standard List' },
+                                                                                                { id: '1-3-5', label: '1-3-5 Method' },
+                                                                                                { id: 'eisenhower', label: 'Eisenhower Matrix' },
+                                                                                                { id: 'ivy', label: 'Ivy Lee Method' },
+                                                                                        ] as { id: 'eisenhower' | '1-3-5' | 'ivy' | null; label: string }[]
+                                                                                ).map((fw) => (
+                                                                                        <button
+                                                                                                key={fw.label}
+                                                                                                onClick={() => {
+                                                                                                        setShowFrameworkMenu(false);
+                                                                                                        if (activeFramework !== fw.id) setPendingFramework(fw.id);
+                                                                                                }}
+                                                                                                className="w-full text-left px-4 py-3 text-sm font-bold text-[var(--text-muted)] hover:bg-[var(--bg-sidebar)] hover:text-[var(--text-main)] transition-colors border-b border-white/5 last:border-0"
+                                                                                        >
+                                                                                                {fw.label}
+                                                                                        </button>
+                                                                                ))}
+                                                                        </motion.div>
+                                                                )}
+                                                        </AnimatePresence>
+                                                </div>
+                                        </div>
+                                </header>
                 {/* 3. The Strict 3-Column Layout! (Responsive stack on mobile) */}
                 <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0 pb-20 lg:pb-4 overflow-y-auto lg:overflow-hidden no-scrollbar">
 
