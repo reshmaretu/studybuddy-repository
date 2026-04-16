@@ -1,13 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext",
-"ES2020", "DOM", "DOM.Iterable"
-    ],
-  "forceConsistentCasingInFileNames": true
+    "lib": ["dom", "dom.iterable", "esnext", "ES2020", "DOM", "DOM.Iterable"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,21 +13,17 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+    "forceConsistentCasingInFileNames": true,
     "plugins": [
       {
         "name": "next"
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@studybuddy/api": [
-        "../../packages/api"
-      ],
-      "@studybuddy/ui": [
-        "../../packages/ui"
-      ]
+      "@/*": ["./src/*"],
+      "@/packages/*": ["../../packages/*"],
+      "@studybuddy/api": ["../../packages/api"],
+      "@studybuddy/ui": ["../../packages/ui"]
     }
   },
   "include": [
