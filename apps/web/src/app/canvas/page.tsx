@@ -61,6 +61,13 @@ export default function CanvasPage() {
     loadRoomMetadata();
   }, [user, searchParams]);
 
+  const roomKey = useMemo(() => {
+    const param = searchParams.get('room');
+    return param && param.trim() !== '' ? param.trim() : user?.id || 'demo';
+  }, [searchParams, user?.id]);
+
+  const roomId = 'canvas-' + roomKey;
+
   if (isLoading || isProfileLoading) {
     return (
       <div className="flex items-center justify-center w-full h-screen">
@@ -72,13 +79,6 @@ export default function CanvasPage() {
   if (!user) {
     return <div>Not authenticated</div>;
   }
-
-  const roomKey = useMemo(() => {
-    const param = searchParams.get('room');
-    return param && param.trim() !== '' ? param.trim() : user.id || 'demo';
-  }, [searchParams, user.id]);
-
-  const roomId = 'canvas-' + roomKey;
 
   return (
     <div className="relative h-screen w-full bg-[#0b1211]">
