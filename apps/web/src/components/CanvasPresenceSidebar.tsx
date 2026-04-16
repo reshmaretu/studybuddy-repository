@@ -15,6 +15,13 @@ interface PresenceUser {
   chumAccessories?: WardrobeAccessory[] | null;
 }
 
+interface PresenceMeta {
+  name?: string;
+  avatarUrl?: string | null;
+  chumBaseColor?: string | null;
+  chumAccessories?: WardrobeAccessory[] | null;
+}
+
 interface CanvasPresenceSidebarProps {
   roomId: string;
   userId: string;
@@ -59,11 +66,11 @@ export const CanvasPresenceSidebar: React.FC<CanvasPresenceSidebarProps> = ({
       }
 
       Object.entries(state).forEach(([key, metas]) => {
-        const meta = Array.isArray(metas) ? metas[metas.length - 1] : undefined;
+        const meta = (Array.isArray(metas) ? metas[metas.length - 1] : undefined) as PresenceMeta | undefined;
         users.push({
           id: key,
           name: meta?.name || "Anonymous",
-          avatarUrl: avatarLookup[key] ?? meta?.avatarUrl || null,
+          avatarUrl: avatarLookup[key] ?? meta?.avatarUrl ?? null,
           chumBaseColor: meta?.chumBaseColor || null,
           chumAccessories: meta?.chumAccessories || null,
         });

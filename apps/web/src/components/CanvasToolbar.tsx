@@ -36,7 +36,7 @@ import {
   ChevronDown,
   Layers,
 } from 'lucide-react';
-import { useCanvasToolStore, type ToolType, type PenMode } from '@studybuddy/api';
+import { useCanvasToolStore, type ToolType, type PenMode, type CanvasToolStore } from '@studybuddy/api';
 
 interface CanvasToolbarProps {
   onUndo?: () => void;
@@ -732,7 +732,7 @@ const ColorPicker: React.FC = () => {
   );
 };
 
-const getActiveColor = (store: ReturnType<typeof useCanvasToolStore>) => {
+const getActiveColor = (store: CanvasToolStore) => {
   switch (store.selectedColorMode) {
     case 'shape-stroke':
       return store.shape.strokeColor;

@@ -303,8 +303,6 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         const world = engineRef.current.canvasToWorld(x, y);
         const startX = snapValue(world.x);
         const startY = snapValue(world.y);
-        const startX = snapValue(world.x);
-        const startY = snapValue(world.y);
         const drag = dragStateRef.current;
         const dx = world.x - drag.startWorld.x;
         const dy = world.y - drag.startWorld.y;
@@ -611,6 +609,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         const world = engineRef.current.canvasToWorld(x, y);
+        const startX = snapValue(world.x);
+        const startY = snapValue(world.y);
 
         const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
         const tool = store.activeTool;
