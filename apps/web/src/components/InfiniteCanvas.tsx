@@ -95,7 +95,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
     if (realtimeProvider === 'websocket') {
       const provider = new WebsocketProvider(
-        import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:1234',
+        process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'ws://localhost:1234',
         roomId,
         ydoc
       );

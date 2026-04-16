@@ -44,7 +44,7 @@ docker-compose -f docker-compose.yml up
 ### 1.3 Update Environment
 Add to `.env.local`:
 ```bash
-VITE_WEBSOCKET_URL=ws://localhost:1234
+NEXT_PUBLIC_WEBSOCKET_URL=ws://localhost:1234
 ```
 - [ ] .env.local updated
 

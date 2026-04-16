@@ -151,7 +151,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 
 # Optional WebSocket Server (if you still want it for local dev)
-VITE_WEBSOCKET_URL=ws://localhost:1234
+NEXT_PUBLIC_WEBSOCKET_URL=ws://localhost:1234
 ```
 
 ---
