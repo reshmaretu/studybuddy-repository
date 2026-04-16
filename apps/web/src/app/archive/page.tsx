@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileText, Hammer, BrainCircuit, Sparkles, CheckCircle2, UploadCloud, X, Trash2, File as FileIcon } from "lucide-react";
 import { useStudyStore, Shard, TutorSession } from "@/store/useStudyStore";
+import { useTerms } from "@/hooks/useTerms";
 
 function ShardCard({ shard, onRead }: { shard: Shard, onRead: (shard: Shard) => void }) {
     // 1. Pull the state and the checker from the store
@@ -136,6 +137,8 @@ export default function TheForge() {
     const { shards, forgeShard, triggerChumToast } = useStudyStore();
     const [isMounted, setIsMounted] = useState(false);
 
+    const { isGamified } = useTerms();
+
     // Modal States
     const [isForgeModalOpen, setIsForgeModalOpen] = useState(false);
     const [readShard, setReadShard] = useState<Shard | null>(null);
@@ -226,10 +229,10 @@ export default function TheForge() {
                 <div>
                     <h1 className="text-3xl font-bold text-(--text-main) flex items-center gap-3">
                         <Hammer className="text-(--accent-yellow)" size={32} />
-                        The Forge
+                        {isGamified ? "The Prism" : "Modules"}
                     </h1>
                     <p className="text-(--text-muted) mt-1">
-                        Input your raw notes to forge Shards. Train them to complete mastery.
+                        {isGamified ? "Input your raw notes to forge Shards. Train them to complete mastery." : "Input your raw notes to forge Modules. Train them to complete mastery."}
                     </p>
                 </div>
                 {/* STRIKE ANVIL BUTTON */}
@@ -238,7 +241,7 @@ export default function TheForge() {
                     onClick={() => setIsForgeModalOpen(true)}
                     className="bg-(--accent-yellow)/10 text-(--accent-yellow) border border-(--accent-yellow)/30 px-6 py-3 rounded-2xl font-bold hover:bg-(--accent-yellow) hover:text-[#0b1211] transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(250,204,21,0.15)]"
                 >
-                    <Sparkles size={18} /> Extract Shards
+                    <Sparkles size={18} /> {isGamified ? "Extract Shards" : "Create Modules"}
                 </button>
             </header>
 
@@ -248,8 +251,8 @@ export default function TheForge() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {/* THE SEED SHARD (Tutorial Sample) */}
                         <div id="archive-demo-shard">
-                            <ShardCard 
-                                onRead={() => {}}
+                            <ShardCard
+                                onRead={() => { }}
                                 shard={{
                                     id: 'demo-seed-shard',
                                     title: "Neural Gardening: The Basics",
@@ -263,9 +266,9 @@ export default function TheForge() {
 
                         <div id="archive-dormant-infographic" className="flex flex-col items-center justify-center border-2 border-dashed border-(--border-color) rounded-3xl p-12 text-center opacity-60 bg-(--bg-card)/50 col-span-1 md:col-span-1 lg:col-span-2">
                             <Hammer size={48} className="text-(--text-muted) mb-4" />
-                            <h3 className="text-xl font-bold text-(--text-main) mb-2">The prism is dormant.</h3>
+                            <h3 className="text-xl font-bold text-(--text-main) mb-2">The {isGamified ? "prism" : "module"} is dormant.</h3>
                             <p className="text-(--text-muted) max-w-sm">
-                                You haven't extracted any shards yet. Begin extraction to start."
+                                {isGamified ? "You haven't extracted any shards yet. Begin extraction to start." : "You haven't created any modules yet. Begin creation to start."}
                             </p>
                         </div>
                     </div>

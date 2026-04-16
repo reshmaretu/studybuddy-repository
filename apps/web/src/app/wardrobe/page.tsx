@@ -7,14 +7,16 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import ChumRenderer from "@/components/ChumRenderer";
 
-// --- THE ACCESSORY CATALOG (UPDATED WITH YOUR ASSETS) ---
+import { useTerms } from "@/hooks/useTerms";
+
+// --- THE ACCESSORY CATALOG ---
 const ACCESSORY_CATALOG = {
     clips: [
         { id: 'clip1', name: 'Red Ribbon', fileName: 'clip1.png', zIndex: 40, isPremium: false },
         { id: 'clip2', name: 'Rose', fileName: 'clip2.png', zIndex: 40, isPremium: false },
         { id: 'clip3', name: 'Yellow Tulip', fileName: 'clip3.png', zIndex: 40, isPremium: true },
         { id: 'clip4', name: 'Purple Rose', fileName: 'clip4.png', zIndex: 40, isPremium: true },
-        { id: 'clip5', name: 'Green Ribbon  ', fileName: 'clip5.png', zIndex: 40, isPremium: true },
+        { id: 'clip5', name: 'Green Ribbon', fileName: 'clip5.png', zIndex: 40, isPremium: true },
     ],
     glasses: [
         { id: 'glasses1', name: 'Brown Round Glasses', fileName: 'glasses1.png', zIndex: 30, isPremium: false },
@@ -34,6 +36,27 @@ const ACCESSORY_CATALOG = {
         { id: 'hat6', name: 'Crown', fileName: 'hat6.png', zIndex: 50, isPremium: true },
     ],
 };
+
+// --- BASE COLORS CATALOG (UPDATED WITH 17 COLORS) ---
+const BASE_COLORS_CATALOG = [
+    { id: 'base1', name: 'Sakura Pink', fileName: 'base1.png', color: '#ffb7c5' },
+    { id: 'base2', name: 'Dusty Rose', fileName: 'base2.png', color: '#dcae96' },
+    { id: 'base3', name: 'Crimson', fileName: 'base3.png', color: '#dc143c' },
+    { id: 'base4', name: 'Plum', fileName: 'base4.png', color: '#dda0dd' },
+    { id: 'base5', name: 'Deep Violet', fileName: 'base5.png', color: '#9400d3' },
+    { id: 'base6', name: 'Nightshade', fileName: 'base6.png', color: '#4b0082' },
+    { id: 'base7', name: 'Aqua Glass', fileName: 'base7.png', color: '#7fffd4' },
+    { id: 'base8', name: 'Ocean Blue', fileName: 'base8.png', color: '#0077be' },
+    { id: 'base9', name: 'Forest Emerald', fileName: 'base9.png', color: '#008a3f' },
+    { id: 'base10', name: 'Antique Gold', fileName: 'base10.png', color: '#cfb53b' },
+    { id: 'base11', name: 'Sunstone', fileName: 'base11.png', color: '#e3a857' },
+    { id: 'base12', name: 'Dreamscape', fileName: 'base12.png', color: '#a282b8' },
+    { id: 'base13', name: 'Coral', fileName: 'base13.png', color: '#ff7f50' },
+    { id: 'base14', name: 'Mint (Default)', fileName: 'base14.png', color: '#98ff98' },
+    { id: 'base15', name: 'Sage', fileName: 'base15.png', color: '#9dc183' },
+    { id: 'base16', name: 'Lunar Silver', fileName: 'base16.png', color: '#c0c0c0' },
+    { id: 'base17', name: 'Bronze', fileName: 'base17.png', color: '#cd7f32' },
+];
 
 const CRYSTAL_CATALOG = {
     // 🟢 STARTER
@@ -65,34 +88,14 @@ const CRYSTAL_CATALOG = {
     bismuth: { name: "Bismuth", unlockLevel: 1, isPremium: true, color: "#312e81", emissive: "#ec4899" },
 };
 
-interface Accessory {
-    id: string;
-    name: string;
-    fileName: string;
-    zIndex: number;
-    isPremium: boolean;
-}
-
-interface Crystal {
-    name: string;
-    unlockLevel: number;
-    isPremium: boolean;
-    color: string;
-    emissive: string;
-}
-
-interface Theme {
-    id: string;
-    name: string;
-    color1: string;
-    color2: string;
-}
-
 export default function WardrobePage() {
     // UI Tabs State
     const [activeTab, setActiveTab] = useState<'themes' | 'crystals' | 'accessories'>('themes');
     const [shakeTarget, setShakeTarget] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(true);
+
+    // 🌐 GET THE TRANSLATOR
+    const { isGamified } = useTerms();
 
     // Store State
     const {
@@ -100,16 +103,13 @@ export default function WardrobePage() {
         activeCrystalTheme, setActiveCrystalTheme,
         activeAtmosphereFilter, setActiveAtmosphereFilter,
         activeAccessories, setActiveAccessories,
-        setPremiumModalOpen
+        activeBaseColor, setActiveBaseColor,
+        activeAppTheme, setActiveAppTheme
     } = useStudyStore();
-
-    const [activeAppTheme, setActiveAppTheme] = useState("deep-teal");
 
     useEffect(() => {
         const initWardrobe = async () => {
             setIsSyncing(true);
-            const savedTheme = localStorage.getItem("appTheme") || "deep-teal";
-            setActiveAppTheme(savedTheme);
             await checkPremiumStatus();
             setIsSyncing(false);
         };
@@ -119,19 +119,15 @@ export default function WardrobePage() {
     const handleAppThemeChange = (themeId: string, isPremium: boolean) => {
         if (isPremium && !isPremiumUser) {
             setShakeTarget(themeId);
-            setPremiumModalOpen(true);
             setTimeout(() => setShakeTarget(null), 400);
             return;
         }
         setActiveAppTheme(themeId);
-        localStorage.setItem("appTheme", themeId);
-        document.documentElement.setAttribute("data-theme", themeId);
     };
 
-    const handleCrystalChange = (crystalId: string, crystal: Crystal) => {
+    const handleCrystalChange = (crystalId: string, crystal: any) => {
         if (crystal.isPremium && !isPremiumUser) {
             setShakeTarget(crystalId);
-            setPremiumModalOpen(true);
             setTimeout(() => setShakeTarget(null), 400);
             return;
         }
@@ -143,10 +139,9 @@ export default function WardrobePage() {
         if (setActiveCrystalTheme) setActiveCrystalTheme(crystalId);
     };
 
-    const handleToggleAccessory = (accessory: Accessory) => {
+    const handleToggleAccessory = (accessory: any) => {
         if (accessory.isPremium && !isPremiumUser) {
             setShakeTarget(accessory.id);
-            setPremiumModalOpen(true);
             setTimeout(() => setShakeTarget(null), 400);
             return;
         }
@@ -155,11 +150,18 @@ export default function WardrobePage() {
         let newAccessories;
 
         if (isActive) {
-            // Remove accessory
             newAccessories = (activeAccessories || []).filter(acc => acc.id !== accessory.id);
         } else {
-            // Add accessory, but first remove any existing accessory in the same slot (zIndex category)
-            const filtered = (activeAccessories || []).filter(acc => acc.zIndex !== accessory.zIndex);
+            const isHeadwear = accessory.zIndex === 40 || accessory.zIndex === 50;
+
+            const filtered = (activeAccessories || []).filter(acc => {
+                if (isHeadwear) {
+                    return acc.zIndex !== 40 && acc.zIndex !== 50;
+                } else {
+                    return acc.zIndex !== accessory.zIndex;
+                }
+            });
+
             newAccessories = [...filtered, {
                 id: accessory.id,
                 fileName: accessory.fileName,
@@ -185,7 +187,6 @@ export default function WardrobePage() {
         { id: "e-ink", name: "E-Ink (Obsidian)", color1: "#000000", color2: "#ffffff" },
     ];
 
-    // Filtered Crystals
     const starterCrystals = Object.entries(CRYSTAL_CATALOG).filter(([_, c]) => !c.isPremium && c.unlockLevel === 1);
     const progressionCrystals = Object.entries(CRYSTAL_CATALOG).filter(([_, c]) => !c.isPremium && c.unlockLevel > 1).sort((a, b) => a[1].unlockLevel - b[1].unlockLevel);
     const premiumCrystals = Object.entries(CRYSTAL_CATALOG).filter(([_, c]) => c.isPremium);
@@ -203,19 +204,48 @@ export default function WardrobePage() {
 
             <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-0">
 
-                {/* LEFT PANEL: Character Preview */}
-                <section id="wardrobe-avatar-preview" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-8 flex flex-col items-center justify-between relative overflow-hidden shadow-sm">
-                    <div className="absolute top-6 left-8">
+                {/* LEFT PANEL: Character Preview & Base Colors */}
+                <section id="wardrobe-avatar-preview" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 flex flex-col relative overflow-hidden shadow-sm">
+                    <div className="absolute top-6 left-6 z-10">
                         <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">Character Preview</span>
                     </div>
 
-                    <div className="flex-1 flex items-center justify-center w-full">
-                        <div className="relative w-64 h-64">
+                    {/* AVATAR RENDERER */}
+                    <div className="flex-1 flex items-center justify-center w-full min-h-0 mt-8">
+                        <div className="relative w-64 h-64 shrink-0">
                             <ChumRenderer size="w-full h-full" />
                         </div>
                     </div>
 
+                    {/* 🔥 CHUM BASE COLOR SCROLL CONTAINER 🔥 */}
+                    <div className="w-full mt-auto pt-6 border-t border-[var(--border-color)]/50 shrink-0">
+                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4 block text-center">
+                            {isGamified ? "Chum Base Color" : "Chum Base Color"}
+                        </label>
 
+                        <div className="flex items-center justify-start sm:justify-center gap-4 overflow-x-auto w-full py-6 px-4 custom-scrollbar no-scrollbar" style={{ scrollSnapType: 'x mandatory' }}>
+                            {BASE_COLORS_CATALOG.map((base) => (
+                                <button
+                                    key={base.id}
+                                    onClick={() => setActiveBaseColor(base.id)}
+                                    className={`relative shrink-0 w-16 h-16 rounded-full overflow-hidden border-[3px] transition-all duration-300 flex items-center justify-center ${activeBaseColor === base.id
+                                        ? 'border-[var(--accent-teal)] scale-110 shadow-[0_0_20px_rgba(20,184,166,0.4)] z-10 bg-[var(--bg-dark)]'
+                                        : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105 bg-[var(--bg-sidebar)]/50'
+                                        }`}
+                                    title={base.name}
+                                    style={{ scrollSnapAlign: 'center' }}
+                                    disabled={false}
+                                >
+                                    {/* 🔥 STRICTLY THE IMAGE PREVIEW 🔥 */}
+                                    <img
+                                        src={`/assets/chum/${base.fileName}`}
+                                        alt={base.name}
+                                        className="w-[140%] h-[140%] object-cover object-center translate-y-1 drop-shadow-md"
+                                    />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </section>
 
                 {/* RIGHT PANEL: Customization Hub */}
@@ -224,25 +254,22 @@ export default function WardrobePage() {
                     {/* TABS HEADER */}
                     <div className="flex p-2 border-b border-[var(--border-color)]/50 bg-[var(--bg-dark)]/30">
                         <button
-                            id="wardrobe-themes-tab"
                             onClick={() => setActiveTab('themes')}
                             className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'themes' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
                             <Palette size={14} className={activeTab === 'themes' ? 'text-[var(--accent-cyan)]' : ''} /> App Themes
                         </button>
                         <button
-                            id="wardrobe-crystals-tab"
                             onClick={() => setActiveTab('crystals')}
                             className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'crystals' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
                             <Gem size={14} className={activeTab === 'crystals' ? 'text-[var(--accent-teal)]' : ''} /> Crystal Vault
                         </button>
                         <button
-                            id="wardrobe-accessories-tab"
                             onClick={() => setActiveTab('accessories')}
                             className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'accessories' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
-                            <Shirt size={14} className={activeTab === 'accessories' ? 'text-[var(--accent-teal)]' : ''} /> Accessories
+                            <Shirt size={14} className={activeTab === 'accessories' ? 'text-[var(--accent-teal)]' : ''} /> {isGamified ? "Charms" : "Accessories"}
                         </button>
                     </div>
 
@@ -333,7 +360,7 @@ export default function WardrobePage() {
                                 </motion.div>
                             )}
 
-                            {/* ACCESSORIES TAB (NEW) */}
+                            {/* ACCESSORIES TAB */}
                             {activeTab === 'accessories' && (
                                 <motion.div key="accessories" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-8">
 
@@ -399,13 +426,7 @@ export default function WardrobePage() {
 }
 
 // 🎨 Helper Component for App Themes
-function ThemeButton({ theme, isActive, isLocked, isShaking, onClick }: {
-    theme: Theme;
-    isActive: boolean;
-    isLocked?: boolean;
-    isShaking?: boolean;
-    onClick: () => void;
-}) {
+function ThemeButton({ theme, isActive, isLocked, isShaking, onClick }: any) {
     return (
         <button onClick={onClick} className={`group relative flex items-center p-4 rounded-2xl border-2 transition-all duration-200 ${isShaking ? 'animate-premium-shake border-red-500' : isActive ? 'border-[var(--accent-teal)] bg-[var(--bg-dark)] shadow-lg' : 'border-[var(--border-color)] bg-[var(--bg-sidebar)]/50 hover:bg-[var(--bg-sidebar)]'} ${isLocked && !isActive ? 'opacity-60 hover:opacity-100' : ''}`}>
             <div className="w-8 h-8 rounded-full mr-3 border border-[var(--border-color)] shadow-sm shrink-0" style={{ background: `linear-gradient(135deg, ${theme.color1} 50%, ${theme.color2} 50%)` }} />
@@ -416,13 +437,7 @@ function ThemeButton({ theme, isActive, isLocked, isShaking, onClick }: {
 }
 
 // 💎 Helper Component for Crystals
-function CrystalButton({ crystal, isActive, isLocked, isShaking, onClick }: {
-    crystal: Crystal;
-    isActive: boolean;
-    isLocked?: boolean;
-    isShaking?: boolean;
-    onClick: () => void;
-}) {
+function CrystalButton({ crystal, isActive, isLocked, isShaking, onClick }: any) {
     return (
         <button onClick={onClick} className={`group relative flex items-center p-4 rounded-2xl border-2 transition-all duration-200 ${isShaking ? 'animate-premium-shake border-red-500' : isActive ? 'border-[var(--accent-teal)] bg-[var(--bg-dark)] shadow-[0_0_15px_rgba(20,184,166,0.15)]' : 'border-[var(--border-color)] bg-[var(--bg-sidebar)]/50 hover:bg-[var(--bg-sidebar)]'} ${isLocked && !isActive ? 'opacity-60 hover:opacity-100' : ''}`}>
             {/* Glowing Gem Preview */}
@@ -447,14 +462,8 @@ function CrystalButton({ crystal, isActive, isLocked, isShaking, onClick }: {
     );
 }
 
-// 👕 Helper Component for Accessories (NEW)
-function AccessoryButton({ accessory, isActive, isLocked, isShaking, onClick }: {
-    accessory: Accessory;
-    isActive: boolean;
-    isLocked?: boolean;
-    isShaking?: boolean;
-    onClick: () => void;
-}) {
+// 👕 Helper Component for Accessories
+function AccessoryButton({ accessory, isActive, isLocked, isShaking, onClick }: any) {
     return (
         <button
             onClick={onClick}
@@ -463,7 +472,6 @@ function AccessoryButton({ accessory, isActive, isLocked, isShaking, onClick }: 
                     'border-[var(--border-color)] bg-[var(--bg-sidebar)]/50 hover:bg-[var(--bg-sidebar)]'
                 } ${isLocked && !isActive ? 'opacity-60 hover:opacity-100' : ''}`}
         >
-            {/* Accessory Icon Preview - PATH UPDATED to /assets/accessories/ */}
             <div className="w-8 h-8 rounded-lg mr-3 shadow-sm shrink-0 relative overflow-hidden bg-[var(--bg-dark)]/50 border border-[var(--border-color)] flex items-center justify-center p-0.5">
                 <img
                     src={`/assets/chum/${accessory.fileName}`}

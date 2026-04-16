@@ -3,12 +3,14 @@ import { persist } from 'zustand/middleware';
 import { CanvasElement, Connection, Layer, CanvasSnapshot, CanvasEngine } from '@studybuddy/canvas-engine';
 
 interface CanvasState {
+    eraserSize: number;
+    setEraserSize: (size: number) => void;
     elements: CanvasElement[];
     connections: Connection[];
     layers: Layer[];
     activeTool: 'select' | 'pen' | 'node' | 'eraser' | 'sticky' | 'rect' | 'circle' | 'arrow' | 'text';
     selectedElementIds: string[];
-    
+
     // Viewport state
     stageConfig: {
         scale: number;
@@ -25,10 +27,10 @@ interface CanvasState {
     addElement: (element: CanvasElement) => void;
     updateElement: (id: string, updates: Partial<CanvasElement>) => void;
     removeElements: (ids: string[]) => void;
-    
+
     addConnection: (fromId: string, toId: string) => void;
     removeConnection: (id: string) => void;
-    
+
     setActiveTool: (tool: CanvasState['activeTool']) => void;
     setSelectedElementIds: (ids: string[]) => void;
     setStageConfig: (config: Partial<CanvasState['stageConfig']>) => void;
@@ -55,6 +57,9 @@ export const useCanvasStore = create<CanvasState>()(
             history: [],
             historyIndex: -1,
 
+            eraserSize: 25,
+            setEraserSize: (eraserSize) => set({ eraserSize }),
+
             setElements: (elements) => set({ elements }),
 
             addElement: (element) => {
@@ -64,7 +69,7 @@ export const useCanvasStore = create<CanvasState>()(
 
             updateElement: (id, updates) => {
                 set((state) => ({
-                    elements: state.elements.map((el) => 
+                    elements: state.elements.map((el) =>
                         el.id === id ? { ...el, ...updates } : el
                     )
                 }));
@@ -73,7 +78,7 @@ export const useCanvasStore = create<CanvasState>()(
             removeElements: (ids) => {
                 set((state) => ({
                     elements: state.elements.filter((el) => !ids.includes(el.id)),
-                    connections: state.connections.filter((conn) => 
+                    connections: state.connections.filter((conn) =>
                         !ids.includes(conn.fromId) && !ids.includes(conn.toId)
                     ),
                     selectedElementIds: state.selectedElementIds.filter(id => !ids.includes(id))
@@ -109,16 +114,16 @@ export const useCanvasStore = create<CanvasState>()(
             saveToHistory: () => {
                 const snapshot = get().getSnapshot();
                 const { history, historyIndex } = get();
-                
+
                 const newHistory = history.slice(0, historyIndex + 1);
                 newHistory.push(snapshot);
-                
+
                 // Limit history to 50 steps
                 if (newHistory.length > 50) newHistory.shift();
-                
-                set({ 
-                    history: newHistory, 
-                    historyIndex: newHistory.length - 1 
+
+                set({
+                    history: newHistory,
+                    historyIndex: newHistory.length - 1
                 });
             },
 

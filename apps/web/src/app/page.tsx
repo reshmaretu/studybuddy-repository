@@ -237,6 +237,8 @@ export default function LandingPage() {
           StudyBuddy
         </motion.div>
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="hidden md:flex items-center gap-8 font-medium text-sm">
+          <a href="#features" className="text-[#A89F9A] hover:text-[#789B8C] transition-colors">Features</a>
+          <a href="#challenge" className="text-[#A89F9A] hover:text-[#789B8C] transition-colors">Challenge</a>
           <a href="#faq" className="text-[#A89F9A] hover:text-[#789B8C] transition-colors">FAQ</a>
           <a href="#pricing" className="text-[#A89F9A] hover:text-[#789B8C] transition-colors">Pricing</a>
           <a href="#philosophy" className="text-[#A89F9A] hover:text-[#789B8C] transition-colors">Philosophy</a>
@@ -283,7 +285,7 @@ export default function LandingPage() {
             className="bg-[#2B2529]/80 backdrop-blur-3xl border border-[#3E353B] rounded-[2.5rem] p-4 shadow-[0_30px_80px_rgba(0,0,0,0.6)] aspect-[4/3] flex items-center justify-center relative overflow-hidden group"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[#789B8C]/20 via-transparent to-[#E8C37D]/10 opacity-60"></div>
-            <BrainCircuit size={100} strokeWidth={1} className="text-[#3E353B] group-hover:text-[#789B8C] group-hover:scale-110 transition-all duration-700 ease-out" />
+            <img src="/assets/chum-ask.png" className="w-[50%] object-contain text-[#3E353B] group-hover:text-[#789B8C] group-hover:scale-110 transition-all duration-700 ease-out relative z-10" />
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute inset-0 border border-white/5 rounded-[2.5rem] border-dashed pointer-events-none" />
 
             <motion.div
@@ -296,10 +298,7 @@ export default function LandingPage() {
                 transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
                 className="w-3 h-3 bg-[#789B8C] rounded-full"
               />
-              <div className="flex flex-col">
-                <span className="text-[#EFE6DD]">324 Shards</span>
-                <span className="text-[#A89F9A] text-[10px] uppercase tracking-widest">Forged Today</span>
-              </div>
+
             </motion.div>
           </motion.div>
         </motion.div>
@@ -310,16 +309,7 @@ export default function LandingPage() {
         initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} variants={containerVariants}
         className="grid grid-cols-1 md:grid-cols-3 bg-[#141113]/80 backdrop-blur-lg border-y border-[#3E353B]/50 text-center py-16 px-6 lg:px-[10%] gap-8 relative z-10"
       >
-        {[
-          { value: "Hybrid", label: "Cloud & Local AI" },
-          { value: "Real-time", label: "Lantern Network" },
-          { value: "0%", label: "Burnout Architecture" }
-        ].map((stat, i) => (
-          <motion.div key={i} variants={itemVariants} className="group cursor-default">
-            <h3 className="text-4xl font-black text-[#CD9A5B] mb-2 group-hover:scale-110 group-hover:text-[#E8C37D] transition-all duration-500 ease-out">{stat.value}</h3>
-            <p className="text-[#A89F9A] text-xs font-bold uppercase tracking-widest">{stat.label}</p>
-          </motion.div>
-        ))}
+
       </motion.section>
 
       {/* ─── FEATURES ─── */}
@@ -375,11 +365,10 @@ export default function LandingPage() {
           <motion.div variants={itemVariants} className="bg-[#111] border-2 border-[#3E353B] rounded-[2.5rem] p-3 shadow-[0_0_50px_rgba(120,155,140,0.15)] group relative">
 
             {/* 3D Scene Wrapper */}
-            <div className="relative aspect-square md:aspect-video lg:aspect-square bg-[#05080c] rounded-[1.8rem] overflow-hidden shadow-[inset_0_0_60px_rgba(0,0,0,0.8)] border border-white/5">
+            <div className="relative w-full aspect-video bg-[#05080c] rounded-[1.8rem] overflow-hidden shadow-[inset_0_0_60px_rgba(0,0,0,0.8)] border border-white/5">
 
               {/* The Header Overlay (Matches your Screenshot) */}
               <div className="absolute top-6 left-6 z-10 pointer-events-none">
-                <h3 className="text-xl font-black text-white drop-shadow-lg tracking-wide">Daily Synthesization</h3>
               </div>
 
               {/* 🟢 THE 3D CANVAS INTEGRATION 🟢 */}
@@ -506,7 +495,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── PROBLEM & SOLUTION ─── */}
-      <section className="py-24 px-6 lg:px-[10%] bg-[#141113] text-center border-t border-[#3E353B] relative z-10">
+      <section id="challenge" className="py-24 px-6 lg:px-[10%] bg-[#141113] text-center border-t border-[#3E353B] relative z-10">
         <div className="inline-block px-4 py-1.5 border border-red-400/20 bg-red-400/5 text-red-400 rounded-full text-xs font-bold mb-6 tracking-wide uppercase">
           The Challenge
         </div>
@@ -754,7 +743,11 @@ export default function LandingPage() {
             {/* Team Member 1 */}
             <motion.div variants={itemVariants} whileHover={{ y: -10 }} transition={springTransition} className="bg-[#2B2529] border border-[#3E353B] rounded-[2rem] p-8 w-full md:w-[calc(50%-2rem)] lg:w-[calc(33.333%-2rem)] text-center hover:border-[#789B8C]/50 transition-colors group shadow-xl">
               <div className="w-24 h-24 mx-auto bg-[#141113] rounded-full border border-[#3E353B] group-hover:border-[#789B8C] group-hover:shadow-[0_0_20px_rgba(120,155,140,0.3)] transition-all duration-500 mb-6 flex items-center justify-center text-4xl">
-                👩‍💻
+                <img
+                  src="/assets/devs/mark-chum.png"
+                  alt="Lead Developer"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <h3 className="text-xl font-bold text-[#EFE6DD] mb-1">Lead Developer</h3>
               <p className="text-[#789B8C] text-xs font-bold uppercase tracking-widest mb-4">System Architect</p>
@@ -778,7 +771,11 @@ export default function LandingPage() {
             {/* Team Member 3 (The Paper & Research Squad) */}
             <motion.div variants={itemVariants} whileHover={{ y: -10 }} transition={springTransition} className="bg-[#2B2529] border border-[#3E353B] rounded-[2rem] p-8 w-full md:w-[calc(50%-2rem)] lg:w-[calc(33.333%-2rem)] text-center hover:border-[#CD9A5B]/50 transition-colors group shadow-xl">
               <div className="w-24 h-24 mx-auto bg-[#141113] rounded-full border border-[#3E353B] group-hover:border-[#CD9A5B] group-hover:shadow-[0_0_20px_rgba(205,154,91,0.3)] transition-all duration-500 mb-6 flex items-center justify-center text-4xl">
-                📝
+                <img
+                  src="/assets/devs/paper-chum.png"
+                  alt="Research & Strategy"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <h3 className="text-xl font-bold text-[#EFE6DD] mb-1">Research & Strategy</h3>
               <p className="text-[#CD9A5B] text-xs font-bold uppercase tracking-widest mb-4">Business Simulation Team</p>
@@ -801,7 +798,7 @@ export default function LandingPage() {
             </Link>
           </motion.div>
           <p className="mt-24 text-[#A89F9A] text-sm font-medium">
-            &copy; 2026 StudyBuddy. Built for SHS Business Simulation.
+            &copy; 2025 StudyBuddy.
           </p>
         </div>
       </footer>

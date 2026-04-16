@@ -67,7 +67,7 @@ function MonthCell({ date, tasks, isCurrentMonth }: { date: Date; tasks: Task[];
             <div className="flex justify-between items-start mb-1 px-1">
                 <span className={`text-[10px] font-bold ${isToday ? "text-[var(--accent-teal)] bg-[var(--accent-teal)]/10 px-1.5 py-0.5 rounded-full" : "text-[var(--text-muted)]"}`}>{date.getDate()}</span>
             </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
+            <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col" style={{ scrollbarWidth: 'thin', msOverflowStyle: 'auto' }}>
                 {tasks.map(task => <CompactTaskCard key={task.id} task={task} />)}
             </div>
         </div>
@@ -84,6 +84,8 @@ export default function TactileCalendar() {
     const [isSwiping, setIsSwiping] = useState(false);
     const [startX, setStartX] = useState(0);
     const [scrollLeft, setScrollLeft] = useState(0);
+
+    const { isGamified } = useTerms();
 
     // UI State
     const [view, setView] = useState<'horizon' | 'month'>('month');
@@ -217,7 +219,7 @@ export default function TactileCalendar() {
                             {terms.questForecast}
                         </h1>
                         <p className="text-[var(--text-muted)] mt-1">
-                            Plant quests from your Seed Bank to cultivate the days ahead.
+                            {isGamified ? "Plant quests from your Seed Bank to chart your journey." : "Plant quests from your Stash to chart your journey"}
                         </p>
                     </div>
 
@@ -281,7 +283,7 @@ export default function TactileCalendar() {
                     <div id="calendar-seed-bank" className="w-full lg:w-80 h-[400px] lg:h-full flex flex-col bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 overflow-hidden shadow-sm relative shrink-0">
                         <div className="flex items-center gap-2 mb-4">
                             <Inbox size={18} className="text-[var(--accent-yellow)]" />
-                            <h2 className="font-bold text-[var(--text-main)]">{terms.crystalVault}</h2>
+                            <h2 className="font-bold text-[var(--text-main)]">{terms.stash}</h2>
                             <span className="ml-auto bg-[var(--bg-dark)] px-2 py-0.5 rounded-md text-xs font-bold text-[var(--text-muted)]">
                                 {stashedTasks.length}
                             </span>

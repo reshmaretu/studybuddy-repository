@@ -137,8 +137,8 @@ export const TERMS = {
 
   // Tutor & Learning
   shards: {
-    gamified: "Shards",
-    simple: "Modules",
+    gamified: "Mastered Shards",
+    simple: "Mastered Modules",
   },
   shard: {
     gamified: "Shard",
@@ -147,10 +147,6 @@ export const TERMS = {
   forgeShard: {
     gamified: "Extract Shards",
     simple: "Create Module",
-  },
-  hallOfMastery: {
-    gamified: "Hall of Mastery",
-    simple: "Mastered",
   },
   neurallinkAscended: {
     gamified: "Neural Link Ascended",
@@ -179,8 +175,12 @@ export const TERMS = {
     simple: "Due Date",
   },
   framework: {
-    gamified: "Planning Framework",
-    simple: "Planning Method",
+    gamified: "Framework",
+    simple: "Method",
+  },
+  stash: {
+    gamified: "Seed Bank",
+    simple: "Stash",
   },
 
   // Focus & Study
@@ -241,12 +241,16 @@ export const TERMS = {
     simple: "Wardrobe",
   },
   archive: {
-    gamified: "Shards",
-    simple: "Modules",
+    gamified: "The Crystal Conservatory",
+    simple: "Completed Tasks",
   },
   insights: {
-    gamified: "Insights",
-    simple: "Analytics",
+    gamified: "Performance Insights",
+    simple: "Performance Insights",
+  },
+  insightsPrem: {
+    gamified: "Premium Insights",
+    simple: "Premium Insights",
   },
 
   // AI & Chum

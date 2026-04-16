@@ -1,4 +1,4 @@
-export type ElementType = 'path' | 'node' | 'image' | 'sticky' | 'shape' | 'text';
+export type ElementType = 'path' | 'node' | 'image' | 'sticky' | 'shape' | 'text' | 'eraser';
 
 export interface Point {
     x: number;

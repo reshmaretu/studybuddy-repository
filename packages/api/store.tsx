@@ -2,10 +2,10 @@ import React from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from './index';
-import { 
-    Task, TaskLoad, ChumToast, AppNotification, 
-    PerformanceSettings, AccessibilitySettings, 
-    ChatMessage, TutorSession, TutorSessionState, Shard, LanternUser, WardrobeAccessory, Invoice 
+import {
+    Task, TaskLoad, ChumToast, AppNotification,
+    PerformanceSettings, AccessibilitySettings,
+    ChatMessage, TutorSession, TutorSessionState, Shard, LanternUser, WardrobeAccessory, Invoice
 } from './types';
 
 export const calculateXpRequirement = (level: number) => {
@@ -25,6 +25,9 @@ export const getTitleForLevel = (level: number) => {
 // WardrobeAccessory moved to types.ts
 
 export interface StudyState {
+    activeBaseColor: string;
+    setActiveBaseColor: (color: string) => Promise<void>;
+
     displayName: string;
     fullName: string;
     userEmail: string;
@@ -116,8 +119,10 @@ export interface StudyState {
 
     activeCrystalTheme: string;
     activeAtmosphereFilter: 'default' | 'dark' | 'refreshing' | 'cool';
+    activeAppTheme: string;
     setActiveCrystalTheme: (themeId: string) => void;
     setActiveAtmosphereFilter: (filter: 'default' | 'dark' | 'refreshing' | 'cool') => void;
+    setActiveAppTheme: (themeId: string) => Promise<void>;
 
     activeAccessories: WardrobeAccessory[];
     unlockedThemes: string[];
@@ -237,6 +242,24 @@ export interface StudyState {
 export const useStudyStore = create<StudyState>()(
     persist(
         (set, get) => ({
+            activeBaseColor: 'base14', // Default is Mint!
+            setActiveBaseColor: async (activeBaseColor) => {
+                set({ activeBaseColor });
+                await get().syncWardrobe();
+            },
+
+            activeAppTheme: typeof localStorage !== 'undefined' ? localStorage.getItem('appTheme') || 'deep-teal' : 'deep-teal',
+            setActiveAppTheme: async (themeId) => {
+                set({ activeAppTheme: themeId });
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem('appTheme', themeId);
+                }
+                if (typeof document !== 'undefined') {
+                    document.documentElement.setAttribute('data-theme', themeId);
+                }
+                await get().syncWardrobe();
+            },
+
             isInitialized: false,
             isPremiumUser: false,
             isVerified: false,
@@ -392,7 +415,7 @@ export const useStudyStore = create<StudyState>()(
             addNotification: (notif) => {
                 const id = Math.random().toString(36).substring(7);
                 const timestamp = new Date().toISOString();
-                
+
                 if (typeof window !== 'undefined' && "Notification" in window && Notification.permission === "granted") {
                     navigator.serviceWorker.ready.then(registration => {
                         registration.showNotification(notif.title, {
@@ -412,7 +435,7 @@ export const useStudyStore = create<StudyState>()(
                 notifications: state.notifications.map(n => n.id === id ? { ...n, isRead: true } : n)
             })),
             clearNotifications: (category) => set((state) => ({
-                notifications: category 
+                notifications: category
                     ? state.notifications.filter(n => n.category !== category)
                     : []
             })),
@@ -590,12 +613,12 @@ export const useStudyStore = create<StudyState>()(
                     set({ timeLeft: 0, isRunning: false, totalSecondsTracked: newTracked });
                     get().completeStudySession();
                 } else {
-                    set({ 
+                    set({
                         timeLeft: Math.max(0, state.timeLeft - 1),
                         totalSecondsTracked: newTracked
                     });
                 }
-                
+
                 // ⚡ Sync to DB every 60 seconds of focus
                 if (newTracked % 60 === 0) {
                     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -722,7 +745,8 @@ export const useStudyStore = create<StudyState>()(
                     active_accessories: state.activeAccessories,
                     active_crystal_theme: state.activeCrystalTheme,
                     active_atmosphere_filter: state.activeAtmosphereFilter,
-                    active_app_theme: typeof localStorage !== 'undefined' ? localStorage.getItem('appTheme') || 'default' : 'default'
+                    active_chum_base_color: state.activeBaseColor,
+                    active_app_theme: state.activeAppTheme
                 };
                 await supabase.from('chum_wardrobe').upsert({ user_id: user.id, ...wardrobeData }, { onConflict: 'user_id' });
             },
@@ -787,7 +811,7 @@ export const useStudyStore = create<StudyState>()(
                     // 🛠️ IDENTITY AUTO-HEAL: If profile is missing, create it from metadata
                     const profile = profileResponse.data;
                     const metadata = user.user_metadata;
-                    
+
                     if (!profile) {
                         console.log("Profile missing, auto-creating from metadata...");
                         const newProfile = {
@@ -1142,6 +1166,7 @@ export const useStudyStore = create<StudyState>()(
                 lastResetHighlightAt: state.lastResetHighlightAt, notifications: state.notifications,
                 hasCompletedTutorial: state.hasCompletedTutorial, enableDevRoomOptions: state.enableDevRoomOptions,
                 useThematicUI: state.useThematicUI,
+                activeBaseColor: state.activeBaseColor, // ✅ MUST ADD THIS LINE SO IT SAVES!
             })
         }
     )

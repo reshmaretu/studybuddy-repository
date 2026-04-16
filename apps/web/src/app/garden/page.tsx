@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useStudyStore, TaskLoad, Task } from "@/store/useStudyStore";
-import { Sprout, Plus, Search, Moon, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit, Edit3, Maximize2, CheckCircle2 } from "lucide-react";
+import { Sprout, Plus, Search, Moon, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit, Maximize2, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import TaskCard from "@/components/TaskCard";
@@ -11,32 +11,9 @@ import UnDoneModal from "@/components/UnDoneModal";
 import GeodeScene from "@/components/GeodeScene";
 import { useTerms } from "@/hooks/useTerms";
 
-import { Shard, LanternUser } from "@/store/useStudyStore";
+import { Shard } from "@/store/useStudyStore";
 
-interface DropZoneContainerProps {
-    id: string;
-    title: string;
-    subtitle: string;
-    children: React.ReactNode;
-    isEmpty: boolean;
-    emptyText: string;
-}
-
-function DropZoneContainer({ id, title, subtitle, children, isEmpty, emptyText }: DropZoneContainerProps) {
-    const { isOver, setNodeRef } = useDroppable({ id });
-    return (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col h-full">
-            <div className="flex justify-between items-center mb-4 shrink-0">
-                <h2 className="text-xl font-bold text-[var(--text-main)]">{title}</h2>
-                <span className="text-xs font-medium text-[var(--text-muted)]">{subtitle}</span>
-            </div>
-            {/* ADDED INLINE STYLE TO FORCE SCROLLBAR REMOVAL IF CSS FAILS */}
-            <div ref={setNodeRef} style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} className={`flex-1 rounded-xl p-4 transition-all duration-300 flex flex-col gap-3 overflow-y-auto [&::-webkit-scrollbar]:hidden border-2 border-dashed ${isOver ? "bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]" : "bg-[var(--bg-dark)] border-[var(--border-color)]/50"}`}>
-                {isEmpty ? <div className="h-full flex items-center justify-center text-[var(--text-muted)] text-sm font-medium">{emptyText}</div> : children}
-            </div>
-        </div>
-    );
-}
+// DropZoneContainer removed (was unused)
 
 interface MasteryContainerProps {
     id: string;
@@ -52,10 +29,7 @@ function MasteryContainer({ id, masteryTab, setMasteryTab, children, isEmpty, em
     const { terms } = useTerms();
     return (
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col h-full">
-            <div className="flex justify-between items-center mb-4 shrink-0">
-                <h2 className="text-xl font-bold text-[var(--text-main)]">{terms.hallOfMastery}</h2>
-                <span className="text-xs font-medium text-[var(--text-muted)]">{terms.completed}</span>
-            </div>
+
 
             <div className="flex justify-between items-center mb-4 shrink-0 gap-4">
                 <button onClick={() => setMasteryTab('tasks')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'tasks' ? 'border-[var(--text-main)] text-[var(--text-main)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>{terms.archive}</button>
@@ -141,9 +115,9 @@ function MatrixZone({ id, title, subtitle, tasks, color, bg, border, activeBorde
             </div>
             <div style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} className="flex-1 p-2 sm:p-3 overflow-y-auto overflow-x-hidden space-y-2 [&::-webkit-scrollbar]:hidden rounded-b-xl pb-12">
                 {tasks.map((task: Task) => (
-                    <TaskCard 
-                        key={task.id} 
-                        task={task} 
+                    <TaskCard
+                        key={task.id}
+                        task={task}
                         onToggleSelect={onToggleSelect}
                         selected={selectedIds.includes(task.id)}
                     />
@@ -178,10 +152,10 @@ function IvySlot({ rank, task, isLocked, isActive, onToggleSelect, selectedIds }
             <div className="flex-1 min-w-0 flex flex-col justify-center">
                 {/* THE MINIMIZED FIX: Passing the new prop to the TaskCard! */}
                 {task ? (
-                    <TaskCard 
-                        task={task} 
-                        locked={isLocked} 
-                        isMinimized={true} 
+                    <TaskCard
+                        task={task}
+                        locked={isLocked}
+                        isMinimized={true}
                         onToggleSelect={onToggleSelect}
                         selected={selectedIds.includes(task.id)}
                     />
@@ -306,8 +280,8 @@ function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, borde
                     <div key={task.id} className="relative group animate-in fade-in zoom-in duration-300">
                         {/* 🎨 Wrapped the equipped TaskCard in a thematic border to match the zone */}
                         <div className={`rounded-xl border-2 p-1 bg-black/20 transition-all ${theme.wrapperBorder}`}>
-                            <TaskCard 
-                                task={task} 
+                            <TaskCard
+                                task={task}
                                 onToggleSelect={onToggleSelect}
                                 selected={selectedIds.includes(task.id)}
                             />
@@ -368,9 +342,9 @@ function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll, onToggl
                     <div className="h-full flex items-center justify-center text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest italic opacity-50">All Quests Assigned</div>
                 ) : (
                     tasks.map((task: Task) => (
-                        <TaskCard 
-                            key={task.id} 
-                            task={task} 
+                        <TaskCard
+                            key={task.id}
+                            task={task}
                             onToggleSelect={onToggleSelect}
                             selected={selectedIds.includes(task.id)}
                         />
@@ -394,9 +368,9 @@ function StandardZone({ id, tasks, onToggleSelect, selectedIds }: {
                 <div className="h-full flex items-center justify-center text-[var(--text-muted)] text-sm font-medium">No active quests yet</div>
             ) : (
                 tasks.map((task: Task) => (
-                    <TaskCard 
-                        key={task.id} 
-                        task={task} 
+                    <TaskCard
+                        key={task.id}
+                        task={task}
                         onToggleSelect={onToggleSelect}
                         selected={selectedIds.includes(task.id)}
                     />
@@ -412,7 +386,8 @@ export default function CrystalGarden() {
         completeTask, deleteTask, addTask, updateTask, triggerChumToast, isPremiumUser,
         protocolLimits, updateProtocolLimits
     } = useStudyStore();
-    const { terms } = useTerms();
+
+    const { terms, isGamified } = useTerms();
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -431,7 +406,7 @@ export default function CrystalGarden() {
     const [showUnrankedModal, setShowUnrankedModal] = useState(false);
     const [draggedToMasteryTask, setDraggedToMasteryTask] = useState<Task | null>(null);
     const [masteryTab, setMasteryTab] = useState<'tasks' | 'shards'>('tasks');
-    const [draggedToGeodeTask, setDraggedToGeodeTask] = useState<Task | null>(null);
+    // const [draggedToGeodeTask, setDraggedToGeodeTask] = useState<Task | null>(null); // unused
     const [snipingShard, setSnipingShard] = useState<Shard | null>(null);
 
     const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -454,21 +429,21 @@ export default function CrystalGarden() {
     const handleBulkDelete = async () => {
         if (selectedTaskIds.length === 0) return;
         for (const id of selectedTaskIds) {
-            deleteTask(id);
+    // const [draggedToGeodeTask, setDraggedToGeodeTask] = useState<Task | null>(null); // unused
         }
         setSelectedTaskIds([]);
         triggerChumToast(`${selectedTaskIds.length} quests recycled.`);
     };
 
     const validTasks = tasks.filter(t => t && t.id);
-    const filteredTasks = validTasks.filter(t => 
-        (t.title?.toLowerCase()?.includes(searchQuery.toLowerCase())) || 
+    const filteredTasks = validTasks.filter(t =>
+        (t.title?.toLowerCase()?.includes(searchQuery.toLowerCase())) ||
         (t.description?.toLowerCase()?.includes(searchQuery.toLowerCase()))
     );
 
     // These are for the UI Columns (affected by search)
     const activeQuests = filteredTasks.filter(t => !t.isCompleted);
-    const now = useMemo(() => Date.now(), []);
+    // const now = useMemo(() => Date.now(), []); // impure hook removed
 
     const getPhaseValue = (t: Task) => {
         const deadline = t.deadline;
@@ -499,7 +474,7 @@ export default function CrystalGarden() {
     const completionRatio = validTasks.length > 0 ? (globalArchivedQuests.length / validTasks.length) : 0;
 
     const [showFrameworkMenu, setShowFrameworkMenu] = useState(false);
-    const [pendingFramework, setPendingFramework] = useState<string | null | undefined>(undefined);
+    const [pendingFramework, setPendingFramework] = useState<typeof activeFramework>(null);
 
     const [stressLevel, setStressLevel] = useState(50);
     const [actualPomos, setActualPomos] = useState(1);
@@ -526,7 +501,7 @@ export default function CrystalGarden() {
 
         const lastPlan = lastPlannedDate ? new Date(lastPlannedDate as string) : null;
         const needsPlanning = !lastPlan || isNaN(lastPlan.getTime()) || lastPlan < today4AM;
-        
+
         if (needsPlanning) setShowMorningModal(true);
         else setShowMorningModal(false);
     }, [isInitialized, lastPlannedDate]);
@@ -692,32 +667,31 @@ export default function CrystalGarden() {
                     {isAdding && (
                         <div className="fixed inset-0 z-[100005] flex items-center justify-center p-4">
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAdding(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
-                                <motion.form
+                            <motion.form
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                onSubmit={handlePlantQuest} className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-6 shadow-2xl relative z-10 w-full max-w-sm flex flex-col"
+                                onSubmit={handlePlantQuest} className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-6 shadow-2xl relative z-10 w-full max-w-2xl flex flex-col"
                             >
                                 <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-bold text-[var(--text-main)]">Seed a New Quest</h3>
+                                    <h3 className="text-lg font-bold text-[var(--text-main)]">{isGamified ? "Seed a New Quest" : "Create New Task"}</h3>
                                     <button type="button" onClick={() => setIsAdding(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)]"><X size={20} /></button>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                     <div className="space-y-4">
-                                        <input autoFocus type="text" required placeholder="Quest Title" value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
+                                        <input autoFocus type="text" required placeholder={isGamified ? "Quest Title" : "Task Title"} value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)]" />
                                         <textarea placeholder="Description..." rows={3} value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] resize-none" />
                                     </div>
                                     <div className="space-y-4">
-                                <div className="bg-[var(--bg-dark)] border border-(--border-color) rounded-xl p-3">
-                                            <label className="text-xs font-bold text-(--text-muted) uppercase mb-3 block">Cognitive Load</label>
+                                        <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl p-3">
+                                            <label className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2 block">{terms.taskLoad}</label>
                                             <div className="flex gap-2">
                                                 {['light', 'medium', 'heavy'].map((weight) => (
                                                     <button key={weight} type="button" onClick={() => setNewTask({ ...newTask, load: weight as TaskLoad })} className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase border transition-colors ${newTask.load === weight ? 'bg-[var(--accent-teal)]/20 border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>{weight}</button>
                                                 ))}
                                             </div>
-                                            {/* 🔥 PREMIUM: Estimated Pomodoros Input */}
                                             {isPremiumUser && (
                                                 <div className="bg-[var(--bg-dark)] border border-[var(--accent-yellow)]/30 rounded-xl p-3 mt-4 shadow-[inset_0_0_15px_rgba(250,204,21,0.05)]">
                                                     <label className="text-xs font-bold text-[var(--accent-yellow)] uppercase mb-2 flex items-center gap-1.5">
-                                                        <Sparkles size={12} /> Estimated Pomodoros
+                                                        <Sparkles size={12} /> Estimated {terms.pomodoro}s
                                                     </label>
                                                     <input
                                                         type="number" min="1" max="20" placeholder="e.g. 2"
@@ -731,7 +705,7 @@ export default function CrystalGarden() {
 
                                         <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl p-3 flex flex-col gap-2 transition-all">
                                             <div className="flex items-center justify-between">
-                                                <label className="text-xs font-bold text-[var(--text-muted)] uppercase block">Best Before (Deadline)</label>
+                                                <label className="text-xs font-bold text-[var(--text-muted)] uppercase block">{isGamified ? "Best Before (Deadline)" : "Deadline"}</label>
                                                 <div onClick={() => handleToggleSchedule(!isScheduled)} className="flex items-center gap-2 cursor-pointer group">
                                                     <span className={`text-xs font-bold transition-colors ${isScheduled ? 'text-[var(--accent-teal)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>
                                                         {isScheduled ? 'Scheduled' : 'Unscheduled'}
@@ -755,7 +729,7 @@ export default function CrystalGarden() {
                                 </div>
                                 <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-color)]">
                                     <button type="button" onClick={() => setIsAdding(false)} className="px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">Cancel</button>
-                                    <button type="submit" className="bg-[var(--accent-teal)] text-[#0b1211] px-6 py-2 rounded-xl text-sm font-bold hover:bg-teal-400 transition-colors disabled:opacity-50" disabled={!newTask.title.trim()}>Plant Seed</button>
+                                    <button type="submit" className="bg-[var(--accent-teal)] text-[#0b1211] px-6 py-2 rounded-xl text-sm font-bold hover:bg-teal-400 transition-colors disabled:opacity-50" disabled={!newTask.title.trim()}>{isGamified ? "Plant Seed" : "Create Task"}</button>
                                 </div>
                             </motion.form>
                         </div>
@@ -766,7 +740,7 @@ export default function CrystalGarden() {
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDraggedToMasteryTask(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
                             <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-[var(--bg-card)] border-2 border-[var(--text-muted)] rounded-2xl p-8 w-full max-w-sm text-center shadow-[0_0_50px_rgba(0,0,0,0.5)] relative z-10">
                                 <h3 className="text-xl font-black text-white mb-2">Archive Quest?</h3>
-                                <p className="text-sm text-[var(--text-muted)] mb-6">Mark <span className="text-white font-bold">"{draggedToMasteryTask.title}"</span> as completed and move it to the Hall of Mastery.</p>
+                                <p className="text-sm text-[var(--text-muted)] mb-6">Mark <span className="text-white font-bold">&quot;{draggedToMasteryTask.title}&quot;</span> as completed and move it to the Hall of Mastery.</p>
 
                                 {/* 🔥 PREMIUM POST-MATCH SURVEY 🔥 */}
                                 {isPremiumUser && (
@@ -833,12 +807,18 @@ export default function CrystalGarden() {
                             <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-[var(--bg-card)] border-2 border-[var(--border-color)] rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl relative z-10">
                                 <h3 className="text-xl font-black text-white mb-2">Switch Framework?</h3>
                                 <p className="text-sm text-[var(--text-muted)] mb-8">
-                                    Are you sure you want to switch to the <span className="text-[var(--accent-teal)] font-bold">{pendingFramework === null ? 'Standard List' : pendingFramework}</span>? This will change how your current quests are organized.
+                                    Are you sure you want to switch to the <span className="text-[var(--accent-teal)] font-bold">
+                                        {/* 👇 Added the same name-formatting logic here! */}
+                                        {pendingFramework === null ? 'Standard List' :
+                                            pendingFramework === 'ivy' ? 'Ivy Lee Method' :
+                                                pendingFramework === 'eisenhower' ? 'Eisenhower Matrix' :
+                                                    pendingFramework === '1-3-5' ? '1-3-5 Method' : pendingFramework}
+                                    </span>? This will change how your current quests are organized.
                                 </p>
                                 <div className="flex gap-3">
                                     <button onClick={() => setPendingFramework(undefined)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/50 hover:bg-white/5 text-sm font-bold transition-all">Cancel</button>
                                     <button onClick={() => {
-                                        setActiveFramework(pendingFramework as any);
+                                        setActiveFramework(pendingFramework as typeof activeFramework);
                                         setPendingFramework(undefined);
                                     }} className="flex-1 py-3 rounded-xl bg-[var(--accent-teal)] text-black hover:brightness-110 text-sm font-black transition-all shadow-lg">Confirm</button>
                                 </div>
@@ -856,7 +836,7 @@ export default function CrystalGarden() {
                         <h1 className="text-3xl font-bold text-[var(--text-main)] flex items-center gap-3">
                             <Sprout className="text-[var(--accent-teal)]" size={32} /> {terms.crystalGarden}
                         </h1>
-                        <p className="text-[var(--text-muted)] mt-1">Cultivate and manage your active {terms.shards.toLowerCase()}.</p>
+                        <p className="text-[var(--text-muted)] mt-1">Cultivate and manage your active quests.</p>
                     </div>
 
                     <div className="flex gap-3 w-full md:w-auto flex-wrap pb-2 md:pb-0 hide-scrollbar shrink-0">
@@ -871,9 +851,13 @@ export default function CrystalGarden() {
                         <div className="relative z-50">
                             <button
                                 onClick={() => setShowFrameworkMenu(!showFrameworkMenu)}
-                                className={`h-full px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border transition-all ${activeFramework ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/50 text-[var(--accent-teal)]' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-teal)]'}`}
+                                className={`h-full px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border transition-all capitalize ${activeFramework ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/50 text-[var(--accent-teal)]' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-teal)]'}`}
                             >
-                                {activeFramework ? `${terms.framework}: ${activeFramework}` : `Standard ${terms.shards}`}
+                                {/* 👇 This logic finds the proper display label based on the active ID */}
+                                {activeFramework ? `${terms.framework}: ${activeFramework === 'ivy' ? 'Ivy Lee Method' :
+                                    activeFramework === 'eisenhower' ? 'Eisenhower Matrix' :
+                                        activeFramework === '1-3-5' ? '1-3-5 Method' : activeFramework
+                                    }` : `Standard ${terms.shards}`}
                                 <ChevronDown size={14} className={`transition-transform duration-300 ${showFrameworkMenu ? 'rotate-180' : ''}`} />
                             </button>
 
@@ -924,15 +908,6 @@ export default function CrystalGarden() {
                             <div className="flex justify-between items-center mb-4 shrink-0">
                                 <div className="flex items-center gap-3">
                                     <h2 className="text-xl font-bold text-[var(--text-main)]">Current Focus</h2>
-                                    {activeFramework === '1-3-5' && (
-                                        <button
-                                            onClick={() => setShowProtocolSettings(!showProtocolSettings)}
-                                            className="p-1 px-2 rounded-lg bg-[var(--bg-dark)] border border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--accent-teal)] hover:border-[var(--accent-teal)] transition-all flex items-center gap-1.5"
-                                        >
-                                            <Edit3 size={12} />
-                                            <span className="text-[10px] font-black uppercase tracking-widest">Adjust</span>
-                                        </button>
-                                    )}
                                 </div>
                                 <span className="text-xs font-black text-[var(--text-muted)] uppercase tracking-wider">
                                     {activeFramework === 'eisenhower' ? terms.eisenhowerQuadrant : activeFramework === '1-3-5' ? '1-3-5 Protocol' : activeFramework === 'ivy' ? terms.ivyRank : `Standard ${terms.shards}`}
@@ -1065,12 +1040,12 @@ export default function CrystalGarden() {
                                         {completionRatio >= 1 ? "Protocol Fulfilled" : "Synthesizing Momentum"}
                                     </p>
                                 </div>
-                                    <GeodeScene
-                                        completionRatio={completionRatio}
-                                        snipingShard={snipingShard}
-                                        setSnipingShard={setSnipingShard}
-                                    />
-                                </div>
+                                <GeodeScene
+                                    completionRatio={completionRatio}
+                                    snipingShard={snipingShard}
+                                    setSnipingShard={setSnipingShard}
+                                />
+                            </div>
                         </div>
                     </div>
 

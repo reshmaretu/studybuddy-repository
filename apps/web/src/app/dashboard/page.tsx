@@ -491,7 +491,7 @@ export default function Dashboard() {
                 {/* CURRENT FOCUS */}
                 <section className="pt-2 relative">
                     <div className="flex items-center gap-3 mb-4">
-                        <h2 className="text-xl font-bold text-[var(--text-main)]">{terms.questProgress}</h2>
+                        <h2 className="text-xl font-bold text-[var(--text-main)]">Current Focus</h2>
                         <span className="bg-[var(--bg-card)] border border-[var(--border-color)] px-2 py-1 rounded-md text-[11px] text-[var(--text-muted)] font-mono flex items-center gap-1.5">
                             <Calendar size={12} /> {formattedDate}
                         </span>
@@ -514,20 +514,20 @@ export default function Dashboard() {
                             ) : (
                                 <>
                                     {activeTasks.slice(0, 3).map((task) => (
-                                         <TaskCard 
-                                             key={task.id} 
-                                             task={task} 
-                                             onToggleSelect={onToggleSelect}
-                                             selected={selectedIds.includes(task.id)}
-                                         />
-                                     ))}
+                                        <TaskCard
+                                            key={task.id}
+                                            task={task}
+                                            onToggleSelect={onToggleSelect}
+                                            selected={selectedIds.includes(task.id)}
+                                        />
+                                    ))}
 
-                                     {Array.from({ length: Math.max(0, 3 - activeTasks.length) }).map((_, i) => (
-                                         <div key={`empty-${i}`} className="min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs md:text-sm font-bold tracking-wide">
-                                             + Open Slot
-                                         </div>
-                                     ))}
-                                 </>
+                                    {Array.from({ length: Math.max(0, 3 - activeTasks.length) }).map((_, i) => (
+                                        <div key={`empty-${i}`} className="min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs md:text-sm font-bold tracking-wide">
+                                            + Open Slot
+                                        </div>
+                                    ))}
+                                </>
                             )}
                         </AnimatePresence>
 
@@ -562,7 +562,7 @@ export default function Dashboard() {
                     </AnimatePresence>
 
                     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-8 shadow-sm">
-                        <h3 className="text-lg font-bold text-[var(--text-main)] mb-6">Garden Strength</h3>
+                        <h3 className="text-lg font-bold text-[var(--text-main)] mb-6">Quest Progress</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-4 text-center mb-8 border-b border-[var(--border-color)] pb-8">
                             <div className="flex flex-col items-center justify-center">
                                 <span className="text-3xl md:text-4xl font-bold text-[var(--text-main)] mb-1">{activeTasks.length}</span>
@@ -588,7 +588,7 @@ export default function Dashboard() {
                                 <>
                                     <CheckCircle2 size={24} className={completedTasks.length > 0 ? "text-[var(--accent-teal)] mb-2" : "text-[var(--border-color)] mb-2"} />
                                     <p className="text-[var(--text-muted)] text-sm">
-                                        {completedTasks.length > 0 ? `You nurtured ${completedTasks.length} blooms today.` : "Keep tending your garden."}
+                                        {completedTasks.length > 0 ? `You crushed ${completedTasks.length} quests!` : `You crushed ${completedTasks.length} tasks!`}
                                     </p>
                                 </>
                             )}
