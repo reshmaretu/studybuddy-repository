@@ -406,7 +406,7 @@ export default function CrystalGarden() {
     const [showUnrankedModal, setShowUnrankedModal] = useState(false);
     const [draggedToMasteryTask, setDraggedToMasteryTask] = useState<Task | null>(null);
     const [masteryTab, setMasteryTab] = useState<'tasks' | 'shards'>('tasks');
-    // const [draggedToGeodeTask, setDraggedToGeodeTask] = useState<Task | null>(null); // unused
+    const [draggedToGeodeTask, setDraggedToGeodeTask] = useState<Task | null>(null);
     const [snipingShard, setSnipingShard] = useState<Shard | null>(null);
 
     const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -429,7 +429,7 @@ export default function CrystalGarden() {
     const handleBulkDelete = async () => {
         if (selectedTaskIds.length === 0) return;
         for (const id of selectedTaskIds) {
-    // const [draggedToGeodeTask, setDraggedToGeodeTask] = useState<Task | null>(null); // unused
+            deleteTask(id);
         }
         setSelectedTaskIds([]);
         triggerChumToast(`${selectedTaskIds.length} quests recycled.`);
