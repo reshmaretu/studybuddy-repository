@@ -74,6 +74,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   >(null);
   const penRafRef = useRef<number | null>(null);
   const pendingPenPointRef = useRef<[number, number, number] | null>(null);
+  const lastPenAppendRef = useRef(0);
   const eraseRafRef = useRef<number | null>(null);
   const pendingEraseRef = useRef<{ x: number; y: number } | null>(null);
   const lastOfflineToastRef = useRef(0);
@@ -293,6 +294,27 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     []
   );
 
+  const getHandleCursor = useCallback((handle: ReturnType<typeof getResizeHandle>) => {
+    switch (handle) {
+      case 'nw':
+      case 'se':
+        return 'nwse-resize';
+      case 'ne':
+      case 'sw':
+        return 'nesw-resize';
+      case 'n':
+      case 's':
+        return 'ns-resize';
+      case 'w':
+      case 'e':
+        return 'ew-resize';
+      case 'rotate':
+        return 'grab';
+      default:
+        return 'default';
+    }
+  }, [getResizeHandle]);
+
   // ─────────────────────────────────────────────────────────────
   // TOOL INTERACTIONS
   // ─────────────────────────────────────────────────────────────
@@ -304,55 +326,6 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       const rect = canvasRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-
-      if (dragStateRef.current && store.activeTool === 'select') {
-        const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
-        const world = engineRef.current.canvasToWorld(x, y);
-        const startX = snapValue(world.x);
-        const startY = snapValue(world.y);
-        const drag = dragStateRef.current;
-        const dx = world.x - drag.startWorld.x;
-        const dy = world.y - drag.startWorld.y;
-
-        if (drag.mode === 'move') {
-          updateShape(schema.yshapes, drag.id, {
-            x: snapValue(drag.startRect.x + dx),
-            y: snapValue(drag.startRect.y + dy),
-          });
-        } else if (drag.mode === 'resize' && drag.handle) {
-          let { x: startX, y: startY, width, height } = drag.startRect;
-          let newX = startX;
-          let newY = startY;
-          let newW = width;
-          let newH = height;
-
-          if (drag.handle.includes('e')) {
-            newW = width + dx;
-          }
-          if (drag.handle.includes('s')) {
-            newH = height + dy;
-          }
-          if (drag.handle.includes('w')) {
-            newW = width - dx;
-            newX = startX + dx;
-          }
-          if (drag.handle.includes('n')) {
-            newH = height - dy;
-            newY = startY + dy;
-          }
-
-          newW = Math.max(10, newW);
-          newH = Math.max(10, newH);
-
-          updateShape(schema.yshapes, drag.id, {
-            x: snapValue(newX),
-            y: snapValue(newY),
-            width: snapValue(newW),
-            height: snapValue(newH),
-          });
-        }
-        return;
-      }
 
       const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
 
@@ -472,6 +445,108 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
+      if (store.activeTool === 'select') {
+        const world = engineRef.current.canvasToWorld(x, y);
+        if (dragStateRef.current) {
+          if (!isSynced) {
+            maybeToastOffline();
+            return;
+          }
+          const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
+          const drag = dragStateRef.current;
+          const dx = world.x - drag.startWorld.x;
+          const dy = world.y - drag.startWorld.y;
+
+          if (drag.mode === 'move') {
+            updateShape(schema.yshapes, drag.id, {
+              x: snapValue(drag.startRect.x + dx),
+              y: snapValue(drag.startRect.y + dy),
+            });
+          } else if (drag.mode === 'resize' && drag.handle) {
+            const { x: startX, y: startY, width, height } = drag.startRect;
+            const isCorner = ['nw', 'ne', 'sw', 'se'].includes(drag.handle);
+            let newX = startX;
+            let newY = startY;
+            let newW = width;
+            let newH = height;
+
+            if (isCorner) {
+              const ratio = width / height || 1;
+              const deltaW = drag.handle.includes('e') ? dx : -dx;
+              const deltaH = drag.handle.includes('s') ? dy : -dy;
+              const useWidth = Math.abs(deltaW) >= Math.abs(deltaH);
+              newW = width + deltaW;
+              newH = height + deltaH;
+              if (useWidth) {
+                newH = newW / ratio;
+              } else {
+                newW = newH * ratio;
+              }
+              if (drag.handle.includes('w')) {
+                newX = startX + (width - newW);
+              }
+              if (drag.handle.includes('n')) {
+                newY = startY + (height - newH);
+              }
+            } else {
+              if (drag.handle.includes('e')) {
+                newW = width + dx;
+              }
+              if (drag.handle.includes('s')) {
+                newH = height + dy;
+              }
+              if (drag.handle.includes('w')) {
+                newW = width - dx;
+                newX = startX + dx;
+              }
+              if (drag.handle.includes('n')) {
+                newH = height - dy;
+                newY = startY + dy;
+              }
+            }
+
+            newW = Math.max(10, newW);
+            newH = Math.max(10, newH);
+
+            updateShape(schema.yshapes, drag.id, {
+              x: snapValue(newX),
+              y: snapValue(newY),
+              width: snapValue(newW),
+              height: snapValue(newH),
+            });
+          } else if (drag.mode === 'rotate' && drag.shapeCenter) {
+            const startAngle = Math.atan2(
+              drag.startWorld.y - drag.shapeCenter.y,
+              drag.startWorld.x - drag.shapeCenter.x
+            );
+            const currentAngle = Math.atan2(
+              world.y - drag.shapeCenter.y,
+              world.x - drag.shapeCenter.x
+            );
+            const deltaDeg = ((currentAngle - startAngle) * 180) / Math.PI;
+            updateShape(schema.yshapes, drag.id, {
+              rotation: drag.startRect.rotation + deltaDeg,
+            });
+          }
+          if (canvasRef.current) {
+            canvasRef.current.style.cursor = drag.mode === 'move' ? 'grabbing' : getHandleCursor(drag.handle ?? null);
+          }
+          return;
+        }
+
+        const hit = engineRef.current.hitTest(x, y);
+        if (hit && hit.type === 'shape') {
+          const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
+          const shape = schema.yshapes.get(hit.objectId);
+          if (shape && canvasRef.current) {
+            const handle = getResizeHandle(shape, world);
+            canvasRef.current.style.cursor = handle ? getHandleCursor(handle) : 'grab';
+          }
+        } else if (canvasRef.current) {
+          canvasRef.current.style.cursor = 'default';
+        }
+      }
+
       if (activeShapeIdRef.current && shapeStartRef.current) {
         if (!isSynced) {
           maybeToastOffline();
@@ -511,18 +586,29 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         }
         const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
         const world = engineRef.current.canvasToWorld(x, y);
-        pendingPenPointRef.current = [world.x, world.y, e.pressure || 1];
-        if (penRafRef.current === null) {
-          penRafRef.current = window.requestAnimationFrame(() => {
-            penRafRef.current = null;
-            if (!pendingPenPointRef.current || activeStrokeIndexRef.current === null) return;
-            appendPointToPenStroke(
-              schema.ystrokes,
-              activeStrokeIndexRef.current,
-              pendingPenPointRef.current
-            );
-            pendingPenPointRef.current = null;
-          });
+        const now = performance.now();
+        const nextPoint: [number, number, number] = [world.x, world.y, e.pressure || 1];
+        const shouldAppendNow = now - lastPenAppendRef.current >= 8;
+
+        if (shouldAppendNow) {
+          appendPointToPenStroke(schema.ystrokes, activeStrokeIndexRef.current, nextPoint);
+          lastPenAppendRef.current = now;
+          pendingPenPointRef.current = null;
+        } else {
+          pendingPenPointRef.current = nextPoint;
+          if (penRafRef.current === null) {
+            penRafRef.current = window.requestAnimationFrame(() => {
+              penRafRef.current = null;
+              if (!pendingPenPointRef.current || activeStrokeIndexRef.current === null) return;
+              appendPointToPenStroke(
+                schema.ystrokes,
+                activeStrokeIndexRef.current,
+                pendingPenPointRef.current
+              );
+              lastPenAppendRef.current = performance.now();
+              pendingPenPointRef.current = null;
+            });
+          }
         }
         return;
       }
@@ -735,10 +821,95 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       if (!canvasRef.current || !ydocRef.current) return;
       if (dragStateRef.current) {
+        if (isSynced && engineRef.current && canvasRef.current) {
+          const rect = canvasRef.current.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const world = engineRef.current.canvasToWorld(x, y);
+          const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
+          const drag = dragStateRef.current;
+          const dx = world.x - drag.startWorld.x;
+          const dy = world.y - drag.startWorld.y;
+
+          if (drag.mode === 'move') {
+            updateShape(schema.yshapes, drag.id, {
+              x: snapValue(drag.startRect.x + dx),
+              y: snapValue(drag.startRect.y + dy),
+            });
+          } else if (drag.mode === 'resize' && drag.handle) {
+            const { x: startX, y: startY, width, height } = drag.startRect;
+            const isCorner = ['nw', 'ne', 'sw', 'se'].includes(drag.handle);
+            let newX = startX;
+            let newY = startY;
+            let newW = width;
+            let newH = height;
+
+            if (isCorner) {
+              const ratio = width / height || 1;
+              const deltaW = drag.handle.includes('e') ? dx : -dx;
+              const deltaH = drag.handle.includes('s') ? dy : -dy;
+              const useWidth = Math.abs(deltaW) >= Math.abs(deltaH);
+              newW = width + deltaW;
+              newH = height + deltaH;
+              if (useWidth) {
+                newH = newW / ratio;
+              } else {
+                newW = newH * ratio;
+              }
+              if (drag.handle.includes('w')) {
+                newX = startX + (width - newW);
+              }
+              if (drag.handle.includes('n')) {
+                newY = startY + (height - newH);
+              }
+            } else {
+              if (drag.handle.includes('e')) {
+                newW = width + dx;
+              }
+              if (drag.handle.includes('s')) {
+                newH = height + dy;
+              }
+              if (drag.handle.includes('w')) {
+                newW = width - dx;
+                newX = startX + dx;
+              }
+              if (drag.handle.includes('n')) {
+                newH = height - dy;
+                newY = startY + dy;
+              }
+            }
+
+            newW = Math.max(10, newW);
+            newH = Math.max(10, newH);
+
+            updateShape(schema.yshapes, drag.id, {
+              x: snapValue(newX),
+              y: snapValue(newY),
+              width: snapValue(newW),
+              height: snapValue(newH),
+            });
+          } else if (drag.mode === 'rotate' && drag.shapeCenter) {
+            const startAngle = Math.atan2(
+              drag.startWorld.y - drag.shapeCenter.y,
+              drag.startWorld.x - drag.shapeCenter.x
+            );
+            const currentAngle = Math.atan2(
+              world.y - drag.shapeCenter.y,
+              world.x - drag.shapeCenter.x
+            );
+            const deltaDeg = ((currentAngle - startAngle) * 180) / Math.PI;
+            updateShape(schema.yshapes, drag.id, {
+              rotation: drag.startRect.rotation + deltaDeg,
+            });
+          }
+        }
         if (activePointerIdRef.current !== null) {
           (e.currentTarget as HTMLCanvasElement).releasePointerCapture(
             activePointerIdRef.current
           );
+        }
+        if (canvasRef.current) {
+          canvasRef.current.style.cursor = 'default';
         }
         dragStateRef.current = null;
         activePointerIdRef.current = null;
@@ -779,6 +950,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
             activeStrokeIndexRef.current,
             pendingPenPointRef.current
           );
+          lastPenAppendRef.current = performance.now();
           pendingPenPointRef.current = null;
         }
         finalizePenStroke(schema.ystrokes, activeStrokeIndexRef.current);
