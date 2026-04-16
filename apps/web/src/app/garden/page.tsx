@@ -443,7 +443,7 @@ export default function CrystalGarden() {
 
     // These are for the UI Columns (affected by search)
     const activeQuests = filteredTasks.filter(t => !t.isCompleted);
-    // const now = useMemo(() => Date.now(), []); // impure hook removed
+    const now = Date.now();
 
     const getPhaseValue = (t: Task) => {
         const deadline = t.deadline;
