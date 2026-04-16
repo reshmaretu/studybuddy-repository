@@ -849,51 +849,63 @@ export default function CrystalGarden() {
                         </div>
                         {/* 🔥 THE NEW FRAMEWORK DROPDOWN 🔥 */}
                         <div className="relative z-50">
-                            <button
-                                onClick={() => setShowFrameworkMenu(!showFrameworkMenu)}
-                                className={`h-full px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border transition-all capitalize ${activeFramework ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/50 text-[var(--accent-teal)]' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-teal)]'}`}
-                            >
-                                {/* 👇 This logic finds the proper display label based on the active ID */}
-                                {activeFramework ? `${terms.framework}: ${activeFramework === 'ivy' ? 'Ivy Lee Method' :
-                                    activeFramework === 'eisenhower' ? 'Eisenhower Matrix' :
-                                        activeFramework === '1-3-5' ? '1-3-5 Method' : activeFramework
-                                    }` : `Standard ${terms.shards}`}
-                                <ChevronDown size={14} className={`transition-transform duration-300 ${showFrameworkMenu ? 'rotate-180' : ''}`} />
-                            </button>
-
-                            <AnimatePresence>
-                                {showFrameworkMenu && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                                        className="absolute top-full right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden"
-                                    >
-                                        {[
-                                            { id: null as const, label: 'Standard List' },
-                                            { id: '1-3-5' as const, label: '1-3-5 Method' },
-                                            { id: 'eisenhower' as const, label: 'Eisenhower Matrix' },
-                                            { id: 'ivy' as const, label: 'Ivy Lee Method' }
-] as { id: "eisenhower" | "1-3-5" | "ivy" | null, label: string }[]).map((fw) => (
-    <button
-        key={fw.label}
-        onClick={() => {
-            setShowFrameworkMenu(false);
-            if (activeFramework !== fw.id) setPendingFramework(fw.id);
-        }}
-        className="w-full text-left px-4 py-3 text-sm font-bold text-[var(--text-muted)] hover:bg-[var(--bg-sidebar)] hover:text-[var(--text-main)] transition-colors border-b border-white/5 last:border-0"
-    >
-        {fw.label}
-    </button>
-))}
-                            </AnimatePresence>
-                        </div>
-                        <button onClick={() => setShowUnDoneModal(true)} className="bg-[var(--bg-sidebar)] border border-(--border-color) px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-main)] hover:text-[var(--accent-teal)] hover:border-[var(--accent-teal)] transition-colors flex items-center justify-center whitespace-nowrap gap-2 shrink-0">
-                            <Moon size={16} /> Wrap Up
-                        </button>
-                        <button id="garden-add-task-btn" onClick={() => setIsAdding(true)} className="bg-[var(--accent-teal)] text-[#0b1211] px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 hover:brightness-110 shadow-[0_0_10px_rgba(20,184,166,0.2)] shrink-0">
-                            <Plus size={16} /> Plant Quest
-                        </button>
-                    </div>
-                </header>
+  <button
+    onClick={() => setShowFrameworkMenu(!showFrameworkMenu)}
+    className={`h-full px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border transition-all capitalize ${
+      activeFramework
+        ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/50 text-[var(--accent-teal)]'
+        : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-teal)]'
+    }`}
+  >
+    {activeFramework
+      ? `${terms.framework}: ${
+          activeFramework === 'ivy'
+            ? 'Ivy Lee Method'
+            : activeFramework === 'eisenhower'
+            ? 'Eisenhower Matrix'
+            : activeFramework === '1-3-5'
+            ? '1-3-5 Method'
+            : activeFramework
+        }`
+      : `Standard ${terms.shards}`}
+    <ChevronDown
+      size={14}
+      className={`transition-transform duration-300 ${
+        showFrameworkMenu ? 'rotate-180' : ''
+      }`}
+    />
+  </button>
+  <AnimatePresence>
+    {showFrameworkMenu && (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 10 }}
+        className="absolute top-full right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden"
+      >
+        {(
+          [
+            { id: null, label: 'Standard List' },
+            { id: '1-3-5', label: '1-3-5 Method' },
+            { id: 'eisenhower', label: 'Eisenhower Matrix' },
+            { id: 'ivy', label: 'Ivy Lee Method' },
+          ] as { id: 'eisenhower' | '1-3-5' | 'ivy' | null; label: string }[]
+        ).map((fw) => (
+          <button
+            key={fw.label}
+            onClick={() => {
+              setShowFrameworkMenu(false);
+              if (activeFramework !== fw.id) setPendingFramework(fw.id);
+            }}
+            className="w-full text-left px-4 py-3 text-sm font-bold text-[var(--text-muted)] hover:bg-[var(--bg-sidebar)] hover:text-[var(--text-main)] transition-colors border-b border-white/5 last:border-0"
+          >
+            {fw.label}
+          </button>
+        ))}
+      </motion.div>
+    )}
+  </AnimatePresence>
+</div>
 
                 {/* 3. The Strict 3-Column Layout! (Responsive stack on mobile) */}
                 <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0 pb-20 lg:pb-4 overflow-y-auto lg:overflow-hidden no-scrollbar">
