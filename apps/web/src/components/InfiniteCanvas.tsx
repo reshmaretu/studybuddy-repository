@@ -24,17 +24,22 @@ import {
   addPenStroke,
   appendPointToPenStroke,
   finalizePenStroke,
+  updateShape,
 } from '@studybuddy/canvas-engine';
 import { useCanvasToolStore, executeErase } from '@studybuddy/api';
 import { useStudyStore } from '@/store/useStudyStore';
 import { CanvasToolbar } from './CanvasToolbar';
 import { StickyNoteEditor } from './StickyNoteEditor';
+import { CanvasLayersPanel } from './CanvasLayersPanel';
+import { TextShapeEditor } from './TextShapeEditor';
 import type { StickyNoteData } from '@studybuddy/canvas-engine';
 
 interface InfiniteCanvasProps {
   roomId: string;
   userId: string;
   userName: string;
+  roomTitle?: string | null;
+  roomDescription?: string | null;
   // Supabase/Liveblocks connection (optional)
   realtimeProvider?: 'websocket' | 'supabase' | 'liveblocks';
 }
@@ -43,14 +48,31 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   roomId,
   userId,
   userName,
+  roomTitle,
+  roomDescription,
   realtimeProvider = 'supabase',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<StudyBuddyCanvasEngine | null>(null);
   const ydocRef = useRef<Y.Doc | null>(null);
+  const schemaRef = useRef<ReturnType<typeof createCanvasSchema> | null>(null);
   const activeStrokeIndexRef = useRef<number | null>(null);
   const activePointerIdRef = useRef<number | null>(null);
+  const activeShapeIdRef = useRef<string | null>(null);
+  const shapeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const dragStateRef = useRef<
+    | {
+        id: string;
+        mode: 'move' | 'resize';
+        handle?: 'nw' | 'ne' | 'sw' | 'se';
+        startWorld: { x: number; y: number };
+        startRect: { x: number; y: number; width: number; height: number };
+      }
+    | null
+  >(null);
+  const penRafRef = useRef<number | null>(null);
+  const pendingPenPointRef = useRef<[number, number, number] | null>(null);
   const eraseRafRef = useRef<number | null>(null);
   const pendingEraseRef = useRef<{ x: number; y: number } | null>(null);
   const lastOfflineToastRef = useRef(0);
@@ -61,7 +83,23 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   // Sticky note editor state
   const [activeStickyNoteId, setActiveStickyNoteId] = useState<string | null>(null);
   const [activeStickyData, setActiveStickyData] = useState<StickyNoteData | null>(null);
+  const [activeTextId, setActiveTextId] = useState<string | null>(null);
+  const [activeTextData, setActiveTextData] = useState<
+    | {
+        id: string;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        text: string;
+        textColor: string;
+        fontSize: number;
+        fontFamily: string;
+      }
+    | null
+  >(null);
   const [eraserCursor, setEraserCursor] = useState<{ x: number; y: number } | null>(null);
+  const [showLayers, setShowLayers] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<
     'connecting' | 'synced' | 'offline'
   >('connecting');
@@ -87,6 +125,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
     // Initialize schema
     const schema = createCanvasSchema(ydoc);
+    schemaRef.current = schema;
 
     // Setup persistence & real-time sync
     new IndexeddbPersistence(roomId, ydoc);
@@ -181,10 +220,15 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       engine.destroy();
       realtimeCleanup?.();
       ydoc.destroy();
+      schemaRef.current = null;
       setConnectionStatus('offline');
       if (eraseRafRef.current !== null) {
         cancelAnimationFrame(eraseRafRef.current);
         eraseRafRef.current = null;
+      }
+      if (penRafRef.current !== null) {
+        cancelAnimationFrame(penRafRef.current);
+        penRafRef.current = null;
       }
     };
   }, [roomId, realtimeProvider]);
@@ -194,6 +238,53 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       setEraserCursor(null);
     }
   }, [store.activeTool]);
+
+  useEffect(() => {
+    engineRef.current?.setSelectedObjectIds?.(store.selectedObjectIds);
+  }, [store.selectedObjectIds]);
+
+  useEffect(() => {
+    const schema = schemaRef.current;
+    if (!schema) return;
+    schema.ymetadata.set('gridEnabled', store.gridEnabled);
+    schema.ymetadata.set('gridSize', store.gridSize);
+  }, [store.gridEnabled, store.gridSize]);
+
+  const snapValue = useCallback(
+    (value: number) => {
+      if (!store.snapEnabled) return value;
+      const size = store.gridSize || 1;
+      return Math.round(value / size) * size;
+    },
+    [store.snapEnabled, store.gridSize]
+  );
+
+  const getResizeHandle = useCallback(
+    (shape: Y.Map<any>, point: { x: number; y: number }) => {
+      const viewport = engineRef.current?.getViewport() || { zoom: 1, x: 0, y: 0 };
+      const handleSize = 8 / viewport.zoom;
+      const x = shape.get('x');
+      const y = shape.get('y');
+      const w = shape.get('width');
+      const h = shape.get('height');
+      const handles: Array<{ id: 'nw' | 'ne' | 'sw' | 'se'; x: number; y: number }> = [
+        { id: 'nw', x, y },
+        { id: 'ne', x: x + w, y },
+        { id: 'sw', x, y: y + h },
+        { id: 'se', x: x + w, y: y + h },
+      ];
+
+      for (const handle of handles) {
+        const dx = Math.abs(point.x - handle.x);
+        const dy = Math.abs(point.y - handle.y);
+        if (dx <= handleSize && dy <= handleSize) {
+          return handle.id;
+        }
+      }
+      return null;
+    },
+    []
+  );
 
   // ─────────────────────────────────────────────────────────────
   // TOOL INTERACTIONS
@@ -207,7 +298,58 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
-      const schema = createCanvasSchema(ydocRef.current);
+      if (dragStateRef.current && store.activeTool === 'select') {
+        const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
+        const world = engineRef.current.canvasToWorld(x, y);
+        const startX = snapValue(world.x);
+        const startY = snapValue(world.y);
+        const startX = snapValue(world.x);
+        const startY = snapValue(world.y);
+        const drag = dragStateRef.current;
+        const dx = world.x - drag.startWorld.x;
+        const dy = world.y - drag.startWorld.y;
+
+        if (drag.mode === 'move') {
+          updateShape(schema.yshapes, drag.id, {
+            x: snapValue(drag.startRect.x + dx),
+            y: snapValue(drag.startRect.y + dy),
+          });
+        } else if (drag.mode === 'resize' && drag.handle) {
+          let { x: startX, y: startY, width, height } = drag.startRect;
+          let newX = startX;
+          let newY = startY;
+          let newW = width;
+          let newH = height;
+
+          if (drag.handle.includes('e')) {
+            newW = width + dx;
+          }
+          if (drag.handle.includes('s')) {
+            newH = height + dy;
+          }
+          if (drag.handle.includes('w')) {
+            newW = width - dx;
+            newX = startX + dx;
+          }
+          if (drag.handle.includes('n')) {
+            newH = height - dy;
+            newY = startY + dy;
+          }
+
+          newW = Math.max(10, newW);
+          newH = Math.max(10, newH);
+
+          updateShape(schema.yshapes, drag.id, {
+            x: snapValue(newX),
+            y: snapValue(newY),
+            width: snapValue(newW),
+            height: snapValue(newH),
+          });
+        }
+        return;
+      }
+
+      const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
 
       if (store.activeTool === 'sticky') {
         if (!isSynced) {
@@ -224,6 +366,10 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           rotation: 0,
           zIndex: 0,
           color: store.sticky.backgroundColor,
+          fillColor: store.sticky.backgroundColor,
+          strokeColor: store.sticky.backgroundColor,
+          fillEnabled: true,
+          strokeEnabled: false,
           fillOpacity: 1,
           strokeWidth: 2,
           locked: false,
@@ -279,7 +425,38 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         }
       }
     },
-    [store, userId]
+    [store, userId, isSynced, maybeToastOffline]
+  );
+
+  const handleCanvasDoubleClick = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!canvasRef.current || !engineRef.current || !ydocRef.current) return;
+      if (store.activeTool !== 'select') return;
+
+      const rect = canvasRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
+      const hit = engineRef.current.hitTest(x, y);
+      if (!hit || hit.type !== 'shape') return;
+
+      const shape = schema.yshapes.get(hit.objectId);
+      if (!shape || shape.get('type') !== 'text') return;
+
+      setActiveTextId(hit.objectId);
+      setActiveTextData({
+        id: hit.objectId,
+        x: shape.get('x'),
+        y: shape.get('y'),
+        width: shape.get('width'),
+        height: shape.get('height'),
+        text: shape.get('text') || 'Text',
+        textColor: shape.get('textColor') || shape.get('color') || '#e2e8f0',
+        fontSize: shape.get('fontSize') || 20,
+        fontFamily: shape.get('fontFamily') || 'system-ui',
+      });
+    },
+    [store.activeTool]
   );
 
   const handleCanvasPointerMove = useCallback(
@@ -290,18 +467,58 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
+      if (activeShapeIdRef.current && shapeStartRef.current) {
+        if (!isSynced) {
+          maybeToastOffline();
+          return;
+        }
+        const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
+        const world = engineRef.current.canvasToWorld(x, y);
+        const start = shapeStartRef.current;
+        const width = world.x - start.x;
+        const height = world.y - start.y;
+        const tool = store.activeTool;
+
+        if (tool === 'line') {
+          updateShape(schema.yshapes, activeShapeIdRef.current, {
+            x: start.x,
+            y: start.y,
+            width,
+            height,
+          });
+        } else {
+          const nextX = Math.min(start.x, world.x);
+          const nextY = Math.min(start.y, world.y);
+          updateShape(schema.yshapes, activeShapeIdRef.current, {
+            x: nextX,
+            y: nextY,
+            width: Math.abs(width),
+            height: Math.abs(height),
+          });
+        }
+        return;
+      }
+
       if (store.activeTool === 'pen' && activeStrokeIndexRef.current !== null) {
         if (!isSynced) {
           maybeToastOffline();
           return;
         }
-        const schema = createCanvasSchema(ydocRef.current);
+        const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
         const world = engineRef.current.canvasToWorld(x, y);
-        appendPointToPenStroke(schema.ystrokes, activeStrokeIndexRef.current, [
-          world.x,
-          world.y,
-          e.pressure || 1,
-        ]);
+        pendingPenPointRef.current = [world.x, world.y, e.pressure || 1];
+        if (penRafRef.current === null) {
+          penRafRef.current = window.requestAnimationFrame(() => {
+            penRafRef.current = null;
+            if (!pendingPenPointRef.current || activeStrokeIndexRef.current === null) return;
+            appendPointToPenStroke(
+              schema.ystrokes,
+              activeStrokeIndexRef.current,
+              pendingPenPointRef.current
+            );
+            pendingPenPointRef.current = null;
+          });
+        }
         return;
       }
 
@@ -336,12 +553,106 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         }
       }
     },
-    [store.activeTool, store.eraser, isSynced]
+    [store.activeTool, store.eraser, isSynced, maybeToastOffline, snapValue]
   );
 
   const handleCanvasPointerDown = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       if (!canvasRef.current || !engineRef.current || !ydocRef.current) return;
+      const shapeTools = ['rect', 'circle', 'line', 'text'] as const;
+
+      if (store.activeTool === 'select') {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const hit = engineRef.current.hitTest(x, y);
+        if (!hit) {
+          store.clearSelection();
+          return;
+        }
+
+        store.setSelectedObjectIds([hit.objectId]);
+        if (hit.type !== 'shape') return;
+
+        const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
+        const shape = schema.yshapes.get(hit.objectId);
+        if (!shape) return;
+
+        const world = engineRef.current.canvasToWorld(x, y);
+        const handle = getResizeHandle(shape, world);
+
+        dragStateRef.current = {
+          id: hit.objectId,
+          mode: handle ? 'resize' : 'move',
+          handle: handle ?? undefined,
+          startWorld: world,
+          startRect: {
+            x: shape.get('x'),
+            y: shape.get('y'),
+            width: shape.get('width'),
+            height: shape.get('height'),
+          },
+        };
+
+        activePointerIdRef.current = e.pointerId;
+        (e.currentTarget as HTMLCanvasElement).setPointerCapture(e.pointerId);
+        return;
+      }
+
+      if (shapeTools.includes(store.activeTool as (typeof shapeTools)[number])) {
+        if (!isSynced) {
+          maybeToastOffline();
+          return;
+        }
+        activePointerIdRef.current = e.pointerId;
+        (e.currentTarget as HTMLCanvasElement).setPointerCapture(e.pointerId);
+
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const world = engineRef.current.canvasToWorld(x, y);
+
+        const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
+        const tool = store.activeTool;
+        const baseShape = {
+          x: startX,
+          y: startY,
+          width: tool === 'text' ? 240 : 1,
+          height: tool === 'text' ? 64 : 1,
+          rotation: 0,
+          zIndex: 0,
+          color: tool === 'text' ? store.text.color : store.shape.fillColor,
+          fillOpacity: tool === 'line' || tool === 'text' ? 0 : store.shape.fillOpacity,
+          strokeWidth: store.shape.strokeWidth,
+          fillColor: store.shape.fillColor,
+          strokeColor: store.shape.strokeColor,
+          fillEnabled: tool === 'line' || tool === 'text' ? false : store.shape.fillEnabled,
+          strokeEnabled: store.shape.strokeEnabled,
+          locked: false,
+          userId,
+        };
+
+        const shapeData =
+          tool === 'text'
+            ? {
+                ...baseShape,
+                type: 'text' as const,
+                text: 'Text',
+                textColor: store.text.color,
+                fontSize: store.text.fontSize,
+                fontFamily: store.text.fontFamily,
+              }
+            : {
+                ...baseShape,
+                type: tool as 'rect' | 'circle' | 'line',
+              };
+
+        const created = addShape(schema.yshapes, schema.ylayers, shapeData as any);
+        activeShapeIdRef.current = created.id;
+        shapeStartRef.current = { x: startX, y: startY };
+        return;
+      }
+
       if (store.activeTool !== 'pen') {
         if (store.activeTool === 'eraser') {
           if (!isSynced) {
@@ -355,7 +666,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           const x = e.clientX - rect.left;
           const y = e.clientY - rect.top;
           setEraserCursor({ x, y });
-          const schema = createCanvasSchema(ydocRef.current);
+          const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
 
           executeErase(
             x,
@@ -383,7 +694,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       const y = e.clientY - rect.top;
       const world = engineRef.current.canvasToWorld(x, y);
 
-      const schema = createCanvasSchema(ydocRef.current);
+      const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
       const strokeIndex = schema.ystrokes.length;
       addPenStroke(schema.ystrokes, schema.ylayers, {
         points: [[world.x, world.y, e.pressure || 1]],
@@ -397,12 +708,43 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
       activeStrokeIndexRef.current = strokeIndex;
     },
-    [store.activeTool, store.brush, userId, isSynced, maybeToastOffline]
+    [
+      store.activeTool,
+      store.brush,
+      store.shape,
+      store.text,
+      userId,
+      isSynced,
+      maybeToastOffline,
+      snapValue,
+      getResizeHandle,
+    ]
   );
 
   const handleCanvasPointerUp = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       if (!canvasRef.current || !ydocRef.current) return;
+      if (dragStateRef.current) {
+        if (activePointerIdRef.current !== null) {
+          (e.currentTarget as HTMLCanvasElement).releasePointerCapture(
+            activePointerIdRef.current
+          );
+        }
+        dragStateRef.current = null;
+        activePointerIdRef.current = null;
+        return;
+      }
+      if (activeShapeIdRef.current) {
+        if (activePointerIdRef.current !== null) {
+          (e.currentTarget as HTMLCanvasElement).releasePointerCapture(
+            activePointerIdRef.current
+          );
+        }
+        activeShapeIdRef.current = null;
+        shapeStartRef.current = null;
+        activePointerIdRef.current = null;
+        return;
+      }
       if (store.activeTool !== 'pen') {
         if (activePointerIdRef.current !== null) {
           (e.currentTarget as HTMLCanvasElement).releasePointerCapture(
@@ -420,7 +762,15 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       }
 
       if (activeStrokeIndexRef.current !== null) {
-        const schema = createCanvasSchema(ydocRef.current);
+        const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
+        if (pendingPenPointRef.current) {
+          appendPointToPenStroke(
+            schema.ystrokes,
+            activeStrokeIndexRef.current,
+            pendingPenPointRef.current
+          );
+          pendingPenPointRef.current = null;
+        }
         finalizePenStroke(schema.ystrokes, activeStrokeIndexRef.current);
       }
 
@@ -452,9 +802,15 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       if (e.key === 'e') store.setActiveTool('eraser');
       if (e.key === 'm') store.setActiveTool('mindmap');
       if (e.key === 's') store.setActiveTool('sticky');
+      if (e.key === 'r') store.setActiveTool('rect');
+      if (e.key === 'c') store.setActiveTool('circle');
+      if (e.key === 'l') store.setActiveTool('line');
+      if (e.key === 't') store.setActiveTool('text');
       if (e.key === 'Escape') {
         setActiveStickyNoteId(null);
         store.clearSelection();
+        setActiveTextId(null);
+        setActiveTextData(null);
       }
     };
 
@@ -475,6 +831,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       <canvas
         ref={canvasRef}
         onClick={handleCanvasClick}
+        onDoubleClick={handleCanvasDoubleClick}
         onPointerDown={handleCanvasPointerDown}
         onPointerMove={handleCanvasPointerMove}
         onPointerUp={handleCanvasPointerUp}
@@ -492,6 +849,29 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
             top: eraserCursor.y - store.eraser.size / 2,
           }}
         />
+      )}
+
+      {(roomTitle || roomDescription) && (
+        <div className="absolute left-6 top-6 z-[200] max-w-sm rounded-3xl border border-white/10 bg-[#0b1211]/80 px-4 py-3 text-white/80 shadow-xl backdrop-blur">
+          {roomTitle && (
+            <div className="text-sm font-black text-white">{roomTitle}</div>
+          )}
+          {roomDescription && (
+            <div className="text-[11px] text-white/50 mt-1 line-clamp-2">
+              {roomDescription}
+            </div>
+          )}
+          <button
+            onClick={() => {
+              const code = roomId.startsWith('canvas-') ? roomId.slice(7) : roomId;
+              const link = `${window.location.origin}/canvas?room=${code}`;
+              navigator.clipboard?.writeText(link).catch(() => undefined);
+            }}
+            className="mt-3 text-[10px] uppercase tracking-widest text-[#14b8a6] hover:text-white transition-colors"
+          >
+            Copy Link
+          </button>
+        </div>
       )}
 
       {/* Sticky Note Editor Overlay */}
@@ -515,8 +895,38 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         />
       )}
 
+      {ydocRef.current && (
+        <CanvasLayersPanel
+          isOpen={showLayers}
+          ydoc={ydocRef.current}
+          onClose={() => setShowLayers(false)}
+        />
+      )}
+
+      {activeTextData && ydocRef.current && (
+        <TextShapeEditor
+          textShape={activeTextData}
+          ymap={
+            ydocRef.current
+              .getMap('shapes')
+              .get(activeTextId!) as Y.Map<any>
+          }
+          isActive={activeTextId !== null}
+          canvasViewport={engineRef.current?.getViewport() || { x: 0, y: 0, zoom: 1 }}
+          canvasRect={canvasRef.current?.getBoundingClientRect() || new DOMRect()}
+          onBlur={() => {
+            setActiveTextId(null);
+            setActiveTextData(null);
+          }}
+        />
+      )}
+
       {/* Floating Toolbar */}
-      <CanvasToolbar connectionStatus={connectionStatus} />
+      <CanvasToolbar
+        connectionStatus={connectionStatus}
+        onToggleLayers={() => setShowLayers((prev) => !prev)}
+        isLayersOpen={showLayers}
+      />
 
       {/* Keyboard Shortcuts Legend (optional) */}
       <div className="fixed top-4 right-4 text-xs text-white/40 space-y-1">

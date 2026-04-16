@@ -57,6 +57,7 @@ export class StudyBuddyCanvasEngine {
   private ystrokes: Y.Array<Y.Map<any>>;
   private yconnections: Y.Map<Y.Map<any>>;
   private ylayers: Y.Array<string>;
+  private ymetadata: Y.Map<any>;
 
   // Animation frame for render loop
   private rafId?: number;
@@ -75,12 +76,18 @@ export class StudyBuddyCanvasEngine {
     this.ystrokes = schema.ystrokes;
     this.yconnections = schema.yconnections;
     this.ylayers = schema.ylayers;
+    this.ymetadata = schema.ymetadata;
 
     this._setupEventListeners();
     this._subscribeToYjsChanges();
     this._startRenderLoop();
 
     console.log('✨ StudyBuddy Canvas Engine initialized');
+  }
+
+  setSelectedObjectIds(ids: string[]) {
+    this.selectedObjectIds = new Set(ids);
+    this._markDirty();
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -92,8 +99,9 @@ export class StudyBuddyCanvasEngine {
     const ystrokes = this.ydoc.getArray<Y.Map<any>>('strokes');
     const yconnections = this.ydoc.getMap<Y.Map<any>>('connections');
     const ylayers = this.ydoc.getArray<string>('layerOrder');
+    const ymetadata = this.ydoc.getMap<any>('metadata');
 
-    return { yshapes, ystrokes, yconnections, ylayers };
+    return { yshapes, ystrokes, yconnections, ylayers, ymetadata };
   }
 
   private _subscribeToYjsChanges() {
@@ -103,12 +111,14 @@ export class StudyBuddyCanvasEngine {
     this.ystrokes.observe(reshapeObserver);
     this.yconnections.observe(reshapeObserver);
     this.ylayers.observe(reshapeObserver);
+    this.ymetadata.observe(reshapeObserver);
 
     this.observers.push(
       () => this.yshapes.unobserve(reshapeObserver),
       () => this.ystrokes.unobserve(reshapeObserver),
       () => this.yconnections.unobserve(reshapeObserver),
-      () => this.ylayers.unobserve(reshapeObserver)
+      () => this.ylayers.unobserve(reshapeObserver),
+      () => this.ymetadata.unobserve(reshapeObserver)
     );
   }
 
@@ -154,6 +164,8 @@ export class StudyBuddyCanvasEngine {
     ctx.scale(viewport.zoom, viewport.zoom);
     ctx.translate(-canvas.width / 2 + viewport.x, -canvas.height / 2 + viewport.y);
 
+    this._renderGrid();
+
     // Render in layer order
     const layerOrder = this.ylayers.toArray();
     for (const id of layerOrder) {
@@ -186,6 +198,39 @@ export class StudyBuddyCanvasEngine {
     this._renderSelectionHandles();
   }
 
+  private _renderGrid() {
+    const gridEnabled = this.ymetadata.get('gridEnabled');
+    if (!gridEnabled) return;
+
+    const gridSize = this.ymetadata.get('gridSize') || 40;
+    const { ctx, canvas, viewport } = this;
+    const width = canvas.width / viewport.zoom;
+    const height = canvas.height / viewport.zoom;
+
+    const startX = Math.floor((-viewport.x) / gridSize) * gridSize - width / 2;
+    const startY = Math.floor((-viewport.y) / gridSize) * gridSize - height / 2;
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1 / viewport.zoom;
+
+    for (let x = startX; x <= startX + width + gridSize; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, startY);
+      ctx.lineTo(x, startY + height + gridSize);
+      ctx.stroke();
+    }
+
+    for (let y = startY; y <= startY + height + gridSize; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(startX, y);
+      ctx.lineTo(startX + width + gridSize, y);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
   private _renderShape(ymap: Y.Map<any>) {
     const type = ymap.get('type');
     const x = ymap.get('x');
@@ -195,6 +240,11 @@ export class StudyBuddyCanvasEngine {
     const color = ymap.get('color');
     const fillOpacity = ymap.get('fillOpacity');
     const rotation = ymap.get('rotation');
+    const strokeWidth = ymap.get('strokeWidth') || 2;
+    const fillColor = ymap.get('fillColor') || color;
+    const strokeColor = ymap.get('strokeColor') || color;
+    const fillEnabled = ymap.get('fillEnabled') ?? true;
+    const strokeEnabled = ymap.get('strokeEnabled') ?? false;
     const isSelected = this.selectedObjectIds.has(ymap.get('id'));
 
     this.ctx.save();
@@ -203,13 +253,38 @@ export class StudyBuddyCanvasEngine {
     this.ctx.translate(-w / 2, -h / 2);
 
     if (type === 'rect') {
-      this.ctx.fillStyle = `${color}${Math.round(fillOpacity * 255).toString(16).padStart(2, '0')}`;
-      this.ctx.fillRect(0, 0, w, h);
+      if (fillEnabled) {
+        this.ctx.fillStyle = `${fillColor}${Math.round(fillOpacity * 255)
+          .toString(16)
+          .padStart(2, '0')}`;
+        this.ctx.fillRect(0, 0, w, h);
+      }
+      if (strokeEnabled) {
+        this.ctx.strokeStyle = strokeColor;
+        this.ctx.lineWidth = strokeWidth;
+        this.ctx.strokeRect(0, 0, w, h);
+      }
     } else if (type === 'circle') {
-      this.ctx.fillStyle = `${color}${Math.round(fillOpacity * 255).toString(16).padStart(2, '0')}`;
       this.ctx.beginPath();
       this.ctx.arc(w / 2, h / 2, Math.min(w, h) / 2, 0, Math.PI * 2);
-      this.ctx.fill();
+      if (fillEnabled) {
+        this.ctx.fillStyle = `${fillColor}${Math.round(fillOpacity * 255)
+          .toString(16)
+          .padStart(2, '0')}`;
+        this.ctx.fill();
+      }
+      if (strokeEnabled) {
+        this.ctx.strokeStyle = strokeColor;
+        this.ctx.lineWidth = strokeWidth;
+        this.ctx.stroke();
+      }
+    } else if (type === 'line') {
+      this.ctx.strokeStyle = strokeColor;
+      this.ctx.lineWidth = strokeWidth;
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, 0);
+      this.ctx.lineTo(w, h);
+      this.ctx.stroke();
     } else if (type === 'sticky') {
       // Render sticky note background
       this.ctx.fillStyle = color;
@@ -226,6 +301,14 @@ export class StudyBuddyCanvasEngine {
       lines.forEach((line: string, i: number) => {
         this.ctx.fillText(line, 8, 8 + i * (fontSize + 4));
       });
+    } else if (type === 'text') {
+      const text = ymap.get('text') || 'Text';
+      const fontSize = ymap.get('fontSize') || 20;
+      const fontFamily = ymap.get('fontFamily') || 'system-ui';
+      this.ctx.fillStyle = ymap.get('textColor') || color;
+      this.ctx.font = `${fontSize}px ${fontFamily}`;
+      this.ctx.textBaseline = 'top';
+      this.ctx.fillText(text, 0, 0);
     }
 
     // Selection outline
@@ -386,7 +469,16 @@ export class StudyBuddyCanvasEngine {
       const h = shape.get('height');
       const type = shape.get('type');
 
-      const distance = this._pointToShapeDistance(worldX, worldY, x, y, w, h, type as any);
+      const distance = this._pointToShapeDistance(
+        worldX,
+        worldY,
+        x,
+        y,
+        w,
+        h,
+        type as any,
+        shape.get('strokeWidth') || 2
+      );
       if (distance !== null && distance <= tolerance) {
         return {
           objectId: id,
@@ -437,7 +529,8 @@ export class StudyBuddyCanvasEngine {
           shape.get('y'),
           shape.get('width'),
           shape.get('height'),
-          shape.get('type')
+          shape.get('type'),
+          shape.get('strokeWidth') || 2
         );
         if (distance !== null && distance <= radius) {
           results.push({ objectId: id, type: 'shape', distance });
@@ -474,9 +567,10 @@ export class StudyBuddyCanvasEngine {
     y: number,
     w: number,
     h: number,
-    type: 'rect' | 'circle'
+    type: 'rect' | 'circle' | 'sticky' | 'line' | 'text',
+    strokeWidth = 2
   ): number | null {
-    if (type === 'rect') {
+    if (type === 'rect' || type === 'sticky' || type === 'text') {
       if (px >= x && px <= x + w && py >= y && py <= y + h) return 0;
       const dx = Math.max(x - px, px - (x + w));
       const dy = Math.max(y - py, py - (y + h));
@@ -487,6 +581,9 @@ export class StudyBuddyCanvasEngine {
       const r = Math.min(w, h) / 2;
       const d = Math.sqrt((px - cx) ** 2 + (py - cy) ** 2);
       return Math.abs(d - r);
+    } else if (type === 'line') {
+      const dist = this._pointToLineDistance(px, py, x, y, x + w, y + h);
+      return dist <= strokeWidth ? dist : null;
     }
     return null;
   }

@@ -7,7 +7,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { HitTestResult } from '@studybuddy/canvas-engine';
 
-export type ToolType = 'select' | 'pen' | 'eraser' | 'mindmap' | 'sticky';
+export type ToolType = 'select' | 'pen' | 'eraser' | 'mindmap' | 'sticky' | 'rect' | 'circle' | 'line' | 'text';
 export type PenMode = 'ballpoint' | 'marker' | 'highlighter' | 'calligraphy';
 
 export interface BrushSettings {
@@ -38,6 +38,21 @@ export interface StickySettings {
   fontFamily: string;
 }
 
+export interface TextSettings {
+  color: string;
+  fontSize: number;
+  fontFamily: string;
+}
+
+export interface ShapeSettings {
+  strokeColor: string;
+  fillColor: string;
+  strokeWidth: number;
+  fillOpacity: number;
+  strokeEnabled: boolean;
+  fillEnabled: boolean;
+}
+
 export interface CanvasToolStore {
   // Active Tool
   activeTool: ToolType;
@@ -56,6 +71,12 @@ export interface CanvasToolStore {
   sticky: StickySettings;
   setStickySettings: (settings: Partial<StickySettings>) => void;
 
+  text: TextSettings;
+  setTextSettings: (settings: Partial<TextSettings>) => void;
+
+  shape: ShapeSettings;
+  setShapeSettings: (settings: Partial<ShapeSettings>) => void;
+
   // UI State
   showToolbar: boolean;
   setShowToolbar: (show: boolean) => void;
@@ -63,8 +84,23 @@ export interface CanvasToolStore {
   showColorPicker: boolean;
   setShowColorPicker: (show: boolean) => void;
 
-  selectedColorMode: 'brush' | 'mindmap-line' | 'mindmap-label' | 'sticky-bg' | 'sticky-text';
+  selectedColorMode:
+    | 'brush'
+    | 'mindmap-line'
+    | 'mindmap-label'
+    | 'sticky-bg'
+    | 'sticky-text'
+    | 'text'
+    | 'shape-stroke'
+    | 'shape-fill';
   setSelectedColorMode: (mode: string) => void;
+
+  gridEnabled: boolean;
+  setGridEnabled: (enabled: boolean) => void;
+  snapEnabled: boolean;
+  setSnapEnabled: (enabled: boolean) => void;
+  gridSize: number;
+  setGridSize: (size: number) => void;
 
   // Multi-select
   selectedObjectIds: string[];
@@ -107,6 +143,21 @@ const defaultStickySettings: StickySettings = {
   fontFamily: 'system-ui',
 };
 
+const defaultTextSettings: TextSettings = {
+  color: '#e2e8f0',
+  fontSize: 20,
+  fontFamily: 'system-ui',
+};
+
+const defaultShapeSettings: ShapeSettings = {
+  strokeColor: '#2dd4bf',
+  fillColor: '#0b1211',
+  strokeWidth: 2,
+  fillOpacity: 0.4,
+  strokeEnabled: true,
+  fillEnabled: true,
+};
+
 export const useCanvasToolStore = create<CanvasToolStore>()(
   devtools(
     (set) => ({
@@ -142,6 +193,18 @@ export const useCanvasToolStore = create<CanvasToolStore>()(
           sticky: { ...state.sticky, ...settings },
         })),
 
+      text: defaultTextSettings,
+      setTextSettings: (settings) =>
+        set((state) => ({
+          text: { ...state.text, ...settings },
+        })),
+
+      shape: defaultShapeSettings,
+      setShapeSettings: (settings) =>
+        set((state) => ({
+          shape: { ...state.shape, ...settings },
+        })),
+
       // UI State
       showToolbar: true,
       setShowToolbar: (show) => set({ showToolbar: show }),
@@ -151,6 +214,13 @@ export const useCanvasToolStore = create<CanvasToolStore>()(
 
       selectedColorMode: 'brush',
       setSelectedColorMode: (mode) => set({ selectedColorMode: mode as any }),
+
+      gridEnabled: true,
+      setGridEnabled: (enabled) => set({ gridEnabled: enabled }),
+      snapEnabled: true,
+      setSnapEnabled: (enabled) => set({ snapEnabled: enabled }),
+      gridSize: 40,
+      setGridSize: (size) => set({ gridSize: size }),
 
       // Multi-select
       selectedObjectIds: [],

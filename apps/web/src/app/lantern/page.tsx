@@ -155,6 +155,7 @@ export default function LanternNetPage() {
     const [isMaximized, setIsMaximized] = useState(false);
     const [activeTab, setActiveTab] = useState<'chums' | 'rooms'>('chums');
     const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
+    const [hostRoomType, setHostRoomType] = useState<'study' | 'canvas'>('study');
 
     useEffect(() => {
         setSettings({ isSidebarHidden: isMaximized });
@@ -277,6 +278,35 @@ export default function LanternNetPage() {
 
         const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
+        if (hostRoomType === 'canvas') {
+            const { error } = await supabase.from('rooms').insert({
+                room_code: roomCode,
+                host_id: user.id,
+                name: roomSettings.title,
+                description: roomSettings.description,
+                status: 'ACTIVE',
+                work_duration: roomSettings.workDuration,
+                break_duration: roomSettings.breakDuration,
+                mode: 'canvas',
+                capacity: roomSettings.capacity,
+                is_private: false,
+                password: null,
+                vibe: 'canvas'
+            });
+
+            if (!error) {
+                const link = `${window.location.origin}/canvas?room=${roomCode}`;
+                navigator.clipboard?.writeText(link).catch(() => undefined);
+                triggerChumToast?.('Canvas room link copied.', 'success');
+                router.push(`/canvas?room=${roomCode}`);
+            } else {
+                console.error("Insert Error:", error.message);
+                alert("Architect error: Could not initialize canvas room.");
+                setIsSubmitting(false);
+            }
+            return;
+        }
+
         const { error } = await supabase.from('rooms').insert({
             room_code: roomCode,
             host_id: user.id,
@@ -331,9 +361,28 @@ export default function LanternNetPage() {
                                     <button onClick={() => setIsHostModalOpen(false)} className="lg:hidden text-(--text-muted) hover:text-(--text-main) p-2 hover:bg-(--bg-dark) rounded-xl transition-all"><X size={20} /></button>
                                 </div>
 
+                                <div className="flex bg-(--bg-dark) p-1.5 rounded-2xl border border-(--border-color) mb-8">
+                                    <button
+                                        onClick={() => setHostRoomType('study')}
+                                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${hostRoomType === 'study'
+                                            ? 'bg-(--accent-teal) text-white shadow-lg'
+                                            : 'text-(--text-muted) hover:text-white'}`}
+                                    >
+                                        Study Room
+                                    </button>
+                                    <button
+                                        onClick={() => setHostRoomType('canvas')}
+                                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${hostRoomType === 'canvas'
+                                            ? 'bg-(--accent-teal) text-white shadow-lg'
+                                            : 'text-(--text-muted) hover:text-white'}`}
+                                    >
+                                        Canvas Room
+                                    </button>
+                                </div>
+
                                 <div className="space-y-8">
                                     <div className="space-y-3">
-                                        <label className="text-[10px] font-black text-(--text-muted) uppercase tracking-[0.2em] px-1">Room Blueprint Title</label>
+                                        <label className="text-[10px] font-black text-(--text-muted) uppercase tracking-[0.2em] px-1">{hostRoomType === 'canvas' ? 'Canvas Blueprint Title' : 'Room Blueprint Title'}</label>
                                         <input autoFocus type="text" placeholder="e.g., Deep Focus Chamber" value={roomSettings.title} onChange={e => setRoomSettings({ ...roomSettings, title: e.target.value })}
                                             className="w-full bg-(--bg-dark) border border-(--border-color) rounded-2xl px-6 py-5 text-sm font-bold text-(--text-main) outline-none focus:border-(--accent-teal) transition-all placeholder:text-(--text-muted)/30" />
                                     </div>
@@ -361,8 +410,14 @@ export default function LanternNetPage() {
                                         <button onClick={() => setIsHostModalOpen(false)} className="text-(--text-muted) hover:text-(--text-main) p-2 hover:bg-(--bg-dark) rounded-xl transition-all"><X size={20} /></button>
                                     </div>
 
+                                    {hostRoomType === 'canvas' && (
+                                        <div className="rounded-3xl border border-(--border-color) bg-(--bg-dark)/50 p-5 text-xs text-(--text-muted) leading-relaxed">
+                                            Canvas rooms skip timers, capacity, and passwords for now. Share the room link to collaborate live.
+                                        </div>
+                                    )}
+
                                     {/* Capacity Slider */}
-                                    <div className={`space-y-4 group transition-all ${!isPremiumUser ? 'cursor-not-allowed' : ''}`}>
+                                    <div className={`space-y-4 group transition-all ${!isPremiumUser || hostRoomType === 'canvas' ? 'cursor-not-allowed opacity-50' : ''}`}>
                                         <div className="flex justify-between items-center px-1">
                                             <label className="text-[10px] font-black text-(--text-muted) uppercase tracking-widest flex items-center gap-2">
                                                 Room Capacity {!isPremiumUser && <span className="text-[8px] bg-(--accent-teal)/10 text-(--accent-teal) px-1.5 py-0.5 rounded-full">PREMIUM</span>}
@@ -377,6 +432,7 @@ export default function LanternNetPage() {
                                                 step="1"
                                                 value={roomSettings.capacity > (isPremiumUser ? 9 : 3) ? (isPremiumUser ? 9 : 3) : roomSettings.capacity}
                                                 onChange={e => setRoomSettings({ ...roomSettings, capacity: parseInt(e.target.value) })}
+                                                disabled={hostRoomType === 'canvas'}
                                                 className="w-full h-1.5 bg-(--border-color) rounded-full appearance-none cursor-pointer accent-(--accent-teal)"
                                             />
                                             <div className="flex justify-between mt-2 px-0.5">
@@ -389,7 +445,7 @@ export default function LanternNetPage() {
 
 
                                     {/* Password Toggle & Input */}
-                                    <div className={`space-y-4 p-6 rounded-3xl bg-(--bg-dark)/50 border border-(--border-color) transition-all ${!isPremiumUser ? 'opacity-50' : ''}`}>
+                                    <div className={`space-y-4 p-6 rounded-3xl bg-(--bg-dark)/50 border border-(--border-color) transition-all ${!isPremiumUser || hostRoomType === 'canvas' ? 'opacity-50' : ''}`}>
                                         <div className="flex justify-between items-center">
                                             <div className="space-y-1">
                                                 <span className="text-xs font-black text-(--text-main) flex items-center gap-2">
@@ -397,14 +453,14 @@ export default function LanternNetPage() {
                                                 </span>
                                                 <span className="block text-[9px] text-(--text-muted) font-medium">Require room password</span>
                                             </div>
-                                            <div onClick={() => isPremiumUser && setRoomSettings({ ...roomSettings, isLocked: !roomSettings.isLocked })}
-                                                className={`w-10 h-5 rounded-full p-1 flex items-center transition-all duration-300 ${roomSettings.isLocked ? 'bg-(--accent-teal)' : 'bg-(--bg-card) border border-(--border-color)'} ${!isPremiumUser ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                            <div onClick={() => isPremiumUser && hostRoomType !== 'canvas' && setRoomSettings({ ...roomSettings, isLocked: !roomSettings.isLocked })}
+                                                className={`w-10 h-5 rounded-full p-1 flex items-center transition-all duration-300 ${roomSettings.isLocked ? 'bg-(--accent-teal)' : 'bg-(--bg-card) border border-(--border-color)'} ${!isPremiumUser || hostRoomType === 'canvas' ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                                                 <div className={`w-3 h-3 rounded-full transition-transform duration-300 ${roomSettings.isLocked ? 'translate-x-5 bg-white' : 'translate-x-0 bg-(--text-muted)'}`} />
                                             </div>
                                         </div>
 
                                         <AnimatePresence>
-                                            {roomSettings.isLocked && isPremiumUser && (
+                                            {roomSettings.isLocked && isPremiumUser && hostRoomType !== 'canvas' && (
                                                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="pt-2">
                                                     <input type="password" placeholder="Define room password" value={roomSettings.password} onChange={e => setRoomSettings({ ...roomSettings, password: e.target.value })}
                                                         className="w-full bg-(--bg-dark) border border-(--border-color) rounded-xl px-4 py-3 text-xs font-bold text-(--text-main) outline-none focus:border-(--accent-teal)" />
@@ -415,9 +471,9 @@ export default function LanternNetPage() {
                                 </div>
 
                                 <div className="pt-8">
-                                    <button onClick={handleBroadcast} disabled={isSubmitting || !roomSettings.title.trim() || (roomSettings.isLocked && !roomSettings.password)}
+                                    <button onClick={handleBroadcast} disabled={isSubmitting || !roomSettings.title.trim() || (roomSettings.isLocked && !roomSettings.password && hostRoomType !== 'canvas')}
                                         className="w-full py-5 bg-(--accent-teal) text-white rounded-2xl font-black text-sm shadow-[0_10px_30px_-10px_rgba(20,184,166,0.5)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
-                                        {isSubmitting ? "Initializing Blueprint..." : "Broadcast to Net"}
+                                        {isSubmitting ? "Initializing Blueprint..." : hostRoomType === 'canvas' ? "Launch Canvas Room" : "Broadcast to Net"}
                                     </button>
                                     <p className="text-center text-[9px] text-(--text-muted) font-black uppercase tracking-widest mt-4">Safe connection established</p>
                                 </div>

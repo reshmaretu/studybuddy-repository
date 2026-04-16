@@ -31,6 +31,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
     const [isMounted, setIsMounted] = useState(false);
 
     const isRoomPage = pathname.startsWith("/room/");
+    const isCanvasPage = pathname.startsWith("/canvas");
     const appPages = ["/dashboard", "/garden", "/insights", "/lantern", "/account", "/cafe", "/canvas", "/wardrobe", "/archive", "/calendar"];
     const isAppPage = appPages.includes(pathname);
     const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/register" || pathname === "/reset-password" || pathname === "/error" || isRoomPage || !isAppPage;
@@ -89,15 +90,15 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
         `}>
             <PresenceSync />
             <div className={`flex flex-col md:flex-row h-screen w-full overflow-hidden bg-[var(--bg-dark)]`}>
-                {!isSidebarHidden && <Sidebar />}
-                <main className={`flex-1 min-w-0 p-4 md:p-8 pb-24 md:pb-12 h-screen relative z-[1] 
+                {!isSidebarHidden && !isCanvasPage && <Sidebar />}
+                <main className={`flex-1 min-w-0 ${isCanvasPage ? 'p-0' : 'p-4 md:p-8 pb-24 md:pb-12'} h-screen relative z-[1] 
                     ${['/dashboard', '/insights', '/account', '/wardrobe', '/archive', '/calendar'].includes(pathname) 
                         ? 'overflow-y-auto no-scrollbar' 
                         : 'overflow-hidden'}`}
                 >
                     {children}
                 </main>
-                {isInitialized && hasCompletedTutorial && <ChumWidget />}
+                {isInitialized && hasCompletedTutorial && !isCanvasPage && <ChumWidget />}
                 <FocusModal />
                 <FlowStateOverlay />
                 <StudyCafeOverlay />

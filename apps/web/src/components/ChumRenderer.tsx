@@ -5,13 +5,19 @@ import { useStudyStore, WardrobeAccessory } from "@/store/useStudyStore";
 interface ChumRendererProps {
     size?: string;
     activeAccessoriesOverride?: WardrobeAccessory[];
+    baseColorIdOverride?: string;
 }
 
-export default function ChumRenderer({ size = "w-full h-full" }: ChumRendererProps) {
+export default function ChumRenderer({
+    size = "w-full h-full",
+    activeAccessoriesOverride,
+    baseColorIdOverride,
+}: ChumRendererProps) {
     const { activeAccessories, activeBaseColor } = useStudyStore();
 
     // ✅ Fallback to base14 if activeBaseColor is ever undefined
-    const baseColorId = activeBaseColor || 'base14';
+    const baseColorId = baseColorIdOverride || activeBaseColor || 'base14';
+    const accessories = activeAccessoriesOverride || activeAccessories;
 
     return (
         <div className={`relative ${size}`}>
@@ -23,7 +29,7 @@ export default function ChumRenderer({ size = "w-full h-full" }: ChumRendererPro
             />
 
             {/* Accessories */}
-            {activeAccessories?.map((acc) => (
+            {accessories?.map((acc) => (
                 <img
                     key={acc.id}
                     src={`/assets/chum/${acc.fileName}`}

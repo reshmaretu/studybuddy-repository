@@ -17,18 +17,26 @@ import { v4 as uuid } from 'uuid';
 
 export interface ShapeData {
   id: string;
-  type: 'rect' | 'circle' | 'line' | 'sticky';
+  type: 'rect' | 'circle' | 'line' | 'sticky' | 'text';
   x: number;
   y: number;
   width: number;
   height: number;
   rotation: number;
   color: string;
+  fillColor?: string;
+  strokeColor?: string;
+  fillEnabled?: boolean;
+  strokeEnabled?: boolean;
   fillOpacity: number;
   strokeWidth: number;
   zIndex: number;
   locked: boolean;
   userId: string; // For permission/presence
+  text?: string;
+  textColor?: string;
+  fontSize?: number;
+  fontFamily?: string;
   createdAt: number;
   updatedAt: number;
 }

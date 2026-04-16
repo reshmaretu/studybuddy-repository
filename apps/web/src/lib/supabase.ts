@@ -9,5 +9,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error("CRITICAL: Missing NEXT_PUBLIC_SUPABASE environment variables! Check Vercel dashboard.");
 }
 
-// 3. Create and export the Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// 3. Create a browser singleton to avoid multiple GoTrueClient instances
+const createSupabaseClient = () => createClient(supabaseUrl, supabaseAnonKey);
+
+type SupabaseClientType = ReturnType<typeof createSupabaseClient>;
+
+const globalForSupabase = globalThis as typeof globalThis & {
+    __studybuddy_supabase__?: SupabaseClientType;
+};
+
+export const supabase =
+    globalForSupabase.__studybuddy_supabase__ ?? createSupabaseClient();
+
+if (typeof window !== 'undefined') {
+    globalForSupabase.__studybuddy_supabase__ = supabase;
+}
