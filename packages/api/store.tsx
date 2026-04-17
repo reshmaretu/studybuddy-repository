@@ -528,7 +528,17 @@ export const useStudyStore = create<StudyState>()(
                     const today = new Date().toISOString().split('T')[0];
                     const updatedDailyScores = { ...state.dailyFocusScores, [today]: newScore };
 
-                    if (user) supabase.from('user_stats').update({ focus_score: newScore }).eq('user_id', user.id).then();
+                    // 🚀 INSTANT backend update (doesn't block frontend)
+                    if (user) {
+                        supabase.from('user_stats')
+                            .update({ focus_score: newScore })
+                            .eq('user_id', user.id)
+                            .then(({ error }) => {
+                                if (error) {
+                                    console.error('❌ Focus score update failed:', error);
+                                }
+                            });
+                    }
 
                     return { focusScore: newScore, dailyFocusScores: updatedDailyScores };
                 });
@@ -572,8 +582,16 @@ export const useStudyStore = create<StudyState>()(
                         }
                     }
 
+                    // 🚀 INSTANT backend update (doesn't block frontend)
                     if (user) {
-                        supabase.from('user_stats').update({ xp: currentXp, level: currentLevel }).eq('user_id', user.id).then();
+                        supabase.from('user_stats')
+                            .update({ xp: currentXp, level: currentLevel })
+                            .eq('user_id', user.id)
+                            .then(({ error }) => {
+                                if (error) {
+                                    console.error('❌ XP/Level update failed:', error);
+                                }
+                            });
                     }
 
                     return { xp: currentXp, level: currentLevel };

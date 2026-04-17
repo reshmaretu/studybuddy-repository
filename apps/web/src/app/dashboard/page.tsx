@@ -10,6 +10,9 @@ import ChumRenderer from "@/components/ChumRenderer";
 import BrainResetModal from "@/components/BrainResetModal";
 import MorningPlanningModal from "@/components/MorningPlanningModal";
 import { useTerms } from "@/hooks/useTerms";
+import { useGlowEffect, useGlitterEffect } from "@/hooks/useGlowEffect";
+import { GlitterEffect } from "@/components/GlitterEffect";
+import { usePageVisibility } from "@/hooks/usePageVisibility";
 
 // The Magical Drop Zone Component
 function CompletionDropZone() {
@@ -48,6 +51,13 @@ export default function Dashboard() {
         isMorningModalOpen, setIsMorningModalOpen, lastPlannedDate
     } = useStudyStore();
     const { terms } = useTerms();
+
+    // Page visibility and glow effects
+    const isPageVisible = usePageVisibility();
+    const focusGlowing = useGlowEffect(focusScore, 500);
+    const xpGlowing = useGlowEffect(xp, 500);
+    const focusGlitter = useGlitterEffect(focusScore, 500);
+    const xpGlitter = useGlitterEffect(xp, 500);
 
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const onToggleSelect = (id: string) => {
@@ -384,9 +394,16 @@ export default function Dashboard() {
                                             pathLength="100"
                                             strokeDasharray="100"
                                             strokeDashoffset={100 - focusScore}
-                                            style={{ filter: 'drop-shadow(0px 0px 8px var(--accent-teal))', transition: 'stroke-dashoffset 1s ease-out' }}
+                                            style={{
+                                                filter: focusGlowing ? 'drop-shadow(0px 0px 16px var(--accent-teal))' : 'drop-shadow(0px 0px 8px var(--accent-teal))',
+                                                transition: focusGlowing ? 'filter 0.5s ease-out' : 'stroke-dashoffset 1s ease-out, filter 0.5s ease-out'
+                                            }}
                                         />
                                     </svg>
+                                    {/* Glitter effect container */}
+                                    <div className="absolute inset-0 pointer-events-none">
+                                        {focusGlitter && <GlitterEffect x={90} y={50} count={12} color="var(--accent-teal)" duration={0.8} />}
+                                    </div>
                                     <div className="flex flex-col items-center z-10 mb-[-5px]">
                                         <span className="text-2xl md:text-3xl font-bold text-[var(--text-main)] leading-none">{focusScore}</span>
                                         <span className="text-[8px] md:text-[9px] text-[var(--text-muted)] font-bold tracking-widest uppercase mt-1">{terms.focusScore}</span>
@@ -479,8 +496,32 @@ export default function Dashboard() {
                                     {terms.xp}: {xp}/{calculateXpRequirement(level)}
                                 </motion.span>
                             </div>
-                            <div className="h-2 w-full bg-black/30 rounded-full overflow-hidden mb-2">
-                                <div className="h-full bg-[var(--accent-teal)] rounded-full transition-all duration-1000" style={{ width: `${(xp / calculateXpRequirement(level)) * 100}%` }}></div>
+                            <div className="h-2 w-full bg-black/30 rounded-full overflow-hidden mb-2 relative">
+                                <motion.div
+                                    className="h-full bg-[var(--accent-teal)] rounded-full"
+                                    style={{
+                                        width: `${(xp / calculateXpRequirement(level)) * 100}%`,
+                                        filter: xpGlowing ? 'drop-shadow(0px 0px 12px var(--accent-teal))' : 'drop-shadow(0px 0px 4px var(--accent-teal))',
+                                    }}
+                                    animate={{
+                                        boxShadow: xpGlowing 
+                                            ? '0 0 12px rgba(45, 212, 191, 0.8), inset 0 0 8px rgba(45, 212, 191, 0.6)' 
+                                            : '0 0 4px rgba(45, 212, 191, 0.3), inset 0 0 4px rgba(45, 212, 191, 0.2)'
+                                    }}
+                                    transition={{ duration: 0.5 }}
+                                />
+                                {/* Glitter effect at the end of the XP bar */}
+                                {xpGlitter && (
+                                    <div className="absolute inset-0 pointer-events-none">
+                                        <GlitterEffect 
+                                            x={(xp / calculateXpRequirement(level)) * 100} 
+                                            y={50} 
+                                            count={10} 
+                                            color="var(--accent-teal)" 
+                                            duration={0.8} 
+                                        />
+                                    </div>
+                                )}
                             </div>
                             <p className="text-xs md:text-sm text-[var(--text-muted)] italic truncate">"Nurture your blooms, grow your soul."</p>
                         </div>
