@@ -59,12 +59,25 @@ export class StudyBuddyCanvasEngine {
   private ylayers: Y.Array<string>;
   private ymetadata: Y.Map<any>;
   private ylayerGroups: Y.Array<Y.Map<any>>;
+  private previewTransforms = new Map<
+    string,
+    { x: number; y: number; width: number; height: number; rotation: number }
+  >();
+  private previewStrokeOffsets = new Map<string, { dx: number; dy: number }>();
+  private previewConnection:
+    | { fromId: string; toX: number; toY: number; color: string; lineStyle: 'solid' | 'dashed' | 'curved' }
+    | null = null;
+  private previewConnectionControlPoints = new Map<string, { x: number; y: number }>();
+  private strokeCache = new Map<string, { lastUpdate: number; outline: Array<[number, number]> }>();
+  private lastCacheClear = Date.now();
+  private maxStrokeCacheSize = 200;
 
   // Animation frame for render loop
   private rafId?: number;
 
   // Observer subscriptions for Yjs changes
   private observers: (() => void)[] = [];
+  private renderStats = { lastFrameTime: Date.now(), frameCount: 0, avgFrameTime: 0 };
 
   constructor(canvas: HTMLCanvasElement, ydoc: Y.Doc) {
     this.canvas = canvas;
@@ -92,6 +105,74 @@ export class StudyBuddyCanvasEngine {
     this._markDirty();
   }
 
+  setPreviewTransform(
+    id: string,
+    transform: { x: number; y: number; width: number; height: number; rotation: number }
+  ) {
+    this.previewTransforms.set(id, transform);
+    this._markDirty();
+  }
+
+  clearPreviewTransform(id: string) {
+    if (this.previewTransforms.delete(id)) {
+      this._markDirty();
+    }
+  }
+
+  clearAllPreviewTransforms() {
+    if (this.previewTransforms.size > 0) {
+      this.previewTransforms.clear();
+      this._markDirty();
+    }
+  }
+
+  setPreviewStrokeOffset(id: string, offset: { dx: number; dy: number }) {
+    this.previewStrokeOffsets.set(id, offset);
+    this._markDirty();
+  }
+
+  clearPreviewStrokeOffset(id: string) {
+    if (this.previewStrokeOffsets.delete(id)) {
+      this._markDirty();
+    }
+  }
+
+  clearAllPreviewStrokeOffsets() {
+    if (this.previewStrokeOffsets.size > 0) {
+      this.previewStrokeOffsets.clear();
+      this._markDirty();
+    }
+  }
+
+  setPreviewConnection(connection: {
+    fromId: string;
+    toX: number;
+    toY: number;
+    color: string;
+    lineStyle: 'solid' | 'dashed' | 'curved';
+  }) {
+    this.previewConnection = connection;
+    this._markDirty();
+  }
+
+  clearPreviewConnection() {
+    if (this.previewConnection) {
+      this.previewConnection = null;
+      this._markDirty();
+    }
+  }
+
+  setPreviewConnectionControlPoint(id: string, point: { x: number; y: number }) {
+    this.previewConnectionControlPoints.set(id, point);
+    this._markDirty();
+  }
+
+  clearPreviewConnectionControlPoint(id: string) {
+    if (this.previewConnectionControlPoints.delete(id)) {
+      this._markDirty();
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────
   // INITIALIZATION
   // ─────────────────────────────────────────────────────────────
@@ -115,13 +196,15 @@ export class StudyBuddyCanvasEngine {
     this.yconnections.observe(reshapeObserver);
     this.ylayers.observe(reshapeObserver);
     this.ymetadata.observe(reshapeObserver);
+    this.ylayerGroups.observe(reshapeObserver);
 
     this.observers.push(
       () => this.yshapes.unobserve(reshapeObserver),
       () => this.ystrokes.unobserve(reshapeObserver),
       () => this.yconnections.unobserve(reshapeObserver),
       () => this.ylayers.unobserve(reshapeObserver),
-      () => this.ymetadata.unobserve(reshapeObserver)
+      () => this.ymetadata.unobserve(reshapeObserver),
+      () => this.ylayerGroups.unobserve(reshapeObserver)
     );
   }
 
@@ -142,11 +225,30 @@ export class StudyBuddyCanvasEngine {
   }
 
   private _startRenderLoop() {
+    let framesSinceLastUpdate = 0;
     const render = () => {
       if (this.isDirty) {
+        const frameStart = performance.now();
         this._render();
+        const frameEnd = performance.now();
+        const frameTime = frameEnd - frameStart;
+        
+        // Track stats every 30 frames
+        this.renderStats.frameCount++;
+        this.renderStats.avgFrameTime = 
+          (this.renderStats.avgFrameTime * Math.max(0, this.renderStats.frameCount - 1) + frameTime) / 
+          this.renderStats.frameCount;
+        
+        if (frameTime > 16) {
+          console.warn(`⚠️  Slow frame: ${frameTime.toFixed(1)}ms (budget: 16ms)`);
+        }
+        
         this.isDirty = false;
+        framesSinceLastUpdate = 0;
+      } else {
+        framesSinceLastUpdate++;
       }
+      
       this.rafId = requestAnimationFrame(render);
     };
     this.rafId = requestAnimationFrame(render);
@@ -184,7 +286,8 @@ export class StudyBuddyCanvasEngine {
         if (hiddenLayerIds.has(shape.get('layerId'))) {
           continue;
         }
-        this._renderShape(shape);
+        const preview = this.previewTransforms.get(id);
+        this._renderShape(shape, preview);
         continue;
       }
 
@@ -211,6 +314,30 @@ export class StudyBuddyCanvasEngine {
     }
 
     ctx.restore();
+
+    if (this.previewConnection) {
+      const fromShape = this.yshapes.get(this.previewConnection.fromId);
+      if (fromShape) {
+        const fromPreview = this.previewTransforms.get(this.previewConnection.fromId);
+        const startX = (fromPreview?.x ?? fromShape.get('x')) + (fromPreview?.width ?? fromShape.get('width')) / 2;
+        const startY = (fromPreview?.y ?? fromShape.get('y')) + (fromPreview?.height ?? fromShape.get('height')) / 2;
+        this.ctx.save();
+        this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.scale(this.viewport.zoom, this.viewport.zoom);
+        this.ctx.translate(-this.canvas.width / 2 + this.viewport.x, -this.canvas.height / 2 + this.viewport.y);
+        this.ctx.strokeStyle = `${this.previewConnection.color}66`;
+        this.ctx.lineWidth = 2 / this.viewport.zoom;
+        if (this.previewConnection.lineStyle === 'dashed') {
+          this.ctx.setLineDash([5 / this.viewport.zoom, 5 / this.viewport.zoom]);
+        }
+        this.ctx.beginPath();
+        this.ctx.moveTo(startX, startY);
+        this.ctx.lineTo(this.previewConnection.toX, this.previewConnection.toY);
+        this.ctx.stroke();
+        this.ctx.setLineDash([]);
+        this.ctx.restore();
+      }
+    }
 
     // Render UI overlays
     this._renderSelectionHandles();
@@ -253,21 +380,25 @@ export class StudyBuddyCanvasEngine {
     ctx.restore();
   }
 
-  private _renderShape(ymap: Y.Map<any>) {
+  private _renderShape(
+    ymap: Y.Map<any>,
+    preview?: { x: number; y: number; width: number; height: number; rotation: number }
+  ) {
     const type = ymap.get('type');
-    const x = ymap.get('x');
-    const y = ymap.get('y');
-    const w = ymap.get('width');
-    const h = ymap.get('height');
+    const x = preview?.x ?? ymap.get('x');
+    const y = preview?.y ?? ymap.get('y');
+    const w = preview?.width ?? ymap.get('width');
+    const h = preview?.height ?? ymap.get('height');
     const color = ymap.get('color');
     const fillOpacity = ymap.get('fillOpacity');
-    const rotation = ymap.get('rotation');
+    const rotation = preview?.rotation ?? ymap.get('rotation');
     const strokeWidth = ymap.get('strokeWidth') || 2;
     const fillColor = ymap.get('fillColor') || color;
     const strokeColor = ymap.get('strokeColor') || color;
     const fillEnabled = ymap.get('fillEnabled') ?? true;
     const strokeEnabled = ymap.get('strokeEnabled') ?? false;
     const isSelected = this.selectedObjectIds.has(ymap.get('id'));
+    const allowSingleOutline = this.selectedObjectIds.size <= 1;
 
     this.ctx.save();
     this.ctx.translate(x + w / 2, y + h / 2);
@@ -304,15 +435,26 @@ export class StudyBuddyCanvasEngine {
       this.ctx.lineTo(w, h);
       this.ctx.stroke();
     } else if (type === 'sticky') {
-      // Render sticky note background
-      this.ctx.fillStyle = color;
-      this.ctx.fillRect(0, 0, w, h);
+      const stickyFill = fillColor || color;
+      const stickyOpacity = fillOpacity ?? 1;
+      const stickyStroke = strokeColor || color;
+
+      if (fillEnabled) {
+        this.ctx.fillStyle = this._applyAlphaToColor(stickyFill, stickyOpacity);
+        this.ctx.fillRect(0, 0, w, h);
+      }
+      if (strokeEnabled && strokeWidth > 0) {
+        this.ctx.strokeStyle = stickyStroke;
+        this.ctx.lineWidth = strokeWidth;
+        this.ctx.strokeRect(0, 0, w, h);
+      }
 
       // Render text
       const text = ymap.get('text');
       const fontSize = ymap.get('fontSize') || 14;
+      const fontFamily = ymap.get('fontFamily') || 'system-ui';
       this.ctx.fillStyle = ymap.get('textColor') || '#000';
-      this.ctx.font = `${fontSize}px system-ui`;
+      this.ctx.font = `${fontSize}px ${fontFamily}`;
       this.ctx.textBaseline = 'top';
       
       const lines = text.split('\n');
@@ -330,7 +472,7 @@ export class StudyBuddyCanvasEngine {
     }
 
     // Selection outline
-    if (isSelected) {
+    if (isSelected && allowSingleOutline) {
       this.ctx.strokeStyle = '#14b8a6';
       this.ctx.lineWidth = 2;
       this.ctx.strokeRect(0, 0, w, h);
@@ -340,27 +482,65 @@ export class StudyBuddyCanvasEngine {
   }
 
   private _renderStroke(ymap: Y.Map<any>) {
+    const strokeId = ymap.get('id');
     const points = (ymap.get('points') as Y.Array<any>).toArray();
     const color = ymap.get('color');
     const strokeWidth = ymap.get('strokeWidth');
     const eraserMode = ymap.get('eraserMode');
     const pressureEnabled = ymap.get('pressureEnabled');
     const opacity = ymap.get('opacity') ?? 1;
+    const mode = ymap.get('mode');
+    const smoothing = ymap.get('smoothing') ?? 0.5;
+    const previewOffset = this.previewStrokeOffsets.get(strokeId);
 
     if (points.length < 2) return;
 
-    const strokePoints = points.map((pt) => {
-      const [x, y, pressure] = pt?.toArray?.() || [0, 0, 1];
-      return { x, y, pressure: pressure ?? 1 };
-    });
+    // Check cache
+    const cached = this.strokeCache.get(strokeId);
+    let outline: Array<[number, number]>;
+    
+    if (cached && cached.lastUpdate === ymap.get('_lastUpdateTime')) {
+      outline = cached.outline;
+    } else {
+      const strokePoints = points.map((pt) => {
+        const [x, y, pressure] = pt?.toArray?.() || [0, 0, 1];
+        return {
+          x: x + (previewOffset?.dx ?? 0),
+          y: y + (previewOffset?.dy ?? 0),
+          pressure: pressure ?? 1,
+        };
+      });
 
-    const outline = getStroke(strokePoints, {
-      size: strokeWidth,
-      thinning: pressureEnabled ? 0.6 : 0,
-      smoothing: 0.5,
-      streamline: 0.5,
-      simulatePressure: !pressureEnabled,
-    });
+      const modeThinning = mode === 'calligraphy' ? 0.8 : pressureEnabled ? 0.6 : 0;
+      const modeStreamline = mode === 'highlighter' ? 0.7 : 0.5;
+      outline = getStroke(strokePoints, {
+        size: strokeWidth,
+        thinning: modeThinning,
+        smoothing: smoothing,
+        streamline: modeStreamline,
+        simulatePressure: !pressureEnabled,
+      });
+
+      if (outline.length) {
+        this.strokeCache.set(strokeId, { 
+          lastUpdate: ymap.get('_lastUpdateTime'),
+          outline 
+        });
+        
+        // Periodically clear old cache entries to prevent memory bloat
+        if (this.strokeCache.size > this.maxStrokeCacheSize) {
+          const now = Date.now();
+          if (now - this.lastCacheClear > 5000) {
+            const entries = Array.from(this.strokeCache.entries());
+            entries.sort((a, b) => b[1].lastUpdate - a[1].lastUpdate);
+            for (let i = this.maxStrokeCacheSize; i < entries.length; i++) {
+              this.strokeCache.delete(entries[i][0]);
+            }
+            this.lastCacheClear = now;
+          }
+        }
+      }
+    }
 
     if (!outline.length) return;
 
@@ -409,46 +589,177 @@ export class StudyBuddyCanvasEngine {
   private _renderConnection(ymap: Y.Map<any>) {
     const fromId = ymap.get('fromObjectId');
     const toId = ymap.get('toObjectId');
-    const lineStyle = ymap.get('lineStyle');
+    const lineStyle = ymap.get('lineStyle') || 'curved';
     const color = ymap.get('color');
+    const lineWidth = ymap.get('lineWidth') || 2;
 
     const fromShape = this.yshapes.get(fromId);
     const toShape = this.yshapes.get(toId);
 
     if (!fromShape || !toShape) return;
 
-    const fromX = fromShape.get('x') + fromShape.get('width') / 2;
-    const fromY = fromShape.get('y') + fromShape.get('height') / 2;
-    const toX = toShape.get('x') + toShape.get('width') / 2;
-    const toY = toShape.get('y') + toShape.get('height') / 2;
+    const fromPreview = this.previewTransforms.get(fromId);
+    const toPreview = this.previewTransforms.get(toId);
+
+    const fromRect = {
+      x: fromPreview?.x ?? fromShape.get('x'),
+      y: fromPreview?.y ?? fromShape.get('y'),
+      w: fromPreview?.width ?? fromShape.get('width'),
+      h: fromPreview?.height ?? fromShape.get('height'),
+    };
+    const toRect = {
+      x: toPreview?.x ?? toShape.get('x'),
+      y: toPreview?.y ?? toShape.get('y'),
+      w: toPreview?.width ?? toShape.get('width'),
+      h: toPreview?.height ?? toShape.get('height'),
+    };
+
+    const fromCenter = { x: fromRect.x + fromRect.w / 2, y: fromRect.y + fromRect.h / 2 };
+    const toCenter = { x: toRect.x + toRect.w / 2, y: toRect.y + toRect.h / 2 };
+
+    const getEdgePoint = (
+      rect: { x: number; y: number; w: number; h: number },
+      target: { x: number; y: number }
+    ) => {
+      const center = { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 };
+      const dx = target.x - center.x;
+      const dy = target.y - center.y;
+      if (dx === 0 && dy === 0) return center;
+      const halfW = rect.w / 2 || 1;
+      const halfH = rect.h / 2 || 1;
+      const scale = 1 / Math.max(Math.abs(dx) / halfW, Math.abs(dy) / halfH);
+      return { x: center.x + dx * scale, y: center.y + dy * scale };
+    };
+
+    const start = getEdgePoint(fromRect, toCenter);
+    const end = getEdgePoint(toRect, fromCenter);
 
     this.ctx.strokeStyle = color;
-    this.ctx.lineWidth = 2;
+    this.ctx.lineWidth = lineWidth;
 
     if (lineStyle === 'curved') {
-      const cpX = (fromX + toX) / 2;
-      const cpY = (fromY + toY) / 2 - 50; // Control point offset
+      const storedControl = ymap.get('controlPoint') as { x: number; y: number } | undefined;
+      const previewControl = this.previewConnectionControlPoints.get(ymap.get('id'));
+      const baseControl = previewControl || storedControl;
+      const cpX = baseControl ? baseControl.x : (start.x + end.x) / 2;
+      const cpY = baseControl ? baseControl.y : (start.y + end.y) / 2 - 50;
       this.ctx.beginPath();
-      this.ctx.moveTo(fromX, fromY);
-      this.ctx.quadraticCurveTo(cpX, cpY, toX, toY);
+      this.ctx.moveTo(start.x, start.y);
+      this.ctx.quadraticCurveTo(cpX, cpY, end.x, end.y);
       this.ctx.stroke();
+      const t = 0.5;
+      const handleX =
+        (1 - t) * (1 - t) * start.x + 2 * (1 - t) * t * cpX + t * t * end.x;
+      const handleY =
+        (1 - t) * (1 - t) * start.y + 2 * (1 - t) * t * cpY + t * t * end.y;
+      const baseRadius = Math.max(4, lineWidth * 3);
+      this.ctx.save();
+      this.ctx.fillStyle = `${color}33`;
+      this.ctx.beginPath();
+      this.ctx.arc(handleX, handleY, baseRadius * 2.2, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.fillStyle = color;
+      this.ctx.beginPath();
+      this.ctx.arc(handleX, handleY, baseRadius, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.restore();
     } else if (lineStyle === 'dashed') {
       this.ctx.setLineDash([5, 5]);
       this.ctx.beginPath();
-      this.ctx.moveTo(fromX, fromY);
-      this.ctx.lineTo(toX, toY);
+      this.ctx.moveTo(start.x, start.y);
+      this.ctx.lineTo(end.x, end.y);
       this.ctx.stroke();
       this.ctx.setLineDash([]);
     } else {
       this.ctx.beginPath();
-      this.ctx.moveTo(fromX, fromY);
-      this.ctx.lineTo(toX, toY);
+      this.ctx.moveTo(start.x, start.y);
+      this.ctx.lineTo(end.x, end.y);
       this.ctx.stroke();
     }
   }
 
   private _renderSelectionHandles() {
     if (this.selectedObjectIds.size === 0) return;
+
+    // Align selection overlays with the world transform so zoom/pan stays in sync.
+    this.ctx.save();
+    this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
+    this.ctx.scale(this.viewport.zoom, this.viewport.zoom);
+    this.ctx.translate(
+      -this.canvas.width / 2 + this.viewport.x,
+      -this.canvas.height / 2 + this.viewport.y
+    );
+
+    if (this.selectedObjectIds.size > 1) {
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+
+      const expand = (x: number, y: number) => {
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      };
+
+      this.selectedObjectIds.forEach((id) => {
+        const shape = this.yshapes.get(id);
+        if (shape) {
+          const preview = this.previewTransforms.get(id);
+          const x = preview?.x ?? shape.get('x');
+          const y = preview?.y ?? shape.get('y');
+          const w = preview?.width ?? shape.get('width');
+          const h = preview?.height ?? shape.get('height');
+          const rotation = (preview?.rotation ?? shape.get('rotation')) || 0;
+          const cx = x + w / 2;
+          const cy = y + h / 2;
+          const rad = (rotation * Math.PI) / 180;
+          const rotatePoint = (rx: number, ry: number) => {
+            const dx = rx - cx;
+            const dy = ry - cy;
+            return {
+              x: cx + dx * Math.cos(rad) - dy * Math.sin(rad),
+              y: cy + dx * Math.sin(rad) + dy * Math.cos(rad),
+            };
+          };
+          const corners = [
+            rotatePoint(x, y),
+            rotatePoint(x + w, y),
+            rotatePoint(x + w, y + h),
+            rotatePoint(x, y + h),
+          ];
+          corners.forEach((pt) => expand(pt.x, pt.y));
+          return;
+        }
+
+        for (let i = 0; i < this.ystrokes.length; i++) {
+          const stroke = this.ystrokes.get(i);
+          if (!stroke || stroke.get('id') !== id) continue;
+          const offset = this.previewStrokeOffsets.get(id);
+          const points = (stroke.get('points') as Y.Array<any>).toArray();
+          points.forEach((pt) => {
+            const [px, py] = pt?.toArray?.() || [0, 0];
+            expand(px + (offset?.dx ?? 0), py + (offset?.dy ?? 0));
+          });
+          break;
+        }
+      });
+
+      if (minX !== Infinity && minY !== Infinity) {
+        const boxW = maxX - minX;
+        const boxH = maxY - minY;
+        const midStroke = 2 / this.viewport.zoom;
+        this.ctx.strokeStyle = '#14b8a6';
+        this.ctx.lineWidth = midStroke;
+        this.ctx.setLineDash([3 / this.viewport.zoom, 3 / this.viewport.zoom]);
+        this.ctx.strokeRect(minX, minY, boxW, boxH);
+        this.ctx.setLineDash([]);
+      }
+
+      this.ctx.restore();
+      return;
+    }
 
     this.selectedObjectIds.forEach((id) => {
       const shape = this.yshapes.get(id);
@@ -458,41 +769,63 @@ export class StudyBuddyCanvasEngine {
       const y = shape.get('y');
       const w = shape.get('width');
       const h = shape.get('height');
-      const rotation = shape.get('rotation') || 0;
+      const preview = this.previewTransforms.get(id);
+      const rotation = (preview?.rotation ?? shape.get('rotation')) || 0;
+      const px = preview?.x ?? x;
+      const py = preview?.y ?? y;
+      const pw = preview?.width ?? w;
+      const ph = preview?.height ?? h;
+
+      const cx = px + pw / 2;
+      const cy = py + ph / 2;
+      const rad = (rotation * Math.PI) / 180;
+      const rotatePoint = (rx: number, ry: number) => {
+        const dx = rx - cx;
+        const dy = ry - cy;
+        return {
+          x: cx + dx * Math.cos(rad) - dy * Math.sin(rad),
+          y: cy + dx * Math.sin(rad) + dy * Math.cos(rad),
+        };
+      };
+      const rotatedCorners = [
+        rotatePoint(px, py),
+        rotatePoint(px + pw, py),
+        rotatePoint(px + pw, py + ph),
+        rotatePoint(px, py + ph),
+      ];
+      const xs = rotatedCorners.map((c) => c.x);
+      const ys = rotatedCorners.map((c) => c.y);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+      const boxW = maxX - minX;
+      const boxH = maxY - minY;
 
       const handleSize = 6 / this.viewport.zoom;
       const midStroke = 2 / this.viewport.zoom;
-
-      const cx = x + w / 2;
-      const cy = y + h / 2;
-      const rad = (rotation * Math.PI) / 180;
-
-      this.ctx.save();
-      this.ctx.translate(cx, cy);
-      this.ctx.rotate(rad);
-      this.ctx.translate(-w / 2, -h / 2);
 
       // Draw selection box
       this.ctx.strokeStyle = '#14b8a6';
       this.ctx.lineWidth = midStroke;
       this.ctx.setLineDash([3 / this.viewport.zoom, 3 / this.viewport.zoom]);
-      this.ctx.strokeRect(0, 0, w, h);
+      this.ctx.strokeRect(minX, minY, boxW, boxH);
       this.ctx.setLineDash([]);
 
       // Corner handles (yellow) - for resize 1:1 or rotate
       const corners = [
-        { pos: 'nw', x: 0, y: 0 },
-        { pos: 'ne', x: w, y: 0 },
-        { pos: 'sw', x: 0, y: h },
-        { pos: 'se', x: w, y: h },
+        { pos: 'nw', x: minX, y: minY },
+        { pos: 'ne', x: maxX, y: minY },
+        { pos: 'sw', x: minX, y: maxY },
+        { pos: 'se', x: maxX, y: maxY },
       ];
 
       // Side handles (teal) - for width/height
       const sides = [
-        { pos: 'n', x: w / 2, y: 0 },
-        { pos: 's', x: w / 2, y: h },
-        { pos: 'w', x: 0, y: h / 2 },
-        { pos: 'e', x: w, y: h / 2 },
+        { pos: 'n', x: (minX + maxX) / 2, y: minY },
+        { pos: 's', x: (minX + maxX) / 2, y: maxY },
+        { pos: 'w', x: minX, y: (minY + maxY) / 2 },
+        { pos: 'e', x: maxX, y: (minY + maxY) / 2 },
       ];
 
       // Draw corner handles
@@ -510,14 +843,14 @@ export class StudyBuddyCanvasEngine {
       });
 
       // Draw rotation indicator (straight up in local space)
-      const armLength = Math.max(w, h) / 2 + 20 / this.viewport.zoom;
-      const rx = w / 2;
-      const ry = -armLength;
+      const armLength = Math.max(boxW, boxH) / 2 + 20 / this.viewport.zoom;
+      const rx = (minX + maxX) / 2;
+      const ry = minY - armLength;
 
       this.ctx.strokeStyle = '#a78bfa';
       this.ctx.lineWidth = midStroke;
       this.ctx.beginPath();
-      this.ctx.moveTo(w / 2, h / 2);
+      this.ctx.moveTo((minX + maxX) / 2, (minY + maxY) / 2);
       this.ctx.lineTo(rx, ry);
       this.ctx.stroke();
 
@@ -527,8 +860,6 @@ export class StudyBuddyCanvasEngine {
       this.ctx.arc(rx, ry, handleSize / 1.5, 0, Math.PI * 2);
       this.ctx.fill();
 
-      this.ctx.restore();
-
       // Angle label (screen-aligned)
       this.ctx.save();
       this.ctx.font = `${12 / this.viewport.zoom}px monospace`;
@@ -537,6 +868,8 @@ export class StudyBuddyCanvasEngine {
       this.ctx.fillText(`${Math.round(rotation)}°`, cx, cy - 15 / this.viewport.zoom);
       this.ctx.restore();
     });
+
+    this.ctx.restore();
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -813,6 +1146,10 @@ export class StudyBuddyCanvasEngine {
     return { ...this.viewport };
   }
 
+  requestRender() {
+    this._markDirty();
+  }
+
   canvasToWorld(canvasX: number, canvasY: number) {
     const worldX =
       (canvasX - this.canvas.width / 2) / this.viewport.zoom +
@@ -823,6 +1160,16 @@ export class StudyBuddyCanvasEngine {
       this.canvas.height / 2 -
       this.viewport.y;
     return { x: worldX, y: worldY };
+  }
+
+  worldToCanvas(worldX: number, worldY: number) {
+    const canvasX =
+      (worldX - this.canvas.width / 2 + this.viewport.x) * this.viewport.zoom +
+      this.canvas.width / 2;
+    const canvasY =
+      (worldY - this.canvas.height / 2 + this.viewport.y) * this.viewport.zoom +
+      this.canvas.height / 2;
+    return { x: canvasX, y: canvasY };
   }
 
   getSelectedObjectIds() {
@@ -863,5 +1210,18 @@ export class StudyBuddyCanvasEngine {
   destroy() {
     this.observers.forEach((unsubscribe) => unsubscribe());
     if (this.rafId) cancelAnimationFrame(this.rafId);
+    
+    // Clear caches
+    this.strokeCache.clear();
+    this.previewTransforms.clear();
+    this.previewStrokeOffsets.clear();
+    this.previewConnectionControlPoints.clear();
+    this.selectedObjectIds.clear();
+    
+    console.log(`✓ Canvas engine destroyed. Final stats:`, {
+      totalFrames: this.renderStats.frameCount,
+      avgFrameTime: this.renderStats.avgFrameTime.toFixed(2) + 'ms',
+      cachedStrokes: this.strokeCache.size,
+    });
   }
 }

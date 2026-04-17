@@ -8,7 +8,6 @@ import TaskCard from "@/components/TaskCard";
 import { redirect } from "next/navigation";
 import ChumRenderer from "@/components/ChumRenderer";
 import BrainResetModal from "@/components/BrainResetModal";
-import MorningPlanningModal from "@/components/MorningPlanningModal";
 import { useTerms } from "@/hooks/useTerms";
 import { useGlowEffect, useGlitterEffect } from "@/hooks/useGlowEffect";
 import { GlitterEffect } from "@/components/GlitterEffect";
@@ -47,8 +46,7 @@ export default function Dashboard() {
         tasks, focusScore, dailyStreak, totalSessions, totalSecondsTracked,
         timeLeft, isRunning, toggleTimer, resetTimer, decrementTimer, completeTask, deleteTask,
         isInitialized, xp, level, pomodoroFocus, isBrainResetOpen, setIsBrainResetOpen, lastResetHighlightAt,
-        notifications, setIsNotificationCenterOpen, addNotification, triggerChumToast, activeFramework,
-        isMorningModalOpen, setIsMorningModalOpen, lastPlannedDate
+        notifications, setIsNotificationCenterOpen, addNotification, triggerChumToast, activeFramework
     } = useStudyStore();
     const { terms } = useTerms();
 
@@ -106,17 +104,6 @@ export default function Dashboard() {
         };
         initStore();
     }, []);
-
-    // 🏆 MORNING MODAL TRIGGER: Logic to force open if it's a new day
-    useEffect(() => {
-        if (!isInitialized) return;
-        const today = new Date().toISOString().split('T')[0];
-        const lastPlanned = lastPlannedDate ? lastPlannedDate.split('T')[0] : null;
-
-        if (today !== lastPlanned) {
-            setIsMorningModalOpen(true);
-        }
-    }, [isInitialized, lastPlannedDate, setIsMorningModalOpen]);
 
     // Timer Engine
     useEffect(() => {
@@ -648,7 +635,6 @@ export default function Dashboard() {
                 </DragOverlay>
 
                 <AnimatePresence>
-                    {isMorningModalOpen && <MorningPlanningModal />}
                     {isBrainResetOpen && <BrainResetModal isOpen={isBrainResetOpen} onClose={() => setIsBrainResetOpen(false)} />}
                 </AnimatePresence>
 
