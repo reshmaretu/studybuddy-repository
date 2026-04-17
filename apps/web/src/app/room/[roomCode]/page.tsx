@@ -19,8 +19,8 @@ const ROOM_THEMES = [
     { id: 'nordic', name: 'Nordic Frost', premium: true },
     { id: 'e-ink', name: 'E-Ink (Obsidian)', premium: true },
 ];
-const STATIC_BGS = ['Cozy Library', 'Night City', 'Coffee Shop'];
-const LIVE_BGS = ['Rainy Window', 'Cyberpunk Alley', 'Zen Waterfall', 'Space Station'];
+const STATIC_BGS = ['Cozy Library',];
+const LIVE_BGS = ['Rainy Window'];
 const AUDIO_TRACKS = [
     { name: 'None', pro: false }, { name: 'White Noise', pro: false },
     { name: 'Brown Noise', pro: false }, { name: 'Lofi Beats 1', pro: false },
@@ -436,7 +436,11 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
             // 1. Fetch Room Data first to establish Host context
             let roomData = null;
             for (let i = 0; i < 3; i++) {
-                const { data } = await supabase.from('rooms').select('*').eq('room_code', roomCode).single();
+                const { data } = await supabase
+                    .from('rooms')
+                    .select('*')
+                    .eq('room_code', roomCode)
+                    .maybeSingle();
                 if (data) { roomData = data; break; }
                 await new Promise(r => setTimeout(r, 800));
             }

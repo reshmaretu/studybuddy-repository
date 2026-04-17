@@ -121,3 +121,8 @@ CREATE POLICY "Pact creator can add members"
 CREATE POLICY "Users can leave pacts" 
   ON public.pact_members FOR DELETE 
   USING (auth.uid() = user_id);
+
+-- Policies for profiles
+CREATE POLICY "Authenticated users can view profiles"
+  ON public.profiles FOR SELECT
+  USING (auth.role() = 'authenticated');

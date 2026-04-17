@@ -106,6 +106,10 @@ export async function GET(req: NextRequest) {
     const friendships = data || [];
     const userIds = Array.from(new Set(friendships.flatMap((f) => [f.user_id_1, f.user_id_2])));
 
+    if (userIds.length === 0) {
+      return NextResponse.json([], { status: 200 });
+    }
+
     const { data: profiles, error: profileError } = await supabase
       .from('profiles')
       .select('id, display_name, full_name, avatar_url, status')
