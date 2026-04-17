@@ -29,18 +29,6 @@ export async function GET(req: NextRequest) {
 
     if (error) throw error;
 
-    // Fallback: if no matches, return a small sample (useful when display_name is empty)
-    if (!data || data.length === 0) {
-      const fallback = await supabase
-        .from('profiles')
-        .select('id, display_name, full_name, avatar_url, status')
-        .neq('id', user.id)
-        .limit(10);
-
-      if (fallback.error) throw fallback.error;
-      data = fallback.data || [];
-    }
-
     return NextResponse.json(data || [], { status: 200 });
   } catch (error) {
     console.error('Search users error:', error);

@@ -34,12 +34,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const [userId1, userId2] = [user.id, targetUserId].sort();
+
     // Create friend request (pending)
     const { data, error } = await supabase
       .from('user_friendships')
       .insert([{
-        user_id_1: user.id,
-        user_id_2: targetUserId,
+        user_id_1: userId1,
+        user_id_2: userId2,
         status: 'pending',
         created_at: new Date().toISOString(),
       }])
