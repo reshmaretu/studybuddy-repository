@@ -26,6 +26,9 @@ export default function StudyCanvas() {
     const [isDrawing, setIsDrawing] = useState(false);
     const [currentPath, setCurrentPath] = useState<Point[]>([]);
     const [currentEraserPoints, setCurrentEraserPoints] = useState<number[]>([]);
+    const pathRef = useRef<Point[]>([]);
+    const eraserRef = useRef<number[]>([]);
+    const rafRef = useRef<number | null>(null);
 
     const [drawingShapeId, setDrawingShapeId] = useState<string | null>(null);
     const [startPos, setStartPos] = useState<{ x: number, y: number } | null>(null);
@@ -55,11 +58,13 @@ export default function StudyCanvas() {
 
         if (activeTool === 'pen') {
             setIsDrawing(true);
-            setCurrentPath([pos]);
+            pathRef.current = [pos];
+            setCurrentPath(pathRef.current);
         }
         else if (activeTool === 'eraser') {
             setIsDrawing(true);
-            setCurrentEraserPoints([pos.x, pos.y]);
+            eraserRef.current = [pos.x, pos.y];
+            setCurrentEraserPoints(eraserRef.current);
         }
         else if (['rect', 'circle', 'arrow'].includes(activeTool)) {
             const toolType = activeTool as 'rect' | 'circle' | 'arrow';
@@ -88,14 +93,26 @@ export default function StudyCanvas() {
     const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
         const stage = e.target.getStage();
         if (!stage) return;
-        const pos = stage.getRelativePointerPosition();
+        const pos = stage.getRelativePointerPosition() || stage.getPointerPosition();
         if (!pos) return;
 
         if (isDrawing && activeTool === 'pen') {
-            setCurrentPath([...currentPath, pos]);
+            pathRef.current = [...pathRef.current, pos];
+            if (rafRef.current !== null) return;
+            const raf = typeof window !== 'undefined' ? window.requestAnimationFrame : (cb: FrameRequestCallback) => setTimeout(cb, 16) as unknown as number;
+            rafRef.current = raf(() => {
+                setCurrentPath([...pathRef.current]);
+                rafRef.current = null;
+            });
         }
         else if (isDrawing && activeTool === 'eraser') {
-            setCurrentEraserPoints([...currentEraserPoints, pos.x, pos.y]);
+            eraserRef.current = [...eraserRef.current, pos.x, pos.y];
+            if (rafRef.current !== null) return;
+            const raf = typeof window !== 'undefined' ? window.requestAnimationFrame : (cb: FrameRequestCallback) => setTimeout(cb, 16) as unknown as number;
+            rafRef.current = raf(() => {
+                setCurrentEraserPoints([...eraserRef.current]);
+                rafRef.current = null;
+            });
         }
         else if (drawingShapeId && startPos) {
             updateElement(drawingShapeId, { width: pos.x - startPos.x, height: pos.y - startPos.y });
@@ -104,18 +121,18 @@ export default function StudyCanvas() {
 
     // ─── MOUSE UP (Finalize & Lock Erased Shapes) ───
     const handleMouseUp = () => {
-        if (isDrawing && activeTool === 'pen' && currentPath.length > 1) {
-            const newPath = CanvasEngine.createPathElement(currentPath, "#2dd4bf", elements.length, 'layer-0');
+        if (isDrawing && activeTool === 'pen' && pathRef.current.length > 1) {
+            const newPath = CanvasEngine.createPathElement(pathRef.current, "#2dd4bf", elements.length, 'layer-0');
             addElement(newPath);
             saveToHistory();
         }
 
-        if (isDrawing && activeTool === 'eraser' && currentEraserPoints.length > 2) {
+        if (isDrawing && activeTool === 'eraser' && eraserRef.current.length > 2) {
             const newEraser: typeof elements[0] = {
                 id: `eraser-${Date.now()}`,
                 type: 'eraser',
                 x: 0, y: 0,
-                data: { points: currentEraserPoints, size: eraserSize || 25 },
+                data: { points: eraserRef.current, size: eraserSize || 25 },
                 zIndex: elements.length,
                 layerId: 'layer-0'
             };
@@ -123,11 +140,11 @@ export default function StudyCanvas() {
 
             // 🔥 LOCKING LOGIC: Find any Pen stroke or Shape the eraser touched and lock it!
             let eMinX = Infinity, eMaxX = -Infinity, eMinY = Infinity, eMaxY = -Infinity;
-            for (let i = 0; i < currentEraserPoints.length; i += 2) {
-                if (currentEraserPoints[i] < eMinX) eMinX = currentEraserPoints[i];
-                if (currentEraserPoints[i] > eMaxX) eMaxX = currentEraserPoints[i];
-                if (currentEraserPoints[i + 1] < eMinY) eMinY = currentEraserPoints[i + 1];
-                if (currentEraserPoints[i + 1] > eMaxY) eMaxY = currentEraserPoints[i + 1];
+            for (let i = 0; i < eraserRef.current.length; i += 2) {
+                if (eraserRef.current[i] < eMinX) eMinX = eraserRef.current[i];
+                if (eraserRef.current[i] > eMaxX) eMaxX = eraserRef.current[i];
+                if (eraserRef.current[i + 1] < eMinY) eMinY = eraserRef.current[i + 1];
+                if (eraserRef.current[i + 1] > eMaxY) eMaxY = eraserRef.current[i + 1];
             }
             const pad = (eraserSize || 25) / 2;
             eMinX -= pad; eMaxX += pad; eMinY -= pad; eMaxY += pad;
@@ -162,6 +179,12 @@ export default function StudyCanvas() {
         if (drawingShapeId) saveToHistory();
 
         setIsDrawing(false);
+        if (rafRef.current !== null) {
+            cancelAnimationFrame(rafRef.current);
+            rafRef.current = null;
+        }
+        pathRef.current = [];
+        eraserRef.current = [];
         setCurrentPath([]);
         setCurrentEraserPoints([]);
         setDrawingShapeId(null);
@@ -210,7 +233,7 @@ export default function StudyCanvas() {
                 width={typeof window !== 'undefined' ? window.innerWidth : 1000} height={typeof window !== 'undefined' ? window.innerHeight : 1000}
                 ref={stageRef}
                 onClick={handleStageClick}
-                onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}
+                onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
                 scaleX={stageConfig.scale} scaleY={stageConfig.scale} x={stageConfig.x} y={stageConfig.y}
                 draggable={activeTool === 'select' && !editingId && selectedElementIds.length === 0}
                 onDragEnd={(e) => { if (e.target === stageRef.current) setStageConfig({ x: e.target.x(), y: e.target.y() }); }}

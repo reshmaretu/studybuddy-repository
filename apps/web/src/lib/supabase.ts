@@ -24,3 +24,29 @@ export const supabase =
 if (typeof window !== 'undefined') {
     globalForSupabase.__studybuddy_supabase__ = supabase;
 }
+
+// Prevent concurrent auth calls from fighting over the storage lock.
+type GetUserResult = Awaited<ReturnType<typeof supabase.auth.getUser>>;
+type GetSessionResult = Awaited<ReturnType<typeof supabase.auth.getSession>>;
+
+let getUserInFlight: Promise<GetUserResult> | null = null;
+let getSessionInFlight: Promise<GetSessionResult> | null = null;
+
+const originalGetUser = supabase.auth.getUser.bind(supabase.auth);
+const originalGetSession = supabase.auth.getSession.bind(supabase.auth);
+
+(supabase.auth as { getUser: typeof supabase.auth.getUser }).getUser = async (...args) => {
+    if (getUserInFlight) return getUserInFlight;
+    getUserInFlight = originalGetUser(...args).finally(() => {
+        getUserInFlight = null;
+    });
+    return getUserInFlight;
+};
+
+(supabase.auth as { getSession: typeof supabase.auth.getSession }).getSession = async (...args) => {
+    if (getSessionInFlight) return getSessionInFlight;
+    getSessionInFlight = originalGetSession(...args).finally(() => {
+        getSessionInFlight = null;
+    });
+    return getSessionInFlight;
+};

@@ -13,6 +13,27 @@ import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 
 // --- CONFIG & UTILS ---
 
+// Generate a stable random color based on user ID (one-time per user)
+const generateUserColor = (userId: string): string => {
+    // Special case: "You" user keeps pink color
+    if (userId === 'me') return '#ff1493';
+    
+    // Generate a stable hash from user ID
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+        const char = userId.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    
+    // Use hash to generate HSL color (saturated, bright)
+    const hue = Math.abs(hash) % 360;
+    const saturation = 70 + (Math.abs(hash % 30)); // 70-100% saturation
+    const lightness = 50 + (Math.abs(hash % 20)); // 50-70% lightness
+    
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+};
+
 const STATUS_CONFIG: Record<LanternUser['status'], { color: string; emissive: number; scale: number; pulse: number }> = {
     offline: { color: '#555522', emissive: 0.5, scale: 0.4, pulse: 0 },
     idle: { color: '#ffcc00', emissive: 5.0, scale: 0.6, pulse: 1 },
@@ -122,8 +143,8 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
             {/* --- TOOLBAR --- */}
             <div className="absolute top-6 right-6 z-[100] flex flex-col gap-3 items-end">
                 <div className="flex bg-[var(--bg-card)]/80 backdrop-blur-md p-1.5 rounded-2xl border border-[var(--border-color)] shadow-2xl">
-                    <button onClick={() => { setIs3D(false); setIsFreeCam(false); }} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${!is3D ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><BoxSelect size={14} /> 2D Map</button>
-                    <button onClick={() => setIs3D(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${is3D ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><Layers size={14} /> 3D Void</button>
+                    <button onClick={() => { setIs3D(false); setIsFreeCam(false); }} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all ${!is3D ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><BoxSelect size={12} /> 2D Map</button>
+                    <button onClick={() => setIs3D(true)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all ${is3D ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}><Layers size={12} /> 3D Void</button>
 
                     {/* 🔥 NEW: Physical Freecam Toggle Button */}
                     {is3D && (
@@ -131,7 +152,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                             <div className="w-px h-6 bg-[var(--border-color)] mx-1 self-center" />
                             <button
                                 onClick={() => setIsFreeCam(!isFreeCam)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${isFreeCam ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all ${isFreeCam ? 'bg-[var(--accent-teal)] text-[#0b1211]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
                             >
                                 Freecam (C)
                             </button>
@@ -139,19 +160,19 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                     )}
 
                     <div className="w-px h-6 bg-[var(--border-color)] mx-1 self-center" />
-                    <button onClick={onToggleMaximize} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all text-[var(--text-muted)] hover:text-[var(--text-main)]`} title={isMaximized ? "Minimize Map" : "Maximize Map"}>
-                        {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />} {isMaximized ? 'Minimize' : 'Maximize'}
+                    <button onClick={onToggleMaximize} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all text-[var(--text-muted)] hover:text-[var(--text-main)]`} title={isMaximized ? "Minimize Map" : "Maximize Map"}>
+                        {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />} {isMaximized ? 'Minimize' : 'Maximize'}
                     </button>
                 </div>
 
                 {/* --- BRIGHTNESS SLIDER --- */}
-                <div className="flex items-center gap-3 bg-[var(--bg-card)]/80 backdrop-blur-md px-4 py-2 rounded-xl border border-[var(--border-color)] shadow-xl">
-                    <Zap size={14} className="text-[var(--accent-yellow)]" />
+                <div className="flex items-center gap-2 bg-[var(--bg-card)]/80 backdrop-blur-md px-3 py-2 rounded-xl border border-[var(--border-color)] shadow-xl">
+                    <Zap size={12} className="text-[var(--accent-yellow)]" />
                     <input
                         type="range" min="0.5" max="4.0" step="0.1"
                         value={globalIntensity}
                         onChange={(e) => setGlobalIntensity(parseFloat(e.target.value))}
-                        className="w-24 h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-teal)]"
+                        className="w-20 h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-teal)]"
                     />
                 </div>
                 {/* --- HUD LOADER --- */}
@@ -352,7 +373,12 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
             ? config.pulse + (user.focusScore / 100) // 👈 High scorers "shimmer" faster
             : config.pulse;
         const pulse = Math.sin(state.clock.elapsedTime * pulseSpeed) * 0.2 + 1;
-        const targetColor = new THREE.Color(isSelf ? "#ff007f" : config.color);
+        const s = isHovered || isSelected ? config.scale + 0.2 : config.scale;
+        meshRef.current.scale.lerp(new THREE.Vector3(s, s, s), delta * 4);
+
+        // Use randomized user color instead of status-based color
+        const userColor = generateUserColor(user.id);
+        const targetColor = new THREE.Color(userColor);
 
         materialRef.current.color.lerp(targetColor, delta * 4);
         materialRef.current.emissive.lerp(targetColor, delta * 4);
@@ -362,9 +388,6 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
             baseIntensity * pulse,
             delta * 4
         );
-
-        const s = isHovered || isSelected ? config.scale + 0.2 : config.scale;
-        meshRef.current.scale.lerp(new THREE.Vector3(s, s, s), delta * 4);
 
         if (spriteRef.current) {
             spriteRef.current.material.opacity = THREE.MathUtils.lerp(

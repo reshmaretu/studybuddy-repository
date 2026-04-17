@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Search, Trophy, Radio, Plus, X, Crosshair, ShieldAlert } from "lucide-react";
+import { Search, Trophy, Radio, Plus, X, Crosshair, ShieldAlert, Users, Sparkles } from "lucide-react";
 import ThreeLanternNet, { LanternNetHandle } from "@/components/LanternNetwork";
 import ChumRenderer from "@/components/ChumRenderer";
+import { FriendRequestModal, AddFriendModal, FormPactModal } from "@studybuddy/ui";
 import { useStudyStore, WardrobeAccessory, LanternUser } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
@@ -157,6 +158,21 @@ export default function LanternNetPage() {
     const [activeTab, setActiveTab] = useState<'chums' | 'rooms'>('chums');
     const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
     const [hostRoomType, setHostRoomType] = useState<'study' | 'canvas'>('study');
+
+    // 🌐 SOCIAL FEATURES STATE
+    const [isFriendRequestModalOpen, setIsFriendRequestModalOpen] = useState(false);
+    const [isAddFriendModalOpen, setIsAddFriendModalOpen] = useState(false);
+    const [isFormPactModalOpen, setIsFormPactModalOpen] = useState(false);
+    const [activeLeaderboardTab, setActiveLeaderboardTab] = useState<'ranking' | 'friends'>('ranking');
+    const [statusFilter, setStatusFilter] = useState<LanternUser['status'] | 'all'>('all');
+    const { friends, friendRequests, fetchFriends, fetchFriendRequests } = useStudyStore();
+
+    // Load friend requests on mount
+    useEffect(() => {
+        fetchFriendRequests().catch(() => {
+            // Silently ignore when unauthenticated or when tables are not yet provisioned.
+        });
+    }, [fetchFriendRequests]);
 
     useEffect(() => {
         setSettings({ isSidebarHidden: isMaximized });
@@ -334,8 +350,9 @@ export default function LanternNetPage() {
 
     const combinedNetwork = [...fullNetwork, ...mockUsers];
     const filteredNetwork = combinedNetwork.filter(user =>
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (user.roomCode && user.roomCode.toLowerCase().includes(searchQuery.toLowerCase()))
+        (user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (user.roomCode && user.roomCode.toLowerCase().includes(searchQuery.toLowerCase()))) &&
+        (statusFilter === 'all' || user.status === statusFilter)
     );
 
     useEffect(() => setIsMounted(true), []);
@@ -513,9 +530,9 @@ export default function LanternNetPage() {
                         )}
 
                         {/* HEADER & SEARCH SECTION */}
-                        <div className="bg-(--bg-card) border border-(--border-color) p-6 rounded-[32px] shadow-sm flex flex-col gap-5 shrink-0">
-                            <h1 className="text-2xl font-black text-(--text-main) flex items-center gap-2">
-                                <Radio size={24} className="text-(--accent-teal)" /> Lantern Net
+                        <div className="bg-(--bg-card) border border-(--border-color) p-4 rounded-[26px] shadow-sm flex flex-col gap-3 shrink-0">
+                            <h1 className="text-lg font-black text-(--text-main) flex items-center gap-2">
+                                <Radio size={18} className="text-(--accent-teal)" /> Lantern Net
                             </h1>
                             <div className="relative w-full">
                                 <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-(--text-muted)" />
@@ -524,33 +541,111 @@ export default function LanternNetPage() {
                                     placeholder={isGamified ? "Find a Lantern..." : "Find a Room..."}
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full bg-(--bg-dark) border border-(--border-color) rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold outline-none focus:border-(--accent-teal) transition-all"
+                                    className="w-full bg-(--bg-dark) border border-(--border-color) rounded-2xl pl-10 pr-4 py-2.5 text-[12px] font-bold outline-none focus:border-(--accent-teal) transition-all"
                                 />
+                            </div>
+
+                            {/* 🌐 STATUS FILTER */}
+                            <div className="space-y-2">
+                                <label className="text-[8px] font-black text-(--text-muted) uppercase tracking-widest px-1">
+                                    Filter by Status
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        onClick={() => setStatusFilter('all')}
+                                        className={`py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${
+                                            statusFilter === 'all'
+                                                ? 'bg-(--accent-teal) text-white shadow-lg'
+                                                : 'bg-(--bg-dark) text-(--text-muted) border border-(--border-color) hover:text-white'
+                                        }`}
+                                    >
+                                        All
+                                    </button>
+                                    <button
+                                        onClick={() => setStatusFilter('hosting')}
+                                        className={`py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${
+                                            statusFilter === 'hosting'
+                                                ? 'bg-yellow-500 text-black shadow-lg'
+                                                : 'bg-(--bg-dark) text-(--text-muted) border border-(--border-color) hover:text-white'
+                                        }`}
+                                    >
+                                        Hosting
+                                    </button>
+                                    <button
+                                        onClick={() => setStatusFilter('flowState')}
+                                        className={`py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${
+                                            statusFilter === 'flowState'
+                                                ? 'bg-cyan-500 text-black shadow-lg'
+                                                : 'bg-(--bg-dark) text-(--text-muted) border border-(--border-color) hover:text-white'
+                                        }`}
+                                    >
+                                        Flow
+                                    </button>
+                                    <button
+                                        onClick={() => setStatusFilter('joined')}
+                                        className={`py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${
+                                            statusFilter === 'joined'
+                                                ? 'bg-lime-500 text-black shadow-lg'
+                                                : 'bg-(--bg-dark) text-(--text-muted) border border-(--border-color) hover:text-white'
+                                        }`}
+                                    >
+                                        Joined
+                                    </button>
+                                </div>
                             </div>
 
                             <button
                                 id="lantern-host-trigger"
                                 onClick={() => setIsHostModalOpen(true)}
-                                className="w-full py-4 bg-(--accent-teal)/10 border-2 border-dashed border-(--accent-teal)/30 rounded-2xl text-(--accent-teal) text-xs font-black uppercase tracking-widest hover:bg-(--accent-teal)/20 hover:border-(--accent-teal) transition-all flex items-center justify-center gap-2"
+                                className="w-full py-3 bg-(--accent-teal)/10 border-2 border-dashed border-(--accent-teal)/30 rounded-2xl text-(--accent-teal) text-[10px] font-black uppercase tracking-widest hover:bg-(--accent-teal)/20 hover:border-(--accent-teal) transition-all flex items-center justify-center gap-2"
                             >
-                                <Plus size={18} /> {isGamified ? "Light a Beacon" : "Host a Room"}
+                                <Plus size={14} /> {isGamified ? "Light a Beacon" : "Host a Room"}
                             </button>
+
+                            {/* 🌐 SOCIAL FEATURES BUTTONS */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={() => setIsAddFriendModalOpen(true)}
+                                    className="py-2.5 px-3 bg-success/10 border border-success/30 rounded-2xl text-success text-[10px] font-black uppercase tracking-widest hover:bg-success/20 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Users size={14} /> Add Friend
+                                </button>
+                                <button
+                                    onClick={() => setIsFormPactModalOpen(true)}
+                                    className="py-2.5 px-3 bg-warning/10 border border-warning/30 rounded-2xl text-warning text-[10px] font-black uppercase tracking-widest hover:bg-warning/20 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Sparkles size={14} /> Form Pact
+                                </button>
+                            </div>
+
+                            {/* Friend Requests Badge */}
+                            {friendRequests.length > 0 && (
+                                <button
+                                    onClick={() => setIsFriendRequestModalOpen(true)}
+                                    className="w-full py-3 px-4 bg-primary/10 border border-primary/30 rounded-2xl text-primary text-xs font-black uppercase tracking-widest hover:bg-primary/20 transition-all flex items-center justify-between gap-2"
+                                >
+                                    <span>Pending Requests</span>
+                                    <span className="bg-primary text-primary-content px-2 py-0.5 rounded-full text-[10px]">
+                                        {friendRequests.length}
+                                    </span>
+                                </button>
+                            )}
                         </div>
 
                         {/* TABS CONTAINER (The Conflict Fix) */}
-                        <div className="bg-(--bg-card) border border-(--border-color) rounded-[32px] p-6 flex-1 flex flex-col min-h-0 shadow-sm gap-6 overflow-hidden">
+                        <div className="bg-(--bg-card) border border-(--border-color) rounded-[26px] p-4 flex-1 flex flex-col min-h-0 shadow-sm gap-3 overflow-hidden">
 
                             {/* SWITCHER */}
-                            <div className="flex bg-(--bg-dark) p-1.5 rounded-2xl border border-(--border-color) shrink-0">
+                            <div className="flex bg-(--bg-dark) p-1 rounded-2xl border border-(--border-color) shrink-0">
                                 <button
                                     onClick={() => setActiveTab('chums')}
-                                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'chums' ? 'bg-(--accent-teal) text-white shadow-lg' : 'text-(--text-muted) hover:text-white'}`}
+                                    className={`flex-1 py-1.5 text-[8px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'chums' ? 'bg-(--accent-teal) text-white shadow-lg' : 'text-(--text-muted) hover:text-white'}`}
                                 >
                                     {isGamified ? "Chums" : "People"}
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('rooms')}
-                                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'rooms' ? 'bg-(--accent-teal) text-white shadow-lg' : 'text-(--text-muted) hover:text-white'}`}
+                                    className={`flex-1 py-1.5 text-[8px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'rooms' ? 'bg-(--accent-teal) text-white shadow-lg' : 'text-(--text-muted) hover:text-white'}`}
                                 >
                                     {isGamified ? "Lanterns" : "Rooms"}
                                 </button>
@@ -565,10 +660,40 @@ export default function LanternNetPage() {
                                             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                                             className="space-y-2"
                                         >
-                                            <div id="lantern-leaderboard" className="flex flex-col min-h-0">
-                                                <h3 className="text-sm font-black text-(--text-main) flex items-center gap-2 mb-4 pb-4 border-b border-(--border-color) uppercase tracking-wide">
-                                                    <Trophy size={18} className="text-(--accent-yellow)" /> {isGamified ? "The Lumina Archive" : "Leaderboard"}
-                                                </h3>
+                                            <div id="lantern-leaderboard" className="flex flex-col min-h-0 flex-1">
+                                                <div className="flex items-center justify-between mb-2 pb-2 border-b border-(--border-color)">
+                                                    <h3 className="text-sm font-black text-(--text-main) flex items-center gap-2 uppercase tracking-wide">
+                                                        <Trophy size={18} className="text-(--accent-yellow)" /> {isGamified ? "The Lumina Archive" : "Leaderboard"}
+                                                    </h3>
+                                                </div>
+
+                                                {/* Leaderboard Tabs */}
+                                                <div className="flex bg-(--bg-dark) p-1 rounded-2xl border border-(--border-color) mb-2 shrink-0">
+                                                    <button
+                                                        onClick={() => setActiveLeaderboardTab('ranking')}
+                                                        className={`flex-1 py-1.5 text-[7px] font-black uppercase tracking-widest rounded-xl transition-all ${
+                                                            activeLeaderboardTab === 'ranking'
+                                                                ? 'bg-(--accent-teal) text-white shadow-lg'
+                                                                : 'text-(--text-muted) hover:text-white'
+                                                        }`}
+                                                    >
+                                                        Top 10
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setActiveLeaderboardTab('friends');
+                                                            fetchFriends();
+                                                        }}
+                                                        className={`flex-1 py-1.5 text-[7px] font-black uppercase tracking-widest rounded-xl transition-all ${
+                                                            activeLeaderboardTab === 'friends'
+                                                                ? 'bg-(--accent-teal) text-white shadow-lg'
+                                                                : 'text-(--text-muted) hover:text-white'
+                                                        }`}
+                                                    >
+                                                        Friends
+                                                    </button>
+                                                </div>
+
                                                 <div className="relative">
                                                     {!isVerified && (
                                                         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-6 text-center backdrop-blur-md bg-(--bg-card)/40 rounded-2xl border border-(--border-color) shadow-2xl">
@@ -588,49 +713,52 @@ export default function LanternNetPage() {
                                                         </div>
                                                     )}
                                                     <div className={`space-y-2 ${!isVerified ? 'blur-sm select-none pointer-events-none grayscale' : ''}`}>
-                                                        {isNetworkLoading ? (
-                                                            Array.from({ length: 3 }).map((_, i) => (
-                                                                <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-(--bg-dark)/30 animate-pulse">
-                                                                    <div className="w-5 h-4 bg-(--border-color) rounded" />
-                                                                    <div className="flex-1 h-4 bg-(--border-color) rounded w-24" />
-                                                                </div>
-                                                            ))
-                                                        ) : (
-                                                            filteredNetwork.sort((a, b) => b.hours - a.hours).slice(0, 10).map((user, index) => (
-                                                                <div
-                                                                    key={user.id}
-                                                                    className={`group/row flex items-center gap-3 p-3 rounded-2xl border transition-all ${user.id === 'me' ? 'bg-(--accent-teal)/10 border-(--accent-teal)/20' : 'bg-transparent border-transparent hover:border-(--border-color) hover:bg-(--bg-dark)'}`}
-                                                                >
-                                                                    <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-(--accent-yellow)' : 'text-(--text-muted)'}`}>
-                                                                        {index + 1}
-                                                                    </span>
-                                                                    <div className="w-8 h-8 rounded-full border border-(--border-color) shrink-0 bg-(--bg-dark) overflow-hidden flex items-center justify-center p-0.5 relative">
-                                                                        {user.avatarUrl ? (
-                                                                            <img
-                                                                                src={user.avatarUrl}
-                                                                                alt="PFP"
-                                                                                className="w-full h-full object-cover z-20 relative rounded-full"
-                                                                                onError={(e) => {
-                                                                                    (e.target as HTMLImageElement).style.display = 'none';
-                                                                                    const fallback = (e.target as HTMLImageElement).parentElement?.querySelector('.fallback-chum');
-                                                                                    if (fallback) fallback.classList.remove('invisible');
-                                                                                }}
-                                                                            />
-                                                                        ) : null}
-                                                                        <div className={`absolute inset-0 flex items-center justify-center p-0.5 fallback-chum ${user.avatarUrl ? 'invisible' : ''}`}>
-                                                                            <ChumRenderer
-                                                                                size="w-full h-full"
-                                                                                activeAccessoriesOverride={user.activeAccessories}
-                                                                            />
+                                                        {activeLeaderboardTab === 'ranking' ? (
+                                                            // TOP 10 RANKING
+                                                            <>
+                                                                {isNetworkLoading ? (
+                                                                    Array.from({ length: 3 }).map((_, i) => (
+                                                                        <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-(--bg-dark)/30 animate-pulse">
+                                                                            <div className="w-5 h-4 bg-(--border-color) rounded" />
+                                                                            <div className="flex-1 h-4 bg-(--border-color) rounded w-24" />
                                                                         </div>
-                                                                    </div>
-                                                                    <div className="flex-1 flex flex-col overflow-hidden">
-                                                                        <span className="text-sm font-black text-(--text-main) truncate">{user.name}</span>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2 shrink-0">
-                                                                        <button
-                                                                            disabled={!isVerified}
-                                                                            onClick={() => { lanternRef.current?.warpToUser(user.id); setIsSidebarOpenMobile(false); }}
+                                                                    ))
+                                                                ) : (
+                                                                    filteredNetwork.sort((a, b) => b.hours - a.hours).slice(0, 10).map((user, index) => (
+                                                                        <div
+                                                                            key={user.id}
+                                                                            className={`group/row flex items-center gap-3 p-3 rounded-2xl border transition-all ${user.id === 'me' ? 'bg-(--accent-teal)/10 border-(--accent-teal)/20' : 'bg-transparent border-transparent hover:border-(--border-color) hover:bg-(--bg-dark)'}`}
+                                                                        >
+                                                                            <span className={`text-xs font-black w-5 text-center ${index < 3 ? 'text-(--accent-yellow)' : 'text-(--text-muted)'}`}>
+                                                                                {index + 1}
+                                                                            </span>
+                                                                            <div className="w-8 h-8 rounded-full border border-(--border-color) shrink-0 bg-(--bg-dark) overflow-hidden flex items-center justify-center p-0.5 relative">
+                                                                                {user.avatarUrl ? (
+                                                                                    <img
+                                                                                        src={user.avatarUrl}
+                                                                                        alt="PFP"
+                                                                                        className="w-full h-full object-cover z-20 relative rounded-full"
+                                                                                        onError={(e) => {
+                                                                                            (e.target as HTMLImageElement).style.display = 'none';
+                                                                                            const fallback = (e.target as HTMLImageElement).parentElement?.querySelector('.fallback-chum');
+                                                                                            if (fallback) fallback.classList.remove('invisible');
+                                                                                        }}
+                                                                                    />
+                                                                                ) : null}
+                                                                                <div className={`absolute inset-0 flex items-center justify-center p-0.5 fallback-chum ${user.avatarUrl ? 'invisible' : ''}`}>
+                                                                                    <ChumRenderer
+                                                                                        size="w-full h-full"
+                                                                                        activeAccessoriesOverride={user.activeAccessories}
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="flex-1 flex flex-col overflow-hidden">
+                                                                                <span className="text-sm font-black text-(--text-main) truncate">{user.name}</span>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2 shrink-0">
+                                                                                <button
+                                                                                    disabled={!isVerified}
+                                                                                    onClick={() => { lanternRef.current?.warpToUser(user.id); setIsSidebarOpenMobile(false); }}
                                                                             className="lg:opacity-0 group-hover/row:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-(--accent-teal)/10 text-(--text-muted) hover:text-(--accent-teal) disabled:opacity-0"
                                                                         >
                                                                             <Crosshair size={14} />
@@ -640,8 +768,76 @@ export default function LanternNetPage() {
                                                                         </span>
                                                                     </div>
                                                                 </div>
-                                                            ))
-                                                        )}
+                                                            ))                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            // FRIENDS LEADERBOARD
+                                                            <>
+                                                                {friends.length === 0 ? (
+                                                                    <div className="text-center py-8 text-(--text-muted)">
+                                                                        <p className="text-xs font-bold">No friends yet</p>
+                                                                        <button
+                                                                            onClick={() => setIsAddFriendModalOpen(true)}
+                                                                            className="mt-3 px-4 py-2 text-xs font-black text-success bg-success/10 rounded-lg hover:bg-success/20 transition-all"
+                                                                        >
+                                                                            Find Friends
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    friends.sort((a, b) => {
+                                                                        // Get the friend's lantern user data from the network
+                                                                        const friendAId = a.user_id_2 || a.user_id_1;
+                                                                        const friendBId = b.user_id_2 || b.user_id_1;
+                                                                        const aUser = filteredNetwork.find(u => u.id === friendAId);
+                                                                        const bUser = filteredNetwork.find(u => u.id === friendBId);
+                                                                        return (bUser?.hours ?? 0) - (aUser?.hours ?? 0);
+                                                                    }).map((friendship) => {
+                                                                        const friendId = friendship.user_id_2 || friendship.user_id_1;
+                                                                        const friendData = friendship.profiles_2 || friendship.profiles_1;
+                                                                        const friendUser = filteredNetwork.find(u => u.id === friendId);
+                                                                        const hours = friendUser?.hours || 0;
+
+                                                                        return (
+                                                                            <div
+                                                                                key={friendship.id}
+                                                                                className="group/row flex items-center gap-3 p-3 rounded-2xl border bg-transparent border-transparent hover:border-(--border-color) hover:bg-(--bg-dark) transition-all"
+                                                                            >
+                                                                                <div className="w-8 h-8 rounded-full border border-(--border-color) shrink-0 bg-(--bg-dark) overflow-hidden flex items-center justify-center p-0.5 relative">
+                                                                                    {friendData?.avatar_url ? (
+                                                                                        <img
+                                                                                            src={friendData.avatar_url}
+                                                                                            alt={friendData.display_name}
+                                                                                            className="w-full h-full object-cover z-20 relative rounded-full"
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <div className="text-lg">👤</div>
+                                                                                    )}
+                                                                                </div>
+                                                                                <div className="flex-1 flex flex-col overflow-hidden">
+                                                                                    <span className="text-sm font-black text-(--text-main) truncate">
+                                                                                        {friendData?.display_name || 'Unknown'}
+                                                                                    </span>
+                                                                                    <span className="text-xs text-(--text-muted)">
+                                                                                        {friendData?.status || 'offline'}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2 shrink-0">
+                                                                                    <button
+                                                                                        disabled={!isVerified}
+                                                                                        onClick={() => { lanternRef.current?.warpToUser(friendId); setIsSidebarOpenMobile(false); }}
+                                                                                        className="lg:opacity-0 group-hover/row:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-(--accent-teal)/10 text-(--text-muted) hover:text-(--accent-teal) disabled:opacity-0"
+                                                                                    >
+                                                                                        <Crosshair size={14} />
+                                                                                    </button>
+                                                                                    <span className="text-xs font-black text-(--text-muted) bg-(--bg-dark) px-2 py-1 rounded-lg">
+                                                                                        {hours}h
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })
+                                                                )}
+                                                            </>                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -717,6 +913,21 @@ export default function LanternNetPage() {
                     debrisSpread={debrisSpread}
                 />
             </div>
+
+            {/* 🌐 SOCIAL MODALS */}
+            <FriendRequestModal
+                isOpen={isFriendRequestModalOpen}
+                onClose={() => setIsFriendRequestModalOpen(false)}
+            />
+            <AddFriendModal
+                isOpen={isAddFriendModalOpen}
+                onClose={() => setIsAddFriendModalOpen(false)}
+            />
+            <FormPactModal
+                isOpen={isFormPactModalOpen}
+                onClose={() => setIsFormPactModalOpen(false)}
+                friendsList={friends}
+            />
         </div >
     );
 }

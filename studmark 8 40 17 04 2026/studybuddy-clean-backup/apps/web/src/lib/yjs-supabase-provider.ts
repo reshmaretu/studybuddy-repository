@@ -33,61 +33,21 @@ export class SupabaseYjsProvider {
   private updateListeners: Array<{ type: string; callback: (...args: any[]) => void }> = [];
   private updateCount = 0;
   private batchSize = 50;
-  private retryCount = 0;
-  private retryTimer: NodeJS.Timeout | null = null;
-  private updateListenerAttached = false;
 
   constructor(roomId: string, ydoc: Y.Doc, onStatus?: (status: string) => void) {
     this.roomId = roomId;
     this.ydoc = ydoc;
     this.onStatus = onStatus;
-    this.channel = this.createChannel();
-  }
-
-  connect() {
-    console.log(`🔗 Connecting to canvas room: ${this.roomId}`);
-    this.subscribeChannel();
-
-    if (!this.updateListenerAttached) {
-      const boundHandleUpdate = this.handleUpdate.bind(this);
-      this.updateListeners.push({ type: 'update', callback: boundHandleUpdate });
-      this.ydoc.on('update', boundHandleUpdate);
-      this.updateListenerAttached = true;
-    }
-  }
-
-  destroy() {
-    this.updateListeners.forEach(({ type, callback }) => {
-      if (type === 'update') {
-        this.ydoc.off('update', callback);
-      }
-    });
-    this.updateListeners = [];
-    
-    if (this.flushTimer !== null) {
-      clearTimeout(this.flushTimer);
-      this.flushTimer = null;
-    }
-
-    if (this.retryTimer !== null) {
-      clearTimeout(this.retryTimer);
-      this.retryTimer = null;
-    }
-    
-    this.pendingUpdates = [];
-    supabase.removeChannel(this.channel);
-    console.log(`✓ Destroyed provider for room: ${this.roomId}`);
-  }
-
-  private createChannel() {
-    return supabase.channel(`canvas:${this.roomId}`, {
+    this.channel = supabase.channel(`canvas:${roomId}`, {
       config: {
         broadcast: { self: false },
       },
     });
   }
 
-  private subscribeChannel() {
+  connect() {
+    console.log(`🔗 Connecting to canvas room: ${this.roomId}`);
+    
     this.channel
       .on('broadcast', { event: UPDATE_EVENT }, ({ payload }) => {
         const encoded = payload?.update;
@@ -104,30 +64,31 @@ export class SupabaseYjsProvider {
         this.onStatus?.(status);
         if (status === 'SUBSCRIBED') {
           this.isSubscribed = true;
-          this.retryCount = 0;
           this.flushPending();
-          return;
-        }
-
-        if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR' || status === 'CLOSED') {
-          this.isSubscribed = false;
-          this.scheduleReconnect(status);
         }
       });
+
+    const boundHandleUpdate = this.handleUpdate.bind(this);
+    this.updateListeners.push({ type: 'update', callback: boundHandleUpdate });
+    this.ydoc.on('update', boundHandleUpdate);
   }
 
-  private scheduleReconnect(status: string) {
-    if (this.retryTimer) return;
-    const delay = Math.min(15000, 1000 * Math.pow(2, this.retryCount));
-    this.retryCount += 1;
-    console.warn(`⚠️ Channel ${status}. Reconnecting in ${delay}ms...`);
-
-    this.retryTimer = setTimeout(() => {
-      this.retryTimer = null;
-      supabase.removeChannel(this.channel);
-      this.channel = this.createChannel();
-      this.subscribeChannel();
-    }, delay) as unknown as NodeJS.Timeout;
+  destroy() {
+    this.updateListeners.forEach(({ type, callback }) => {
+      if (type === 'update') {
+        this.ydoc.off('update', callback);
+      }
+    });
+    this.updateListeners = [];
+    
+    if (this.flushTimer !== null) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+    
+    this.pendingUpdates = [];
+    supabase.removeChannel(this.channel);
+    console.log(`✓ Destroyed provider for room: ${this.roomId}`);
   }
 
   private handleUpdate(update: Uint8Array, origin: unknown) {

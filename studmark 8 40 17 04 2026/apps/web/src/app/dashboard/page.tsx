@@ -260,8 +260,6 @@ export default function Dashboard() {
     const strokeOffset = 283 - (283 * (timeLeft / totalSeconds));
     const scoreOffset = 110 - (110 * (focusScore / 100));
     const formattedDate = time.toISOString().split('T')[0];
-    const xpRequirement = calculateXpRequirement(level);
-    const xpProgress = Math.min(100, Math.max(0, (xp / xpRequirement) * 100));
 
     // 👇 1. PUT THE GREETING LOGIC RIGHT HERE!
     const currentHour = time.getHours();
@@ -482,28 +480,28 @@ export default function Dashboard() {
                                     animate={{ scale: 1, color: "var(--text-muted)" }}
                                     className="text-[9px] md:text-[10px] font-mono text-[var(--text-muted)] font-bold tracking-widest whitespace-nowrap"
                                 >
-                                    {terms.xp}: {xp}/{xpRequirement}
+                                    {terms.xp}: {xp}/{calculateXpRequirement(level)}
                                 </motion.span>
                             </div>
                             <div className="h-2 w-full bg-black/30 rounded-full overflow-hidden mb-2 relative">
                                 <motion.div
                                     className="h-full bg-[var(--accent-teal)] rounded-full"
                                     style={{
+                                        width: `${(xp / calculateXpRequirement(level)) * 100}%`,
                                         filter: xpGlowing ? 'drop-shadow(0px 0px 12px var(--accent-teal))' : 'drop-shadow(0px 0px 4px var(--accent-teal))',
                                     }}
                                     animate={{
-                                        width: `${xpProgress}%`,
                                         boxShadow: xpGlowing 
-                                            ? '0 0 12px rgba(45, 212, 191, 0.8), inset 0 0 8px rgba(45, 212, 191, 0.6)'
+                                            ? '0 0 12px rgba(45, 212, 191, 0.8), inset 0 0 8px rgba(45, 212, 191, 0.6)' 
                                             : '0 0 4px rgba(45, 212, 191, 0.3), inset 0 0 4px rgba(45, 212, 191, 0.2)'
                                     }}
-                                    transition={{ duration: 0.6, ease: "easeOut" }}
+                                    transition={{ duration: 0.5 }}
                                 />
                                 {/* Glitter effect at the end of the XP bar */}
                                 {xpGlitter && (
                                     <div className="absolute inset-0 pointer-events-none">
                                         <GlitterEffect 
-                                            x={xpProgress} 
+                                            x={(xp / calculateXpRequirement(level)) * 100} 
                                             y={50} 
                                             count={10} 
                                             color="var(--accent-teal)" 

@@ -76,7 +76,7 @@ const DESK_STRETCHES = [
 
 export default function EnhancedBrainResetModal({ isOpen, onClose }: EnhancedBrainResetProps) {
     const {
-        modifyFocusScore, gainXp, tasks, updateTask,
+        modifyFocusScore, gainXp, tasks, updateTask, resetBrainResetCycle,
         aiKeys
     } = useStudyStore();
 
@@ -284,6 +284,7 @@ Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`
     const completeReset = async () => {
         await modifyFocusScore(20);
         await gainXp(75);
+        resetBrainResetCycle();
         setStage("complete");
     };
 

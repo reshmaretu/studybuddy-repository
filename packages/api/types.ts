@@ -123,3 +123,60 @@ export interface Invoice {
     amount: string;
     method: string;
 }
+
+// 🌐 SOCIAL FEATURES
+
+export interface SyntheticLog {
+    id: string;
+    user_id: string;
+    content: string;
+    broadcast_type: 'custom-status' | 'milestone' | 'quest-progress' | 'feedback';
+    created_at: string;
+    reactions_count: number;
+    profiles?: {
+        display_name: string;
+        avatar_url: string | null;
+        status: string;
+    };
+}
+
+export interface UserFriendship {
+    id: string;
+    user_id_1: string;
+    user_id_2: string;
+    status: 'pending' | 'accepted';
+    created_at: string;
+    profiles_1?: {
+        id: string;
+        display_name: string;
+        avatar_url: string | null;
+        status: string;
+    };
+    profiles_2?: {
+        id: string;
+        display_name: string;
+        avatar_url: string | null;
+        status: string;
+    };
+}
+
+export interface Pact {
+    id: string;
+    pact_name: string;
+    created_by: string;
+    constellation_color: string;
+    created_at: string;
+    members?: LanternUser[];
+}
+
+export interface PactMember {
+    pact_id: string;
+    user_id: string;
+    joined_at: string;
+    profiles?: {
+        id: string;
+        display_name: string;
+        avatar_url: string | null;
+        status: string;
+    };
+}

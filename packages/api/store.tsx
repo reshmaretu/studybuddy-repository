@@ -2,15 +2,26 @@ import React from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from './index';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import {
     Task, TaskLoad, ChumToast, AppNotification,
     PerformanceSettings, AccessibilitySettings,
-    ChatMessage, TutorSession, TutorSessionState, Shard, LanternUser, WardrobeAccessory, Invoice
+    ChatMessage, TutorSession, TutorSessionState, Shard, LanternUser, WardrobeAccessory, Invoice,
+    SyntheticLog, UserFriendship, Pact
 } from './types';
+
+const getAuthHeaders = async (): Promise<Record<string, string>> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return {};
+    return { Authorization: `Bearer ${session.access_token}` };
+};
 
 export const calculateXpRequirement = (level: number) => {
     return Math.floor((100 * Math.pow(level, 1.5)) / 50) * 50;
 };
+
+let cloudSyncChannel: RealtimeChannel | null = null;
+let cloudSyncUserId: string | null = null;
 
 export const getTitleForLevel = (level: number) => {
     if (level >= 99) return "Guardian of the Garden";
@@ -49,6 +60,7 @@ export interface StudyState {
     setIsNotificationCenterOpen: (open: boolean) => void;
     lastResetHighlightAt: string | null;
     setLastLevelUp: (level: number | null) => void;
+    resetBrainResetCycle: () => void;
 
     // 🌐 CLOUD SYNC STATE
     isInitialized: boolean;
@@ -237,6 +249,23 @@ export interface StudyState {
     useThematicUI: boolean;
     setThematicUI: (val: boolean) => void;
     handleLogout: () => Promise<void>;
+
+    // 🌐 SOCIAL FEATURES
+    broadcasts: any[];
+    friends: any[];
+    friendRequests: any[];
+    pacts: any[];
+    addBroadcast: (content: string, broadcastType?: string) => Promise<void>;
+    fetchBroadcasts: (limit?: number, offset?: number) => Promise<void>;
+    sendFriendRequest: (targetUserId: string) => Promise<void>;
+    fetchFriends: () => Promise<void>;
+    fetchFriendRequests: () => Promise<void>;
+    acceptFriendRequest: (friendshipId: string) => Promise<void>;
+    rejectFriendRequest: (friendshipId: string) => Promise<void>;
+    removeFriend: (friendshipId: string) => Promise<void>;
+    createPact: (pactName: string, memberIds: string[]) => Promise<void>;
+    fetchPacts: () => Promise<void>;
+    leavePact: (pactId: string) => Promise<void>;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -279,6 +308,12 @@ export const useStudyStore = create<StudyState>()(
             lastXpGain: null,
             mockInvoices: [],
 
+            // 🌐 SOCIAL FEATURES
+            broadcasts: [],
+            friends: [],
+            friendRequests: [],
+            pacts: [],
+
             setDisplayName: async (name) => {
                 set({ displayName: name });
                 const { data: { session } } = await supabase.auth.getSession();
@@ -299,6 +334,7 @@ export const useStudyStore = create<StudyState>()(
             useThematicUI: true,
             setThematicUI: (val) => set({ useThematicUI: val }),
             setLastLevelUp: (val) => set({ lastLevelUp: val }),
+            resetBrainResetCycle: () => set({ sessionsSinceLastReset: 0, lastResetHighlightAt: null }),
 
             addMockInvoice: (invoice) => set((state) => ({
                 mockInvoices: [invoice, ...state.mockInvoices]
@@ -864,7 +900,16 @@ export const useStudyStore = create<StudyState>()(
                     }
 
                     // 🛠️ REALTIME SYNC: Listen for changes across the neural network
-                    supabase.channel('cloud-sync')
+                    if (cloudSyncChannel) {
+                        supabase.removeChannel(cloudSyncChannel);
+                        cloudSyncChannel = null;
+                        cloudSyncUserId = null;
+                    }
+
+                    cloudSyncChannel = supabase.channel('cloud-sync');
+                    cloudSyncUserId = user.id;
+
+                    cloudSyncChannel
                         .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
                             if (payload.new) {
                                 const updated = payload.new as {
@@ -1162,11 +1207,138 @@ export const useStudyStore = create<StudyState>()(
                 if (typeof localStorage !== 'undefined') localStorage.setItem("appTheme", themeId);
             },
 
+            // 🌐 SOCIAL FEATURE METHODS
+            addBroadcast: async (content, broadcastType = 'custom-status') => {
+                const authHeaders = await getAuthHeaders();
+                const response = await fetch('/api/broadcasts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...authHeaders },
+                    body: JSON.stringify({ content, broadcastType }),
+                });
+                if (!response.ok) throw new Error('Failed to create broadcast');
+                const data = await response.json();
+                set((state) => ({ broadcasts: [data, ...state.broadcasts] }));
+                get().triggerChumToast?.('Your message has been shared with the network!', 'success');
+            },
+
+            fetchBroadcasts: async (limit = 50, offset = 0) => {
+                const authHeaders = await getAuthHeaders();
+                const response = await fetch(`/api/broadcasts?limit=${limit}&offset=${offset}`, {
+                    headers: authHeaders,
+                });
+                if (!response.ok) throw new Error('Failed to fetch broadcasts');
+                const data = await response.json();
+                set((state) => ({ broadcasts: offset === 0 ? data : [...state.broadcasts, ...data] }));
+            },
+
+            sendFriendRequest: async (targetUserId) => {
+                const authHeaders = await getAuthHeaders();
+                const response = await fetch('/api/friends', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...authHeaders },
+                    body: JSON.stringify({ targetUserId }),
+                });
+                if (!response.ok) throw new Error('Failed to send friend request');
+                get().triggerChumToast?.('Friend request sent!', 'success');
+                await get().fetchFriendRequests();
+            },
+
+            fetchFriends: async () => {
+                const authHeaders = await getAuthHeaders();
+                const response = await fetch('/api/friends?type=friends', { headers: authHeaders });
+                if (response.status === 401) {
+                    set({ friends: [] });
+                    return;
+                }
+                if (!response.ok) throw new Error('Failed to fetch friends');
+                const data = await response.json();
+                set({ friends: data });
+            },
+
+            fetchFriendRequests: async () => {
+                const authHeaders = await getAuthHeaders();
+                const response = await fetch('/api/friends?type=pending', { headers: authHeaders });
+                if (response.status === 401) {
+                    set({ friendRequests: [] });
+                    return;
+                }
+                if (!response.ok) throw new Error('Failed to fetch friend requests');
+                const data = await response.json();
+                set({ friendRequests: data });
+            },
+
+            acceptFriendRequest: async (friendshipId) => {
+                const authHeaders = await getAuthHeaders();
+                const response = await fetch(`/api/friends/${friendshipId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', ...authHeaders },
+                    body: JSON.stringify({ action: 'accept' }),
+                });
+                if (!response.ok) throw new Error('Failed to accept friend request');
+                get().triggerChumToast?.('Friend request accepted!', 'success');
+                await Promise.all([get().fetchFriends(), get().fetchFriendRequests()]);
+            },
+
+            rejectFriendRequest: async (friendshipId) => {
+                const authHeaders = await getAuthHeaders();
+                const response = await fetch(`/api/friends/${friendshipId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', ...authHeaders },
+                    body: JSON.stringify({ action: 'reject' }),
+                });
+                if (!response.ok) throw new Error('Failed to reject friend request');
+                await get().fetchFriendRequests();
+            },
+
+            removeFriend: async (friendshipId) => {
+                const authHeaders = await getAuthHeaders();
+                const response = await fetch(`/api/friends/${friendshipId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', ...authHeaders },
+                    body: JSON.stringify({ action: 'remove' }),
+                });
+                if (!response.ok) throw new Error('Failed to remove friend');
+                await get().fetchFriends();
+            },
+
+            createPact: async (pactName, memberIds) => {
+                const authHeaders = await getAuthHeaders();
+                const response = await fetch('/api/pacts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...authHeaders },
+                    body: JSON.stringify({ pactName, memberIds }),
+                });
+                if (!response.ok) throw new Error('Failed to create pact');
+                const data = await response.json();
+                set((state) => ({ pacts: [data, ...state.pacts] }));
+                get().triggerChumToast?.(`Pact "${pactName}" created! Your lanterns are now connected.`, 'success');
+            },
+
+            fetchPacts: async () => {
+                const authHeaders = await getAuthHeaders();
+                const response = await fetch('/api/pacts', { headers: authHeaders });
+                if (!response.ok) throw new Error('Failed to fetch pacts');
+                const data = await response.json();
+                set({ pacts: data });
+            },
+
+            leavePact: async (pactId) => {
+                const authHeaders = await getAuthHeaders();
+                const response = await fetch(`/api/pacts/${pactId}`, {
+                    method: 'DELETE',
+                    headers: authHeaders,
+                });
+                if (!response.ok) throw new Error('Failed to leave pact');
+                set((state) => ({ pacts: state.pacts.filter(p => p.id !== pactId) }));
+                get().triggerChumToast?.('You have left the pact.', 'info');
+            },
+
             reset: () => set({
                 isInitialized: false, tasks: [], shards: [], focusScore: 100, totalSessions: 0, totalSecondsTracked: 0,
                 activeMode: 'none', activeTaskId: null, focusTaskId: null, isPremiumUser: false,
                 normalChatHistory: [{ role: 'chum', text: "Ready to study." }],
-                tutorChatHistory: [], pastTutorSessions: [], sessionsSinceLastReset: 0, lastResetHighlightAt: null
+                tutorChatHistory: [], pastTutorSessions: [], sessionsSinceLastReset: 0, lastResetHighlightAt: null,
+                broadcasts: [], friends: [], friendRequests: [], pacts: []
             }),
         }),
         {

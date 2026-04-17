@@ -117,7 +117,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
         <div 
             ref={setNodeRef} style={style} {...listeners} {...attributes}
             onDoubleClick={handleDoubleClick}
-            className={`group relative bg-(--bg-card) border-2 rounded-2xl p-4 transition-all duration-500 z-10 hover:z-20 min-h-[140px] flex flex-col ${isDragging ? 'opacity-40' : 'opacity-100'} ${dlStatus.phase === 3 && !task.isCompleted ? 'ring-1 ring-red-500/20' : ''} ${isOverlay ? 'shadow-2xl border-(--accent-teal) z-[1000]' : dlStatus.border || 'border-(--border-color)'}`}
+            className={`group relative bg-(--bg-card) border-2 rounded-2xl p-4 transition-all duration-500 z-10 hover:z-20 min-h-[140px] flex flex-col ${isDragging ? 'opacity-40' : 'opacity-100'} ${selected ? 'border-(--accent-teal) shadow-[0_0_18px_rgba(45,212,191,0.25)]' : ''} ${dlStatus.phase === 3 && !task.isCompleted ? 'ring-1 ring-red-500/20' : ''} ${isOverlay ? 'shadow-2xl border-(--accent-teal) z-[1000]' : dlStatus.border || 'border-(--border-color)'}`}
         >
             {/* ⚡ CLIPPING CONTAINER FOR BG EFFECTS */}
             <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
@@ -126,6 +126,25 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                     <div className={`absolute -right-4 -top-4 w-12 h-12 rounded-full blur-2xl opacity-20 ${dlStatus.bg}`} />
                 )}
             </div>
+
+            {onToggleSelect && !isOverlay && !locked && !task.isCompleted && (
+                <button
+                    type="button"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleSelect(task.id);
+                    }}
+                    className={`absolute left-3 top-3 z-40 w-6 h-6 rounded-md border flex items-center justify-center transition-all ${
+                        selected
+                            ? 'bg-(--accent-teal) border-(--accent-teal) text-black'
+                            : 'bg-(--bg-dark) border-(--border-color) text-(--text-muted) hover:text-(--text-main)'
+                    }`}
+                    aria-label={selected ? "Deselect task" : "Select task"}
+                >
+                    {selected ? <Check size={12} strokeWidth={3} /> : <span className="w-2 h-2 rounded-full bg-current opacity-60" />}
+                </button>
+            )}
 
             <div className="flex justify-between items-start mb-2 relative z-30">
                 <div className="flex gap-2 items-center">
