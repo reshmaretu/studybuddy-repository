@@ -29,8 +29,10 @@ const createAuthedClient = (token: string) => {
 };
 
 export const getRouteSupabase = async (req: NextRequest): Promise<RouteSupabase> => {
-  const cookieStore = cookies();
-  const cookieClient = createRouteHandlerClient({ cookies: () => cookieStore });
+  const cookieStore = await cookies();
+  const cookieClient = createRouteHandlerClient({
+    cookies: () => cookieStore,
+  } as { cookies: () => typeof cookieStore });
   const { data: { session } } = await cookieClient.auth.getSession();
 
   if (session?.user) {
