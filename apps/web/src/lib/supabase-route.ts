@@ -1,6 +1,6 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { cookies, type ReadonlyRequestCookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
 
 type RouteSupabase = {
@@ -32,7 +32,7 @@ export const getRouteSupabase = async (req: NextRequest): Promise<RouteSupabase>
   const cookieStore = await cookies();
   const cookieClient = createRouteHandlerClient({
     cookies: () => cookieStore,
-  } as { cookies: () => typeof cookieStore });
+  } as unknown as { cookies: () => Promise<ReadonlyRequestCookies> });
   const { data: { session } } = await cookieClient.auth.getSession();
 
   if (session?.user) {
