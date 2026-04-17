@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react"; // ⚡ Add useState
 import { useStudyStore } from "@/store/useStudyStore"; // ⚡ Import store
+import { useUser } from "@/hooks/useAuth";
 import Sidebar from "./Sidebar";
 import ChumWidget from "./ChumWidget";
 import PresenceSync from "./PresenceSync";
@@ -24,12 +25,13 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const { 
-        isInitialized, initializeData, isSidebarHidden, userEmail, hasCompletedTutorial,
+        isInitialized, initializeData, isSidebarHidden, hasCompletedTutorial,
         isBrainResetOpen, setIsBrainResetOpen, isUnDoneModalOpen, setIsUnDoneModalOpen,
         accessibilitySettings 
     } = useStudyStore();
     const router = useRouter();
     const [isMounted, setIsMounted] = useState(false);
+    const { user, isLoading: isUserLoading } = useUser();
 
     const isRoomPage = pathname.startsWith("/room/");
     const isCanvasPage = pathname.startsWith("/canvas");
@@ -55,13 +57,13 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     
     // 🚪 Protection: Redirect if not logged in and trying to access app pages
     useEffect(() => {
-        if (isMounted && isInitialized) {
+        if (isMounted && isInitialized && !isUserLoading) {
             const isProtected = !isPublicPage && pathname !== '/';
-            if (isProtected && !userEmail) {
-                router.push('/register');
+            if (isProtected && !user) {
+                router.push('/login');
             }
         }
-    }, [isMounted, isInitialized, isPublicPage, userEmail, router, pathname]);
+    }, [isMounted, isInitialized, isPublicPage, isUserLoading, user, router, pathname]);
 
     // 🕰️ Loading State: Prevent the "Default Theme" flash
     if (!isMounted || (!isPublicPage && !isInitialized)) {
