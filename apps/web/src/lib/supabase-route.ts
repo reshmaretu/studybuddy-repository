@@ -31,9 +31,9 @@ const createAuthedClient = (token: string) => {
 export const getRouteSupabase = async (req: NextRequest): Promise<RouteSupabase> => {
   const cookieStore = await cookies();
   const cookieClient = (createRouteHandlerClient as unknown as (args: {
-    cookies: () => Promise<unknown>;
+    cookies: () => unknown;
   }) => SupabaseClient)({
-    cookies: () => Promise.resolve(cookieStore),
+    cookies: () => cookieStore,
   });
   const { data: { session } } = await cookieClient.auth.getSession();
 
