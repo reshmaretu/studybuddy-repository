@@ -19,17 +19,22 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Search for users (excluding self)
+    // Search for users (include self for "You" label)
     let { data, error } = await supabase
       .from('profiles')
       .select('id, display_name, full_name, avatar_url, status')
       .or(`display_name.ilike.%${query}%,full_name.ilike.%${query}%`)
-      .neq('id', user.id)
       .limit(10);
 
     if (error) throw error;
 
-    return NextResponse.json(data || [], { status: 200 });
+    const results = (data || []).map((profile) =>
+      profile.id === user.id
+        ? { ...profile, display_name: profile.display_name || profile.full_name || 'You', isSelf: true }
+        : { ...profile, isSelf: false }
+    );
+
+    return NextResponse.json(results, { status: 200 });
   } catch (error) {
     console.error('Search users error:', error);
     return NextResponse.json(

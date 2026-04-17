@@ -1238,6 +1238,11 @@ export const useStudyStore = create<StudyState>()(
                     headers: { 'Content-Type': 'application/json', ...authHeaders },
                     body: JSON.stringify({ targetUserId }),
                 });
+                if (response.status === 409) {
+                    get().triggerChumToast?.('Friend request already sent.', 'warning');
+                    await get().fetchFriendRequests();
+                    return;
+                }
                 if (!response.ok) throw new Error('Failed to send friend request');
                 get().triggerChumToast?.('Friend request sent!', 'success');
                 await get().fetchFriendRequests();
