@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useStudyStore, TaskLoad, Task } from "@/store/useStudyStore";
 import { Sprout, Search, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit, Maximize2, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,8 +17,8 @@ import { Shard } from "@/store/useStudyStore";
 
 interface MasteryContainerProps {
     id: string;
-    masteryTab: 'tasks' | 'shards';
-    setMasteryTab: (tab: 'tasks' | 'shards') => void;
+    masteryTab: 'tasks' | 'shards' | 'crystals';
+    setMasteryTab: (tab: 'tasks' | 'shards' | 'crystals') => void;
     children: React.ReactNode;
     isEmpty: boolean;
     emptyText: string;
@@ -34,6 +34,7 @@ function MasteryContainer({ id, masteryTab, setMasteryTab, children, isEmpty, em
             <div className="flex justify-between items-center mb-4 shrink-0 gap-4">
                 <button onClick={() => setMasteryTab('tasks')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'tasks' ? 'border-[var(--text-main)] text-[var(--text-main)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>{terms.archive}</button>
                 <button onClick={() => setMasteryTab('shards')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'shards' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>{terms.shards}</button>
+                <button onClick={() => setMasteryTab('crystals')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'crystals' ? 'border-[var(--accent-yellow)] text-[var(--accent-yellow)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>Crystals</button>
             </div>
             {/* STYLING FIX: Invisible scrollbars applied */}
             <div ref={setNodeRef} className={`flex-1 rounded-xl p-4 transition-all duration-300 flex flex-col gap-3 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] border-2 border-dashed ${isOver ? "bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]" : "bg-[var(--bg-dark)] border-[var(--border-color)]/50"}`}>
@@ -81,6 +82,26 @@ function MasteredShardCard({ shard, onSnipe }: { shard: Shard, onSnipe: () => vo
                 >
                     <Crosshair size={18} />
                 </button>
+            </div>
+        </motion.div>
+    );
+}
+
+function MasteredCrystalCard({ name, masteredAt }: { name: string; masteredAt: string }) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ scale: 1.03, y: -2 }}
+            transition={{ type: "spring", stiffness: 250, damping: 18 }}
+            className="relative p-4 rounded-2xl border border-[var(--accent-yellow)]/40 bg-[#14110b] shadow-[0_6px_24px_rgba(234,179,8,0.1)]"
+        >
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[var(--accent-yellow)] mb-2">
+                <Sparkles size={12} className="text-[var(--accent-yellow)]" /> Crystal Mastery
+            </div>
+            <div className="text-sm font-bold text-white">{name}</div>
+            <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mt-1">
+                {new Date(masteredAt).toLocaleDateString()}
             </div>
         </motion.div>
     );
@@ -384,7 +405,8 @@ export default function CrystalGarden() {
     const {
         tasks, shards, activeFramework, setActiveFramework, isInitialized, lastPlannedDate,
         completeTask, deleteTask, addTask, updateTask, triggerChumToast, isPremiumUser,
-        protocolLimits, updateProtocolLimits
+        protocolLimits, updateProtocolLimits,
+        crystalGrowth, masteredCrystals, rebirthCrystal
     } = useStudyStore();
 
     const { terms, isGamified } = useTerms();
@@ -405,9 +427,12 @@ export default function CrystalGarden() {
     const [showProtocolSettings, setShowProtocolSettings] = useState(false);
     const [showUnrankedModal, setShowUnrankedModal] = useState(false);
     const [draggedToMasteryTask, setDraggedToMasteryTask] = useState<Task | null>(null);
-    const [masteryTab, setMasteryTab] = useState<'tasks' | 'shards'>('tasks');
+    const [masteryTab, setMasteryTab] = useState<'tasks' | 'shards' | 'crystals'>('tasks');
     // Removed draggedToGeodeTask and setDraggedToGeodeTask as they are unused
     const [snipingShard, setSnipingShard] = useState<Shard | null>(null);
+    const [isCrystalMasteryOpen, setIsCrystalMasteryOpen] = useState(false);
+    const [crystalNameInput, setCrystalNameInput] = useState('');
+    const lastGrowthRef = useRef(crystalGrowth);
 
     const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
 
@@ -470,9 +495,14 @@ export default function CrystalGarden() {
     const archivedQuests = filteredTasks.filter(t => t.isCompleted);
     const masteredShards = shards.filter(s => s.isMastered);
 
-    // 🔥 THE FIX: Global stats for the 3D Crystal (ignores search)
-    const globalArchivedQuests = validTasks.filter(t => t.isCompleted);
-    const completionRatio = validTasks.length > 0 ? (globalArchivedQuests.length / validTasks.length) : 0;
+    useEffect(() => {
+        if (lastGrowthRef.current < 100 && crystalGrowth >= 100) {
+            setIsCrystalMasteryOpen(true);
+        }
+        lastGrowthRef.current = crystalGrowth;
+    }, [crystalGrowth]);
+
+    const completionRatio = Math.min(1, Math.max(0, crystalGrowth / 100));
 
     const [showFrameworkMenu, setShowFrameworkMenu] = useState(false);
     const [pendingFramework, setPendingFramework] = useState<typeof activeFramework>(null);
@@ -1051,6 +1081,16 @@ export default function CrystalGarden() {
                                         {completionRatio >= 1 ? "Protocol Fulfilled" : "Synthesizing Momentum"}
                                     </p>
                                 </div>
+                                {crystalGrowth >= 100 && (
+                                    <div className="absolute top-5 right-5 z-10">
+                                        <button
+                                            onClick={() => setIsCrystalMasteryOpen(true)}
+                                            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-[var(--accent-yellow)] text-black shadow-[0_0_15px_rgba(234,179,8,0.35)] hover:brightness-110 transition-all"
+                                        >
+                                            Rebirth Crystal
+                                        </button>
+                                    </div>
+                                )}
                                 <GeodeScene
                                     completionRatio={completionRatio}
                                     snipingShard={snipingShard}
@@ -1066,17 +1106,33 @@ export default function CrystalGarden() {
                             id="hall-of-mastery"
                             masteryTab={masteryTab}
                             setMasteryTab={setMasteryTab}
-                            isEmpty={masteryTab === 'tasks' ? archivedQuests.length === 0 : masteredShards.length === 0}
-                            emptyText={masteryTab === 'tasks' ? "No archived quests yet" : "No knowledge shards have reached 100% mastery yet."}
+                            isEmpty={
+                                masteryTab === 'tasks' ? archivedQuests.length === 0
+                                    : masteryTab === 'shards' ? masteredShards.length === 0
+                                        : masteredCrystals.length === 0
+                            }
+                            emptyText={
+                                masteryTab === 'tasks' ? "No archived quests yet"
+                                    : masteryTab === 'shards' ? "No knowledge shards have reached 100% mastery yet."
+                                        : "No perfected crystals yet."
+                            }
                         >
                             {masteryTab === 'tasks' ? (
                                 archivedQuests.map(task => <TaskCard key={task.id} task={task} />)
-                            ) : (
+                            ) : masteryTab === 'shards' ? (
                                 masteredShards.map(shard => (
                                     <MasteredShardCard
                                         key={shard.id}
                                         shard={shard}
                                         onSnipe={() => setSnipingShard(shard)}
+                                    />
+                                ))
+                            ) : (
+                                masteredCrystals.map((crystal) => (
+                                    <MasteredCrystalCard
+                                        key={crystal.id}
+                                        name={crystal.crystal_name}
+                                        masteredAt={crystal.mastered_at}
                                     />
                                 ))
                             )}
@@ -1161,6 +1217,65 @@ export default function CrystalGarden() {
                                 </button>
                             </div>
                         </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {isCrystalMasteryOpen && (
+                        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-6">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setIsCrystalMasteryOpen(false)}
+                                className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+                            />
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                                className="bg-[var(--bg-card)] border-2 border-[var(--accent-yellow)] rounded-[2.5rem] p-8 w-full max-w-xl shadow-2xl relative z-10"
+                            >
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-[var(--accent-yellow)]/15 border border-[var(--accent-yellow)]/30 flex items-center justify-center">
+                                        <Sparkles size={22} className="text-[var(--accent-yellow)]" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-[var(--text-main)]">Crystal Mastery Reached</h3>
+                                        <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Name your perfected crystal</p>
+                                    </div>
+                                </div>
+
+                                <input
+                                    value={crystalNameInput}
+                                    onChange={(e) => setCrystalNameInput(e.target.value)}
+                                    placeholder="Crystal name"
+                                    className="w-full bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-[var(--accent-yellow)]"
+                                />
+
+                                <div className="mt-6 flex items-center gap-3">
+                                    <button
+                                        onClick={() => setIsCrystalMasteryOpen(false)}
+                                        className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 text-sm font-bold hover:bg-white/5 transition-all"
+                                    >
+                                        Later
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            const trimmed = crystalNameInput.trim();
+                                            if (!trimmed) return;
+                                            await rebirthCrystal(trimmed);
+                                            setCrystalNameInput('');
+                                            setIsCrystalMasteryOpen(false);
+                                        }}
+                                        disabled={!crystalNameInput.trim()}
+                                        className="flex-1 py-3 rounded-xl bg-[var(--accent-yellow)] text-black text-sm font-black uppercase tracking-widest disabled:opacity-50"
+                                    >
+                                        Okay
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </div>
                     )}
                 </AnimatePresence>
             </div>

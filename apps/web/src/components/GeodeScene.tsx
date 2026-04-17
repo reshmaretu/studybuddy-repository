@@ -553,7 +553,12 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
     const isPerformanceLow = performanceSettings.mode === 'low' || (performanceSettings.mode === 'auto' && typeof window !== 'undefined' && window.innerWidth < 768);
     const resolvedFlowerCount = isPerformanceLow ? Math.min(flowerCount, 2000) : performanceSettings.mode === 'balanced' ? Math.min(flowerCount, 5000) : flowerCount;
     const resolvedGlitterCount = isPerformanceLow ? 1000 : performanceSettings.mode === 'balanced' ? 3000 : 6000;
-    const resolvedBloomIntensity = !performanceSettings.bloomEnabled || isPerformanceLow ? 0 : performanceSettings.mode === 'balanced' ? 0.4 : 0.5 + (completionRatio * 2.0);
+    const isCrystalMastered = completionRatio >= 1;
+    const resolvedBloomIntensity = !performanceSettings.bloomEnabled || isPerformanceLow
+        ? 0
+        : performanceSettings.mode === 'balanced'
+            ? (isCrystalMastered ? 1.2 : 0.4)
+            : (isCrystalMastered ? 1.8 : 0.5 + (completionRatio * 2.0));
     const activeAtmosphere = SCENE_FILTERS[activeAtmosphereFilter as keyof typeof SCENE_FILTERS] || SCENE_FILTERS.default;
 
     const allFlowerPositions = useMemo(() => generateTrilliums(resolvedFlowerCount), [resolvedFlowerCount]);
@@ -667,7 +672,7 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
                     allFlowerPositions={allFlowerPositions}
                     masteredShards={masteredShards}
                 />
-                {completionRatio > 0 && performanceSettings.showParticles && (
+                {isCrystalMastered && performanceSettings.showParticles && (
                     <CylinderGlitter count={resolvedGlitterCount} completionRatio={completionRatio} />
                 )}
 

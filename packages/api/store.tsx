@@ -7,7 +7,7 @@ import {
     Task, TaskLoad, ChumToast, AppNotification,
     PerformanceSettings, AccessibilitySettings,
     ChatMessage, TutorSession, TutorSessionState, Shard, LanternUser, WardrobeAccessory, Invoice,
-    SyntheticLog, UserFriendship, Pact
+    SyntheticLog, UserFriendship, Pact, CrystalMastery
 } from './types';
 
 const getAuthHeaders = async (): Promise<Record<string, string>> => {
@@ -22,6 +22,8 @@ export const calculateXpRequirement = (level: number) => {
 
 let cloudSyncChannel: RealtimeChannel | null = null;
 let cloudSyncUserId: string | null = null;
+let notificationsChannel: RealtimeChannel | null = null;
+let notificationsUserId: string | null = null;
 
 export const getTitleForLevel = (level: number) => {
     if (level >= 99) return "Guardian of the Garden";
@@ -95,10 +97,18 @@ export interface StudyState {
 
     // 🔔 NOTIFICATIONS
     notifications: AppNotification[];
+    notificationsEnabled: boolean;
     addNotification: (notif: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => void;
     markNotificationRead: (id: string) => void;
     clearNotifications: (category?: 'activity' | 'system') => void;
     requestNotificationPermission: () => Promise<boolean>;
+    setNotificationsEnabled: (enabled: boolean) => void;
+
+    // 💎 CRYSTAL GROWTH
+    crystalGrowth: number;
+    masteredCrystals: CrystalMastery[];
+    incrementCrystalGrowth: (amount?: number) => Promise<void>;
+    rebirthCrystal: (crystalName: string) => Promise<void>;
 
     // 🎓 TUTORIAL
     hasCompletedTutorial: boolean;
@@ -448,11 +458,18 @@ export const useStudyStore = create<StudyState>()(
                 reducedMotion: false
             },
             notifications: [],
+            notificationsEnabled: typeof window !== 'undefined'
+                && "Notification" in window
+                && Notification.permission === "granted",
             addNotification: (notif) => {
                 const id = Math.random().toString(36).substring(7);
                 const timestamp = new Date().toISOString();
 
-                if (typeof window !== 'undefined' && "Notification" in window && Notification.permission === "granted") {
+                if (typeof window !== 'undefined'
+                    && "Notification" in window
+                    && Notification.permission === "granted"
+                    && get().notificationsEnabled
+                ) {
                     navigator.serviceWorker.ready.then(registration => {
                         registration.showNotification(notif.title, {
                             body: notif.message,
@@ -467,18 +484,85 @@ export const useStudyStore = create<StudyState>()(
                     notifications: [{ ...notif, id, timestamp, isRead: false }, ...state.notifications].slice(0, 50)
                 }));
             },
-            markNotificationRead: (id) => set((state) => ({
-                notifications: state.notifications.map(n => n.id === id ? { ...n, isRead: true } : n)
-            })),
-            clearNotifications: (category) => set((state) => ({
-                notifications: category
-                    ? state.notifications.filter(n => n.category !== category)
-                    : []
-            })),
+            markNotificationRead: (id) => {
+                set((state) => ({
+                    notifications: state.notifications.map(n => n.id === id ? { ...n, isRead: true } : n)
+                }));
+                supabase.from('notifications').update({ is_read: true }).eq('id', id).then();
+            },
+            clearNotifications: (category) => {
+                set((state) => ({
+                    notifications: category
+                        ? state.notifications.filter(n => n.category !== category)
+                        : []
+                }));
+                (async () => {
+                    const authHeaders = await getAuthHeaders();
+                    await fetch('/api/notifications/read', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...authHeaders },
+                        body: JSON.stringify({ category })
+                    });
+                })();
+            },
             requestNotificationPermission: async () => {
                 if (typeof window === 'undefined' || !("Notification" in window)) return false;
                 const permission = await Notification.requestPermission();
-                return permission === "granted";
+                const enabled = permission === "granted";
+                set({ notificationsEnabled: enabled });
+                return enabled;
+            },
+            setNotificationsEnabled: (enabled) => set({ notificationsEnabled: enabled }),
+
+            crystalGrowth: 0,
+            masteredCrystals: [],
+            incrementCrystalGrowth: async (amount = 1) => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+                let didHitMastery = false;
+                const nextGrowth = Math.min(100, Math.max(0, get().crystalGrowth + amount));
+                if (get().crystalGrowth < 100 && nextGrowth >= 100) {
+                    didHitMastery = true;
+                }
+                set({ crystalGrowth: nextGrowth });
+                if (didHitMastery) {
+                    get().triggerChumToast?.(
+                        "Your crystal reached full bloom!",
+                        "success"
+                    );
+                }
+                await supabase.from('crystal_growth').upsert({
+                    user_id: user.id,
+                    growth: nextGrowth,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'user_id' });
+            },
+            rebirthCrystal: async (crystalName) => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+                const name = crystalName.trim();
+                if (!name) return;
+                const masteredAt = new Date().toISOString();
+                const { data: mastery, error } = await supabase
+                    .from('crystal_mastery')
+                    .insert([{ user_id: user.id, crystal_name: name, mastered_at: masteredAt, growth_at_mastery: 100 }])
+                    .select()
+                    .single();
+                if (error) throw error;
+                set((state) => ({
+                    masteredCrystals: [mastery as CrystalMastery, ...state.masteredCrystals],
+                    crystalGrowth: 0
+                }));
+                await supabase.from('crystal_growth').upsert({
+                    user_id: user.id,
+                    growth: 0,
+                    updated_at: masteredAt
+                }, { onConflict: 'user_id' });
+                await supabase.from('synthetic_logs').insert([{
+                    user_id: user.id,
+                    content: `${get().displayName || 'User'} just fully grew their crystal!`,
+                    broadcast_type: 'milestone'
+                }]);
             },
             setCompletedTutorial: async (val) => {
                 set({ hasCompletedTutorial: val });
@@ -730,6 +814,10 @@ export const useStudyStore = create<StudyState>()(
                     get().gainXp(xpReward);
                 }
 
+                if (task && !task.isCompleted) {
+                    get().incrementCrystalGrowth(1);
+                }
+
                 if (!id.startsWith('temp-') && user) {
                     const currentMode = get().activeMode;
                     const isFocusMode = currentMode === 'flowState' || currentMode === 'studyCafe';
@@ -816,14 +904,62 @@ export const useStudyStore = create<StudyState>()(
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) { set({ isInitialized: true }); return; }
 
+                const mapDbNotification = (row: any): AppNotification | null => {
+                    if (!row) return null;
+                    const rawType = String(row.type || 'info');
+                    const mappedType: AppNotification['type'] =
+                        rawType === 'friend_accepted' ? 'success'
+                            : rawType === 'friend_request' ? 'info'
+                                : rawType === 'pact_invitation' ? 'info'
+                                    : (['info', 'success', 'warning', 'error'].includes(rawType)
+                                        ? rawType as AppNotification['type']
+                                        : 'info');
+                    const rawCategory = String(row.category || 'system');
+                    const category: AppNotification['category'] =
+                        rawCategory === 'activity' || rawCategory === 'system'
+                            ? rawCategory
+                            : 'system';
+                    return {
+                        id: String(row.id || Math.random().toString(36).substring(7)),
+                        category,
+                        type: mappedType,
+                        title: row.title || 'Notification',
+                        message: row.message || '',
+                        timestamp: row.created_at || new Date().toISOString(),
+                        isRead: Boolean(row.is_read),
+                        link: row.link || undefined
+                    };
+                };
+
+                const maybeSendWebPush = (notif: AppNotification) => {
+                    if (typeof window === 'undefined'
+                        || !("Notification" in window)
+                        || Notification.permission !== "granted"
+                        || !get().notificationsEnabled
+                    ) {
+                        return;
+                    }
+                    navigator.serviceWorker.ready.then(registration => {
+                        registration.showNotification(notif.title, {
+                            body: notif.message,
+                            icon: '/favicon.ico',
+                            tag: notif.id,
+                            badge: '/favicon.ico'
+                        });
+                    });
+                };
+
                 try {
-                    const [tasksResponse, shardsResponse, profileResponse, statsResponse, wardrobeResponse, sessionsResponse] = await Promise.all([
+                    const [tasksResponse, shardsResponse, profileResponse, statsResponse, wardrobeResponse, sessionsResponse, notificationsResponse, crystalGrowthResponse, crystalMasteryResponse] = await Promise.all([
                         supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
                         supabase.from('user_stats').select('*').eq('user_id', user.id).maybeSingle(),
                         supabase.from('chum_wardrobe').select('*').eq('user_id', user.id).maybeSingle(),
-                        supabase.from('ai_sessions').select('*, shards(title)').eq('user_id', user.id).order('created_at', { ascending: false })
+                        supabase.from('ai_sessions').select('*, shards(title)').eq('user_id', user.id).order('created_at', { ascending: false }),
+                        supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
+                        supabase.from('crystal_growth').select('*').eq('user_id', user.id).maybeSingle(),
+                        supabase.from('crystal_mastery').select('*').eq('user_id', user.id).order('mastered_at', { ascending: false })
                     ]);
 
                     if (tasksResponse.data) {
@@ -860,6 +996,23 @@ export const useStudyStore = create<StudyState>()(
                                 date: s.created_at, history: s.chat_history, masteryGained: s.mastery_gained
                             }))
                         });
+                    }
+
+                    if (notificationsResponse.data) {
+                        const mapped = (notificationsResponse.data || [])
+                            .map(mapDbNotification)
+                            .filter((n): n is AppNotification => Boolean(n));
+                        if (mapped.length > 0) {
+                            set({ notifications: mapped });
+                        }
+                    }
+
+                    if (crystalGrowthResponse.data) {
+                        set({ crystalGrowth: crystalGrowthResponse.data.growth || 0 });
+                    }
+
+                    if (crystalMasteryResponse.data) {
+                        set({ masteredCrystals: crystalMasteryResponse.data as CrystalMastery[] });
                     }
 
                     // 🛠️ IDENTITY AUTO-HEAL: If profile is missing, create it from metadata
@@ -906,8 +1059,17 @@ export const useStudyStore = create<StudyState>()(
                         cloudSyncUserId = null;
                     }
 
+                    if (notificationsChannel) {
+                        supabase.removeChannel(notificationsChannel);
+                        notificationsChannel = null;
+                        notificationsUserId = null;
+                    }
+
                     cloudSyncChannel = supabase.channel('cloud-sync');
                     cloudSyncUserId = user.id;
+
+                    notificationsChannel = supabase.channel('notifications');
+                    notificationsUserId = user.id;
 
                     cloudSyncChannel
                         .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
@@ -965,6 +1127,19 @@ export const useStudyStore = create<StudyState>()(
                         })
                         .subscribe();
 
+                    notificationsChannel
+                        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
+                            const mapped = mapDbNotification(payload.new);
+                            if (!mapped) return;
+                            set((state) => {
+                                const exists = state.notifications.some(n => n.id === mapped.id);
+                                if (exists) return state;
+                                return { notifications: [mapped, ...state.notifications].slice(0, 50) };
+                            });
+                            maybeSendWebPush(mapped);
+                        })
+                        .subscribe();
+
                     // 🛠️ STATS AUTO-HEAL
                     if (!statsResponse.data) {
                         await supabase.from('user_stats').insert([{ user_id: user.id, focus_score: 100, level: 1, xp: 0 }]);
@@ -973,6 +1148,10 @@ export const useStudyStore = create<StudyState>()(
                     // 🛠️ WARDROBE AUTO-HEAL
                     if (!wardrobeResponse.data) {
                         await supabase.from('chum_wardrobe').insert([{ user_id: user.id, active_crystal_theme: 'quartz' }]);
+                    }
+
+                    if (!crystalGrowthResponse.data) {
+                        await supabase.from('crystal_growth').insert([{ user_id: user.id, growth: 0 }]);
                     }
 
                     set({
@@ -1343,7 +1522,8 @@ export const useStudyStore = create<StudyState>()(
                 activeMode: 'none', activeTaskId: null, focusTaskId: null, isPremiumUser: false,
                 normalChatHistory: [{ role: 'chum', text: "Ready to study." }],
                 tutorChatHistory: [], pastTutorSessions: [], sessionsSinceLastReset: 0, lastResetHighlightAt: null,
-                broadcasts: [], friends: [], friendRequests: [], pacts: []
+                broadcasts: [], friends: [], friendRequests: [], pacts: [],
+                crystalGrowth: 0, masteredCrystals: []
             }),
         }),
         {
@@ -1359,6 +1539,9 @@ export const useStudyStore = create<StudyState>()(
                 dailyFocusScores: state.dailyFocusScores, flowBreaks: state.flowBreaks,
                 tabSwitches: state.tabSwitches, sessionsSinceLastReset: state.sessionsSinceLastReset,
                 lastResetHighlightAt: state.lastResetHighlightAt, notifications: state.notifications,
+                notificationsEnabled: state.notificationsEnabled,
+                crystalGrowth: state.crystalGrowth,
+                masteredCrystals: state.masteredCrystals,
                 hasCompletedTutorial: state.hasCompletedTutorial, enableDevRoomOptions: state.enableDevRoomOptions,
                 useThematicUI: state.useThematicUI,
                 activeBaseColor: state.activeBaseColor, // ✅ MUST ADD THIS LINE SO IT SAVES!

@@ -180,3 +180,11 @@ export interface PactMember {
         status: string;
     };
 }
+
+export interface CrystalMastery {
+    id: string;
+    user_id: string;
+    crystal_name: string;
+    mastered_at: string;
+    growth_at_mastery: number;
+}
