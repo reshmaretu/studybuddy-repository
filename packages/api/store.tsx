@@ -276,6 +276,7 @@ export interface StudyState {
     createPact: (pactName: string, memberIds: string[]) => Promise<void>;
     fetchPacts: () => Promise<void>;
     leavePact: (pactId: string) => Promise<void>;
+    deletePact: (pactId: string) => Promise<void>;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -1517,7 +1518,7 @@ export const useStudyStore = create<StudyState>()(
                 set({ pacts: data });
             },
 
-            leavePact: async (pactId) => {
+            leavePact: async (pactId: string) => {
                 const authHeaders = await getAuthHeaders();
                 const response = await fetch(`/api/pacts/${pactId}`, {
                     method: 'DELETE',
@@ -1528,7 +1529,7 @@ export const useStudyStore = create<StudyState>()(
                 get().triggerChumToast?.('You have left the pact.', 'info');
             },
 
-            deletePact: async (pactId) => {
+            deletePact: async (pactId: string) => {
                 const authHeaders = await getAuthHeaders();
                 const response = await fetch(`/api/pacts/${pactId}?action=delete`, {
                     method: 'DELETE',
