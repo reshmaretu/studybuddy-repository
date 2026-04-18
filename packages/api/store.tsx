@@ -531,6 +531,14 @@ export const useStudyStore = create<StudyState>()(
                         "Your crystal reached full bloom!",
                         "success"
                     );
+                    const { error: broadcastError } = await supabase.from('synthetic_logs').insert([{
+                        user_id: user.id,
+                        content: `${get().displayName || 'User'} just fully grew their crystal!`,
+                        broadcast_type: 'milestone'
+                    }]);
+                    if (broadcastError) {
+                        console.error('Failed to create crystal mastery broadcast:', broadcastError);
+                    }
                 }
                 await supabase.from('crystal_growth').upsert({
                     user_id: user.id,
@@ -559,11 +567,6 @@ export const useStudyStore = create<StudyState>()(
                     growth: 0,
                     updated_at: masteredAt
                 }, { onConflict: 'user_id' });
-                await supabase.from('synthetic_logs').insert([{
-                    user_id: user.id,
-                    content: `${get().displayName || 'User'} just fully grew their crystal!`,
-                    broadcast_type: 'milestone'
-                }]);
             },
             setCompletedTutorial: async (val) => {
                 set({ hasCompletedTutorial: val });

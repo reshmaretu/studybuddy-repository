@@ -51,24 +51,39 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    // Get recent broadcasts with user info
     const { data, error } = await supabase
       .from('synthetic_logs')
-      .select(`
-        id,
-        user_id,
-        content,
-        broadcast_type,
-        created_at,
-        reactions_count,
-        profiles(display_name, avatar_url, status)
-      `)
+      .select(
+        'id, user_id, content, broadcast_type, created_at, reactions_count'
+      )
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) throw error;
 
-    return NextResponse.json(data, { status: 200 });
+    const logs = data ?? [];
+    const userIds = [...new Set(logs.map((log) => log.user_id))];
+    let profilesById: Record<string, { display_name: string; avatar_url: string | null; status: string }> = {};
+
+    if (userIds.length > 0) {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url, status')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      profilesById = Object.fromEntries(
+        (profiles ?? []).map((profile) => [profile.id, profile])
+      );
+    }
+
+    const enriched = logs.map((log) => ({
+      ...log,
+      profiles: profilesById[log.user_id] ?? null,
+    }));
+
+    return NextResponse.json(enriched, { status: 200 });
   } catch (error) {
     console.error('Fetch broadcasts error:', error);
     return NextResponse.json(
