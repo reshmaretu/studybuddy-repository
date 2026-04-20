@@ -37,7 +37,7 @@ export default function UnDoneModal({ onClose }: { onClose: () => void }) {
             <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2.5rem] p-8 max-w-2xl w-full shadow-2xl flex flex-col max-h-[90vh] relative"
+                className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2.5rem] p-6 sm:p-8 max-w-2xl w-full shadow-2xl flex flex-col max-h-[90vh] relative overflow-y-auto"
             >
                 <button 
                     onClick={onClose}

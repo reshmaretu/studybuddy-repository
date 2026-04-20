@@ -38,6 +38,24 @@ import {
 } from 'lucide-react';
 import { useCanvasToolStore, type ToolType, type PenMode, type CanvasToolStore } from '@studybuddy/api';
 
+const SHAPE_TOOLS: ToolType[] = ['rect', 'circle', 'line', 'triangle', 'polygon'];
+
+const TriangleIcon = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+    <path d="M12 4L21 20H3L12 4Z" stroke="currentColor" strokeWidth="1.6" />
+  </svg>
+);
+
+const PolygonIcon = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+    <path
+      d="M7 4H17L21 10L17 20H7L3 10L7 4Z"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    />
+  </svg>
+);
+
 interface CanvasToolbarProps {
   onUndo?: () => void;
   onRedo?: () => void;
@@ -58,6 +76,14 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   const store = useCanvasToolStore();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const isOffline = connectionStatus === 'offline';
+  const [activeShapeTool, setActiveShapeTool] = useState<ToolType>('rect');
+  const isShapeActive = SHAPE_TOOLS.includes(store.activeTool);
+  const currentShapeTool = isShapeActive ? store.activeTool : activeShapeTool;
+
+  const handleShapeSelect = (tool: ToolType) => {
+    setActiveShapeTool(tool);
+    store.setActiveTool(tool);
+  };
 
   const toolIcons: Record<ToolType, React.ReactNode> = {
     select: <Pointer size={18} />,
@@ -68,6 +94,8 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     rect: <Square size={18} />,
     circle: <Circle size={18} />,
     line: <Minus size={18} />,
+    triangle: <TriangleIcon size={18} />,
+    polygon: <PolygonIcon size={18} />,
     text: <Type size={18} />,
   };
 
@@ -80,6 +108,8 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     rect: 'Rectangle',
     circle: 'Circle',
     line: 'Line',
+    triangle: 'Triangle',
+    polygon: 'Polygon',
     text: 'Text',
   };
 
@@ -92,8 +122,11 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     rect: '#22c55e',
     circle: '#38bdf8',
     line: '#f97316',
+    triangle: '#22c55e',
+    polygon: '#22c55e',
     text: '#a78bfa',
   };
+
 
   return (
     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[500] pointer-events-auto">
@@ -113,9 +146,6 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
               'eraser',
               'mindmap',
               'sticky',
-              'rect',
-              'circle',
-              'line',
               'text',
             ] as ToolType[]).map((tool) => (
               <Popover.Root key={tool}>
@@ -154,6 +184,38 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
               </Popover.Root>
             ))}
           </div>
+
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleShapeSelect(currentShapeTool)}
+                disabled={isOffline}
+                className={`relative p-2.5 rounded-xl transition-all border border-white/5 ${
+                  isShapeActive
+                    ? 'bg-[#14b8a6] text-[#0b1211] shadow-[0_0_15px_rgba(20,184,166,0.4)]'
+                    : 'text-[#999] hover:text-white hover:bg-white/5'
+                } ${isOffline ? 'opacity-40 cursor-not-allowed' : ''}`}
+                title="Shapes"
+              >
+                {toolIcons[currentShapeTool]}
+              </motion.button>
+            </Popover.Trigger>
+            <Popover.Content
+              side="top"
+              sideOffset={12}
+              className="bg-[#1a2423] border border-[#14b8a6]/30 rounded-2xl p-4 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ShapeToolPanel
+                activeShapeTool={currentShapeTool}
+                onSelect={handleShapeSelect}
+                toolIcons={toolIcons}
+                toolLabels={toolLabels}
+              />
+            </Popover.Content>
+          </Popover.Root>
 
           {/* Divider */}
           <div className="w-px h-8 bg-white/10 mx-1" />
@@ -321,6 +383,73 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
           )}
         </AnimatePresence>
       </motion.div>
+    </div>
+  );
+};
+
+interface ShapeToolPanelProps {
+  activeShapeTool: ToolType;
+  onSelect: (tool: ToolType) => void;
+  toolIcons: Record<ToolType, React.ReactNode>;
+  toolLabels: Record<ToolType, string>;
+}
+
+const ShapeToolPanel: React.FC<ShapeToolPanelProps> = ({
+  activeShapeTool,
+  onSelect,
+  toolIcons,
+  toolLabels,
+}) => {
+  const store = useCanvasToolStore();
+  const activeTool = SHAPE_TOOLS.includes(store.activeTool)
+    ? store.activeTool
+    : activeShapeTool;
+
+  return (
+    <div className="w-64 space-y-4">
+      <div className="text-xs font-bold text-white/50 uppercase tracking-widest">
+        Shapes
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {SHAPE_TOOLS.map((tool) => (
+          <button
+            key={tool}
+            onClick={() => onSelect(tool)}
+            className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold uppercase transition-all border ${
+              activeTool === tool
+                ? 'bg-[#22c55e] text-[#0b1211] border-transparent'
+                : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'
+            }`}
+          >
+            {toolIcons[tool]}
+            <span>{toolLabels[tool]}</span>
+          </button>
+        ))}
+      </div>
+
+      {activeTool === 'polygon' && (
+        <div>
+          <label className="text-xs font-bold text-white/70 uppercase tracking-widest flex justify-between mb-2">
+            <span>Sides</span>
+            <span>{store.shape.polygonSides}</span>
+          </label>
+          <Slider.Root
+            value={[store.shape.polygonSides]}
+            onValueChange={([v]) => store.setShapeSettings({ polygonSides: v })}
+            min={3}
+            max={12}
+            step={1}
+            className="relative flex items-center select-none touch-none w-full h-5"
+          >
+            <Slider.Track className="relative flex-grow rounded-full h-2 bg-white/10">
+              <Slider.Range className="absolute h-full rounded-full bg-[#22c55e]" />
+            </Slider.Track>
+            <Slider.Thumb className="block w-5 h-5 bg-[#22c55e] rounded-full shadow-lg" />
+          </Slider.Root>
+        </div>
+      )}
+
+      <ToolSettings tool={activeTool} />
     </div>
   );
 };
@@ -618,7 +747,7 @@ const ToolSettings: React.FC<ToolSettingsProps> = ({ tool }) => {
     );
   }
 
-  if (tool === 'rect' || tool === 'circle' || tool === 'line') {
+  if (['rect', 'circle', 'line', 'triangle', 'polygon'].includes(tool)) {
     const isLine = tool === 'line';
     return (
       <div className="w-56 space-y-4">
@@ -806,7 +935,7 @@ const ColorPicker: React.FC = () => {
         { id: 'mindmap-node-stroke', label: 'Border' },
       ];
     }
-    if (['rect', 'circle', 'line'].includes(store.activeTool)) {
+    if (['rect', 'circle', 'line', 'triangle', 'polygon'].includes(store.activeTool)) {
       return store.activeTool === 'line'
         ? [{ id: 'shape-stroke', label: 'Stroke' }]
         : [

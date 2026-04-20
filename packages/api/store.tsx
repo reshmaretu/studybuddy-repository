@@ -274,6 +274,7 @@ export interface StudyState {
     rejectFriendRequest: (friendshipId: string) => Promise<void>;
     removeFriend: (friendshipId: string) => Promise<void>;
     createPact: (pactName: string, memberIds: string[]) => Promise<void>;
+    addPactMembers: (pactId: string, memberIds: string[]) => Promise<void>;
     fetchPacts: () => Promise<void>;
     leavePact: (pactId: string) => Promise<void>;
     deletePact: (pactId: string) => Promise<void>;
@@ -1183,12 +1184,13 @@ export const useStudyStore = create<StudyState>()(
 
                     const wardrobe = wardrobeResponse.data;
                     if (wardrobe) {
+                        const appTheme = wardrobe.active_app_theme || 'deep-teal';
                         set({
                             activeAccessories: wardrobe.active_accessories || [],
                             activeCrystalTheme: wardrobe.active_crystal_theme || 'quartz',
-                            activeAtmosphereFilter: wardrobe.active_atmosphere_filter || 'default'
+                            activeAtmosphereFilter: wardrobe.active_atmosphere_filter || 'default',
+                            activeAppTheme: appTheme,
                         });
-                        const appTheme = wardrobe.active_app_theme || 'default';
                         if (typeof document !== 'undefined') document.documentElement.setAttribute("data-theme", appTheme);
                         if (typeof localStorage !== 'undefined') localStorage.setItem("appTheme", appTheme);
                     }
@@ -1511,6 +1513,21 @@ export const useStudyStore = create<StudyState>()(
                 await response.json();
                 await get().fetchPacts();
                 get().triggerChumToast?.(`Pact "${pactName}" created! Your lanterns are now connected.`, 'success');
+            },
+
+            addPactMembers: async (pactId: string, memberIds: string[]) => {
+                const authHeaders = await getAuthHeaders();
+                const response = await fetch(`/api/pacts/${pactId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', ...authHeaders },
+                    body: JSON.stringify({ memberIds }),
+                });
+                if (!response.ok) {
+                    const errorPayload = await response.json().catch(() => ({}));
+                    throw new Error(errorPayload?.error || 'Failed to add pact members');
+                }
+                await get().fetchPacts();
+                get().triggerChumToast?.('Pact members added.', 'success');
             },
 
             fetchPacts: async () => {

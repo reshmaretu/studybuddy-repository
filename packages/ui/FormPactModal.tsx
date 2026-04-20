@@ -33,9 +33,13 @@ export const FormPactModal: React.FC<FormPactModalProps> = ({
 }) => {
   const [pactName, setPactName] = useState('');
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
+  const [pendingMembers, setPendingMembers] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const { createPact, leavePact, deletePact } = useStudyStore();
+  const { createPact, leavePact, deletePact, addPactMembers } = useStudyStore();
+
+  const isOwner = Boolean(currentUserId && currentPact?.created_by === currentUserId);
+  const pactMemberIds = new Set((currentPact?.members || []).map((member) => member.id));
 
   const handleToggleFriend = (userId: string) => {
     setSelectedFriends((prev) =>
@@ -63,10 +67,27 @@ export const FormPactModal: React.FC<FormPactModalProps> = ({
     }
   };
 
+  const handleAddMembers = async () => {
+    if (!currentPact?.id || pendingMembers.length === 0) {
+      alert('Select at least one member to add');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await addPactMembers(currentPact.id, pendingMembers);
+      setPendingMembers([]);
+    } catch (error) {
+      console.error('Failed to add pact members:', error);
+      alert('Failed to add pact members');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLeaveOrDelete = async () => {
     if (!currentPact?.id) return;
 
-    const isOwner = currentUserId && currentPact.created_by === currentUserId;
     if (!showConfirm) {
       setShowConfirm(true);
       return;
@@ -175,6 +196,87 @@ export const FormPactModal: React.FC<FormPactModalProps> = ({
                     ))}
                   </div>
                 </div>
+                {isOwner && (
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-widest text-(--text-muted) mb-2 flex items-center gap-2">
+                      <Users size={12} className="text-(--accent-teal)" />
+                      Add Members ({pendingMembers.length})
+                    </p>
+                    {friendsList.length === 0 || friendsList.every((friend) => {
+                      const isUser1 = currentUserId && friend.user_id_1 === currentUserId;
+                      const isUser2 = currentUserId && friend.user_id_2 === currentUserId;
+                      const friendId = isUser1
+                        ? friend.user_id_2
+                        : isUser2
+                          ? friend.user_id_1
+                          : friend.user_id_2 || friend.user_id_1 || friend.id;
+                      return pactMemberIds.has(friendId);
+                    }) ? (
+                      <p className="text-xs text-(--text-muted) p-3 rounded-xl bg-(--bg-dark) text-center">
+                        No friends available to add.
+                      </p>
+                    ) : (
+                      <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+                        {friendsList.map((friend) => {
+                          const isUser1 = currentUserId && friend.user_id_1 === currentUserId;
+                          const isUser2 = currentUserId && friend.user_id_2 === currentUserId;
+                          const friendId = isUser1
+                            ? friend.user_id_2
+                            : isUser2
+                              ? friend.user_id_1
+                              : friend.user_id_2 || friend.user_id_1 || friend.id;
+                          const friendData = isUser1
+                            ? friend.profiles_2
+                            : isUser2
+                              ? friend.profiles_1
+                              : friend.profiles_2 || friend.profiles_1 || friend;
+                          const isAlreadyMember = Boolean(
+                            currentPact.members?.some((member) => member.id === friendId)
+                          );
+                          if (isAlreadyMember) return null;
+                          const isSelected = pendingMembers.includes(friendId);
+
+                          return (
+                            <label key={friendId} className="flex items-center gap-3 p-2 rounded-xl bg-(--bg-dark) border border-(--border-color) cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() =>
+                                  setPendingMembers((prev) =>
+                                    prev.includes(friendId)
+                                      ? prev.filter((id) => id !== friendId)
+                                      : [...prev, friendId]
+                                  )
+                                }
+                                className="w-4 h-4 rounded"
+                                disabled={loading}
+                              />
+                              {friendData?.avatar_url && (
+                                <img
+                                  src={friendData.avatar_url}
+                                  alt={friendData.display_name}
+                                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                />
+                              )}
+                              <span className="text-sm text-(--text-main) flex-1 truncate">
+                                {friendData?.display_name || 'Unknown User'}
+                              </span>
+                              {isSelected && <CheckCircle2 size={14} className="text-(--accent-teal)" />}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div className="pt-3 flex justify-end">
+                      <Button
+                        onClick={handleAddMembers}
+                        disabled={loading || pendingMembers.length === 0}
+                      >
+                        {loading ? 'Adding...' : 'Add Members'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <>
@@ -212,8 +314,18 @@ export const FormPactModal: React.FC<FormPactModalProps> = ({
               ) : (
                 <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar">
                   {friendsList.map((friend) => {
-                    const friendData = friend.profiles_2 || friend.profiles_1 || friend;
-                    const friendId = friend.user_id_2 || friend.user_id_1 || friend.id;
+                    const isUser1 = currentUserId && friend.user_id_1 === currentUserId;
+                    const isUser2 = currentUserId && friend.user_id_2 === currentUserId;
+                    const friendId = isUser1
+                      ? friend.user_id_2
+                      : isUser2
+                        ? friend.user_id_1
+                        : friend.user_id_2 || friend.user_id_1 || friend.id;
+                    const friendData = isUser1
+                      ? friend.profiles_2
+                      : isUser2
+                        ? friend.profiles_1
+                        : friend.profiles_2 || friend.profiles_1 || friend;
                     const isSelected = selectedFriends.includes(friendId);
 
                     return (

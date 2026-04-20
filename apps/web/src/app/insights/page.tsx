@@ -248,24 +248,24 @@ export default function InsightsPage() {
     if (!isMounted) return null;
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6 pb-12 px-4">
+        <div className="max-w-6xl mx-auto space-y-6 pb-16 px-4 min-h-screen">
 
             {/* HEADER */}
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-[var(--text-main)] flex items-center gap-3">
-                        <BarChart3 className="text-[var(--accent-teal)]" size={32} /> {terms.insights}
+                    <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-main)] flex items-center gap-3">
+                        <BarChart3 className="text-[var(--accent-teal)]" size={28} /> {terms.insights}
                     </h1>
                     <p className="text-[var(--text-muted)] mt-1">Measuring the growth of your spirit and productivity.</p>
                 </div>
 
-                <div className="flex items-center gap-1 bg-[var(--bg-card)] border border-[var(--border-color)] p-1 rounded-xl shadow-sm">
+                <div className="flex flex-wrap items-center gap-1 bg-[var(--bg-card)] border border-[var(--border-color)] p-1 rounded-xl shadow-sm">
                     <div className="px-2 text-[var(--text-muted)]"><Filter size={14} /></div>
                     {(['today', 'week', 'month', 'all'] as const).map(range => (
                         <button
                             key={range}
                             onClick={() => setTimeRange(range)}
-                            className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-colors ${timeRange === range ? 'bg-[var(--bg-dark)] text-[var(--text-main)] border border-[var(--border-color)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                            className={`px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold capitalize transition-colors ${timeRange === range ? 'bg-[var(--bg-dark)] text-[var(--text-main)] border border-[var(--border-color)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
                         >
                             {range}
                         </button>

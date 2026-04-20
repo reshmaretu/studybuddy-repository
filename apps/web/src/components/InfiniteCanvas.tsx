@@ -1073,7 +1073,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   const handleCanvasPointerDown = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       if (!canvasRef.current || !engineRef.current || !ydocRef.current) return;
-      const shapeTools = ['rect', 'circle', 'line', 'text'] as const;
+      const shapeTools = ['rect', 'circle', 'line', 'triangle', 'polygon', 'text'] as const;
 
       if (store.activeTool === 'select') {
         const rect = canvasRef.current.getBoundingClientRect();
@@ -1462,7 +1462,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
               }
             : {
                 ...baseShape,
-                type: tool as 'rect' | 'circle' | 'line',
+                type: tool as 'rect' | 'circle' | 'line' | 'triangle' | 'polygon',
+                ...(tool === 'polygon' ? { sides: store.shape.polygonSides } : {}),
               };
 
         const created = addShape(schema.yshapes, schema.ylayers, shapeData as any);
@@ -1949,6 +1950,13 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     [store.activeTool]
   );
 
+  const handleCanvasPointerCancel = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      handleCanvasPointerUp(e);
+    },
+    [handleCanvasPointerUp]
+  );
+
   const handleClearBoard = useCallback(() => {
     if (!ydocRef.current) return;
     const schema = schemaRef.current ?? createCanvasSchema(ydocRef.current);
@@ -2108,8 +2116,10 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         onPointerDown={handleCanvasPointerDown}
         onPointerMove={handleCanvasPointerMove}
         onPointerUp={handleCanvasPointerUp}
+        onPointerCancel={handleCanvasPointerCancel}
         onPointerLeave={() => setEraserCursor(null)}
         className="absolute inset-0 w-full h-full cursor-crosshair"
+        style={{ touchAction: 'none' }}
       />
 
       {marqueeBox && (

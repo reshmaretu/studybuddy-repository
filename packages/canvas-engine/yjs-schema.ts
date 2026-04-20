@@ -17,7 +17,7 @@ import { v4 as uuid } from 'uuid';
 
 export interface ShapeData {
   id: string;
-  type: 'rect' | 'circle' | 'line' | 'sticky' | 'text';
+  type: 'rect' | 'circle' | 'line' | 'triangle' | 'polygon' | 'sticky' | 'text';
   x: number;
   y: number;
   width: number;
@@ -38,6 +38,7 @@ export interface ShapeData {
   textColor?: string;
   fontSize?: number;
   fontFamily?: string;
+  sides?: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -351,6 +352,9 @@ export function addPenStroke(
     }
   });
 
+  // Seed the stroke cache invalidation timestamp for initial render.
+  ymap.set('_lastUpdateTime', now);
+
   ystrokes.push([ymap]);
   ylayers.push([id]);
 
@@ -371,6 +375,9 @@ export function appendPointToPenStroke(
   const ypoint = new Y.Array();
   ypoint.push([point[0], point[1], point[2]]);
   ypoints.push([ypoint]);
+
+  // Bump update time so render cache refreshes while drawing.
+  strokeMap.set('_lastUpdateTime', Date.now());
 }
 
 export function finalizePenStroke(
@@ -381,6 +388,7 @@ export function finalizePenStroke(
   const strokeMap = ystrokes.get(strokeIndex);
   if (strokeMap) {
     strokeMap.set('finalized', true);
+    strokeMap.set('_lastUpdateTime', Date.now());
   }
 }
 

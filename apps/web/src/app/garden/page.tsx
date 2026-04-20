@@ -699,7 +699,7 @@ export default function CrystalGarden() {
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAdding(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
                             <motion.form
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                onSubmit={handlePlantQuest} className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-6 shadow-2xl relative z-10 w-full max-w-2xl flex flex-col"
+                                onSubmit={handlePlantQuest} className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-5 sm:p-6 shadow-2xl relative z-10 w-full max-w-2xl flex flex-col max-h-[90vh] overflow-y-auto"
                             >
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-lg font-bold text-[var(--text-main)]">{isGamified ? "Seed a New Quest" : "Create New Task"}</h3>
@@ -877,6 +877,12 @@ export default function CrystalGarden() {
                                                                 className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl pl-10 pr-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] transition-colors"
                                                         />
                                                 </div>
+                                            <button
+                                                onClick={() => setIsAdding(true)}
+                                                className="px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-widest bg-[var(--accent-teal)] text-[#0b1211] hover:brightness-110 transition-all shrink-0"
+                                            >
+                                                {isGamified ? 'Plant Seed' : 'Add Task'}
+                                            </button>
                                                 {/* 🔥 THE NEW FRAMEWORK DROPDOWN 🔥 */}
                                                 <div className="relative z-50">
                                                         <button

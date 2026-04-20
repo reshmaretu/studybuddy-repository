@@ -7,7 +7,18 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { HitTestResult } from '@studybuddy/canvas-engine';
 
-export type ToolType = 'select' | 'pen' | 'eraser' | 'mindmap' | 'sticky' | 'rect' | 'circle' | 'line' | 'text';
+export type ToolType =
+  | 'select'
+  | 'pen'
+  | 'eraser'
+  | 'mindmap'
+  | 'sticky'
+  | 'rect'
+  | 'circle'
+  | 'line'
+  | 'triangle'
+  | 'polygon'
+  | 'text';
 export type PenMode = 'ballpoint' | 'marker' | 'highlighter' | 'calligraphy';
 
 export interface BrushSettings {
@@ -58,6 +69,7 @@ export interface ShapeSettings {
   fillOpacity: number;
   strokeEnabled: boolean;
   fillEnabled: boolean;
+  polygonSides: number;
 }
 
 export interface CanvasToolStore {
@@ -173,6 +185,7 @@ const defaultShapeSettings: ShapeSettings = {
   fillOpacity: 0.4,
   strokeEnabled: true,
   fillEnabled: true,
+  polygonSides: 6,
 };
 
 export const useCanvasToolStore = create<CanvasToolStore>()(

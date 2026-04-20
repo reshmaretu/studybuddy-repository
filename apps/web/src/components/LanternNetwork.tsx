@@ -265,6 +265,8 @@ function LanternConstellation({ users, pacts, currentUserId, is3D, onWarp, inten
         const nextPositions = new Map(basePositions);
         const lines: PactLine[] = [];
         const pactNames = new Map<string, string>();
+        const pactMemberIds = new Set<string>();
+        const pactCenters: Array<{ center: [number, number, number]; color: string }> = [];
 
         const getAngle = (seed: string) => {
             let hash = 0;
@@ -280,6 +282,7 @@ function LanternConstellation({ users, pacts, currentUserId, is3D, onWarp, inten
             memberIds.forEach((memberId: string) => {
                 const normalizedId = currentUserId && memberId === currentUserId ? 'me' : memberId;
                 if (!pactNames.has(normalizedId)) pactNames.set(normalizedId, pact.pact_name);
+                pactMemberIds.add(memberId);
             });
             const memberPositions = memberIds.map((id) => ({ id, pos: basePositions.get(id) })).filter(m => m.pos) as { id: string; pos: [number, number, number] }[];
             if (memberPositions.length < 2) return;
@@ -294,7 +297,7 @@ function LanternConstellation({ users, pacts, currentUserId, is3D, onWarp, inten
             center[1] /= memberPositions.length;
             center[2] /= memberPositions.length;
 
-            const radius = 14;
+            const radius = 9;
             const ordered = memberPositions
                 .map((member) => ({
                     ...member,
@@ -307,21 +310,57 @@ function LanternConstellation({ users, pacts, currentUserId, is3D, onWarp, inten
                 const targetY = center[1] + Math.sin(member.angle) * radius;
                 const targetZ = is3D ? center[2] + (Math.sin(member.angle * 2) * 2) : 0;
                 const base = member.pos;
-                const blend = 0.45;
+                const blend = 0.7;
                 const x = base[0] + (targetX - base[0]) * blend;
                 const y = base[1] + (targetY - base[1]) * blend;
                 const z = is3D ? base[2] + (targetZ - base[2]) * blend : 0;
                 nextPositions.set(member.id, [x, y, z]);
             });
 
-            for (let i = 0; i < ordered.length; i++) {
+            pactCenters.push({
+                center: [center[0], center[1], center[2]],
+                color: pact.constellation_color || '#2dd4bf'
+            });
+
+            for (let i = 0; i < ordered.length - 1; i += 1) {
                 const curr = ordered[i];
-                const next = ordered[(i + 1) % ordered.length];
+                const next = ordered[i + 1];
                 const start = nextPositions.get(curr.id) as [number, number, number];
                 const end = nextPositions.get(next.id) as [number, number, number];
                 lines.push({ start, end, color: pact.constellation_color || '#2dd4bf' });
             }
         });
+
+        if (pactCenters.length > 0) {
+            const repelRadius = 40;
+            const repelStrength = 32;
+            basePositions.forEach((pos, userId) => {
+                if (pactMemberIds.has(userId)) return;
+
+                let closestCenter: [number, number, number] | null = null;
+                let closestDist = Number.POSITIVE_INFINITY;
+                for (const pact of pactCenters) {
+                    const dx = pos[0] - pact.center[0];
+                    const dy = pos[1] - pact.center[1];
+                    const dist = Math.hypot(dx, dy);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        closestCenter = pact.center;
+                    }
+                }
+
+                if (!closestCenter || closestDist >= repelRadius) return;
+
+                const dx = pos[0] - closestCenter[0];
+                const dy = pos[1] - closestCenter[1];
+                const norm = Math.max(0.001, Math.hypot(dx, dy));
+                const push = ((repelRadius - closestDist) / repelRadius) * repelStrength;
+                const x = pos[0] + (dx / norm) * push;
+                const y = pos[1] + (dy / norm) * push;
+                const z = is3D ? pos[2] : 0;
+                nextPositions.set(userId, [x, y, z]);
+            });
+        }
 
         return { positions: nextPositions, pactLines: lines, pactNameByUser: pactNames };
     }, [users, pacts, getUserKey, getBasePos, is3D, currentUserId]);

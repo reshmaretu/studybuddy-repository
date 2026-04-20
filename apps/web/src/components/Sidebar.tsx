@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import {
     LayoutGrid, Sprout, Palette, Coffee, Waves, Calendar,
-    BookOpen, BarChart3, Shirt, Settings, LogOut, Radio
+    BookOpen, BarChart3, Shirt, Settings, LogOut, Radio, MoreHorizontal, X
 } from "lucide-react";
 import { useTerms } from "@/hooks/useTerms";
 
@@ -31,6 +31,7 @@ export default function Sidebar() {
 
     const { activeMode } = useStudyStore();
     const [shakeWardrobe, setShakeWardrobe] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const isCafe = activeMode === 'studyCafe';
 
     const handleWardrobeClick = (e: React.MouseEvent) => {
@@ -88,7 +89,7 @@ export default function Sidebar() {
 
             {/* --- MOBILE BOTTOM NAV --- */}
             <nav className="fixed bottom-0 left-0 w-full bg-(--bg-sidebar)/90 backdrop-blur-xl border-t border-(--border-color) flex md:hidden items-center justify-around h-20 pb-safe z-50">
-                {navItems.slice(0, 5).map((item) => {
+                {navItems.slice(0, 4).map((item) => {
                     const isActive = pathname === item.href;
                     const Icon = item.icon;
                     return (
@@ -99,12 +100,62 @@ export default function Sidebar() {
                         </Link>
                     );
                 })}
+                <button
+                    onClick={() => setIsMobileMenuOpen(true)}
+                    className="flex flex-col items-center justify-center w-full gap-1 transition-colors text-(--text-muted) relative"
+                >
+                    <MoreHorizontal size={20} />
+                    <span className="text-[8px] font-black uppercase tracking-widest">More</span>
+                </button>
                 <Link href="/account" className={`flex flex-col items-center justify-center w-full gap-1 transition-colors ${pathname === '/account' ? 'text-(--accent-teal)' : 'text-(--text-muted)'} relative`}>
                     <Settings size={20} />
                     <span className="text-[8px] font-black uppercase tracking-widest">Hearth</span>
                     {pathname === '/account' && <motion.div layoutId="nav-indicator" className="absolute -top-[1px] w-8 h-[2px] bg-(--accent-teal) rounded-full shadow-[0_0_10px_var(--accent-teal)]" />}
                 </Link>
             </nav>
+
+            {isMobileMenuOpen && (
+                <div className="fixed inset-0 z-[60] flex items-end md:hidden">
+                    <button
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        aria-label="Close menu"
+                    />
+                    <div className="relative w-full rounded-t-3xl border border-(--border-color) bg-(--bg-sidebar) p-6 shadow-2xl">
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="text-xs font-black uppercase tracking-widest text-(--text-muted)">More</span>
+                            <button
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="p-2 rounded-full bg-(--bg-dark) text-(--text-muted)"
+                                aria-label="Close menu"
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            {navItems.slice(4).map((item) => {
+                                const isActive = pathname === item.href;
+                                const Icon = item.icon;
+                                return (
+                                    <Link
+                                        key={item.name}
+                                        href={item.href}
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${
+                                            isActive
+                                                ? 'bg-(--accent-teal)/20 border-(--accent-teal)/40 text-(--accent-teal)'
+                                                : 'bg-(--bg-dark) border-(--border-color) text-(--text-muted) hover:text-(--text-main)'
+                                        }`}
+                                    >
+                                        <Icon size={16} />
+                                        <span className="truncate">{item.name}</span>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

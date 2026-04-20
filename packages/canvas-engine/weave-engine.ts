@@ -68,7 +68,7 @@ export class StudyBuddyCanvasEngine {
     | { fromId: string; toX: number; toY: number; color: string; lineStyle: 'solid' | 'dashed' | 'curved' }
     | null = null;
   private previewConnectionControlPoints = new Map<string, { x: number; y: number }>();
-  private strokeCache = new Map<string, { lastUpdate: number; outline: Array<[number, number]> }>();
+  private strokeCache = new Map<string, { key: string; updatedAt: number; outline: Array<[number, number]> }>();
   private lastCacheClear = Date.now();
   private maxStrokeCacheSize = 200;
 
@@ -434,6 +434,27 @@ export class StudyBuddyCanvasEngine {
       this.ctx.moveTo(0, 0);
       this.ctx.lineTo(w, h);
       this.ctx.stroke();
+    } else if (type === 'triangle' || type === 'polygon') {
+      const sides = type === 'triangle' ? 3 : Math.max(3, ymap.get('sides') || 6);
+      const points = this._getPolygonPoints(type, 0, 0, w, h, sides);
+      this.ctx.beginPath();
+      points.forEach(([px, py], index) => {
+        if (index === 0) {
+          this.ctx.moveTo(px, py);
+        } else {
+          this.ctx.lineTo(px, py);
+        }
+      });
+      this.ctx.closePath();
+      if (fillEnabled) {
+        this.ctx.fillStyle = this._applyAlphaToColor(fillColor, fillOpacity);
+        this.ctx.fill();
+      }
+      if (strokeEnabled) {
+        this.ctx.strokeStyle = strokeColor;
+        this.ctx.lineWidth = strokeWidth;
+        this.ctx.stroke();
+      }
     } else if (type === 'sticky') {
       const stickyFill = fillColor || color;
       const stickyOpacity = fillOpacity ?? 1;
@@ -497,9 +518,12 @@ export class StudyBuddyCanvasEngine {
 
     // Check cache
     const cached = this.strokeCache.get(strokeId);
+    const lastPoint = points[points.length - 1]?.toArray?.() || [0, 0, 1];
+    const updateSeed = ymap.get('_lastUpdateTime') ?? 0;
+    const updateKey = `${updateSeed}-${points.length}-${lastPoint[0]}-${lastPoint[1]}-${lastPoint[2]}`;
     let outline: Array<[number, number]>;
     
-    if (cached && cached.lastUpdate === ymap.get('_lastUpdateTime')) {
+    if (cached && cached.key === updateKey) {
       outline = cached.outline;
     } else {
       const strokePoints = points.map((pt) => {
@@ -523,7 +547,8 @@ export class StudyBuddyCanvasEngine {
 
       if (outline.length) {
         this.strokeCache.set(strokeId, { 
-          lastUpdate: ymap.get('_lastUpdateTime'),
+          key: updateKey,
+          updatedAt: Date.now(),
           outline 
         });
         
@@ -532,7 +557,7 @@ export class StudyBuddyCanvasEngine {
           const now = Date.now();
           if (now - this.lastCacheClear > 5000) {
             const entries = Array.from(this.strokeCache.entries());
-            entries.sort((a, b) => b[1].lastUpdate - a[1].lastUpdate);
+            entries.sort((a, b) => b[1].updatedAt - a[1].updatedAt);
             for (let i = this.maxStrokeCacheSize; i < entries.length; i++) {
               this.strokeCache.delete(entries[i][0]);
             }
@@ -911,7 +936,8 @@ export class StudyBuddyCanvasEngine {
         w,
         h,
         type as any,
-        shape.get('strokeWidth') || 2
+        shape.get('strokeWidth') || 2,
+        shape.get('sides')
       );
       if (distance !== null && distance <= tolerance) {
         return {
@@ -974,7 +1000,8 @@ export class StudyBuddyCanvasEngine {
           shape.get('width'),
           shape.get('height'),
           shape.get('type'),
-          shape.get('strokeWidth') || 2
+          shape.get('strokeWidth') || 2,
+          shape.get('sides')
         );
         if (distance !== null && distance <= radius) {
           results.push({ objectId: id, type: 'shape', distance });
@@ -1012,8 +1039,9 @@ export class StudyBuddyCanvasEngine {
     y: number,
     w: number,
     h: number,
-    type: 'rect' | 'circle' | 'sticky' | 'line' | 'text',
-    strokeWidth = 2
+    type: 'rect' | 'circle' | 'sticky' | 'line' | 'text' | 'triangle' | 'polygon',
+    strokeWidth = 2,
+    sides?: number
   ): number | null {
     if (type === 'rect' || type === 'sticky' || type === 'text') {
       if (px >= x && px <= x + w && py >= y && py <= y + h) return 0;
@@ -1029,8 +1057,72 @@ export class StudyBuddyCanvasEngine {
     } else if (type === 'line') {
       const dist = this._pointToLineDistance(px, py, x, y, x + w, y + h);
       return dist <= strokeWidth ? dist : null;
+    } else if (type === 'triangle' || type === 'polygon') {
+      const count = type === 'triangle' ? 3 : Math.max(3, sides || 6);
+      const points = this._getPolygonPoints(type, x, y, w, h, count);
+      return this._pointToPolygonDistance(px, py, points);
     }
     return null;
+  }
+
+  private _getPolygonPoints(
+    type: 'triangle' | 'polygon',
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    sides: number
+  ): Array<[number, number]> {
+    if (type === 'triangle') {
+      return [
+        [x + w / 2, y],
+        [x + w, y + h],
+        [x, y + h],
+      ];
+    }
+
+    const count = Math.max(3, sides || 3);
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const rx = w / 2;
+    const ry = h / 2;
+    const start = -Math.PI / 2;
+    const points: Array<[number, number]> = [];
+    for (let i = 0; i < count; i++) {
+      const angle = start + (i * Math.PI * 2) / count;
+      points.push([cx + rx * Math.cos(angle), cy + ry * Math.sin(angle)]);
+    }
+    return points;
+  }
+
+  private _pointToPolygonDistance(
+    px: number,
+    py: number,
+    points: Array<[number, number]>
+  ): number {
+    if (this._pointInPolygon(px, py, points)) return 0;
+    let min = Infinity;
+    for (let i = 0; i < points.length; i++) {
+      const [x1, y1] = points[i];
+      const [x2, y2] = points[(i + 1) % points.length];
+      min = Math.min(min, this._pointToLineDistance(px, py, x1, y1, x2, y2));
+    }
+    return min;
+  }
+
+  private _pointInPolygon(px: number, py: number, points: Array<[number, number]>) {
+    let inside = false;
+    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+      const xi = points[i][0];
+      const yi = points[i][1];
+      const xj = points[j][0];
+      const yj = points[j][1];
+
+      const intersect = yi > py !== yj > py &&
+        px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
+      if (intersect) inside = !inside;
+    }
+    return inside;
   }
 
   private _pointToStrokeDistance(

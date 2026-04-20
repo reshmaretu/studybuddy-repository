@@ -128,7 +128,8 @@ export default function LanternNetPage() {
     const {
         totalSessions, activeMode, isTutorModeActive, isDev,
         debrisSize, debrisColor, debrisCount, debrisSpread, setDebris,
-        mockUsers, setMockUsers, isPremiumUser, setSettings, totalSecondsTracked, isVerified, triggerChumToast
+        mockUsers, setMockUsers, isPremiumUser, setSettings, totalSecondsTracked, isVerified, triggerChumToast,
+        activeAppTheme
     } = useStudyStore();
     const router = useRouter();
     const { isGamified } = useTerms();
@@ -140,15 +141,6 @@ export default function LanternNetPage() {
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
-    const [appTheme, setAppTheme] = useState('deep-teal');
-
-    useEffect(() => {
-        const saved = localStorage.getItem('appTheme') || 'deep-teal';
-        setAppTheme(saved);
-
-        // Ensure HTML tag is also synced (fallback for components relying on it)
-        document.documentElement.setAttribute('data-theme', saved);
-    }, []);
 
     // --- NETWORK CORE & DEV ASSETS ---
     // Dev-only assets should be placed in `src/config/devAssets.ts` or
@@ -366,7 +358,7 @@ export default function LanternNetPage() {
     if (!isMounted) return null;
 
     return (
-        <div data-theme={appTheme} className="flex flex-col lg:flex-row h-screen max-h-screen p-4 pb-8 lg:p-6 lg:pb-10 gap-6 bg-(--bg-dark) overflow-hidden relative">
+        <div data-theme={activeAppTheme} className="flex flex-col lg:flex-row h-screen max-h-screen p-4 pb-8 lg:p-6 lg:pb-10 gap-6 bg-(--bg-dark) overflow-hidden relative">
 
 
             <AnimatePresence>
@@ -375,7 +367,7 @@ export default function LanternNetPage() {
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             onClick={() => setIsHostModalOpen(false)} className="absolute inset-0 bg-black/70 backdrop-blur-sm cursor-pointer" />
                         <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 40 }}
-                            className="bg-(--bg-card) border border-(--border-color) rounded-[40px] w-full max-w-4xl shadow-2xl relative z-10 overflow-hidden flex flex-col lg:flex-row h-auto max-h-[90vh]" onPointerDown={(e) => e.stopPropagation()}>
+                            className="bg-(--bg-card) border border-(--border-color) rounded-[40px] w-full max-w-4xl shadow-2xl relative z-10 flex flex-col lg:flex-row h-auto max-h-[90vh] overflow-y-auto lg:overflow-hidden" onPointerDown={(e) => e.stopPropagation()}>
 
                             {/* LEFT SIDE: Identity */}
                             <div className="flex-1 p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-(--border-color) overflow-y-auto custom-scrollbar">

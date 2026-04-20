@@ -63,7 +63,7 @@ function MonthCell({ date, tasks, isCurrentMonth }: { date: Date; tasks: Task[];
     const isToday = new Date().toISOString().split('T')[0] === dateString;
 
     return (
-        <div ref={setNodeRef} className={`min-h-[100px] p-1.5 flex flex-col border border-[var(--border-color)] transition-colors ${!isCurrentMonth ? "bg-[var(--bg-dark)]/40 opacity-50" : "bg-[var(--bg-sidebar)]"} ${isOver ? "bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]" : ""} ${isToday ? "ring-1 ring-[var(--accent-teal)] shadow-[inset_0_0_15px_rgba(20,184,166,0.1)]" : ""}`}>
+        <div ref={setNodeRef} className={`min-h-[70px] sm:min-h-[100px] p-1.5 flex flex-col border border-[var(--border-color)] transition-colors ${!isCurrentMonth ? "bg-[var(--bg-dark)]/40 opacity-50" : "bg-[var(--bg-sidebar)]"} ${isOver ? "bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]" : ""} ${isToday ? "ring-1 ring-[var(--accent-teal)] shadow-[inset_0_0_15px_rgba(20,184,166,0.1)]" : ""}`}>
             <div className="flex justify-between items-start mb-1 px-1">
                 <span className={`text-[10px] font-bold ${isToday ? "text-[var(--accent-teal)] bg-[var(--accent-teal)]/10 px-1.5 py-0.5 rounded-full" : "text-[var(--text-muted)]"}`}>{date.getDate()}</span>
             </div>
@@ -209,13 +209,13 @@ export default function TactileCalendar() {
 
     return (
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className={`h-[calc(100vh-4rem)] flex flex-col space-y-4 pb-12 ${isSwiping ? 'cursor-grabbing' : ''}`}>
+            <div className={`min-h-screen flex flex-col space-y-4 pb-16 ${isSwiping ? 'cursor-grabbing' : ''}`}>
 
                 {/* HEADER */}
-                <header className="flex justify-between items-center mb-2">
+                <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-2">
                     <div>
-                        <h1 className="text-xl md:text-3xl font-black text-[var(--text-main)] flex items-center gap-3">
-                            <CalendarIcon className="text-[var(--accent-teal)]" size={24} />
+                        <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-main)] flex items-center gap-3">
+                            <CalendarIcon className="text-[var(--accent-teal)]" size={26} />
                             {terms.questForecast}
                         </h1>
                         <p className="text-[var(--text-muted)] mt-1">
@@ -235,7 +235,7 @@ export default function TactileCalendar() {
                 </header>
 
                 {/* 💎 THE LENS BAR (Search & Filtering) */}
-                <div className="flex flex-col sm:flex-row gap-4 items-center bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-2xl shadow-sm z-10">
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-2xl shadow-sm z-10">
 
                     {/* Search Input */}
                     <div className="relative flex-1 w-full">
@@ -250,7 +250,7 @@ export default function TactileCalendar() {
                     </div>
 
                     {/* Load Filters */}
-                    <div className="flex items-center gap-2 pr-2">
+                    <div className="flex items-center gap-2 pr-2 flex-wrap">
                         <Filter size={16} className="text-[var(--text-muted)] mr-2" />
                         {(['heavy', 'medium', 'light'] as const).map(load => {
                             const isActive = activeFilter === load;
@@ -280,7 +280,7 @@ export default function TactileCalendar() {
                 <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 pt-2 overflow-y-auto lg:overflow-hidden no-scrollbar">
 
                     {/* LEFT: THE STASH */}
-                    <div id="calendar-seed-bank" className="w-full lg:w-80 h-[400px] lg:h-full flex flex-col bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 overflow-hidden shadow-sm relative shrink-0">
+                    <div id="calendar-seed-bank" className="w-full lg:w-80 h-[280px] sm:h-[360px] lg:h-full flex flex-col bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 overflow-hidden shadow-sm relative shrink-0">
                         <div className="flex items-center gap-2 mb-4">
                             <Inbox size={18} className="text-[var(--accent-yellow)]" />
                             <h2 className="font-bold text-[var(--text-main)]">{terms.stash}</h2>

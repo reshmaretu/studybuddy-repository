@@ -192,27 +192,27 @@ export default function WardrobePage() {
     const premiumCrystals = Object.entries(CRYSTAL_CATALOG).filter(([_, c]) => c.isPremium);
 
     return (
-        <div className="flex flex-col h-screen p-6 lg:p-10 bg-[var(--bg-dark)] overflow-hidden">
-            <header className="mb-8 shrink-0">
-                <h1 className="text-3xl font-black text-[var(--text-main)] flex items-center gap-3">
-                    <Shirt className="text-[var(--accent-teal)]" size={32} /> The Wardrobe
+        <div className="flex flex-col min-h-screen md:h-screen p-4 sm:p-6 lg:p-10 bg-[var(--bg-dark)] overflow-y-auto md:overflow-hidden">
+            <header className="mb-6 sm:mb-8 shrink-0">
+                <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-main)] flex items-center gap-3">
+                    <Shirt className="text-[var(--accent-teal)]" size={28} /> The Wardrobe
                 </h1>
-                <p className="text-[var(--text-muted)] text-sm font-bold uppercase tracking-widest mt-2">
+                <p className="text-[var(--text-muted)] text-[10px] sm:text-sm font-bold uppercase tracking-widest mt-2">
                     Personalize your presence & sanctuary
                 </p>
             </header>
 
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-0">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 min-h-0">
 
                 {/* LEFT PANEL: Character Preview & Base Colors */}
-                <section id="wardrobe-avatar-preview" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 flex flex-col relative overflow-hidden shadow-sm">
-                    <div className="absolute top-6 left-6 z-10">
+                <section id="wardrobe-avatar-preview" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 sm:p-6 flex flex-col relative overflow-hidden shadow-sm min-h-[320px]">
+                    <div className="absolute top-5 left-5 sm:top-6 sm:left-6 z-10">
                         <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">Character Preview</span>
                     </div>
 
                     {/* AVATAR RENDERER */}
-                    <div className="flex-1 flex items-center justify-center w-full min-h-0 mt-8">
-                        <div className="relative w-64 h-64 shrink-0">
+                    <div className="flex-1 flex items-center justify-center w-full min-h-[200px] mt-8">
+                        <div className="relative w-44 h-44 sm:w-64 sm:h-64 shrink-0">
                             <ChumRenderer size="w-full h-full" />
                         </div>
                     </div>
@@ -255,26 +255,26 @@ export default function WardrobePage() {
                     <div className="flex p-2 border-b border-[var(--border-color)]/50 bg-[var(--bg-dark)]/30">
                         <button
                             onClick={() => setActiveTab('themes')}
-                            className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'themes' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
+                            className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'themes' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
                             <Palette size={14} className={activeTab === 'themes' ? 'text-[var(--accent-cyan)]' : ''} /> App Themes
                         </button>
                         <button
                             onClick={() => setActiveTab('crystals')}
-                            className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'crystals' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
+                            className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'crystals' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
                             <Gem size={14} className={activeTab === 'crystals' ? 'text-[var(--accent-teal)]' : ''} /> Crystal Vault
                         </button>
                         <button
                             onClick={() => setActiveTab('accessories')}
-                            className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'accessories' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
+                            className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'accessories' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
                             <Shirt size={14} className={activeTab === 'accessories' ? 'text-[var(--accent-teal)]' : ''} /> {isGamified ? "Charms" : "Accessories"}
                         </button>
                     </div>
 
                     {/* TAB CONTENT */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar no-scrollbar relative">
+                    <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-8 custom-scrollbar no-scrollbar relative">
                         <AnimatePresence mode="wait">
 
                             {/* APP THEMES TAB */}
