@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useStudyStore, TaskLoad, Task } from "@/store/useStudyStore";
-import { Sprout, Search, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit, Maximize2, CheckCircle2 } from "lucide-react";
+import { Sprout, Search, ChevronDown, X, Sparkles, Crosshair, Clock, BrainCircuit, Maximize2, CheckCircle2, Check, Plus, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import TaskCard from "@/components/TaskCard";
@@ -110,6 +110,8 @@ function MasteredCrystalCard({ name, masteredAt }: { name: string; masteredAt: s
 // ==========================================
 // 🎨 FRAMEWORK UI COMPONENTS
 // ==========================================
+
+type FrameworkSelection = 'eisenhower' | '1-3-5' | 'ivy' | 'standard';
 
 interface MatrixZoneProps {
     id: string;
@@ -460,14 +462,14 @@ export default function CrystalGarden() {
         triggerChumToast(`${selectedTaskIds.length} quests recycled.`);
     };
 
-    const validTasks = tasks.filter(t => t && t.id);
-    const filteredTasks = validTasks.filter(t =>
+    const validTasks: Task[] = tasks.filter((t: Task) => t && t.id);
+    const filteredTasks: Task[] = validTasks.filter((t: Task) =>
         (t.title?.toLowerCase()?.includes(searchQuery.toLowerCase())) ||
         (t.description?.toLowerCase()?.includes(searchQuery.toLowerCase()))
     );
 
     // These are for the UI Columns (affected by search)
-    const activeQuests = filteredTasks.filter(t => !t.isCompleted);
+    const activeQuests: Task[] = filteredTasks.filter((t: Task) => !t.isCompleted);
     // Use a stable value for 'now' to avoid impure function in render
     const [now] = useState(() => Date.now());
 
@@ -492,8 +494,8 @@ export default function CrystalGarden() {
         if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
         return 0;
     });
-    const archivedQuests = filteredTasks.filter(t => t.isCompleted);
-    const masteredShards = shards.filter(s => s.isMastered);
+    const archivedQuests: Task[] = filteredTasks.filter((t: Task) => t.isCompleted);
+    const masteredShards: Shard[] = shards.filter((s: Shard) => s.isMastered);
 
     useEffect(() => {
         if (lastGrowthRef.current < 100 && crystalGrowth >= 100) {
@@ -505,11 +507,29 @@ export default function CrystalGarden() {
     const completionRatio = Math.min(1, Math.max(0, crystalGrowth / 100));
 
     const [showFrameworkMenu, setShowFrameworkMenu] = useState(false);
-    const [pendingFramework, setPendingFramework] = useState<typeof activeFramework>(null);
-    const [isFrameworkConfirmOpen, setIsFrameworkConfirmOpen] = useState(false);
+    const [pendingFramework, setPendingFramework] = useState<FrameworkSelection | null>(null);
+    const frameworkMenuRef = useRef<HTMLDivElement | null>(null);
 
     const [stressLevel, setStressLevel] = useState(50);
     const [actualPomos, setActualPomos] = useState(1);
+
+    useEffect(() => {
+        if (!showFrameworkMenu) return;
+
+        const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+            const target = event.target as Node;
+            if (frameworkMenuRef.current && !frameworkMenuRef.current.contains(target)) {
+                setShowFrameworkMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handlePointerDown);
+        document.addEventListener('touchstart', handlePointerDown);
+        return () => {
+            document.removeEventListener('mousedown', handlePointerDown);
+            document.removeEventListener('touchstart', handlePointerDown);
+        };
+    }, [showFrameworkMenu]);
 
     // Auto-fill actual pomodoros with their estimate when the modal opens
     // Use useLayoutEffect for immediate state sync on modal open
@@ -589,7 +609,7 @@ export default function CrystalGarden() {
     }, [isAdding]);
 
     const handleDragStart = (event: DragStartEvent) => {
-        const task = tasks.find(t => t.id === event.active.id);
+        const task = tasks.find((t: Task) => t.id === event.active.id);
         setActiveDragTask(task || null);
     };
     const handleToggleSchedule = (checked: boolean) => {
@@ -642,7 +662,7 @@ export default function CrystalGarden() {
         if (!over) return;
 
         if (over.id === "hall-of-mastery") {
-            const task = tasks.find(t => t.id === active.id);
+            const task = tasks.find((t: Task) => t.id === active.id);
             if (task) setDraggedToMasteryTask(task);
         } else if (over.id.toString().startsWith('quadrant-')) {
             const quadrant = parseInt(over.id.toString().split('-')[1]);
@@ -650,18 +670,18 @@ export default function CrystalGarden() {
         } else if (over.id.toString().startsWith('ivy-')) {
             const rank = parseInt(over.id.toString().split('-')[1]);
             // Advanced: If dragging to an occupied slot, swap them instantly!
-            const existingTask = activeQuests.find(t => t.ivyRank === rank);
+            const existingTask = activeQuests.find((t: Task) => t.ivyRank === rank);
             if (existingTask && existingTask.id !== active.id) {
-                const currentRank = tasks.find(t => t.id === active.id)?.ivyRank;
+                const currentRank = tasks.find((t: Task) => t.id === active.id)?.ivyRank;
                 updateTask(existingTask.id, { ivyRank: currentRank }); // Move old task to new task's old slot
             }
             updateTask(active.id as string, { ivyRank: rank });
         } else if (over.id.toString().startsWith('zone-')) {
             const targetLoad = over.id.toString().replace('zone-', '') as TaskLoad;
-            const currentTask = tasks.find(t => t.id === active.id);
+            const currentTask = tasks.find((t: Task) => t.id === active.id);
             if (currentTask?.load !== targetLoad) {
                 // Check limits for 1-3-5
-                const currentCount = activeQuests.filter(t => t.load === targetLoad).length;
+                const currentCount = activeQuests.filter((t: Task) => t.load === targetLoad).length;
                 if (targetLoad === 'heavy' && currentCount >= 1) {
                     triggerChumToast("⚠️ 1-3-5 Rule: Only 1 Heavy quest allowed! Crush the current one before adding another.", 'warning');
                     return; // Abort the drop!
@@ -700,7 +720,7 @@ export default function CrystalGarden() {
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAdding(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
                             <motion.form
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                onSubmit={handlePlantQuest} className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-5 sm:p-6 shadow-2xl relative z-10 w-full max-w-2xl flex flex-col max-h-[90vh] overflow-y-auto"
+                                onSubmit={handlePlantQuest} className="bg-[var(--bg-card)] border-2 border-[var(--accent-teal)]/30 rounded-3xl p-6 shadow-2xl relative z-10 w-full max-w-2xl flex flex-col"
                             >
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-lg font-bold text-[var(--text-main)]">{isGamified ? "Seed a New Quest" : "Create New Task"}</h3>
@@ -832,34 +852,32 @@ export default function CrystalGarden() {
                         </div>
                     )}
                     {/* 🔥 FRAMEWORK SWITCH CONFIRMATION MODAL 🔥 */}
-                    {isFrameworkConfirmOpen && (
+                    {pendingFramework !== null && (
                         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-6">
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setIsFrameworkConfirmOpen(false); setPendingFramework(activeFramework); }} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setPendingFramework(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" />
                             <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-[var(--bg-card)] border-2 border-[var(--border-color)] rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl relative z-10">
                                 <h3 className="text-xl font-black text-white mb-2">Switch Framework?</h3>
                                 <p className="text-sm text-[var(--text-muted)] mb-8">
                                     Are you sure you want to switch to the <span className="text-[var(--accent-teal)] font-bold">
                                         {/* 👇 Added the same name-formatting logic here! */}
-                                        {pendingFramework === null ? 'Standard List' :
+                                        {pendingFramework === 'standard' ? 'Standard List' :
                                             pendingFramework === 'ivy' ? 'Ivy Lee Method' :
                                                 pendingFramework === 'eisenhower' ? 'Eisenhower Matrix' :
                                                     pendingFramework === '1-3-5' ? '1-3-5 Method' : pendingFramework}
                                     </span>? This will change how your current quests are organized.
                                 </p>
                                 <div className="flex gap-3">
-                                    <button onClick={() => { setIsFrameworkConfirmOpen(false); setPendingFramework(activeFramework); }} className="flex-1 py-3 rounded-xl border border-white/10 text-white/50 hover:bg-white/5 text-sm font-bold transition-all">Cancel</button>
+                                    <button onClick={() => setPendingFramework(null)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/50 hover:bg-white/5 text-sm font-bold transition-all">Cancel</button>
                                     <button onClick={() => {
-                                        setActiveFramework(pendingFramework as typeof activeFramework);
+                                        const nextFramework = pendingFramework === 'standard' ? null : pendingFramework;
+                                        setActiveFramework(nextFramework as typeof activeFramework);
                                         setPendingFramework(null);
-                                        setIsFrameworkConfirmOpen(false);
                                     }} className="flex-1 py-3 rounded-xl bg-[var(--accent-teal)] text-black hover:brightness-110 text-sm font-black transition-all shadow-lg">Confirm</button>
                                 </div>
                             </motion.div>
                         </div>
                     )}
                 </AnimatePresence>
-
-
 
                 {/* Header Section */}
                 {/* STYLING FIX: Added relative z-[100] to ensure dropdowns overlap the 3D canvas! */}
@@ -871,84 +889,90 @@ export default function CrystalGarden() {
                         <p className="text-[var(--text-muted)] mt-1">Cultivate and manage your active quests.</p>
                     </div>
 
-                                        <div className="flex gap-3 w-full md:w-auto flex-wrap pb-2 md:pb-0 hide-scrollbar shrink-0">
-                                                <div className="relative flex-1 md:w-48 shrink-0">
-                                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
-                                                        <input
-                                                                type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                                                                className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl pl-10 pr-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] transition-colors"
-                                                        />
-                                                </div>
+                    <div className="flex gap-3 w-full md:w-auto flex-wrap pb-2 md:pb-0 hide-scrollbar shrink-0">
+                        <div className="relative flex-1 md:w-48 shrink-0">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
+                            <input
+                                type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl pl-10 pr-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-teal)] transition-colors"
+                            />
+                        </div>
+                        {/* 🔥 THE NEW FRAMEWORK DROPDOWN 🔥 */}
+                        <div ref={frameworkMenuRef} className="relative z-50">
+                            <button
+                                onClick={() => setShowFrameworkMenu(!showFrameworkMenu)}
+                                className={`h-full px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border transition-all capitalize ${activeFramework
+                                    ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/50 text-[var(--accent-teal)]'
+                                    : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-teal)]'
+                                    }`}
+                            >
+                                {activeFramework
+                                    ? `${terms.framework}: ${activeFramework === 'ivy'
+                                        ? 'Ivy Lee Method'
+                                        : activeFramework === 'eisenhower'
+                                            ? 'Eisenhower Matrix'
+                                            : activeFramework === '1-3-5'
+                                                ? '1-3-5 Method'
+                                                : activeFramework
+                                    }`
+                                    : `Standard ${terms.shards}`}
+                                <ChevronDown
+                                    size={14}
+                                    className={`transition-transform duration-300 ${showFrameworkMenu ? 'rotate-180' : ''
+                                        }`}
+                                />
+                            </button>
+                            <AnimatePresence>
+                                {showFrameworkMenu && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 10 }}
+                                        className="absolute top-full right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden"
+                                    >
+                                        {(
+                                            [
+                                                { id: null, label: 'Standard List' },
+                                                { id: '1-3-5', label: '1-3-5 Method' },
+                                                { id: 'eisenhower', label: 'Eisenhower Matrix' },
+                                                { id: 'ivy', label: 'Ivy Lee Method' },
+                                            ] as { id: 'eisenhower' | '1-3-5' | 'ivy' | null; label: string }[]
+                                        ).map((fw) => {
+                                            const isActive = activeFramework === fw.id;
+                                            const selection = fw.id ?? 'standard';
+                                            return (
                                             <button
-                                                onClick={() => setIsAdding(true)}
-                                                className="px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-widest bg-[var(--accent-teal)] text-[#0b1211] hover:brightness-110 transition-all shrink-0"
+                                                key={fw.label}
+                                                onClick={() => {
+                                                    setShowFrameworkMenu(false);
+                                                    if (activeFramework !== fw.id) setPendingFramework(selection);
+                                                }}
+                                                className={`w-full text-left px-4 py-3 text-sm font-bold transition-colors border-b border-white/5 last:border-0 ${
+                                                    isActive
+                                                        ? 'bg-[var(--bg-sidebar)] text-[var(--text-main)]'
+                                                        : 'text-[var(--text-muted)] hover:bg-[var(--bg-sidebar)] hover:text-[var(--text-main)]'
+                                                }`}
+                                                aria-current={isActive ? 'true' : undefined}
                                             >
-                                                {isGamified ? 'Plant Seed' : 'Add Task'}
+                                                <span className="flex items-center justify-between w-full">
+                                                    <span>{fw.label}</span>
+                                                    {isActive && <Check size={14} className="text-[var(--accent-teal)]" />}
+                                                </span>
                                             </button>
-                                                {/* 🔥 THE NEW FRAMEWORK DROPDOWN 🔥 */}
-                                                <div className="relative z-50">
-                                                        <button
-                                                                onClick={() => setShowFrameworkMenu(!showFrameworkMenu)}
-                                                                className={`h-full px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border transition-all capitalize ${
-                                                                        activeFramework
-                                                                                ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/50 text-[var(--accent-teal)]'
-                                                                                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-teal)]'
-                                                                }`}
-                                                        >
-                                                                {activeFramework
-                                                                        ? `${terms.framework}: ${
-                                                                                activeFramework === 'ivy'
-                                                                                        ? 'Ivy Lee Method'
-                                                                                        : activeFramework === 'eisenhower'
-                                                                                                ? 'Eisenhower Matrix'
-                                                                                                : activeFramework === '1-3-5'
-                                                                                                        ? '1-3-5 Method'
-                                                                                                        : activeFramework
-                                                                        }`
-                                                                        : `Standard ${terms.shards}`}
-                                                                <ChevronDown
-                                                                        size={14}
-                                                                        className={`transition-transform duration-300 ${
-                                                                                showFrameworkMenu ? 'rotate-180' : ''
-                                                                        }`}
-                                                                />
-                                                        </button>
-                                                        <AnimatePresence>
-                                                                {showFrameworkMenu && (
-                                                                        <motion.div
-                                                                                initial={{ opacity: 0, y: 10 }}
-                                                                                animate={{ opacity: 1, y: 0 }}
-                                                                                exit={{ opacity: 0, y: 10 }}
-                                                                                className="absolute top-full right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden"
-                                                                        >
-                                                                                {(
-                                                                                        [
-                                                                                                { id: null, label: 'Standard List' },
-                                                                                                { id: '1-3-5', label: '1-3-5 Method' },
-                                                                                                { id: 'eisenhower', label: 'Eisenhower Matrix' },
-                                                                                                { id: 'ivy', label: 'Ivy Lee Method' },
-                                                                                        ] as { id: 'eisenhower' | '1-3-5' | 'ivy' | null; label: string }[]
-                                                                                ).map((fw) => (
-                                                                                        <button
-                                                                                                key={fw.label}
-                                                                                                onClick={() => {
-                                                                                                    setShowFrameworkMenu(false);
-                                                                                                    if (activeFramework !== fw.id) {
-                                                                                                        setPendingFramework(fw.id);
-                                                                                                        setIsFrameworkConfirmOpen(true);
-                                                                                                    }
-                                                                                                }}
-                                                                                                className="w-full text-left px-4 py-3 text-sm font-bold text-[var(--text-muted)] hover:bg-[var(--bg-sidebar)] hover:text-[var(--text-main)] transition-colors border-b border-white/5 last:border-0"
-                                                                                        >
-                                                                                                {fw.label}
-                                                                                        </button>
-                                                                                ))}
-                                                                        </motion.div>
-                                                                )}
-                                                        </AnimatePresence>
-                                                </div>
-                                        </div>
-                                </header>
+                                            );
+                                        })}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                        <button onClick={() => setShowUnDoneModal(true)} className="bg-[var(--bg-sidebar)] border border-(--border-color) px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-main)] hover:text-[var(--accent-teal)] hover:border-[var(--accent-teal)] transition-colors flex items-center justify-center whitespace-nowrap gap-2 shrink-0">
+                            <Moon size={16} /> Wrap Up
+                        </button>
+                        <button id="garden-add-task-btn" onClick={() => setIsAdding(true)} className="bg-[var(--accent-teal)] text-[#0b1211] px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 hover:brightness-110 shadow-[0_0_10px_rgba(20,184,166,0.2)] shrink-0">
+                            <Plus size={16} /> Plant Quest
+                        </button>
+                    </div>
+                </header>
                 {/* 3. The Strict 3-Column Layout! (Responsive stack on mobile) */}
                 <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0 pb-20 lg:pb-4 overflow-y-auto lg:overflow-hidden no-scrollbar">
 
@@ -1009,14 +1033,14 @@ export default function CrystalGarden() {
                                             className="absolute inset-0 flex flex-col gap-4"
                                         >
                                             <div className="grid grid-cols-2 grid-rows-2 gap-3 flex-1 min-h-0">
-                                                <MatrixZone id="quadrant-1" title="Do First" subtitle={`${terms.urgency} & ${terms.importance}`} tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 1)} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" activeBorder="border-red-400" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
-                                                <MatrixZone id="quadrant-2" title="Schedule" subtitle={`Not ${terms.urgency}, ${terms.importance}`} tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 2)} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" activeBorder="border-[var(--accent-teal)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
-                                                <MatrixZone id="quadrant-3" title="Delegate" subtitle={`${terms.urgency}, Not ${terms.importance}`} tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 3)} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" activeBorder="border-[var(--accent-yellow)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
-                                                <MatrixZone id="quadrant-4" title="Don't Do" subtitle={`Not ${terms.urgency}, Not ${terms.importance}`} tasks={activeQuests.filter(t => t.eisenhowerQuadrant === 4)} color="text-[var(--text-muted)]" bg="bg-[var(--bg-dark)]" border="border-[var(--border-color)]" activeBorder="border-[var(--text-muted)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                <MatrixZone id="quadrant-1" title="Do First" subtitle={`${terms.urgency} & ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 1)} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" activeBorder="border-red-400" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                <MatrixZone id="quadrant-2" title="Schedule" subtitle={`Not ${terms.urgency}, ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 2)} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" activeBorder="border-[var(--accent-teal)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                <MatrixZone id="quadrant-3" title="Delegate" subtitle={`${terms.urgency}, Not ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 3)} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" activeBorder="border-[var(--accent-yellow)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                <MatrixZone id="quadrant-4" title="Don't Do" subtitle={`Not ${terms.urgency}, Not ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 4)} color="text-[var(--text-muted)]" bg="bg-[var(--bg-dark)]" border="border-[var(--border-color)]" activeBorder="border-[var(--text-muted)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
                                             </div>
-                                            {activeQuests.filter(t => !t.eisenhowerQuadrant).length > 0 && (
+                                            {activeQuests.filter((t: Task) => !t.eisenhowerQuadrant).length > 0 && (
                                                 <div className="h-[30%] min-h-[160px] shrink-0">
-                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter(t => !t.eisenhowerQuadrant)} title="Unsorted Quests (Drag to Quadrant)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter((t: Task) => !t.eisenhowerQuadrant)} title="Unsorted Quests (Drag to Quadrant)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
                                                 </div>
                                             )}
                                         </motion.div>
@@ -1059,9 +1083,9 @@ export default function CrystalGarden() {
                                                     return <IvySlot key={rank} rank={rank} task={task || null} isLocked={isLocked} isActive={rank === activeRank} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />;
                                                 })}
                                             </div>
-                                            {activeQuests.filter(t => !t.ivyRank).length > 0 && (
+                                            {activeQuests.filter((t: Task) => !t.ivyRank).length > 0 && (
                                                 <div className="h-1/3 min-h-[150px] shrink-0">
-                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter(t => !t.ivyRank)} title="Unranked Quests (Drag to Rank)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter((t: Task) => !t.ivyRank)} title="Unranked Quests (Drag to Rank)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
                                                 </div>
                                             )}
                                         </motion.div>
@@ -1129,9 +1153,9 @@ export default function CrystalGarden() {
                             }
                         >
                             {masteryTab === 'tasks' ? (
-                                archivedQuests.map(task => <TaskCard key={task.id} task={task} />)
+                                archivedQuests.map((task: Task) => <TaskCard key={task.id} task={task} />)
                             ) : masteryTab === 'shards' ? (
-                                masteredShards.map(shard => (
+                                masteredShards.map((shard: Shard) => (
                                     <MasteredShardCard
                                         key={shard.id}
                                         shard={shard}
@@ -1139,7 +1163,7 @@ export default function CrystalGarden() {
                                     />
                                 ))
                             ) : (
-                                masteredCrystals.map((crystal) => (
+                                masteredCrystals.map((crystal: any) => (
                                     <MasteredCrystalCard
                                         key={crystal.id}
                                         name={crystal.crystal_name}
@@ -1169,17 +1193,17 @@ export default function CrystalGarden() {
                                         </div>
                                         <div>
                                             <h3 className="text-xl font-black text-[var(--text-main)] uppercase tracking-widest">Unsorted Quests</h3>
-                                            <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Awaiting Command Initialized ({activeQuests.filter(t => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).length})</p>
+                                            <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Awaiting Command Initialized ({activeQuests.filter((t: Task) => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).length})</p>
                                         </div>
                                     </div>
                                     <button onClick={() => setShowUnrankedModal(false)} className="bg-[var(--bg-dark)] border border-[var(--border-color)] p-3 rounded-2xl text-[var(--text-muted)] hover:text-white transition-all hover:scale-110 active:scale-95"><X size={20} /></button>
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
-                                    {activeQuests.filter(t => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).map(task => (
+                                    {activeQuests.filter((t: Task) => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).map(task => (
                                         <TaskCard key={task.id} task={task} />
                                     ))}
-                                    {activeQuests.filter(t => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).length === 0 && (
+                                    {activeQuests.filter((t: Task) => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).length === 0 && (
                                         <div className="col-span-full h-full flex flex-col items-center justify-center text-[var(--text-muted)] gap-4 py-20 opacity-50">
                                             <Sprout size={48} />
                                             <p className="text-sm font-bold uppercase tracking-widest">No unranked quests found</p>

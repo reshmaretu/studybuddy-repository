@@ -12,28 +12,28 @@ import { useTerms } from "@/hooks/useTerms";
 // --- THE ACCESSORY CATALOG ---
 const ACCESSORY_CATALOG = {
     clips: [
-        { id: 'clip1', name: 'Red Ribbon', fileName: 'clip1.png', zIndex: 40, isPremium: false },
-        { id: 'clip2', name: 'Rose', fileName: 'clip2.png', zIndex: 40, isPremium: false },
-        { id: 'clip3', name: 'Yellow Tulip', fileName: 'clip3.png', zIndex: 40, isPremium: true },
-        { id: 'clip4', name: 'Purple Rose', fileName: 'clip4.png', zIndex: 40, isPremium: true },
-        { id: 'clip5', name: 'Green Ribbon', fileName: 'clip5.png', zIndex: 40, isPremium: true },
+        { id: 'clip1', name: 'Red Ribbon', fileName: 'clip1.png', previewFileName: '/assets/accessories/clip1.png', zIndex: 40, isPremium: false },
+        { id: 'clip2', name: 'Rose', fileName: 'clip2.png', previewFileName: '/assets/accessories/clip2.png', zIndex: 40, isPremium: false },
+        { id: 'clip3', name: 'Yellow Tulip', fileName: 'clip3.png', previewFileName: '/assets/accessories/clip3.png', zIndex: 40, isPremium: true },
+        { id: 'clip4', name: 'Purple Rose', fileName: 'clip4.png', previewFileName: '/assets/accessories/clip4.png', zIndex: 40, isPremium: true },
+        { id: 'clip5', name: 'Green Ribbon', fileName: 'clip5.png', previewFileName: '/assets/accessories/clip5.png', zIndex: 40, isPremium: true },
     ],
     glasses: [
-        { id: 'glasses1', name: 'Brown Round Glasses', fileName: 'glasses1.png', zIndex: 30, isPremium: false },
-        { id: 'glasses2', name: 'Gold Round Glasses', fileName: 'glasses2.png', zIndex: 30, isPremium: false },
-        { id: 'glasses3', name: 'Silver Rectangle Glasses', fileName: 'glasses3.png', zIndex: 30, isPremium: false },
-        { id: 'glasses4', name: 'Black Oversized Glasses', fileName: 'glasses4.png', zIndex: 30, isPremium: true },
-        { id: 'glasses5', name: 'White Textured Square Glasses', fileName: 'glasses5.png', zIndex: 30, isPremium: true },
-        { id: 'glasses6', name: 'Black Round Glasses', fileName: 'glasses6.png', zIndex: 30, isPremium: true },
-        { id: 'glasses7', name: 'Chum Glasses', fileName: 'glasses7.png', zIndex: 30, isPremium: true },
+        { id: 'glasses1', name: 'Brown Round Glasses', fileName: 'glasses1.png', previewFileName: '/assets/accessories/glasses1.png', zIndex: 30, isPremium: false },
+        { id: 'glasses2', name: 'Gold Round Glasses', fileName: 'glasses2.png', previewFileName: '/assets/accessories/glasses2.png', zIndex: 30, isPremium: false },
+        { id: 'glasses3', name: 'Silver Rectangle Glasses', fileName: 'glasses3.png', previewFileName: '/assets/accessories/glasses3.png', zIndex: 30, isPremium: false },
+        { id: 'glasses4', name: 'Black Oversized Glasses', fileName: 'glasses4.png', previewFileName: '/assets/accessories/glasses4.png', zIndex: 30, isPremium: true },
+        { id: 'glasses5', name: 'White Textured Square Glasses', fileName: 'glasses5.png', previewFileName: '/assets/accessories/glasses5.png', zIndex: 30, isPremium: true },
+        { id: 'glasses6', name: 'Chum Glasses', fileName: 'glasses6.png', previewFileName: '/assets/accessories/glasses6.png', zIndex: 30, isPremium: true },
+        { id: 'glasses7', name: 'White Square Glasses', fileName: 'glasses7.png', previewFileName: '/assets/accessories/glasses7.png', zIndex: 30, isPremium: true },
     ],
     hats: [
-        { id: 'hat1', name: 'Beanie', fileName: 'hat1.png', zIndex: 50, isPremium: false },
-        { id: 'hat2', name: 'Hat', fileName: 'hat2.png', zIndex: 50, isPremium: false },
-        { id: 'hat3', name: 'Sports Band', fileName: 'hat3.png', zIndex: 50, isPremium: false },
-        { id: 'hat4', name: 'Ribbon', fileName: 'hat4.png', zIndex: 50, isPremium: true },
-        { id: 'hat5', name: 'Cap', fileName: 'hat5.png', zIndex: 50, isPremium: true },
-        { id: 'hat6', name: 'Crown', fileName: 'hat6.png', zIndex: 50, isPremium: true },
+        { id: 'hat1', name: 'Beanie', fileName: 'hat1.png', previewFileName: '/assets/accessories/hat1.png', zIndex: 50, isPremium: false },
+        { id: 'hat2', name: 'Hat', fileName: 'hat2.png', previewFileName: '/assets/accessories/hat2.png', zIndex: 50, isPremium: false },
+        { id: 'hat3', name: 'Sports Band', fileName: 'hat3.png', previewFileName: '/assets/accessories/hat3.png', zIndex: 50, isPremium: false },
+        { id: 'hat4', name: 'Ribbon', fileName: 'hat4.png', previewFileName: '/assets/accessories/hat4.png', zIndex: 50, isPremium: true },
+        { id: 'hat5', name: 'Cap', fileName: 'hat5.png', previewFileName: '/assets/accessories/hat5.png', zIndex: 50, isPremium: true },
+        { id: 'hat6', name: 'Crown', fileName: 'hat6.png', previewFileName: '/assets/accessories/hat6.png', zIndex: 50, isPremium: true },
     ],
 };
 
@@ -192,27 +192,27 @@ export default function WardrobePage() {
     const premiumCrystals = Object.entries(CRYSTAL_CATALOG).filter(([_, c]) => c.isPremium);
 
     return (
-        <div className="flex flex-col min-h-screen md:h-screen p-4 sm:p-6 lg:p-10 bg-[var(--bg-dark)] overflow-y-auto md:overflow-hidden">
-            <header className="mb-6 sm:mb-8 shrink-0">
-                <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-main)] flex items-center gap-3">
-                    <Shirt className="text-[var(--accent-teal)]" size={28} /> The Wardrobe
+        <div className="flex flex-col h-full p-6 lg:p-8 bg-[var(--bg-dark)] overflow-hidden">
+            <header className="mb-6 shrink-0">
+                <h1 className="text-3xl font-black text-[var(--text-main)] flex items-center gap-3">
+                    <Shirt className="text-[var(--accent-teal)]" size={32} /> The Wardrobe
                 </h1>
-                <p className="text-[var(--text-muted)] text-[10px] sm:text-sm font-bold uppercase tracking-widest mt-2">
+                <p className="text-[var(--text-muted)] text-sm font-bold uppercase tracking-widest mt-2">
                     Personalize your presence & sanctuary
                 </p>
             </header>
 
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 min-h-0">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
 
                 {/* LEFT PANEL: Character Preview & Base Colors */}
-                <section id="wardrobe-avatar-preview" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 sm:p-6 flex flex-col relative overflow-hidden shadow-sm min-h-[320px]">
-                    <div className="absolute top-5 left-5 sm:top-6 sm:left-6 z-10">
+                <section id="wardrobe-avatar-preview" className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 flex flex-col relative overflow-hidden shadow-sm">
+                    <div className="absolute top-6 left-6 z-10">
                         <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">Character Preview</span>
                     </div>
 
                     {/* AVATAR RENDERER */}
-                    <div className="flex-1 flex items-center justify-center w-full min-h-[200px] mt-8">
-                        <div className="relative w-44 h-44 sm:w-64 sm:h-64 shrink-0">
+                    <div className="flex-1 flex items-center justify-center w-full min-h-0 mt-8">
+                        <div className="relative w-64 h-64 shrink-0">
                             <ChumRenderer size="w-full h-full" />
                         </div>
                     </div>
@@ -255,26 +255,26 @@ export default function WardrobePage() {
                     <div className="flex p-2 border-b border-[var(--border-color)]/50 bg-[var(--bg-dark)]/30">
                         <button
                             onClick={() => setActiveTab('themes')}
-                            className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'themes' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
+                            className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'themes' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
                             <Palette size={14} className={activeTab === 'themes' ? 'text-[var(--accent-cyan)]' : ''} /> App Themes
                         </button>
                         <button
                             onClick={() => setActiveTab('crystals')}
-                            className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'crystals' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
+                            className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'crystals' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
                             <Gem size={14} className={activeTab === 'crystals' ? 'text-[var(--accent-teal)]' : ''} /> Crystal Vault
                         </button>
                         <button
                             onClick={() => setActiveTab('accessories')}
-                            className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'accessories' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
+                            className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'accessories' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
                             <Shirt size={14} className={activeTab === 'accessories' ? 'text-[var(--accent-teal)]' : ''} /> {isGamified ? "Charms" : "Accessories"}
                         </button>
                     </div>
 
                     {/* TAB CONTENT */}
-                    <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-8 custom-scrollbar no-scrollbar relative">
+                    <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar no-scrollbar relative">
                         <AnimatePresence mode="wait">
 
                             {/* APP THEMES TAB */}
@@ -360,7 +360,7 @@ export default function WardrobePage() {
                                 </motion.div>
                             )}
 
-                            {/* ACCESSORIES TAB */}
+                            {/* ACCESSORIES TAB (NEW) */}
                             {activeTab === 'accessories' && (
                                 <motion.div key="accessories" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-8">
 
@@ -414,6 +414,7 @@ export default function WardrobePage() {
                                             ))}
                                         </div>
                                     </div>
+
 
                                 </motion.div>
                             )}
@@ -474,20 +475,22 @@ function AccessoryButton({ accessory, isActive, isLocked, isShaking, onClick }: 
         >
             <div className="w-8 h-8 rounded-lg mr-3 shadow-sm shrink-0 relative overflow-hidden bg-[var(--bg-dark)]/50 border border-[var(--border-color)] flex items-center justify-center p-0.5">
                 <img
-                    src={`/assets/chum/${accessory.fileName}`}
+                    src={accessory.previewFileName
+                        ? (accessory.previewFileName.startsWith('/') ? accessory.previewFileName : `/assets/chum/${accessory.previewFileName}`)
+                        : (accessory.fileName.startsWith('/') ? accessory.fileName : `/assets/chum/${accessory.fileName}`)}
                     alt={accessory.name}
                     className="w-full h-full object-contain drop-shadow-md"
                 />
             </div>
 
             <div className="flex-1 text-left flex flex-col">
-                <span className="font-bold text-xs text-[var(--text-main)]">{accessory.name}</span>
+                <span className="font-bold text-xs text-white">{accessory.name}</span>
                 {isLocked && (
                     <span className="text-[9px] text-[var(--accent-yellow)] font-black tracking-widest uppercase">Pro Exclusive</span>
                 )}
             </div>
 
-            {isActive ? <CheckCircle2 className="text-[var(--accent-teal)] w-4 h-4 shrink-0" /> : isLocked && <Lock size={12} className="text-[var(--text-muted)] shrink-0" />}
+            {isActive ? <CheckCircle2 className="text-[var(--accent-teal)] w-4 h-4 shrink-0" /> : isLocked && <Lock size={12} className="text-white/40 shrink-0" />}
         </button>
     );
 }
