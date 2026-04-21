@@ -53,7 +53,8 @@ export const SyntheticFeed = () => {
     setSparkedIds((prev) => new Set(prev).add(id));
     setCooldownUntil(now + 2000);
     setSparkBurst({ id, name });
-    triggerChumToast?.(`${name} sparked your feed`, 'success');
+    const safeName = name?.trim() || 'that user';
+    triggerChumToast?.(`You sparked ${safeName}'s feed`, 'success');
   };
 
   useEffect(() => {
