@@ -18,7 +18,8 @@ export default function FlowStateOverlay() {
         isRunning,
         completeTask,
         exitMode,
-        isPremiumUser
+        isPremiumUser,
+        pomodoroFocus
     } = useStudyStore();
 
     const [stressLevel, setStressLevel] = useState(50);
@@ -118,6 +119,11 @@ export default function FlowStateOverlay() {
         return `${m}:${s}`;
     };
 
+    const totalSeconds = Math.max(1, pomodoroFocus * 60);
+    const progress = Math.min(1, Math.max(0, (totalSeconds - timeLeft) / totalSeconds));
+    const ringRadius = 90;
+    const ringCircumference = 2 * Math.PI * ringRadius;
+
     const confirmComplete = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (task) {
@@ -179,7 +185,7 @@ export default function FlowStateOverlay() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[99999] bg-[var(--bg-dark)] flex items-center justify-center p-8 overflow-hidden"
+                className="fixed inset-0 z-[99999] bg-[var(--bg-dark)] flex items-center justify-center p-4 md:p-8 overflow-hidden"
             >
                 {/* Minimalist Background Animation */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -193,39 +199,63 @@ export default function FlowStateOverlay() {
                 {/* Main Content */}
                 <div className="relative z-10 flex flex-col items-center max-w-2xl w-full text-center">
 
-                    <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="mb-12 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--bg-dark)] border border-[var(--border-color)] text-[var(--accent-teal)] text-xs font-bold tracking-widest uppercase">
+                    <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="mb-8 md:mb-12 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--bg-dark)] border border-[var(--border-color)] text-[var(--accent-teal)] text-xs font-bold tracking-widest uppercase">
                         <span className="w-2 h-2 rounded-full bg-[var(--accent-teal)] animate-pulse" /> FlowState Active
                     </motion.div>
 
-                    {/* Massive Timer */}
-                    <div className="relative flex items-center justify-center mb-16">
-                        <motion.h1 className="text-[12rem] md:text-[18rem] font-bold text-[var(--text-main)] tracking-widest font-mono leading-none drop-shadow-[0_0_30px_rgba(20,184,166,0.2)]">
-                            {formatTime(timeLeft)}
-                        </motion.h1>
+                    {/* Circular Timer */}
+                    <div className="relative flex items-center justify-center mb-10 md:mb-14">
+                        <svg viewBox="0 0 220 220" className="w-[200px] h-[200px] sm:w-[230px] sm:h-[230px] md:w-[280px] md:h-[280px]">
+                            <circle cx="110" cy="110" r={ringRadius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
+                            <circle
+                                cx="110"
+                                cy="110"
+                                r={ringRadius}
+                                fill="none"
+                                stroke="var(--accent-teal)"
+                                strokeWidth="8"
+                                strokeLinecap="round"
+                                strokeDasharray={ringCircumference}
+                                strokeDashoffset={ringCircumference * (1 - progress)}
+                                style={{
+                                    transform: "rotate(-90deg)",
+                                    transformOrigin: "110px 110px",
+                                    transition: "stroke-dashoffset 1s linear",
+                                    filter: "drop-shadow(0 0 16px rgba(45,212,191,0.45))"
+                                }}
+                            />
+                        </svg>
+                        <div className="absolute flex flex-col items-center text-center">
+                            <span className="text-[9px] sm:text-[10px] font-black tracking-[0.35em] uppercase text-[var(--text-muted)]">Focus Mode</span>
+                            <span className="text-4xl sm:text-5xl md:text-6xl font-mono font-bold text-[var(--text-main)] tracking-widest drop-shadow-[0_0_30px_rgba(20,184,166,0.2)]">
+                                {formatTime(timeLeft)}
+                            </span>
+                            <span className="text-[9px] sm:text-[10px] font-black tracking-[0.35em] uppercase text-[var(--text-muted)]">Sanctuary</span>
+                        </div>
                     </div>
 
                     {/* Chapter Focus */}
-                    <div className="mb-16 w-full">
-                        <h2 className="text-3xl font-bold text-[var(--text-main)] mb-3">
+                    <div className="mb-10 md:mb-14 w-full">
+                        <h2 className="text-2xl md:text-3xl font-bold text-[var(--text-main)] mb-3">
                             {task ? task.title : "Deep Work Session"}
                         </h2>
-                        <p className="text-[var(--text-muted)] text-lg max-w-lg mx-auto">
+                        <p className="text-[var(--text-muted)] text-sm sm:text-base md:text-lg max-w-lg mx-auto">
                             {task ? task.description : "Unstructured flowstate. Stay focused."}
                         </p>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-8">
+                    <div className="flex items-center gap-6">
                         <button onClick={() => setShowExitConfirm(true)} className="flex flex-col items-center gap-2 group">
-                            <div className="w-16 h-16 rounded-full border border-[var(--border-color)] text-[var(--text-muted)] group-hover:text-red-400 group-hover:border-red-400/50 group-hover:bg-red-400/5 flex items-center justify-center transition-all">
-                                <X size={22} />
+                            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border border-[var(--border-color)] text-[var(--text-muted)] group-hover:text-red-400 group-hover:border-red-400/50 group-hover:bg-red-400/5 flex items-center justify-center transition-all">
+                                <X size={22} className="md:size-6" />
                             </div>
                             <span className="text-xs text-[var(--text-muted)] group-hover:text-red-400 font-medium tracking-wider transition-colors">Quit</span>
                         </button>
 
                         <button onClick={() => setShowCompleteConfirm(true)} className="flex flex-col items-center gap-2 group">
-                            <div className="w-24 h-24 rounded-full bg-[var(--accent-teal)]/10 border-2 border-[var(--accent-teal)]/40 text-[var(--accent-teal)] group-hover:bg-[var(--accent-teal)] group-hover:text-[#050808] shadow-[0_0_30px_rgba(20,184,166,0.15)] group-hover:shadow-[0_0_40px_rgba(20,184,166,0.4)] flex items-center justify-center transition-all">
-                                <CheckCircle2 size={40} className="group-hover:scale-110 transition-transform" />
+                            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-[var(--accent-teal)]/10 border-2 border-[var(--accent-teal)]/40 text-[var(--accent-teal)] group-hover:bg-[var(--accent-teal)] group-hover:text-[#050808] shadow-[0_0_30px_rgba(20,184,166,0.15)] group-hover:shadow-[0_0_40px_rgba(20,184,166,0.4)] flex items-center justify-center transition-all">
+                                <CheckCircle2 size={26} className="group-hover:scale-110 transition-transform md:size-8" />
                             </div>
                             <span className="text-xs text-[var(--text-muted)] group-hover:text-[var(--accent-teal)] font-medium tracking-wider transition-colors">Done</span>
                         </button>

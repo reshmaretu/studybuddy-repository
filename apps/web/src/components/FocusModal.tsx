@@ -141,7 +141,7 @@ export default function FocusModal() {
     if (!isFocusModalOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4">
             {/* Backdrop */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeFocusModal} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
@@ -150,13 +150,13 @@ export default function FocusModal() {
                 initial={{ scale: 0.95, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-3xl w-full max-w-3xl md:h-[600px] max-h-[90vh] overflow-hidden relative z-10 shadow-2xl flex flex-col md:flex-row"
+                className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-3xl w-full max-w-[95vw] md:max-w-3xl h-[90vh] md:h-[600px] overflow-hidden relative z-10 shadow-2xl flex flex-col md:flex-row"
             >
 
                 {renderPomodoroSettings()}
 
                 {/* LEFT PANEL: Task Selection (DND) */}
-                <div className="w-full md:w-1/3 bg-[var(--bg-card)] border-r border-[var(--border-color)] p-6 flex flex-col h-full min-h-0">
+                <div className="w-full md:w-1/3 bg-[var(--bg-card)] border-r border-[var(--border-color)] p-4 sm:p-6 flex flex-col h-full min-h-0">
                     <h2 className="text-lg font-bold text-[var(--text-main)] mb-1 flex-shrink-0">Library</h2>
                     <p className="text-xs text-[var(--text-muted)] mb-4 flex-shrink-0">Select your chapter.</p>
 
@@ -194,11 +194,11 @@ export default function FocusModal() {
                 </div>
 
                 {/* RIGHT PANEL: Settings & Launch */}
-                <div className="w-full md:w-2/3 p-8 flex flex-col justify-between h-full overflow-y-auto custom-scrollbar">
+                <div className="w-full md:w-2/3 p-5 sm:p-8 flex flex-col justify-between h-full overflow-y-auto custom-scrollbar">
                     <div>
                         <div className="flex justify-between items-start mb-6">
                             <div>
-                                <h2 className="text-2xl font-bold text-[var(--text-main)]">Focus Parameters</h2>
+                                <h2 className="text-xl sm:text-2xl font-bold text-[var(--text-main)]">Focus Parameters</h2>
                                 <p className="text-sm text-[var(--text-muted)]">Configure your session.</p>
                             </div>
                             <button onClick={closeFocusModal} className="text-[var(--text-muted)] hover:text-[var(--text-main)] bg-[var(--bg-dark)] p-2 rounded-full transition-colors"><X size={20} /></button>
@@ -263,14 +263,14 @@ export default function FocusModal() {
                     </div>
 
                     {/* Launch Buttons */}
-                    <div className="grid grid-cols-2 gap-4 mt-auto">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-auto">
                         <button
                             disabled={false}
                             onClick={() => {
                                 useStudyStore.getState().startMode('studyCafe', selectedTask?.id || null);
                             }}
-                            className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-dark)] hover:border-[var(--accent-cyan)] hover:bg-[var(--accent-cyan)]/5 transition-all group">
-                            <Coffee size={28} className="text-[var(--text-muted)] group-hover:text-[var(--accent-cyan)] transition-colors" />
+                            className="flex flex-col items-center justify-center gap-2 p-3 sm:p-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-dark)] hover:border-[var(--accent-cyan)] hover:bg-[var(--accent-cyan)]/5 transition-all group">
+                            <Coffee size={24} className="text-[var(--text-muted)] group-hover:text-[var(--accent-cyan)] transition-colors" />
                             <span className="font-bold text-[var(--text-main)]">Study Cafe</span>
                         </button>
                         <button
@@ -278,9 +278,9 @@ export default function FocusModal() {
                             onClick={() => {
                                 useStudyStore.getState().startMode('flowState', selectedTask?.id || null);
                             }}
-                            className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/10 hover:bg-[var(--accent-teal)]/20 hover:border-[var(--accent-teal)] transition-all group shadow-[0_0_15px_rgba(20,184,166,0.1)] hover:shadow-[0_0_20px_rgba(20,184,166,0.3)]"
+                            className="flex flex-col items-center justify-center gap-2 p-3 sm:p-4 rounded-2xl border border-[var(--accent-teal)]/30 bg-[var(--accent-teal)]/10 hover:bg-[var(--accent-teal)]/20 hover:border-[var(--accent-teal)] transition-all group shadow-[0_0_15px_rgba(20,184,166,0.1)] hover:shadow-[0_0_20px_rgba(20,184,166,0.3)]"
                         >
-                            <Waves size={28} className="text-[var(--accent-teal)]" />
+                            <Waves size={24} className="text-[var(--accent-teal)]" />
                             <span className="font-bold text-[var(--text-main)]">FlowState</span>
                         </button>
                     </div>

@@ -6,7 +6,7 @@ import { useStudyStore, Task, calculateXpRequirement, getTitleForLevel } from "@
 import { DndContext, DragEndEvent, DragStartEvent, useDroppable, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import { AnimatePresence, motion } from "framer-motion";
 import TaskCard from "@/components/TaskCard";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import ChumRenderer from "@/components/ChumRenderer";
 import BrainResetModal from "@/components/BrainResetModal";
 import { useTerms } from "@/hooks/useTerms";
@@ -40,6 +40,7 @@ function CompletionDropZone() {
 
 export default function Dashboard() {
     const [time, setTime] = useState(new Date());
+    const router = useRouter();
 
     // THE FIX: We exclusively use activeDragTask now!
     const [activeDragTask, setActiveDragTask] = useState<Task | null>(null);
@@ -60,12 +61,17 @@ export default function Dashboard() {
     const xpGlitter = useGlitterEffect(xp, 500);
 
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [bulkAction, setBulkAction] = useState<null | 'complete' | 'delete'>(null);
     const onToggleSelect = (id: string) => {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     };
 
-    const handleBulkComplete = async () => {
-        if (!window.confirm(`Master ${selectedIds.length} blooms simultaneously?`)) return;
+    const handleBulkComplete = () => {
+        if (selectedIds.length === 0) return;
+        setBulkAction('complete');
+    };
+
+    const runBulkComplete = async () => {
         for (const id of selectedIds) {
             await completeTask(id);
         }
@@ -73,8 +79,12 @@ export default function Dashboard() {
         triggerChumToast("Bulk calibration complete.", "success");
     };
 
-    const handleBulkDelete = async () => {
-        if (!window.confirm(`Release ${selectedIds.length} quests back to the void?`)) return;
+    const handleBulkDelete = () => {
+        if (selectedIds.length === 0) return;
+        setBulkAction('delete');
+    };
+
+    const runBulkDelete = async () => {
         for (const id of selectedIds) {
             await deleteTask(id);
         }
@@ -94,6 +104,9 @@ export default function Dashboard() {
     const validTasks = tasks.filter(t => t && t.id);
     const activeTasks = validTasks.filter(t => !t.isCompleted);
     const completedTasks = validTasks.filter(t => t.isCompleted);
+    const showFourthTask = activeTasks.length === 4;
+    const showGardenShortcut = activeTasks.length >= 5;
+    const hiddenTaskCount = Math.max(0, activeTasks.length - 4);
 
     const [sparkQuote, setSparkQuote] = useState("Sparking up the feed...");
 
@@ -363,7 +376,7 @@ export default function Dashboard() {
 
                 {/* TOP ROW: Score, Reset, Timer */}
                 <section id="dashboard-timer-core" className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-5 flex items-center justify-between shadow-sm relative overflow-hidden">
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-center gap-8 shadow-sm relative overflow-hidden">
                         {!isInitialized ? (
                             <div className="w-full h-full flex items-center gap-4 animate-pulse">
                                 <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-(--border-color)" />
@@ -374,7 +387,7 @@ export default function Dashboard() {
                             </div>
                         ) : (
                             <>
-                                <div className="relative w-24 h-16 md:w-28 md:h-20 flex flex-col items-center justify-end">
+                                <div className="relative w-28 h-20 md:w-32 md:h-24 flex flex-col items-center justify-end">
                                     <svg viewBox="0 0 100 50" className="absolute top-0 w-full h-full overflow-visible">
                                         {/* The magical pathLength="100" standardizes the stroke calculation perfectly */}
                                         <path d="M 10 45 A 35 35 0 0 1 90 45" stroke="var(--border-color)" strokeWidth="10" fill="none" strokeLinecap="round" pathLength="100" />
@@ -400,13 +413,13 @@ export default function Dashboard() {
                                         <span className="text-[8px] md:text-[9px] text-[var(--text-muted)] font-bold tracking-widest uppercase mt-1">{terms.focusScore}</span>
                                     </div>
                                 </div>
-                                <div className="flex flex-col items-center gap-3 w-32 md:w-36">
-                                    <div className="flex items-center gap-1.5 text-[var(--text-main)] font-bold text-xs md:text-sm">
-                                        <Flame size={14} className="text-[var(--accent-cyan)] md:size-16" /> {totalSessions} Focus Flows
+                                <div className="flex flex-col sm:flex-row sm:items-center items-center gap-3 sm:gap-4 min-w-0 text-center">
+                                    <div className="flex items-center gap-2 text-[var(--text-main)] font-bold text-xs md:text-sm">
+                                        <Flame size={16} className="text-[var(--accent-cyan)] md:size-8" /> {totalSessions} Focus Flows
                                     </div>
                                     <button
                                         onClick={() => useStudyStore.getState().openFocusModal()}
-                                        className="w-full py-2 md:py-2.5 rounded-lg bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] font-bold hover:bg-[var(--accent-teal)] hover:text-[#0b1211] transition-all text-xs md:text-sm border border-[var(--accent-teal)]/30 flex items-center justify-center gap-2 shadow-sm"
+                                        className="px-4 py-2 md:py-2.5 rounded-lg bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] font-bold hover:bg-[var(--accent-teal)] hover:text-[#0b1211] transition-all text-xs md:text-sm border border-[var(--accent-teal)]/30 flex items-center justify-center gap-2 shadow-sm whitespace-nowrap"
                                     >
                                         <Pin size={14} /> Focus
                                     </button>
@@ -563,11 +576,28 @@ export default function Dashboard() {
                             )}
                         </AnimatePresence>
 
-                        <div className="min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex flex-col items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--accent-teal)]">
-                            <span className="text-lg md:text-xl mb-1">✨</span>
-                            <span className="text-[10px] md:text-xs font-bold tracking-wide uppercase">{terms.crystalGarden}</span>
-                            <span className="text-[9px] md:text-[10px] opacity-70 mt-1">+{Math.max(0, activeTasks.length - 3)} hidden blooms</span>
-                        </div>
+                        {showFourthTask ? (
+                            <TaskCard
+                                key={activeTasks[3].id}
+                                task={activeTasks[3]}
+                                onToggleSelect={onToggleSelect}
+                                selected={selectedIds.includes(activeTasks[3].id)}
+                            />
+                        ) : showGardenShortcut ? (
+                            <button
+                                type="button"
+                                onClick={() => router.push("/garden")}
+                                className="min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex flex-col items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--accent-teal)]"
+                            >
+                                <span className="text-lg md:text-xl mb-1">✨</span>
+                                <span className="text-[10px] md:text-xs font-bold tracking-wide uppercase">{terms.crystalGarden}</span>
+                                <span className="text-[9px] md:text-[10px] opacity-70 mt-1">+{hiddenTaskCount} hidden blooms</span>
+                            </button>
+                        ) : (
+                            <div className="min-h-[140px] border-[3px] border-dashed border-[var(--text-muted)]/40 rounded-2xl flex items-center justify-center bg-[var(--bg-dark)]/50 hover:border-[var(--accent-teal)]/60 transition-colors cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs md:text-sm font-bold tracking-wide">
+                                + Open Slot
+                            </div>
+                        )}
                     </div>
 
                     {/* BULK ACTION BAR */}
@@ -589,6 +619,57 @@ export default function Dashboard() {
                                     <button onClick={handleBulkDelete} className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-[10px] font-black uppercase hover:bg-red-500 hover:text-white transition-all">Release All</button>
                                     <button onClick={() => setSelectedIds([])} className="p-2 text-(--text-muted) hover:text-white transition-colors"><X size={16} /></button>
                                 </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <AnimatePresence>
+                        {bulkAction && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+                            >
+                                <motion.div
+                                    initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                                    exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                                    className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-6 sm:p-8 w-full max-w-sm text-center shadow-2xl"
+                                >
+                                    <h3 className="text-xl font-bold text-[var(--text-main)] mb-2">
+                                        {bulkAction === 'delete' ? 'Release Selected Quests?' : 'Master Selected Quests?'}
+                                    </h3>
+                                    <p className="text-sm text-[var(--text-muted)] mb-6">
+                                        {bulkAction === 'delete'
+                                            ? `Release ${selectedIds.length} quests back to the void?`
+                                            : `Master ${selectedIds.length} blooms simultaneously?`}
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            onClick={() => setBulkAction(null)}
+                                            className="py-3 rounded-xl border border-[var(--border-color)] text-[var(--text-muted)] font-bold hover:text-[var(--text-main)] transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                if (bulkAction === 'delete') {
+                                                    await runBulkDelete();
+                                                } else {
+                                                    await runBulkComplete();
+                                                }
+                                                setBulkAction(null);
+                                            }}
+                                            className={`py-3 rounded-xl font-bold transition-colors ${bulkAction === 'delete'
+                                                ? 'bg-red-500/90 text-white hover:bg-red-500'
+                                                : 'bg-[var(--accent-teal)] text-[#0b1211] hover:brightness-110'
+                                            }`}
+                                        >
+                                            Confirm
+                                        </button>
+                                    </div>
+                                </motion.div>
                             </motion.div>
                         )}
                     </AnimatePresence>

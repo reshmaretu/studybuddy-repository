@@ -397,12 +397,12 @@ export default function StudyCafeOverlay() {
                         <motion.div
                             key="console" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} transition={{ duration: 0.25 }}
                             onPointerDown={(e) => dragControls.start(e)}
-                            className="flex rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing relative"
-                            style={{ background: "rgba(10,10,12,0.92)", backdropFilter: "blur(32px) saturate(1.5)", border: `1px solid rgba(255,255,255,0.09)`, boxShadow: `0 0 0 1px rgba(255,255,255,0.05), 0 16px 60px rgba(0,0,0,0.8), 0 0 60px ${atmo.glow}`, width: "580px" }}
+                            className="flex flex-col md:flex-row rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing relative w-[92vw] max-w-[580px] md:w-[580px]"
+                            style={{ background: "rgba(10,10,12,0.92)", backdropFilter: "blur(32px) saturate(1.5)", border: `1px solid rgba(255,255,255,0.09)`, boxShadow: `0 0 0 1px rgba(255,255,255,0.05), 0 16px 60px rgba(0,0,0,0.8), 0 0 60px ${atmo.glow}` }}
                         >
                             <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${atmo.accent}60, transparent)` }} />
 
-                            <div className="flex flex-col p-4 gap-0.5" style={{ width: "165px", borderRight: "1px solid rgba(255,255,255,0.06)" }}>
+                            <div className="flex flex-col p-4 gap-0.5 w-full md:w-[165px] border-b border-white/10 md:border-b-0 md:border-r md:border-white/10">
                                 <p className="text-[9px] font-black tracking-[0.2em] uppercase mb-3" style={{ color: `${atmo.accent}80` }}>Atmosphere</p>
                                 {ATMOSPHERES.map((a) => {
                                     const Icon = a.icon;
@@ -428,7 +428,7 @@ export default function StudyCafeOverlay() {
                             {/* ========================================== */}
                             {/* CENTER COLUMN */}
                             {/* ========================================== */}
-                            <div className="flex-1 flex flex-col items-center justify-between py-6 px-4 relative overflow-hidden min-h-[340px]">
+                            <div className="flex-1 flex flex-col items-center justify-between py-6 px-4 relative overflow-hidden min-h-[260px] md:min-h-[340px]">
                                 {/* Subtle inner glow based on atmosphere */}
                                 <div className="absolute inset-0 pointer-events-none opacity-20" style={{ background: `radial-gradient(circle at center, ${atmo.accent}44 0%, transparent 70%)` }} />
 
@@ -446,7 +446,7 @@ export default function StudyCafeOverlay() {
                                 </div>
 
                                 {/* 2. CENTER: Fixed-size container so it physically pushes buttons away */}
-                                <div className="relative flex items-center justify-center w-[150px] h-[150px] my-auto">
+                                <div className="relative flex items-center justify-center w-[120px] h-[120px] sm:w-[150px] sm:h-[150px] my-auto">
                                     <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full overflow-visible">
                                         <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
                                         <circle cx="50" cy="50" r="44" fill="none" stroke={atmo.accent} strokeWidth="2.5" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress / 100)} style={{ transform: "rotate(-90deg)", transformOrigin: "50px 50px", transition: "stroke-dashoffset 1s linear", filter: `drop-shadow(0 0 6px ${atmo.accent})` }} />
@@ -475,7 +475,7 @@ export default function StudyCafeOverlay() {
                                 </div>
                             </div>
 
-                            <div className="flex flex-col justify-between p-4" style={{ width: "165px", borderLeft: "1px solid rgba(255,255,255,0.06)" }}>
+                            <div className="flex flex-col justify-between p-4 w-full md:w-[165px] border-t border-white/10 md:border-t-0 md:border-l md:border-white/10">
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-2">
                                         <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/10" />

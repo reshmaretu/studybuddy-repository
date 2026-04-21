@@ -127,25 +127,6 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                 )}
             </div>
 
-            {onToggleSelect && !isOverlay && !locked && !task.isCompleted && (
-                <button
-                    type="button"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleSelect(task.id);
-                    }}
-                    className={`absolute left-3 top-3 z-40 w-6 h-6 rounded-md border flex items-center justify-center transition-all ${
-                        selected
-                            ? 'bg-(--accent-teal) border-(--accent-teal) text-black'
-                            : 'bg-(--bg-dark) border-(--border-color) text-(--text-muted) hover:text-(--text-main)'
-                    }`}
-                    aria-label={selected ? "Deselect task" : "Select task"}
-                >
-                    {selected ? <Check size={12} strokeWidth={3} /> : <span className="w-2 h-2 rounded-full bg-current opacity-60" />}
-                </button>
-            )}
-
             <div className="flex justify-between items-start mb-2 relative z-30">
                 <div className="flex gap-2 items-center">
                     <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-lg border tracking-tighter ${loadColors[task.load]}`}>{task.load}</span>
@@ -156,6 +137,24 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                         <span className="text-[9px] font-black uppercase tracking-widest text-[var(--accent-teal)]">MASTERED</span>
                     ) : dlStatus.phase > 1 && (
                         <span className={`text-[9px] font-black uppercase tracking-widest ${dlStatus.color}`}>{dlStatus.label}</span>
+                    )}
+                    {onToggleSelect && !isOverlay && !locked && !task.isCompleted && (
+                        <button
+                            type="button"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleSelect(task.id);
+                            }}
+                            className={`w-6 h-6 rounded-md border flex items-center justify-center transition-all ${
+                                selected
+                                    ? 'bg-(--accent-teal) border-(--accent-teal) text-black'
+                                    : 'bg-(--bg-dark) border-(--border-color) text-(--text-muted) hover:text-(--text-main)'
+                            }`}
+                            aria-label={selected ? "Deselect task" : "Select task"}
+                        >
+                            {selected ? <Check size={12} strokeWidth={3} /> : <span className="w-2 h-2 rounded-full bg-current opacity-60" />}
+                        </button>
                     )}
                     <button id="task-card-menu-trigger" onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-(--text-muted) hover:text-(--text-main) transition-colors relative z-40"><MoreHorizontal size={16} /></button>
                 </div>
