@@ -13,6 +13,7 @@ interface PresenceUser {
   avatarUrl?: string | null;
   chumBaseColor?: string | null;
   chumAccessories?: WardrobeAccessory[] | null;
+  useChumAvatar?: boolean;
 }
 
 interface PresenceMeta {
@@ -20,6 +21,7 @@ interface PresenceMeta {
   avatarUrl?: string | null;
   chumBaseColor?: string | null;
   chumAccessories?: WardrobeAccessory[] | null;
+  useChumAvatar?: boolean;
 }
 
 interface CanvasPresenceSidebarProps {
@@ -33,7 +35,7 @@ export const CanvasPresenceSidebar: React.FC<CanvasPresenceSidebarProps> = ({
   userId,
   userName,
 }) => {
-  const { activeAccessories, activeBaseColor } = useStudyStore();
+  const { activeAccessories, activeBaseColor, useChumAvatar } = useStudyStore();
   const [participants, setParticipants] = useState<PresenceUser[]>([]);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -74,6 +76,7 @@ export const CanvasPresenceSidebar: React.FC<CanvasPresenceSidebarProps> = ({
           avatarUrl: avatarLookup[key] ?? meta?.avatarUrl ?? null,
           chumBaseColor: meta?.chumBaseColor || null,
           chumAccessories: meta?.chumAccessories || null,
+          useChumAvatar: meta?.useChumAvatar !== false,
         });
       });
 
@@ -86,6 +89,7 @@ export const CanvasPresenceSidebar: React.FC<CanvasPresenceSidebarProps> = ({
         name: userName,
         chumBaseColor: activeBaseColor || "base14",
         chumAccessories: activeAccessories || [],
+        useChumAvatar: useChumAvatar !== false,
       });
     });
 
@@ -93,7 +97,7 @@ export const CanvasPresenceSidebar: React.FC<CanvasPresenceSidebarProps> = ({
       isActive = false;
       supabase.removeChannel(channel);
     };
-  }, [channelName, userId, userName, activeAccessories, activeBaseColor]);
+  }, [channelName, userId, userName, activeAccessories, activeBaseColor, useChumAvatar]);
 
   if (isCollapsed) {
     return (
@@ -128,7 +132,7 @@ export const CanvasPresenceSidebar: React.FC<CanvasPresenceSidebarProps> = ({
             key={user.id}
             className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70"
           >
-            {user.avatarUrl ? (
+            {user.useChumAvatar === false && user.avatarUrl ? (
               <img
                 src={user.avatarUrl}
                 alt={user.name}

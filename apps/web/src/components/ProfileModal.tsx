@@ -67,7 +67,8 @@ const getCroppedImg = async (
 export default function ProfileModal() {
     const { 
         isProfileModalOpen, setProfileModalOpen, 
-        avatarUrl, setAvatarUrl, 
+        avatarUrl, setAvatarUrl,
+        useChumAvatar, setUseChumAvatar,
         triggerChumToast 
     } = useStudyStore();
     
@@ -137,6 +138,7 @@ export default function ProfileModal() {
                 .eq('id', user.id);
 
             setAvatarUrl(finalUrl);
+            await setUseChumAvatar(false);
             triggerChumToast("Identity appearance harmonized.", "success");
             setImage(null);
             setActiveTab('custom');
@@ -148,7 +150,7 @@ export default function ProfileModal() {
         }
     };
 
-    const useChumAvatar = async () => {
+    const useChumAvatarChoice = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
@@ -158,11 +160,22 @@ export default function ProfileModal() {
                 .update({ avatar_url: null })
                 .eq('id', user.id);
 
+            await setUseChumAvatar(true);
             setAvatarUrl(null);
             triggerChumToast("Returned to Chum form.", "success");
             setActiveTab('chum');
         } catch (err) {
             triggerChumToast("Metamorphosis failed.", "warning");
+        }
+    };
+
+    const useCustomAvatarChoice = async () => {
+        if (!avatarUrl) return;
+        try {
+            await setUseChumAvatar(false);
+            triggerChumToast("Switched to custom shard.", "success");
+        } catch (err) {
+            triggerChumToast("Avatar sync failed.", "warning");
         }
     };
 
@@ -291,7 +304,7 @@ export default function ProfileModal() {
                             >
                                 <div className="w-32 h-32 rounded-full border-4 border-[var(--accent-teal)]/20 p-4 bg-[var(--bg-dark)] flex items-center justify-center relative group">
                                     <ChumRenderer size="w-20 h-20" />
-                                    {!avatarUrl && (
+                                    {useChumAvatar !== false && (
                                         <div className="absolute -top-2 -right-2 bg-[var(--accent-teal)] text-black p-1.5 rounded-full shadow-lg">
                                             <Check size={14} strokeWidth={4} />
                                         </div>
@@ -302,7 +315,7 @@ export default function ProfileModal() {
                                     <p className="text-[10px] text-[var(--text-muted)] mt-1 uppercase tracking-widest">Universal across the Lantern Net</p>
                                 </div>
                                 <button 
-                                    onClick={useChumAvatar}
+                                    onClick={useChumAvatarChoice}
                                     disabled={!avatarUrl}
                                     className="w-full py-4 rounded-2xl bg-[var(--bg-dark)] border border-[var(--border-color)] text-[10px] font-black uppercase tracking-widest hover:border-[var(--accent-teal)] transition-all disabled:opacity-30 disabled:grayscale"
                                 >

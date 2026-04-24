@@ -40,6 +40,8 @@ export const getTitleForLevel = (level: number) => {
 export interface StudyState {
     activeBaseColor: string;
     setActiveBaseColor: (color: string) => Promise<void>;
+    useChumAvatar: boolean;
+    setUseChumAvatar: (use: boolean) => Promise<void>;
 
     displayName: string;
     fullName: string;
@@ -286,6 +288,11 @@ export const useStudyStore = create<StudyState>()(
             activeBaseColor: 'base14', // Default is Mint!
             setActiveBaseColor: async (activeBaseColor) => {
                 set({ activeBaseColor });
+                await get().syncWardrobe();
+            },
+            useChumAvatar: true, // Default: use chum avatar, not custom photo
+            setUseChumAvatar: async (useChumAvatar) => {
+                set({ useChumAvatar });
                 await get().syncWardrobe();
             },
 
@@ -893,7 +900,8 @@ export const useStudyStore = create<StudyState>()(
                     active_crystal_theme: state.activeCrystalTheme,
                     active_atmosphere_filter: state.activeAtmosphereFilter,
                     active_chum_base_color: state.activeBaseColor,
-                    active_app_theme: state.activeAppTheme
+                    active_app_theme: state.activeAppTheme,
+                    use_chum_avatar: state.useChumAvatar
                 };
                 await supabase.from('chum_wardrobe').upsert({ user_id: user.id, ...wardrobeData }, { onConflict: 'user_id' });
             },
@@ -1190,6 +1198,8 @@ export const useStudyStore = create<StudyState>()(
                             activeCrystalTheme: wardrobe.active_crystal_theme || 'quartz',
                             activeAtmosphereFilter: wardrobe.active_atmosphere_filter || 'default',
                             activeAppTheme: appTheme,
+                            useChumAvatar: wardrobe.use_chum_avatar ?? true,
+                            activeBaseColor: wardrobe.active_chum_base_color || 'base14',
                         });
                         if (typeof document !== 'undefined') document.documentElement.setAttribute("data-theme", appTheme);
                         if (typeof localStorage !== 'undefined') localStorage.setItem("appTheme", appTheme);

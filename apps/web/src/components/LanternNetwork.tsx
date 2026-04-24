@@ -622,6 +622,7 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                             <ChumRenderer
                                                 size="w-full h-full"
                                                 activeAccessoriesOverride={user.activeAccessories}
+                                                baseColorIdOverride={user.activeBaseColor}
                                             />
                                         </div>
                                     </div>

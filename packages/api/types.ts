@@ -113,7 +113,9 @@ export interface LanternUser {
     jitterY: number;
     jitterZ: number;
     avatarUrl?: string;
+    activeBaseColor?: string;
     activeAccessories?: WardrobeAccessory[];
+    useChumAvatar?: boolean;
     isVerified?: boolean;
 }
 

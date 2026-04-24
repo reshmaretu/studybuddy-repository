@@ -54,7 +54,7 @@ interface RawProfile {
     is_verified?: boolean;
     joined_room_code?: string | null;
     user_stats?: { total_seconds_tracked?: number; focus_score?: number } | null;
-    chum_wardrobe?: { base_emoji?: string | null; hat_emoji?: string | null; active_accessories?: WardrobeAccessory[] } | null;
+    chum_wardrobe?: { base_emoji?: string | null; hat_emoji?: string | null; active_accessories?: WardrobeAccessory[]; active_chum_base_color?: string | null } | null;
 }
 
 interface RawRoom {
@@ -118,7 +118,9 @@ const formatUser = (p: RawProfile, rooms: RawRoom[], currentUserId: string | nul
         jitterY: isMe ? 0 : (getStableRandom(p.id, "jitterY") - 0.5) * 45,
         jitterZ: isMe ? 0 : (getStableRandom(p.id, "jitterZ") - 0.5) * 45,
         avatarUrl: p.avatar_url || undefined,
-        activeAccessories: wardrobe?.active_accessories || []
+        activeBaseColor: wardrobe?.active_chum_base_color || undefined,
+        activeAccessories: wardrobe?.active_accessories || [],
+        useChumAvatar: wardrobe?.use_chum_avatar !== false
     };
 };
 
@@ -958,3 +960,5 @@ export default function LanternNetPage() {
         </div >
     );
 }
+
+
