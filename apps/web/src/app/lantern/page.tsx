@@ -748,7 +748,7 @@ export default function LanternNetPage() {
                                                                                 {index + 1}
                                                                             </span>
                                                                             <div className="w-8 h-8 rounded-full border border-(--border-color) shrink-0 bg-(--bg-dark) overflow-hidden flex items-center justify-center p-0.5 relative">
-                                                                                {user.avatarUrl ? (
+                                                                                {!user.useChumAvatar && user.avatarUrl ? (
                                                                                     <img
                                                                                         src={user.avatarUrl}
                                                                                         alt="PFP"
@@ -760,9 +760,10 @@ export default function LanternNetPage() {
                                                                                         }}
                                                                                     />
                                                                                 ) : null}
-                                                                                <div className={`absolute inset-0 flex items-center justify-center p-0.5 fallback-chum ${user.avatarUrl ? 'invisible' : ''}`}>
+                                                                                <div className={`absolute inset-0 flex items-center justify-center p-0.5 fallback-chum ${(!user.useChumAvatar && user.avatarUrl) ? 'invisible' : ''}`}>
                                                                                     <ChumRenderer
                                                                                         size="w-full h-full"
+                                                                                        baseColorIdOverride={user.activeBaseColor}
                                                                                         activeAccessoriesOverride={user.activeAccessories}
                                                                                     />
                                                                                 </div>
@@ -826,14 +827,20 @@ export default function LanternNetPage() {
                                                                                 className="group/row flex items-center gap-3 p-3 rounded-2xl border bg-transparent border-transparent hover:border-(--border-color) hover:bg-(--bg-dark) transition-all"
                                                                             >
                                                                                 <div className="w-8 h-8 rounded-full border border-(--border-color) shrink-0 bg-(--bg-dark) overflow-hidden flex items-center justify-center p-0.5 relative">
-                                                                                    {friendData?.avatar_url ? (
+                                                                                    {(!friendUser?.useChumAvatar && friendData?.avatar_url) ? (
                                                                                         <img
                                                                                             src={friendData.avatar_url}
                                                                                             alt={friendData.display_name}
                                                                                             className="w-full h-full object-cover z-20 relative rounded-full"
                                                                                         />
                                                                                     ) : (
-                                                                                        <div className="text-lg">👤</div>
+                                                                                        <div className="absolute inset-0 flex items-center justify-center p-0.5">
+                                                                                            <ChumRenderer
+                                                                                                size="w-full h-full"
+                                                                                                baseColorIdOverride={friendUser?.activeBaseColor}
+                                                                                                activeAccessoriesOverride={friendUser?.activeAccessories}
+                                                                                            />
+                                                                                        </div>
                                                                                     )}
                                                                                 </div>
                                                                                 <div className="flex-1 flex flex-col overflow-hidden">

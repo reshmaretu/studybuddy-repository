@@ -37,7 +37,8 @@ const getCroppedImg = async (imageSrc: string, pixelCrop: any, rotation = 0): Pr
 export const ProfileModal = () => {
     const {
         isProfileModalOpen, setProfileModalOpen, avatarUrl, setAvatarUrl,
-        triggerChumToast, useThematicUI, setThematicUI, isDev
+        triggerChumToast, useThematicUI, setThematicUI, isDev,
+        useChumAvatar, setUseChumAvatar
     } = useStudyStore();
     const { terms } = useTerms();
     const [activeTab, setActiveTab] = useState<'custom' | 'chum'>('chum');
@@ -66,6 +67,7 @@ export const ProfileModal = () => {
             const finalUrl = `${publicUrl}?v=${Date.now()}`;
             await supabase.from('profiles').update({ avatar_url: finalUrl }).eq('id', user.id);
             setAvatarUrl(finalUrl);
+            setUseChumAvatar(false);
             triggerChumToast("Identity appearance harmonized.", "success");
             setImage(null);
         } catch (err) {
@@ -103,7 +105,7 @@ export const ProfileModal = () => {
                         
                         <div className="p-8 flex flex-col items-center gap-6">
                             <div className="w-32 h-32 rounded-full border-4 border-(--accent-teal)/20 p-2 bg-(--bg-dark) flex items-center justify-center relative shadow-inner">
-                                {avatarUrl ? (
+                                {(avatarUrl && !useChumAvatar) ? (
                                     <img src={avatarUrl} alt="Identity" className="w-full h-full rounded-full object-cover shadow-sm" />
                                 ) : (
                                     <ChumRenderer size="w-24 h-24" />
@@ -119,8 +121,24 @@ export const ProfileModal = () => {
                             
                             <input type="file" ref={fileInputRef} onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = () => setImage(r.result as string); r.readAsDataURL(f); } }} accept="image/*" className="hidden" />
 
-                            {/* THEMATIC UI TOGGLE */}
                             <div className="w-full pt-4 border-t border-(--border-color) flex flex-col gap-3">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-xs font-bold text-(--text-muted) uppercase tracking-widest">Avatar Representation</span>
+                                    <div className="flex bg-(--bg-dark) border border-(--border-color) rounded-lg p-1">
+                                        <button 
+                                            onClick={() => setUseChumAvatar(true)} 
+                                            className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${useChumAvatar ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}
+                                        >
+                                            Chum
+                                        </button>
+                                        <button 
+                                            onClick={() => setUseChumAvatar(false)} 
+                                            className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${!useChumAvatar ? 'bg-(--accent-teal) text-white' : 'text-(--text-muted) hover:text-(--text-main)'}`}
+                                        >
+                                            Photo
+                                        </button>
+                                    </div>
+                                </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-xs font-bold text-(--text-muted) uppercase tracking-widest">Interface Frequency</span>
                                     <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${useThematicUI ? 'bg-(--accent-teal)/10 text-(--accent-teal)' : 'bg-(--text-muted)/10 text-(--text-muted)'}`}>
