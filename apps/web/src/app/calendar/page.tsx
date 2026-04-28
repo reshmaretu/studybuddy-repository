@@ -277,10 +277,10 @@ export default function TactileCalendar() {
                 </div>
 
                 {/* MAIN CONTENT AREA */}
-                <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 pt-2 overflow-y-auto lg:overflow-hidden no-scrollbar">
+                <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 pt-2 lg:overflow-hidden">
 
                     {/* LEFT: THE STASH */}
-                    <div id="calendar-seed-bank" className="w-full lg:w-80 h-[280px] sm:h-[360px] lg:h-full flex flex-col bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 overflow-hidden shadow-sm relative shrink-0">
+                    <div id="calendar-seed-bank" className="w-full lg:w-80 h-[400px] lg:h-[calc(100vh-280px)] flex flex-col bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 overflow-hidden shadow-sm relative shrink-0">
                         <div className="flex items-center gap-2 mb-4">
                             <Inbox size={18} className="text-[var(--accent-yellow)]" />
                             <h2 className="font-bold text-[var(--text-main)]">{terms.stash}</h2>
@@ -309,7 +309,7 @@ export default function TactileCalendar() {
                     </div>
 
                     {/* RIGHT: THE TIMELINES */}
-                    <div id="calendar-temporal-nexus" className="flex-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 flex flex-col overflow-hidden shadow-sm">
+                    <div id="calendar-temporal-nexus" className="flex-1 lg:h-[calc(100vh-280px)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 flex flex-col overflow-hidden shadow-sm">
 
                         {/* ── Horizon View ── */}
                         {view === 'horizon' && (
@@ -334,7 +334,7 @@ export default function TactileCalendar() {
 
                         {/* ── Month Grid View ── */}
                         {view === 'month' && (
-                            <div className="flex-1 flex flex-col">
+                            <div className="flex-1 flex flex-col min-h-0">
                                 {/* Month Controls */}
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-xl font-bold text-[var(--text-main)]">
@@ -355,7 +355,7 @@ export default function TactileCalendar() {
                                 </div>
 
                                 {/* The 35/42 Cell Grid */}
-                                <div className="flex-1 grid grid-cols-7 grid-rows-6 rounded-xl overflow-hidden border border-[var(--border-color)]">
+                                <div className="flex-1 grid grid-cols-7 grid-rows-6 rounded-xl overflow-hidden border border-[var(--border-color)] min-h-0">
                                     {monthGrid.map(({ date, isCurrentMonth }) => {
                                         const dateStr = date.toISOString().split('T')[0];
                                         return <MonthCell key={dateStr} date={date} isCurrentMonth={isCurrentMonth} tasks={scheduledTasksMap[dateStr] || []} />;

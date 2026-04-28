@@ -746,7 +746,7 @@ export default function Dashboard() {
                                 <span className="text-xs text-[var(--text-muted)] font-medium">Flow Hours</span>
                             </div>
                         </div>
-                        <div className="flex flex-col items-center justify-center text-center py-6">
+                        <div className={`flex flex-col items-center justify-center text-center py-6 transition-opacity duration-300 ${confirmationModal.isOpen ? 'opacity-0 invisible' : 'opacity-100'}`}>
                             {!isInitialized ? (
                                 <div className="flex flex-col items-center gap-2 animate-pulse w-full">
                                     <div className="w-6 h-6 rounded-full bg-[var(--border-color)]" />

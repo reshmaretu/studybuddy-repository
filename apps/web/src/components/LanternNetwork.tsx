@@ -400,7 +400,7 @@ function ShootingStars({ is3D }: { is3D: boolean }) {
             new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 })
         ];
         
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 8; i++) {
             const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -40)]);
             const material = materials[i % materials.length];
             const line = new THREE.Line(geometry, material);
@@ -420,7 +420,7 @@ function ShootingStars({ is3D }: { is3D: boolean }) {
             line.userData = { 
                 speed: 150 + Math.random() * 250, 
                 active: Math.random() > 0.5, 
-                delay: Math.random() * 5,
+                delay: Math.random() * 15,
                 initialZ: line.position.z 
             };
             
@@ -467,7 +467,7 @@ function ShootingStars({ is3D }: { is3D: boolean }) {
                 const dist = line.position.length();
                 if (dist > 1000) {
                     line.userData.active = false;
-                    line.userData.delay = 0.5 + Math.random() * 3;
+                    line.userData.delay = 2 + Math.random() * 10;
                 }
             }
         });

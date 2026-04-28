@@ -414,114 +414,87 @@ export default function InsightsPage() {
                     </div>
                 )}
 
-                {/* PREMIUM CONTENT */}
-                <div className={`transition-all duration-500 ${!isPremiumUser ? 'opacity-30 pointer-events-none blur-[4px] select-none' : ''}`}>
+            {/* PREMIUM CONTENT */}
+            <div className={`transition-all duration-500 ${!isPremiumUser ? 'opacity-30 pointer-events-none blur-[4px] select-none' : ''}`}>
 
-                    {/* TOP PREMIUM ROW */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* TOP PREMIUM ROW */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
-                        {/* Burnout Matrix */}
-                        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl shadow-sm h-[320px] flex flex-col relative overflow-hidden">
-                            <div className="flex justify-between items-start mb-4">
-                                <h3 className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
-                                    <BrainCircuit size={16} className="text-[#f87171]" /> Burnout Matrix
-                                </h3>
-                                <span className="text-[9px] font-bold uppercase tracking-widest text-[#f87171] bg-[#f87171]/10 px-2 py-1 rounded-md border border-[#f87171]/20">Warning: High Load</span>
-                            </div>
-
-                            <div className="flex-1 relative border-l border-b border-[var(--border-color)] bg-gradient-to-tr from-[var(--bg-dark)] to-[#f87171]/10">
-                                {/* Axis Labels */}
-                                <span className="absolute -left-6 top-1/2 -translate-y-1/2 -rotate-90 text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)]">Stress</span>
-                                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)]">Time Est (h)</span>
-
-                                {/* Quadrant Labels */}
-                                <span className="absolute top-2 left-2 text-[9px] text-[var(--text-muted)]">Anxiety Zone</span>
-                                <span className="absolute top-2 right-2 text-[9px] text-[#f87171] font-bold">Burnout Zone</span>
-                                <span className="absolute bottom-2 left-2 text-[9px] text-[var(--accent-teal)] font-bold">Flow Zone</span>
-                                <span className="absolute bottom-2 right-2 text-[9px] text-[var(--text-muted)]">Boredom Zone</span>
-
-                                {/* Crosshairs */}
-                                <div className="absolute left-1/2 top-0 bottom-0 w-px border-l border-dashed border-[var(--border-color)]" />
-                                <div className="absolute top-1/2 left-0 right-0 h-px border-t border-dashed border-[var(--border-color)]" />
-
-                                {/* Recharts Scatter */}
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
-                                        <XAxis type="number" dataKey="hours" hide domain={[0, 10]} />
-                                        <YAxis type="number" dataKey="stress" hide domain={[0, 100]} />
-                                        <ZAxis type="number" dataKey="z" range={[100, 300]} />
-                                        <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<CustomTooltip />} />
-                                        <Scatter data={burnoutMatrixData} fill="#f87171" opacity={0.6} />
-                                    </ScatterChart>
-                                </ResponsiveContainer>
-                            </div>
-                            <p className="text-center text-[10px] text-[var(--text-muted)] mt-8">Suggestion: Reduce Quest Load by 15% to re-enter Flow Zone.</p>
+                    {/* Burnout Matrix */}
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl shadow-sm h-[320px] flex flex-col relative overflow-hidden">
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
+                                <BrainCircuit size={16} className="text-[#f87171]" /> Burnout Matrix
+                            </h3>
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-[#f87171] bg-[#f87171]/10 px-2 py-1 rounded-md border border-[#f87171]/20">Warning: High Load</span>
                         </div>
 
-                        {/* Flow Score Component */}
-                        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl shadow-sm flex items-center justify-center gap-8">
-                            <div className="relative w-40 h-40 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(20,184,166,0.1)]" style={{ background: `conic-gradient(var(--accent-teal) ${flowIntegrityScore}%, var(--bg-dark) 0)` }}>
-                                <div className="absolute inset-1 rounded-full bg-[var(--bg-card)] flex flex-col items-center justify-center">
-                                    <span className="text-4xl font-bold text-[var(--text-main)]">{flowIntegrityScore}%</span>
-                                    <span className="text-[10px] font-black text-[var(--accent-teal)] uppercase tracking-widest mt-1">Integrity</span>
-                                </div>
+                        <div className="flex-1 relative border-l border-b border-[var(--border-color)] bg-gradient-to-tr from-[var(--bg-dark)] to-[#f87171]/10">
+                            {/* Axis Labels */}
+                            <span className="absolute -left-6 top-1/2 -translate-y-1/2 -rotate-90 text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)]">Stress</span>
+                            <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)]">Time Est (h)</span>
+
+                            {/* Quadrant Labels */}
+                            <span className="absolute top-2 left-2 text-[9px] text-[var(--text-muted)]">Anxiety Zone</span>
+                            <span className="absolute top-2 right-2 text-[9px] text-[#f87171] font-bold">Burnout Zone</span>
+                            <span className="absolute bottom-2 left-2 text-[9px] text-[var(--accent-teal)] font-bold">Flow Zone</span>
+                            <span className="absolute bottom-2 right-2 text-[9px] text-[var(--text-muted)]">Boredom Zone</span>
+
+                            {/* Crosshairs */}
+                            <div className="absolute left-1/2 top-0 bottom-0 w-px border-l border-dashed border-[var(--border-color)]" />
+                            <div className="absolute top-1/2 left-0 right-0 h-px border-t border-dashed border-[var(--border-color)]" />
+
+                            {/* Recharts Scatter */}
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+                                    <XAxis type="number" dataKey="hours" hide domain={[0, 10]} />
+                                    <YAxis type="number" dataKey="stress" hide domain={[0, 100]} />
+                                    <ZAxis type="number" dataKey="z" range={[100, 300]} />
+                                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<CustomTooltip />} />
+                                    <Scatter data={burnoutMatrixData} fill="#f87171" opacity={0.6} />
+                                </ScatterChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <p className="text-center text-[10px] text-[var(--text-muted)] mt-8">Suggestion: Reduce Quest Load by 15% to re-enter Flow Zone.</p>
+                    </div>
+
+                    {/* Flow Score Component */}
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl shadow-sm flex items-center justify-center gap-8">
+                        <div className="relative w-40 h-40 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(20,184,166,0.1)]" style={{ background: `conic-gradient(var(--accent-teal) ${flowIntegrityScore}%, var(--bg-dark) 0)` }}>
+                            <div className="absolute inset-1 rounded-full bg-[var(--bg-card)] flex flex-col items-center justify-center">
+                                <span className="text-4xl font-bold text-[var(--text-main)]">{flowIntegrityScore}%</span>
+                                <span className="text-[10px] font-black text-[var(--accent-teal)] uppercase tracking-widest mt-1">Integrity</span>
                             </div>
-                            <div className="flex-1 space-y-4">
-                                <h3 className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2 mb-4">
-                                    <TrendingUp size={16} className="text-[var(--accent-teal)]" /> Flow Score
-                                </h3>
-                                <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] border-l-4 border-l-[#f87171] p-3 rounded-lg">
-                                    <div className="flex justify-between text-[10px] font-bold mb-1">
-                                        <span className="text-[var(--text-muted)]">Focus Breaks</span>
-                                        <span className="text-[#f87171]">-{breakImpact}% Impact</span>
-                                    </div>
-                                    <div className="w-full h-1.5 bg-[var(--bg-card)] rounded-full overflow-hidden mb-2"><div className="h-full bg-[#f87171]" style={{ width: `${Math.min(100, breakImpact)}%` }} /></div>
-                                    <p className="text-[9px] text-[var(--text-muted)]">{flowBreaks} interruptions detected.</p>
+                        </div>
+                        <div className="flex-1 space-y-4">
+                            <h3 className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2 mb-4">
+                                <TrendingUp size={16} className="text-[var(--accent-teal)]" /> Flow Score
+                            </h3>
+                            <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] border-l-4 border-l-[#f87171] p-3 rounded-lg">
+                                <div className="flex justify-between text-[10px] font-bold mb-1">
+                                    <span className="text-[var(--text-muted)]">Focus Breaks</span>
+                                    <span className="text-[#f87171]">-{breakImpact}% Impact</span>
                                 </div>
-                                <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] border-l-4 border-l-[#fbbf24] p-3 rounded-lg">
-                                    <div className="flex justify-between text-[10px] font-bold mb-1">
-                                        <span className="text-[var(--text-muted)]">Tab Switches</span>
-                                        <span className="text-[#fbbf24]">-{switchImpact}% Impact</span>
-                                    </div>
-                                    <div className="w-full h-1.5 bg-[var(--bg-card)] rounded-full overflow-hidden mb-2"><div className="h-full bg-[#fbbf24]" style={{ width: `${Math.min(100, switchImpact)}%` }} /></div>
-                                    <p className="text-[9px] text-[var(--text-muted)]">{tabSwitches} tab switches detected.</p>
+                                <div className="w-full h-1.5 bg-[var(--bg-card)] rounded-full overflow-hidden mb-2"><div className="h-full bg-[#f87171]" style={{ width: `${Math.min(100, breakImpact)}%` }} /></div>
+                                <p className="text-[9px] text-[var(--text-muted)]">{flowBreaks} interruptions detected.</p>
+                            </div>
+                            <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] border-l-4 border-l-[#fbbf24] p-3 rounded-lg">
+                                <div className="flex justify-between text-[10px] font-bold mb-1">
+                                    <span className="text-[var(--text-muted)]">Tab Switches</span>
+                                    <span className="text-[#fbbf24]">-{switchImpact}% Impact</span>
                                 </div>
+                                <div className="w-full h-1.5 bg-[var(--bg-card)] rounded-full overflow-hidden mb-2"><div className="h-full bg-[#fbbf24]" style={{ width: `${Math.min(100, switchImpact)}%` }} /></div>
+                                <p className="text-[9px] text-[var(--text-muted)]">{tabSwitches} tab switches detected.</p>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    {/* BOTTOM PREMIUM ROW */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* BOTTOM PREMIUM ROW: Estimation Accuracy swallowed Archetype space */}
+                <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
 
-                        {/* Archetype */}
-                        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl shadow-sm flex flex-col items-center text-center relative overflow-hidden">
-                            <div className="absolute inset-0 bg-gradient-to-b from-[#818cf8]/5 to-transparent pointer-events-none" />
-                            <div className="w-24 h-24 rounded-full bg-[#312e81] border-2 border-[#818cf8] shadow-[0_0_30px_rgba(129,140,248,0.3)] flex items-center justify-center mb-4 relative z-10">
-                                <span className="text-4xl text-white">{focusScore > 80 ? '⚡' : '🦉'}</span>
-                                <div className="absolute -bottom-2 bg-[#4f46e5] text-white text-[9px] font-black px-3 py-1 rounded-full border border-[var(--bg-card)]">LVL {level}</div>
-                            </div>
-                            <h3 className="text-xs font-black text-[#818cf8] uppercase tracking-widest mb-6">Rare Archetype</h3>
-
-                            <div className="w-full space-y-3 z-10">
-                                <div className="bg-[#4ade80]/10 border border-[#4ade80]/30 p-3 rounded-xl flex items-center gap-3 text-left">
-                                    <span className="text-xl font-black text-[#4ade80]">↑</span>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-[#4ade80]">{focusScore > 80 ? 'Hyper-Focus Buff' : 'Night Owl Buff'}</p>
-                                        <p className="text-[9px] text-[var(--text-muted)]">{focusScore > 80 ? '+15% speed on Heavy tasks' : '+20% Focus Efficiency after 8 PM'}</p>
-                                    </div>
-                                </div>
-                                <div className="bg-[#f87171]/10 border border-[#f87171]/30 p-3 rounded-xl flex items-center gap-3 text-left">
-                                    <span className="text-xl font-black text-[#f87171]">↓</span>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-[#f87171]">{focusScore > 80 ? 'Marathon Fatigue' : 'Morning Grogginess'}</p>
-                                        <p className="text-[9px] text-[var(--text-muted)]">{focusScore > 80 ? '-10% efficiency on long sessions' : '-10% Recall before 9 AM'}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Estimation Accuracy */}
-                        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl shadow-sm lg:col-span-2 flex flex-col">
+                    {/* Estimation Accuracy */}
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl shadow-sm lg:col-span-3 flex flex-col">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
                                     <BarChart3 size={16} className="text-[var(--accent-teal)]" /> Estimation Accuracy
