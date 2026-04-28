@@ -259,7 +259,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
             </div>
 
             <div className="relative z-10 flex-1">
-                <h3 className={`text-[15px] font-bold leading-tight mb-1 transition-all ${task.isCompleted ? 'text-(--text-muted) line-through opacity-50' : 'text-(--text-main)'}`}>
+                <h3 className={`text-[15px] font-bold leading-tight mb-1 transition-all ${task.isCompleted ? 'text-[var(--text-muted)]' : 'text-[var(--text-main)]'}`}>
                     {task.title}
                 </h3>
                 {task.description && !isMinimized && (

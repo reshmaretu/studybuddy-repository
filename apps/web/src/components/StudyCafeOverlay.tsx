@@ -168,7 +168,8 @@ export default function StudyCafeOverlay() {
     const {
         activeMode, activeTaskId, tasks, timeLeft, isRunning,
         toggleTimer, completeTask, exitMode,
-        pomodoroFocus, pomodoroShortBreak, pomodoroLongBreak, pomodoroCycles, isPremiumUser
+        pomodoroFocus, pomodoroShortBreak, pomodoroLongBreak, pomodoroCycles, isPremiumUser,
+        isGhostModeActive
     } = useStudyStore();
 
     const [atmoId, setAtmoId] = useState("lofi");
@@ -195,11 +196,25 @@ export default function StudyCafeOverlay() {
         cycleRef.current = cycleCount;
     }, [phase, cycleCount]);
 
-    // Timer Tick
+    // Timer Tick (Robust Delta Logic)
     useEffect(() => {
         let interval: NodeJS.Timeout;
+        let lastTimestamp = Date.now();
+
         if (activeMode === 'studyCafe' && isRunning && timeLeft > 0) {
-            interval = setInterval(() => useStudyStore.getState().decrementTimer(), 1000);
+            interval = setInterval(() => {
+                const now = Date.now();
+                const delta = now - lastTimestamp;
+                
+                if (delta >= 1000) {
+                    const secondsToSubtract = Math.floor(delta / 1000);
+                    lastTimestamp += secondsToSubtract * 1000;
+                    
+                    for (let i = 0; i < secondsToSubtract; i++) {
+                        useStudyStore.getState().decrementTimer();
+                    }
+                }
+            }, 100); // Check frequently to catch suspensions quickly
         }
         return () => clearInterval(interval);
     }, [activeMode, isRunning, timeLeft]);
@@ -385,7 +400,7 @@ export default function StudyCafeOverlay() {
                         >
                             <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: atmo.accent }} />
                             <span className="font-mono font-bold text-[clamp(1.75rem,5vw,1rem)] text-white tracking-widest leading-none relative z-10" style={{ textShadow: `0 0 30px ${atmo.accent}80` }}>
-                                {formatTime(timeLeft)}
+                                {isGhostModeActive ? "--:--" : formatTime(timeLeft)}
                             </span>
                             <button onClick={toggleTimer} className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ backgroundColor: `${atmo.accent}20`, color: atmo.accent, border: `1px solid ${atmo.accent}40` }}>
                                 {isRunning ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
@@ -452,7 +467,7 @@ export default function StudyCafeOverlay() {
                                         <circle cx="50" cy="50" r="44" fill="none" stroke={atmo.accent} strokeWidth="2.5" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress / 100)} style={{ transform: "rotate(-90deg)", transformOrigin: "50px 50px", transition: "stroke-dashoffset 1s linear", filter: `drop-shadow(0 0 6px ${atmo.accent})` }} />
                                     </svg>
                                     <span className="font-mono font-bold text-[clamp(1.75rem,4vw,2.5rem)] text-white tracking-widest leading-none relative z-10" style={{ textShadow: `0 0 30px ${atmo.accent}80` }}>
-                                        {formatTime(timeLeft)}
+                                        {isGhostModeActive ? "--:--" : formatTime(timeLeft)}
                                     </span>
                                 </div>
 

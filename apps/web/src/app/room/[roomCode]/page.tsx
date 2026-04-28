@@ -775,21 +775,25 @@ export default function StudyRoom({ params }: { params: Promise<{ roomCode: stri
 
                         // Hit Zero!
                         if (next <= 0) {
+                            const sendLocalNotification = useStudyStore.getState().sendLocalNotification;
                             if (settings.mode === 'pomodoro') {
                                 const nextIsBreak = !isBreak;
                                 setIsBreak(nextIsBreak);
                                 setIsActive(false); // Pause so they can initiate the next phase
 
                                 if (nextIsBreak) {
+                                    sendLocalNotification("Pomodoro Complete", "Focus session finished! Time for a break.");
                                     // ADVANCED POMODORO: Check for Long Break every 4 cycles
                                     const isLongBreak = settings.currentCycle % settings.cyclesBeforeLongBreak === 0;
                                     return isLongBreak ? settings.longBreakDuration * 60 : settings.breakDuration * 60;
                                 } else {
+                                    sendLocalNotification("Break Over", "Time to get back to work!");
                                     // Back to work: Increment cycle count
                                     setSettings(s => ({ ...s, currentCycle: s.currentCycle + 1 }));
                                     return settings.workDuration * 60;
                                 }
                             }
+                            sendLocalNotification("Session Finished", "Your sanctuary session has concluded.");
                             setIsActive(false);
                             return 0;
                         }

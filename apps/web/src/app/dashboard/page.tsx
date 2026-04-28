@@ -746,19 +746,33 @@ export default function Dashboard() {
                                 <span className="text-xs text-[var(--text-muted)] font-medium">Flow Hours</span>
                             </div>
                         </div>
-                        <div className="flex flex-col items-center justify-center text-center py-4">
+                        <div className="flex flex-col items-center justify-center text-center py-6">
                             {!isInitialized ? (
                                 <div className="flex flex-col items-center gap-2 animate-pulse w-full">
                                     <div className="w-6 h-6 rounded-full bg-[var(--border-color)]" />
                                     <div className="h-3 bg-[var(--border-color)] rounded w-1/3" />
                                 </div>
                             ) : (
-                                <>
-                                    <CheckCircle2 size={24} className={completedTasks.length > 0 ? "text-[var(--accent-teal)] mb-2" : "text-[var(--border-color)] mb-2"} />
-                                    <p className="text-[var(--text-muted)] text-sm">
-                                        {completedTasks.length > 0 ? `You crushed ${completedTasks.length} quests!` : `You crushed ${completedTasks.length} tasks!`}
-                                    </p>
-                                </>
+                                <div className="w-full">
+                                    {completedTasks.length > 0 ? (
+                                        <div className="flex flex-wrap justify-center gap-4 w-full">
+                                            {completedTasks
+                                                .sort((a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime())
+                                                .slice(0, 4)
+                                                .map((task) => (
+                                                    <div key={task.id} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1rem)] min-w-[280px]">
+                                                        <TaskCard task={task} locked={true} isMinimized={true} />
+                                                    </div>
+                                                ))
+                                            }
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-[var(--border-color)]" />
+                                            <p className="text-[var(--text-muted)] text-[10px] font-black uppercase tracking-widest">No blooms mastered yet</p>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </div>

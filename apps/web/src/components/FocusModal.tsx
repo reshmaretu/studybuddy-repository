@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Play, Coffee, Waves, Lock, FileSignature, Timer, Bell } from "lucide-react";
+import { X, Play, Coffee, Waves, Lock, FileSignature, Timer, Bell, Sparkles } from "lucide-react";
 import { useStudyStore, Task } from "@/store/useStudyStore";
 import { useState } from "react";
 import { DndContext, useDraggable, useDroppable, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
@@ -11,13 +11,12 @@ export default function FocusModal() {
     const {
         isFocusModalOpen, closeFocusModal, focusTaskId, tasks,
         pomodoroFocus, pomodoroShortBreak, pomodoroLongBreak, pomodoroCycles, updatePomodoroSettings,
-        triggerChumToast, setPremiumModalOpen
+        triggerChumToast, setPremiumModalOpen, isPremiumUser, isGhostModeActive, setGhostMode
     } = useStudyStore();
 
     // Local state for modal toggles
     const [selectedId, setSelectedId] = useState<string | null>(focusTaskId || null);
     const [contractMode, setContractMode] = useState(false);
-    const [ghostMode, setGhostMode] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [isPomodoroSettingsOpen, setIsPomodoroSettingsOpen] = useState(false);
     const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -240,26 +239,40 @@ export default function FocusModal() {
                             </div>
 
                             {/* Premium Ghost Mode */}
-                            <div className="flex items-center justify-between p-4 rounded-2xl border border-[var(--accent-yellow)]/20 bg-[var(--accent-yellow)]/5 relative overflow-hidden group">
-                                <div className="flex items-center gap-3 opacity-60">
-                                    <div className="w-10 h-10 rounded-full bg-[var(--accent-yellow)]/10 text-[var(--accent-yellow)] flex items-center justify-center"><Lock size={18} /></div>
-                                    <div>
-                                        <h4 className="text-[var(--accent-yellow)] font-bold text-sm flex items-center gap-2">Ghost Mode <span className="text-[10px] bg-[var(--accent-yellow)] text-black px-1.5 py-0.5 rounded font-black uppercase">Pro</span></h4>
-                                        <p className="text-xs text-[var(--text-muted)]">Hides all UI elements for pure immersion</p>
-                                    </div>
-                                </div>
-                                <SquishyButton 
-                                    onClick={() => {
+                            <div 
+                                className={`flex items-center justify-between p-4 rounded-2xl border border-[var(--accent-yellow)]/20 bg-[var(--accent-yellow)]/5 relative overflow-hidden group transition-all ${isPremiumUser ? 'cursor-pointer hover:border-[var(--accent-yellow)]/40' : 'cursor-help'}`}
+                                onClick={() => {
+                                    if (isPremiumUser) {
+                                        setGhostMode(!isGhostModeActive);
+                                    } else {
                                         triggerChumToast(
                                             "Ghost Mode requires a higher neural link. Upgrade to StudyBuddy Pro for full immersion.",
                                             "warning",
                                             () => setPremiumModalOpen(true)
                                         );
-                                    }}
-                                    className="text-xs font-bold text-[var(--accent-yellow)] border border-[var(--accent-yellow)]/30 px-3 py-1.5 rounded-lg hover:bg-[var(--accent-yellow)] hover:text-black transition-colors"
-                                >
-                                    Upgrade
-                                </SquishyButton>
+                                    }
+                                }}
+                            >
+                                <div className={`flex items-center gap-3 transition-opacity ${!isPremiumUser ? 'opacity-60' : 'opacity-100'}`}>
+                                    <div className="w-10 h-10 rounded-full bg-[var(--accent-yellow)]/10 text-[var(--accent-yellow)] flex items-center justify-center">
+                                        {isPremiumUser ? <Sparkles size={18} /> : <Lock size={18} />}
+                                    </div>
+                                    <div>
+                                        <h4 className="text-[var(--accent-yellow)] font-bold text-sm flex items-center gap-2">Ghost Mode <span className="text-[10px] bg-[var(--accent-yellow)] text-black px-1.5 py-0.5 rounded font-black uppercase">Pro</span></h4>
+                                        <p className="text-xs text-[var(--text-muted)]">Hides timer for pure immersion</p>
+                                    </div>
+                                </div>
+                                {isPremiumUser ? (
+                                    <div className={`w-12 h-6 rounded-full relative transition-colors ${isGhostModeActive ? "bg-[var(--accent-yellow)]" : "bg-[var(--border-color)]"}`}>
+                                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${isGhostModeActive ? "translate-x-6" : ""}`} />
+                                    </div>
+                                ) : (
+                                    <button 
+                                        className="text-xs font-bold text-[var(--accent-yellow)] border border-[var(--accent-yellow)]/30 px-3 py-1.5 rounded-lg hover:bg-[var(--accent-yellow)] hover:text-black transition-colors"
+                                    >
+                                        Upgrade
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -19,7 +19,9 @@ export default function FlowStateOverlay() {
         completeTask,
         exitMode,
         isPremiumUser,
-        pomodoroFocus
+        pomodoroFocus,
+        isGhostModeActive,
+        triggerChumToast
     } = useStudyStore();
 
     const [stressLevel, setStressLevel] = useState(50);
@@ -30,11 +32,25 @@ export default function FlowStateOverlay() {
 
     const task = activeTaskId ? tasks.find(t => t.id === activeTaskId) : null;
 
-    // Timer Effect: Only ticks if FlowState is active AND they accepted the Fullscreen prompt
+    // Timer Effect: Robust Delta Logic for Tab Suspension
     useEffect(() => {
         let interval: NodeJS.Timeout;
+        let lastTimestamp = Date.now();
+
         if (activeMode === 'flowState' && isRunning && timeLeft > 0 && isFullscreenReady) {
-            interval = setInterval(() => useStudyStore.getState().decrementTimer(), 1000);
+            interval = setInterval(() => {
+                const now = Date.now();
+                const delta = now - lastTimestamp;
+
+                if (delta >= 1000) {
+                    const secondsToSubtract = Math.floor(delta / 1000);
+                    lastTimestamp += secondsToSubtract * 1000;
+
+                    for (let i = 0; i < secondsToSubtract; i++) {
+                        useStudyStore.getState().decrementTimer();
+                    }
+                }
+            }, 100);
         }
         return () => clearInterval(interval);
     }, [activeMode, isRunning, timeLeft, isFullscreenReady]);
@@ -228,7 +244,7 @@ export default function FlowStateOverlay() {
                         <div className="absolute flex flex-col items-center text-center">
                             <span className="text-[9px] sm:text-[10px] font-black tracking-[0.35em] uppercase text-[var(--text-muted)]">Focus Mode</span>
                             <span className="text-4xl sm:text-5xl md:text-6xl font-mono font-bold text-[var(--text-main)] tracking-widest drop-shadow-[0_0_30px_rgba(20,184,166,0.2)]">
-                                {formatTime(timeLeft)}
+                                {isGhostModeActive ? "--:--" : formatTime(timeLeft)}
                             </span>
                             <span className="text-[9px] sm:text-[10px] font-black tracking-[0.35em] uppercase text-[var(--text-muted)]">Sanctuary</span>
                         </div>

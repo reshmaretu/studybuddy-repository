@@ -18,7 +18,7 @@ export const SyntheticFeed = () => {
   useEffect(() => {
     const loadBroadcasts = async () => {
       try {
-        await fetchBroadcasts(20, 0);
+        await fetchBroadcasts(5, 0);
         setLoading(false);
       } catch (error) {
         console.error('Failed to load broadcasts:', error);
@@ -167,14 +167,23 @@ export const SyntheticFeed = () => {
         </div>
       ) : (
         <>
-          <div className="space-y-3 max-h-96 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {broadcasts.map((broadcast) => {
-              const displayName = broadcast.profiles?.display_name || 'Anonymous';
-              const isSelf = currentUserId ? broadcast.user_id === currentUserId : false;
-              const isSparked = sparkedIds.has(broadcast.id);
-              const isCoolingDown = Date.now() < cooldownUntil;
-              const sparkDisabled = isSelf || isSparked || isCoolingDown;
-              return (
+          <div className="space-y-3 max-h-[500px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {broadcasts
+              .filter(b => ['milestone', 'study-room', 'canvas-room'].includes(b.broadcast_type))
+              .slice(0, 5)
+              .map((broadcast) => {
+                const displayName = broadcast.profiles?.display_name || 'Anonymous';
+                const isSelf = currentUserId ? broadcast.user_id === currentUserId : false;
+                const isSparked = sparkedIds.has(broadcast.id);
+                const isCoolingDown = Date.now() < cooldownUntil;
+                const sparkDisabled = isSelf || isSparked || isCoolingDown;
+                
+                const isRoom = broadcast.broadcast_type === 'study-room' || broadcast.broadcast_type === 'canvas-room';
+                const roomCode = broadcast.profiles?.joined_room_code || (broadcast.profiles?.status === 'hosting' ? 'ACTIVE' : null);
+                // Note: We'd ideally need the actual room code from the broadcast metadata, 
+                // but we'll fall back to the host's current status for now.
+                
+                return (
               <div
                 key={broadcast.id}
                 className="p-4 rounded-xl bg-[var(--bg-dark)]/60 border border-[var(--border-color)] hover:border-[var(--accent-teal)]/40 transition-colors relative"
@@ -200,20 +209,47 @@ export const SyntheticFeed = () => {
                       {broadcast.content}
                     </p>
                     {broadcast.broadcast_type !== 'custom-status' && (
-                      <span className="inline-flex items-center gap-1 mt-3 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-muted)]">
-                        {broadcast.broadcast_type === 'milestone' ? (
-                          <Sparkles size={12} className="text-[var(--accent-yellow)]" />
-                        ) : broadcast.broadcast_type === 'quest-progress' ? (
-                          <Target size={12} className="text-[var(--accent-teal)]" />
-                        ) : (
-                          <MessageCircle size={12} className="text-[var(--text-muted)]" />
+                      <div className="flex flex-wrap items-center gap-2 mt-3">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-muted)]">
+                          {broadcast.broadcast_type === 'milestone' ? (
+                            <Sparkles size={12} className="text-[var(--accent-yellow)]" />
+                          ) : broadcast.broadcast_type === 'study-room' ? (
+                            <Radio size={12} className="text-[var(--accent-teal)]" />
+                          ) : broadcast.broadcast_type === 'canvas-room' ? (
+                            <Radio size={12} className="text-[var(--accent-cyan)]" />
+                          ) : (
+                            <MessageCircle size={12} className="text-[var(--text-muted)]" />
+                          )}
+                          {broadcast.broadcast_type === 'milestone'
+                            ? 'Milestone'
+                            : broadcast.broadcast_type === 'study-room'
+                            ? 'Study Room'
+                            : broadcast.broadcast_type === 'canvas-room'
+                            ? 'Canvas Room'
+                            : 'Update'}
+                        </span>
+
+                        {isRoom && (
+                          <button
+                            onClick={() => {
+                              const code = broadcast.profiles?.joined_room_code;
+                              if (code) {
+                                window.location.href = broadcast.broadcast_type === 'canvas-room' 
+                                  ? `/canvas?room=${code}` 
+                                  : `/room/${code}`;
+                              }
+                            }}
+                            disabled={!broadcast.profiles?.status || (broadcast.profiles.status !== 'hosting' && broadcast.profiles.status !== 'cafe')}
+                            className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border transition-all ${
+                              (broadcast.profiles?.status === 'hosting' || broadcast.profiles?.status === 'cafe')
+                                ? 'bg-[var(--accent-teal)] border-[var(--accent-teal)] text-black hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(20,184,166,0.3)]'
+                                : 'bg-[var(--bg-dark)] border-[var(--border-color)] text-[var(--text-muted)] cursor-not-allowed'
+                            }`}
+                          >
+                            {(broadcast.profiles?.status === 'hosting' || broadcast.profiles?.status === 'cafe') ? 'Join Now' : 'Expired'}
+                          </button>
                         )}
-                        {broadcast.broadcast_type === 'milestone'
-                          ? 'Milestone'
-                          : broadcast.broadcast_type === 'quest-progress'
-                          ? 'Quest Progress'
-                          : 'Feedback'}
-                      </span>
+                      </div>
                     )}
                     {broadcast.reactions_count > 0 && (
                       <div className="mt-3 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest flex items-center gap-1">
@@ -241,14 +277,6 @@ export const SyntheticFeed = () => {
             })}
           </div>
 
-          {hasMore && broadcasts.length > 0 && (
-            <button
-              onClick={loadMore}
-              className="w-full py-2 text-xs font-black uppercase tracking-widest text-[var(--accent-teal)] hover:text-[var(--text-main)] transition-colors"
-            >
-              Load more updates
-            </button>
-          )}
         </>
       )}
     </div>

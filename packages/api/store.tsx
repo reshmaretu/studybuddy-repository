@@ -89,6 +89,7 @@ export interface StudyState {
     timeLeft: number;
     isRunning: boolean;
     activeMode: 'none' | 'focusModal' | 'flowState' | 'studyCafe';
+    isBreak: boolean;
     focusTaskId: string | null;
     activeTaskId: string | null;
     isFocusModalOpen: boolean;
@@ -294,6 +295,9 @@ export interface StudyState {
     fetchPacts: () => Promise<void>;
     leavePact: (pactId: string) => Promise<void>;
     deletePact: (pactId: string) => Promise<void>;
+    isGhostModeActive: boolean;
+    setGhostMode: (val: boolean) => void;
+    sendLocalNotification: (title: string, body: string) => void;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -346,6 +350,36 @@ export const useStudyStore = create<StudyState>()(
             friends: [],
             friendRequests: [],
             pacts: [],
+            isGhostModeActive: false,
+            setGhostMode: (val) => set({ isGhostModeActive: val }),
+            sendLocalNotification: (title, body) => {
+                if (typeof window === 'undefined') return;
+                
+                // 1. Browser Notification API
+                if (Notification.permission === 'granted') {
+                    // Try SW first for background support
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.ready.then(reg => {
+                            reg.showNotification(title, {
+                                body,
+                                icon: '/next.svg',
+                                badge: '/next.svg',
+                                vibrate: [200, 100, 200]
+                            } as any);
+                        });
+                    } else {
+                        new Notification(title, { body, icon: '/next.svg' });
+                    }
+                }
+                
+                // 2. Internal App Notification
+                get().addNotification({
+                    title,
+                    message: body,
+                    type: 'info',
+                    category: 'system'
+                });
+            },
 
             setDisplayName: async (name) => {
                 set({ displayName: name });
@@ -415,6 +449,7 @@ export const useStudyStore = create<StudyState>()(
             timeLeft: 1500,
             isRunning: false,
             activeMode: 'none',
+            isBreak: false,
             focusTaskId: null,
             activeTaskId: null,
             isFocusModalOpen: false,
@@ -556,13 +591,10 @@ export const useStudyStore = create<StudyState>()(
                         "Your crystal reached full bloom!",
                         "success"
                     );
-                    const { error: broadcastError } = await supabase.from('synthetic_logs').insert([{
-                        user_id: user.id,
-                        content: `${get().displayName || 'User'} just fully grew their crystal!`,
-                        broadcast_type: 'milestone'
-                    }]);
-                    if (broadcastError) {
-                        console.error('Failed to create crystal mastery broadcast:', broadcastError);
+                    try {
+                        await get().addBroadcast(`Just fully grew their crystal! 💎`, 'milestone');
+                    } catch (err) {
+                        console.error("Failed to broadcast crystal growth:", err);
                     }
                 }
                 await supabase.from('crystal_growth').upsert({
@@ -592,6 +624,13 @@ export const useStudyStore = create<StudyState>()(
                     growth: 0,
                     updated_at: masteredAt
                 }, { onConflict: 'user_id' });
+
+                // 🌐 Broadcast rebirth to the network
+                try {
+                    await get().addBroadcast(`Just rebirthed their crystal "${name}"! ✨`, 'milestone');
+                } catch (err) {
+                    console.error("Failed to broadcast rebirth:", err);
+                }
             },
             setCompletedTutorial: async (val) => {
                 set({ hasCompletedTutorial: val });
@@ -782,17 +821,24 @@ export const useStudyStore = create<StudyState>()(
             },
 
             decrementTimer: () => {
-                const state = get();
-                const newTracked = state.totalSecondsTracked + 1;
+                const { timeLeft, activeMode, isRunning, isBreak, sendLocalNotification, totalSecondsTracked } = get();
+                if (!isRunning || timeLeft <= 0) return;
+                
+                const nextTime = Math.max(0, timeLeft - 1);
+                const newTracked = totalSecondsTracked + 1;
+                
+                set({ 
+                    timeLeft: nextTime,
+                    totalSecondsTracked: newTracked
+                });
 
-                if (state.timeLeft === 1) {
-                    set({ timeLeft: 0, isRunning: false, totalSecondsTracked: newTracked });
-                    get().completeStudySession();
-                } else {
-                    set({
-                        timeLeft: Math.max(0, state.timeLeft - 1),
-                        totalSecondsTracked: newTracked
-                    });
+                if (nextTime === 0) {
+                    if (activeMode === 'studyCafe' || activeMode === 'flowState') {
+                        const message = isBreak ? "Break is over! Time to focus." : "Focus session complete! Take a breather.";
+                        sendLocalNotification("Timer Finished", message);
+                        playChime();
+                        if (!isBreak) get().completeStudySession();
+                    }
                 }
 
                 // ⚡ Sync to DB every 60 seconds of focus
@@ -1369,6 +1415,7 @@ export const useStudyStore = create<StudyState>()(
                     if (user) supabase.from('user_stats').update({ total_seconds_tracked: totalSecondsTracked }).eq('user_id', user.id).then();
                 });
             },
+
             updatePomodoroSettings: (settings) => set((state) => ({ ...state, ...settings })),
             startTutorMode: (shardId, type) => set((state) => ({
                 isTutorModeActive: true, activeShardId: shardId, tutorChatHistory: [],
@@ -1667,8 +1714,22 @@ export const useStudyStore = create<StudyState>()(
                 masteredCrystals: state.masteredCrystals,
                 hasCompletedTutorial: state.hasCompletedTutorial, enableDevRoomOptions: state.enableDevRoomOptions,
                 useThematicUI: state.useThematicUI,
-                activeBaseColor: state.activeBaseColor, // ✅ MUST ADD THIS LINE SO IT SAVES!
-            })
+                activeBaseColor: state.activeBaseColor,
+                playTickEnabled: state.playTickEnabled,
+                playChimeEnabled: state.playChimeEnabled,
+                doubleClickToComplete: state.doubleClickToComplete,
+                requireCompletionConfirmation: state.requireCompletionConfirmation,
+                performanceSettings: state.performanceSettings,
+                accessibilitySettings: state.accessibilitySettings,
+            }),
+            onRehydrateStorage: () => (state) => {
+                if (state) {
+                    setSoundConfig({ 
+                        tickEnabled: state.playTickEnabled,
+                        chimeEnabled: state.playChimeEnabled
+                    });
+                }
+            }
         }
     )
 );

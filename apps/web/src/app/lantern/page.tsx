@@ -327,6 +327,11 @@ export default function LanternNetPage() {
                 const link = `${window.location.origin}/canvas?room=${roomCode}`;
                 navigator.clipboard?.writeText(link).catch(() => undefined);
                 triggerChumToast?.('Canvas room link copied.', 'success');
+
+                // 🌐 Broadcast to the network!
+                const { addBroadcast } = useStudyStore.getState();
+                addBroadcast(`${roomSettings.title}`, 'canvas-room').catch(e => console.error("Broadcast failed:", e));
+
                 router.push(`/canvas?room=${roomCode}`);
             } else {
                 console.error("Insert Error:", error.message);
@@ -352,6 +357,10 @@ export default function LanternNetPage() {
         });
 
         if (!error) {
+            // 🌐 Broadcast to the network!
+            const { addBroadcast } = useStudyStore.getState();
+            addBroadcast(`${roomSettings.title}`, 'study-room').catch(e => console.error("Broadcast failed:", e));
+
             router.push(`/room/${roomCode}?title=${encodeURIComponent(roomSettings.title)}`);
         } else {
             console.error("Insert Error:", error.message);
