@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useStudyStore } from "@/store/useStudyStore";
-import { X, Clock, Edit2, Zap, Pin } from "lucide-react";
+import { X, Clock, Edit2, Zap, Pin, Check } from "lucide-react";
 import { SquishyButton } from "@studybuddy/ui";
 
 export default function TaskViewModal() {

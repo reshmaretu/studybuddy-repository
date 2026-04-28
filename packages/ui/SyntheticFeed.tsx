@@ -5,7 +5,7 @@ import { supabase, useStudyStore } from '@studybuddy/api';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageCircle, Radio, Sparkles, Target, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { playTick, useStudySettings } from '@studybuddy/api';
+import { playTick } from '@studybuddy/api';
 import { SquishyButton } from './SquishyButton';
 
 export const SyntheticFeed = () => {
@@ -15,7 +15,6 @@ export const SyntheticFeed = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [sparkedIds, setSparkedIds] = useState<Set<string>>(new Set());
   const [cooldownUntil, setCooldownUntil] = useState(0);
-  const { preferences } = useStudySettings();
 
   useEffect(() => {
     const loadBroadcasts = async () => {
@@ -90,9 +89,7 @@ export const SyntheticFeed = () => {
     setSparkedIds((prev) => new Set(prev).add(id));
     setCooldownUntil(now + 2000);
     
-    if (preferences.tickSounds) {
-      playTick();
-    }
+    playTick();
     
     sparkBroadcast(id); // Persist to network!
     const safeName = name?.trim() || 'that user';
