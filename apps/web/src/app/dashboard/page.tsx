@@ -379,7 +379,7 @@ export default function Dashboard() {
 
     return (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="max-w-[1400px] mx-auto pb-24 md:pb-12 space-y-6 px-4 md:px-0">
+            <div className={`max-w-[1400px] mx-auto pb-24 md:pb-12 space-y-6 px-4 md:px-0 transition-all duration-500 ${confirmationModal.isOpen ? 'opacity-30 blur-sm pointer-events-none' : 'opacity-100 blur-0'}`}>
 
                 {/* HEADER */}
                 <header className="flex justify-between items-center gap-6 mb-4 pt-4 md:pt-0">
@@ -684,7 +684,7 @@ export default function Dashboard() {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+                                className="fixed inset-0 bg-black/70 backdrop-blur-md z-[999] flex items-center justify-center p-4"
                             >
                                 <motion.div
                                     initial={{ scale: 0.95, opacity: 0, y: 10 }}

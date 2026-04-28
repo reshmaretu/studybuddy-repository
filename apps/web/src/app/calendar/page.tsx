@@ -63,7 +63,7 @@ function MonthCell({ date, tasks, isCurrentMonth }: { date: Date; tasks: Task[];
     const isToday = new Date().toISOString().split('T')[0] === dateString;
 
     return (
-        <div ref={setNodeRef} className={`min-h-[70px] sm:min-h-[100px] p-1.5 flex flex-col border border-[var(--border-color)] transition-colors ${!isCurrentMonth ? "bg-[var(--bg-dark)]/40 opacity-50" : "bg-[var(--bg-sidebar)]"} ${isOver ? "bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]" : ""} ${isToday ? "ring-1 ring-[var(--accent-teal)] shadow-[inset_0_0_15px_rgba(20,184,166,0.1)]" : ""}`}>
+        <div ref={setNodeRef} className={`flex-1 min-h-[70px] sm:min-h-0 p-1.5 flex flex-col border border-[var(--border-color)] transition-colors ${!isCurrentMonth ? "bg-[var(--bg-dark)]/40 opacity-50" : "bg-[var(--bg-sidebar)]"} ${isOver ? "bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]" : ""} ${isToday ? "ring-1 ring-[var(--accent-teal)] shadow-[inset_0_0_15px_rgba(20,184,166,0.1)]" : ""}`}>
             <div className="flex justify-between items-start mb-1 px-1">
                 <span className={`text-[10px] font-bold ${isToday ? "text-[var(--accent-teal)] bg-[var(--accent-teal)]/10 px-1.5 py-0.5 rounded-full" : "text-[var(--text-muted)]"}`}>{date.getDate()}</span>
             </div>
@@ -209,7 +209,7 @@ export default function TactileCalendar() {
 
     return (
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className={`min-h-screen flex flex-col space-y-4 pb-16 ${isSwiping ? 'cursor-grabbing' : ''}`}>
+            <div className={`h-screen flex flex-col space-y-4 p-6 md:p-8 overflow-hidden ${isSwiping ? 'cursor-grabbing' : ''}`}>
 
                 {/* HEADER */}
                 <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-2">
@@ -277,10 +277,10 @@ export default function TactileCalendar() {
                 </div>
 
                 {/* MAIN CONTENT AREA */}
-                <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 pt-2 lg:overflow-hidden">
+                <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 pt-2 lg:overflow-hidden pb-4">
 
                     {/* LEFT: THE STASH */}
-                    <div id="calendar-seed-bank" className="w-full lg:w-80 h-[400px] lg:h-[calc(100vh-280px)] flex flex-col bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 overflow-hidden shadow-sm relative shrink-0">
+                    <div id="calendar-seed-bank" className="w-full lg:w-80 h-[400px] lg:h-full flex flex-col bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 overflow-hidden shadow-sm relative shrink-0">
                         <div className="flex items-center gap-2 mb-4">
                             <Inbox size={18} className="text-[var(--accent-yellow)]" />
                             <h2 className="font-bold text-[var(--text-main)]">{terms.stash}</h2>
@@ -309,7 +309,7 @@ export default function TactileCalendar() {
                     </div>
 
                     {/* RIGHT: THE TIMELINES */}
-                    <div id="calendar-temporal-nexus" className="flex-1 lg:h-[calc(100vh-280px)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 flex flex-col overflow-hidden shadow-sm">
+                    <div id="calendar-temporal-nexus" className="flex-1 lg:h-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 flex flex-col overflow-hidden shadow-sm">
 
                         {/* ── Horizon View ── */}
                         {view === 'horizon' && (
