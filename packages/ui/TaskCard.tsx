@@ -1,10 +1,12 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { useStudyStore, Task, useTerms } from "@studybuddy/api";
+import { useStudyStore, Task, useTerms, playChime, playTick } from "@studybuddy/api";
 import { MoreHorizontal, Pin, Clock, Edit2, Trash2, X, Check, Zap, Lock, Eye, AlertTriangle, Flame } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import confetti from 'canvas-confetti';
+import ConfirmationModal from './ConfirmationModal';
 
 interface TaskCardProps {
     task: Task;
@@ -13,9 +15,11 @@ interface TaskCardProps {
     isMinimized?: boolean;
     onToggleSelect?: (id: string) => void;
     selected?: boolean;
+    completionEffect?: 'bloom' | 'glide';
+    isAnimating?: boolean;
 }
 
-export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized = false, onToggleSelect, selected = false }: TaskCardProps) => {
+export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized = false, onToggleSelect, selected = false, completionEffect = 'bloom', isAnimating: externalIsAnimating }: TaskCardProps) => {
     const { 
         openFocusModal, deleteTask, updateTask, tasks, triggerChumToast, 
         openEditModal, openViewModal, completeTask, 
@@ -24,7 +28,9 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
     const { terms } = useTerms();
 
     const [showMenu, setShowMenu] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showCompletionConfirm, setShowCompletionConfirm] = useState(false);
 
     // 🕒 3-PHASE DEADLINE ENFORCEMENT
     const dlStatus = React.useMemo(() => {
@@ -49,13 +55,12 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: task.id,
         data: { task },
-        disabled: showMenu || locked || task.isCompleted || showDeleteModal || !dndEnabled,
+        disabled: showMenu || locked || task.isCompleted || showDeleteModal || showCompletionConfirm || !dndEnabled || isAnimating,
     });
 
-    const handleDoubleClick = () => {
-        if (doubleClickToComplete && !task.isCompleted && !locked) {
-            completeTask(task.id);
-            triggerChumToast("Quest completed via neural double-tap!", "success");
+    const handleDoubleClick = (e: React.MouseEvent) => {
+        if (doubleClickToComplete && !task.isCompleted && !locked && !isAnimating) {
+            setShowCompletionConfirm(true);
         }
     };
 
@@ -74,7 +79,11 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                     className="absolute right-0 top-0 w-40 bg-(--bg-sidebar) border border-(--border-color) rounded-xl shadow-2xl z-[1001] origin-top-right backdrop-blur-xl"
                 >
                     {!task.isCompleted && (
-                        <button onClick={() => { completeTask(task.id); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-(--text-main) hover:bg-(--accent-teal)/10 flex items-center gap-2 border-b border-(--border-color)">
+                        <button onClick={(e) => { 
+                            e.stopPropagation();
+                            setShowCompletionConfirm(true);
+                            setShowMenu(false);
+                        }} className="w-full px-3 py-2 text-xs font-bold text-(--text-main) hover:bg-(--accent-teal)/10 flex items-center gap-2 border-b border-(--border-color) active:scale-95 transition-transform">
                             <Check size={12} className="text-(--accent-teal)" /> {terms.completed}
                         </button>
                     )}
@@ -86,6 +95,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                     </button>
                     <button 
                         onClick={() => { 
+                            playTick();
                             updateTask(task.id, { isPinned: !task.isPinned }); 
                             setShowMenu(false); 
                         }} 
@@ -96,6 +106,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                     </button>
                     <button 
                         onClick={() => { 
+                            playTick();
                             updateTask(task.id, { isFrog: !task.isFrog }); 
                             setShowMenu(false); 
                             triggerChumToast(task.isFrog ? "Frog released back into the wild." : "FROG CAPTURED. Tackle this first!", "info");
@@ -114,10 +125,39 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
     );
 
     return (
-        <div 
-            ref={setNodeRef} style={style} {...listeners} {...attributes}
-            onDoubleClick={handleDoubleClick}
-            className={`group relative bg-(--bg-card) border-2 rounded-2xl p-4 transition-all duration-500 z-10 hover:z-20 min-h-[140px] flex flex-col ${isDragging ? 'opacity-40' : 'opacity-100'} ${selected ? 'border-(--accent-teal) shadow-[0_0_18px_rgba(45,212,191,0.25)]' : ''} ${dlStatus.phase === 3 && !task.isCompleted ? 'ring-1 ring-red-500/20' : ''} ${isOverlay ? 'shadow-2xl border-(--accent-teal) z-[1000]' : dlStatus.border || 'border-(--border-color)'}`}
+        <motion.div 
+            data-task-id={task.id}
+            ref={setNodeRef} 
+            style={{ 
+                ...style, 
+                willChange: (isAnimating || externalIsAnimating || isDragging) ? "transform, opacity, filter" : "auto",
+                zIndex: (isAnimating || externalIsAnimating) ? 999 : (isOverlay ? 100001 : (showMenu ? 50 : 10)),
+                pointerEvents: (isAnimating || externalIsAnimating) ? "none" : "auto"
+            }} 
+            {...listeners} 
+            {...attributes}
+            onDoubleClick={() => {
+                if (doubleClickToComplete && !task.isCompleted && !locked && !isAnimating) {
+                    setShowCompletionConfirm(true);
+                }
+            }}
+            animate={(isAnimating || externalIsAnimating) ? {
+                opacity: completionEffect === 'glide' ? [1, 1, 0] : [1, 1, 0],
+                x: completionEffect === 'glide' ? [0, 0, 600] : 0,
+                y: completionEffect === 'glide' ? [0, 0, -200] : [0, -40, -60],
+                scale: completionEffect === 'glide' ? [1, 1, 0.4] : [1, 1.4, 0.9],
+                filter: completionEffect === 'glide' ? ["blur(0px)", "blur(0px)", "blur(4px)"] : ["blur(0px)", "blur(0px)", "blur(20px)"],
+                rotate: completionEffect === 'glide' ? [0, 0, 25] : [0, 8, -8, 0]
+            } : { 
+                scale: task.isCompleted ? [1, 1.05, 1] : 1,
+                opacity: isDragging ? 0.4 : 1
+            }}
+            transition={{
+                duration: isAnimating || externalIsAnimating ? (completionEffect === 'glide' ? 2 : 0.8) : 0.5,
+                ease: isAnimating || externalIsAnimating ? (completionEffect === 'glide' ? "easeInOut" : "circOut") : "easeOut",
+                times: completionEffect === 'glide' ? [0, 0.8, 1] : undefined
+            }}
+            className={`group relative bg-(--bg-card) border-2 rounded-2xl p-4 transition-shadow ${selected ? 'border-(--accent-teal) shadow-[0_0_18px_rgba(45,212,191,0.25)]' : ''} ${dlStatus.phase === 3 && !task.isCompleted ? 'ring-1 ring-red-500/20' : ''} ${isOverlay ? 'shadow-2xl border-(--accent-teal)' : dlStatus.border || 'border-(--border-color)'}`}
         >
             {/* ⚡ CLIPPING CONTAINER FOR BG EFFECTS */}
             <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
@@ -138,7 +178,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                     ) : dlStatus.phase > 1 && (
                         <span className={`text-[9px] font-black uppercase tracking-widest ${dlStatus.color}`}>{dlStatus.label}</span>
                     )}
-                    {onToggleSelect && !isOverlay && !locked && !task.isCompleted && (
+                    {onToggleSelect && !isOverlay && !locked && (
                         <button
                             type="button"
                             onPointerDown={(e) => e.stopPropagation()}
@@ -148,8 +188,8 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                             }}
                             className={`w-6 h-6 rounded-md border flex items-center justify-center transition-all ${
                                 selected
-                                    ? 'bg-(--accent-teal) border-(--accent-teal) text-black'
-                                    : 'bg-(--bg-dark) border-(--border-color) text-(--text-muted) hover:text-(--text-main)'
+                                    ? 'bg-(--accent-teal) border-(--accent-teal) text-black opacity-100'
+                                    : 'bg-(--bg-dark) border-(--border-color) text-(--text-muted) hover:text-(--text-main) opacity-0 group-hover:opacity-100'
                             }`}
                             aria-label={selected ? "Deselect task" : "Select task"}
                         >
@@ -201,6 +241,43 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                     <span className="text-[8px] font-black uppercase">Frog</span>
                 </motion.div>
             )}
-        </div>
+
+            {/* COMPLETION CONFIRMATION MODAL */}
+            <ConfirmationModal
+                isOpen={showCompletionConfirm}
+                title="Complete Task?"
+                message={task.isFrog ? "Mark this frog as devoured and feel the momentum surge!" : `Complete "${task.title}" and master this quest?`}
+                confirmText="Complete"
+                cancelText="Cancel"
+                onConfirm={() => {
+                    setShowCompletionConfirm(false);
+                    setIsAnimating(true);
+                    playChime();
+                    
+                    const rect = document.querySelector(`[data-task-id="${task.id}"]`) as HTMLElement;
+                    if (rect) {
+                        const bounds = rect.getBoundingClientRect();
+                        const x = (bounds.left + bounds.width / 2) / window.innerWidth;
+                        const y = (bounds.top + bounds.height / 2) / window.innerHeight;
+                        confetti({
+                            particleCount: 80,
+                            spread: 100,
+                            origin: { x, y },
+                            colors: ['#2dd4bf', '#facc15', '#ff007f', '#8b5cf6'],
+                            gravity: 1.2,
+                            decay: 0.95,
+                            zIndex: 100000
+                        });
+                    }
+                    
+                    triggerChumToast(task.isFrog ? "FROG DEVOURED. Momentum surge detected!" : "Quest completed!", "success");
+                    
+                    setTimeout(() => {
+                        completeTask(task.id);
+                    }, 800);
+                }}
+                onCancel={() => setShowCompletionConfirm(false)}
+            />
+        </motion.div>
     );
 };

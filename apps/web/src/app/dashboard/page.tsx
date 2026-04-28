@@ -9,11 +9,16 @@ import TaskCard from "@/components/TaskCard";
 import { useRouter } from "next/navigation";
 import ChumRenderer from "@/components/ChumRenderer";
 import BrainResetModal from "@/components/BrainResetModal";
+import ConfirmationModal from "@/components/ConfirmationModal";
 import { useTerms } from "@/hooks/useTerms";
 import { useGlowEffect, useGlitterEffect } from "@/hooks/useGlowEffect";
 import { GlitterEffect } from "@/components/GlitterEffect";
 import { usePageVisibility } from "@/hooks/usePageVisibility";
 import { SyntheticFeed } from "@studybuddy/ui";
+import { SquishyButton } from "@studybuddy/ui";
+import confetti from 'canvas-confetti';
+import { playChime } from "@/lib/sound";
+import { playTick } from "@/lib/sound";
 
 // The Magical Drop Zone Component
 function CompletionDropZone() {
@@ -44,12 +49,15 @@ export default function Dashboard() {
 
     // THE FIX: We exclusively use activeDragTask now!
     const [activeDragTask, setActiveDragTask] = useState<Task | null>(null);
+    const [animatingTaskId, setAnimatingTaskId] = useState<string | null>(null);
+    const [confirmationModal, setConfirmationModal] = useState<{ isOpen: boolean; taskId: string | null }>({ isOpen: false, taskId: null });
 
     const {
         tasks, focusScore, dailyStreak, totalSessions, totalSecondsTracked,
         timeLeft, isRunning, toggleTimer, resetTimer, decrementTimer, completeTask, deleteTask,
         isInitialized, xp, level, pomodoroFocus, isBrainResetOpen, setIsBrainResetOpen, lastResetHighlightAt,
-        notifications, setIsNotificationCenterOpen, addNotification, triggerChumToast, activeFramework
+        notifications, setIsNotificationCenterOpen, addNotification, triggerChumToast, activeFramework,
+        requireCompletionConfirmation = true
     } = useStudyStore();
     const { terms } = useTerms();
 
@@ -312,23 +320,60 @@ export default function Dashboard() {
 
         if (over && over.id === "completion-zone") {
             const task = tasks.find(t => t.id === active.id);
-            if (window.confirm("Spark this bloom to completion?")) {
-                completeTask(active.id as string);
 
-                // 🐸 Special Celebration for Frogs
-                if (task?.isFrog) {
-                    triggerChumToast(
-                        <span><strong className="text-emerald-400">🏆 FROG CONSUMED!</strong><br />You've conquered your biggest fear. The rest of the day is a breeze!</span>,
-                        'success'
-                    );
-                    addNotification({
-                        category: 'activity',
-                        type: 'success',
-                        title: "Frog Eaten!",
-                        message: "The hardest part of the day is behind you. High-frequency focus achieved."
-                    });
-                }
+            if (requireCompletionConfirmation) {
+                // Show confirmation modal instead of immediately completing
+                setConfirmationModal({ isOpen: true, taskId: active.id as string });
+            } else {
+                // Complete immediately
+                completeTaskNow(active.id as string, task);
             }
+        }
+    };
+
+    const completeTaskNow = (taskId: string, task?: Task) => {
+        const taskData = task || tasks.find(t => t.id === taskId);
+
+        // ⚡ Neural Bloom Celebration
+        playChime();
+
+        // Get the task card's position for accurate confetti
+        const cardElement = document.querySelector(`[data-task-id="${taskId}"]`) as HTMLElement;
+        const confettiOrigin = cardElement 
+            ? {
+                x: (cardElement.getBoundingClientRect().left + cardElement.getBoundingClientRect().width / 2) / window.innerWidth,
+                y: (cardElement.getBoundingClientRect().top + cardElement.getBoundingClientRect().height / 2) / window.innerHeight
+              }
+            : { x: 0.5, y: 0.4 }; // Fallback to center
+
+        // Confetti burst from the task card
+        confetti({
+            particleCount: 100,
+            spread: 80,
+            origin: confettiOrigin,
+            colors: ['#2dd4bf', '#fbbf24', '#f87171', '#8b5cf6'],
+            zIndex: 10000
+        });
+
+        setAnimatingTaskId(taskId);
+
+        setTimeout(() => {
+            completeTask(taskId);
+            setAnimatingTaskId(null);
+        }, 800);
+
+        // 🐸 Special Celebration for Frogs
+        if (taskData?.isFrog) {
+            triggerChumToast(
+                <span><strong className="text-emerald-400">🏆 FROG CONSUMED!</strong><br />You've conquered your biggest fear. The rest of the day is a breeze!</span>,
+                'success'
+            );
+            addNotification({
+                category: 'activity',
+                type: 'success',
+                title: "Frog Eaten!",
+                message: "The hardest part of the day is behind you. High-frequency focus achieved."
+            });
         }
     };
 
@@ -349,17 +394,25 @@ export default function Dashboard() {
                             <span className="text-base md:text-xl font-black text-[var(--text-main)] leading-none">{time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
                             <span className="text-[var(--accent-teal)] font-bold tracking-widest uppercase text-[8px] md:text-[10px] mt-1 whitespace-nowrap">{time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                         </div>
-                        <button
+                        <SquishyButton
                             onClick={() => setIsNotificationCenterOpen(true)}
-                            className="p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors relative shrink-0"
+                            className="p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors relative shrink-0 border-none bg-transparent shadow-none"
                         >
-                            <Bell size={24} />
+                            <motion.div
+                                whileHover={{ 
+                                    rotate: [0, -15, 15, -15, 15, 0],
+                                    scale: 1.1
+                                }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <Bell size={24} />
+                            </motion.div>
                             {unreadCount > 0 && (
                                 <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 rounded-full border-2 border-(--bg-dark) flex items-center justify-center">
                                     <span className="text-[8px] font-black text-white">{unreadCount}</span>
                                 </span>
                             )}
-                        </button>
+                        </SquishyButton>
                     </div>
                 </header>
 
@@ -417,18 +470,18 @@ export default function Dashboard() {
                                     <div className="flex items-center gap-2 text-[var(--text-main)] font-bold text-xs md:text-sm">
                                         <Flame size={16} className="text-[var(--accent-cyan)] md:size-8" /> {totalSessions} Focus Flows
                                     </div>
-                                    <button
+                                    <SquishyButton
                                         onClick={() => useStudyStore.getState().openFocusModal()}
                                         className="px-4 py-2 md:py-2.5 rounded-lg bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] font-bold hover:bg-[var(--accent-teal)] hover:text-[#0b1211] transition-all text-xs md:text-sm border border-[var(--accent-teal)]/30 flex items-center justify-center gap-2 shadow-sm whitespace-nowrap"
                                     >
                                         <Pin size={14} /> Focus
-                                    </button>
+                                    </SquishyButton>
                                 </div>
                             </>
                         )}
                     </div>
 
-                    <button
+                    <SquishyButton
                         id="dashboard-brain-reset"
                         onClick={() => setIsBrainResetOpen(true)}
                         className={`bg-[var(--bg-card)] border-2 border-[var(--border-color)] rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer group relative overflow-hidden transition-all duration-700 w-full ${isResetHighlighted
@@ -445,7 +498,7 @@ export default function Dashboard() {
                         <p className="text-[var(--text-muted)] text-xs font-medium">
                             {isResetHighlighted ? "Time for a brain reset!" : "Breathe deeply"}
                         </p>
-                    </button>
+                    </SquishyButton>
 
                 </section>
 
@@ -508,7 +561,7 @@ export default function Dashboard() {
                                     }}
                                     animate={{
                                         width: `${xpProgress}%`,
-                                        boxShadow: xpGlowing 
+                                        boxShadow: xpGlowing
                                             ? '0 0 12px rgba(45, 212, 191, 0.8), inset 0 0 8px rgba(45, 212, 191, 0.6)'
                                             : '0 0 4px rgba(45, 212, 191, 0.3), inset 0 0 4px rgba(45, 212, 191, 0.2)'
                                     }}
@@ -517,12 +570,12 @@ export default function Dashboard() {
                                 {/* Glitter effect at the end of the XP bar */}
                                 {xpGlitter && (
                                     <div className="absolute inset-0 pointer-events-none">
-                                        <GlitterEffect 
-                                            x={xpProgress} 
-                                            y={50} 
-                                            count={10} 
-                                            color="var(--accent-teal)" 
-                                            duration={0.8} 
+                                        <GlitterEffect
+                                            x={xpProgress}
+                                            y={50}
+                                            count={10}
+                                            color="var(--accent-teal)"
+                                            duration={0.8}
                                         />
                                     </div>
                                 )}
@@ -564,6 +617,7 @@ export default function Dashboard() {
                                             task={task}
                                             onToggleSelect={onToggleSelect}
                                             selected={selectedIds.includes(task.id)}
+                                            isAnimating={animatingTaskId === task.id}
                                         />
                                     ))}
 
@@ -582,6 +636,7 @@ export default function Dashboard() {
                                 task={activeTasks[3]}
                                 onToggleSelect={onToggleSelect}
                                 selected={selectedIds.includes(activeTasks[3].id)}
+                                isAnimating={animatingTaskId === activeTasks[3].id}
                             />
                         ) : showGardenShortcut ? (
                             <button
@@ -646,13 +701,13 @@ export default function Dashboard() {
                                             : `Master ${selectedIds.length} blooms simultaneously?`}
                                     </p>
                                     <div className="grid grid-cols-2 gap-3">
-                                        <button
+                                        <SquishyButton
                                             onClick={() => setBulkAction(null)}
-                                            className="py-3 rounded-xl border border-[var(--border-color)] text-[var(--text-muted)] font-bold hover:text-[var(--text-main)] transition-colors"
+                                            className="py-3 rounded-xl border border-[var(--border-color)] text-[var(--text-muted)] font-bold hover:text-[var(--text-main)] transition-colors shadow-none"
                                         >
                                             Cancel
-                                        </button>
-                                        <button
+                                        </SquishyButton>
+                                        <SquishyButton
                                             onClick={async () => {
                                                 if (bulkAction === 'delete') {
                                                     await runBulkDelete();
@@ -664,10 +719,10 @@ export default function Dashboard() {
                                             className={`py-3 rounded-xl font-bold transition-colors ${bulkAction === 'delete'
                                                 ? 'bg-red-500/90 text-white hover:bg-red-500'
                                                 : 'bg-[var(--accent-teal)] text-[#0b1211] hover:brightness-110'
-                                            }`}
+                                                }`}
                                         >
                                             Confirm
-                                        </button>
+                                        </SquishyButton>
                                     </div>
                                 </motion.div>
                             </motion.div>
@@ -726,6 +781,21 @@ export default function Dashboard() {
                 <AnimatePresence>
                     {isBrainResetOpen && <BrainResetModal isOpen={isBrainResetOpen} onClose={() => setIsBrainResetOpen(false)} />}
                 </AnimatePresence>
+
+                <ConfirmationModal
+                    isOpen={confirmationModal.isOpen}
+                    title="Confirm Quest Completion"
+                    message={`Are you ready to complete this quest? The rewards will be locked in once confirmed.`}
+                    confirmText="Confirm & Bloom"
+                    cancelText="Cancel"
+                    onConfirm={() => {
+                        if (confirmationModal.taskId) {
+                            completeTaskNow(confirmationModal.taskId);
+                        }
+                        setConfirmationModal({ isOpen: false, taskId: null });
+                    }}
+                    onCancel={() => setConfirmationModal({ isOpen: false, taskId: null })}
+                />
 
                 <footer className="pt-12 pb-8 border-t border-(--border-color) flex flex-col items-center gap-4">
                     <div className="flex gap-6 text-[10px] font-bold uppercase tracking-widest text-(--text-muted)">

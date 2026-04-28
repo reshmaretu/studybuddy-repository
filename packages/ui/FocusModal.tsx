@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Play, Coffee, Waves, Lock, FileSignature, Timer } from "lucide-react";
 import { useStudyStore } from "@studybuddy/api";
+import { SquishyButton } from "./SquishyButton";
 import { DndContext, useDraggable, useDroppable, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
 
 export const FocusModal = () => {
@@ -66,15 +67,15 @@ export const FocusModal = () => {
                 <div className="w-full md:w-2/3 p-8 flex flex-col justify-between h-full overflow-y-auto custom-scrollbar">
                     <div className="flex justify-between items-start mb-6">
                         <div><h2 className="text-2xl font-bold">Focus Parameters</h2><p className="text-sm text-(--text-muted)">Configure your session.</p></div>
-                        <button onClick={closeFocusModal} className="text-(--text-muted) hover:text-(--text-main) bg-(--bg-dark) p-2 rounded-full transition-colors"><X size={20} /></button>
+                        <SquishyButton onClick={closeFocusModal} className="text-(--text-muted) hover:text-(--text-main) bg-(--bg-dark) p-2 rounded-full transition-colors"><X size={20} /></SquishyButton>
                     </div>
                     <div className="grid grid-cols-2 gap-4 mt-auto">
-                        <button onClick={() => useStudyStore.getState().startMode('studyCafe', selectedTask?.id || null)} className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-(--border-color) bg-(--bg-dark) hover:border-(--accent-cyan) hover:bg-(--accent-cyan)/5 transition-all group">
+                        <SquishyButton onClick={() => useStudyStore.getState().startMode('studyCafe', selectedTask?.id || null)} className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-(--border-color) bg-(--bg-dark) hover:border-(--accent-cyan) hover:bg-(--accent-cyan)/5 transition-all group">
                             <Coffee size={28} className="text-(--text-muted) group-hover:text-(--accent-cyan)" /><span className="font-bold text-(--text-main)">Study Cafe</span>
-                        </button>
-                        <button onClick={() => useStudyStore.getState().startMode('flowState', selectedTask?.id || null)} className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-(--accent-teal)/30 bg-(--accent-teal)/10 hover:bg-(--accent-teal)/20 hover:border-(--accent-teal) transition-all group">
+                        </SquishyButton>
+                        <SquishyButton onClick={() => useStudyStore.getState().startMode('flowState', selectedTask?.id || null)} className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-(--accent-teal)/30 bg-(--accent-teal)/10 hover:bg-(--accent-teal)/20 hover:border-(--accent-teal) transition-all group">
                             <Waves size={28} className="text-(--accent-teal)" /><span className="font-bold text-(--text-main)">FlowState</span>
-                        </button>
+                        </SquishyButton>
                     </div>
                 </div>
             </motion.div>

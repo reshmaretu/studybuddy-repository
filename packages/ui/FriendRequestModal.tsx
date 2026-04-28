@@ -5,6 +5,7 @@ import { useStudyStore } from '@studybuddy/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, X } from 'lucide-react';
 import { Button } from './Button';
+import { SquishyButton } from './SquishyButton';
 
 interface FriendRequestModalProps {
   isOpen: boolean;
@@ -59,12 +60,12 @@ export const FriendRequestModal: React.FC<FriendRequestModalProps> = ({ isOpen, 
               <Users size={18} className="text-(--accent-teal)" />
               <h2 className="text-lg font-bold text-(--text-main)">Friend Requests</h2>
             </div>
-            <button
+            <SquishyButton
               onClick={onClose}
-              className="text-(--text-muted) hover:text-(--text-main) bg-(--bg-dark) p-2 rounded-full transition-colors"
+              className="text-(--text-muted) hover:text-(--text-main) bg-(--bg-dark) p-2 rounded-full transition-colors border-none shadow-none"
             >
               <X size={16} />
-            </button>
+            </SquishyButton>
           </div>
 
           <div className="p-6 space-y-4">
@@ -99,18 +100,18 @@ export const FriendRequestModal: React.FC<FriendRequestModalProps> = ({ isOpen, 
                       </div>
 
                       <div className="flex gap-2 flex-shrink-0 ml-2">
-                        <button
+                        <SquishyButton
                           onClick={() => handleAccept(request.id)}
-                          className="px-3 py-1 text-xs rounded-lg bg-(--accent-teal) text-black hover:brightness-110 transition-colors font-bold uppercase tracking-widest"
+                          className="px-3 py-1 text-xs rounded-lg bg-(--accent-teal) text-black hover:brightness-110 transition-colors font-bold uppercase tracking-widest border-none shadow-none"
                         >
                           Accept
-                        </button>
-                        <button
+                        </SquishyButton>
+                        <SquishyButton
                           onClick={() => handleReject(request.id)}
-                          className="px-3 py-1 text-xs rounded-lg bg-(--bg-card) text-(--text-muted) hover:text-(--text-main) transition-colors font-bold uppercase tracking-widest"
+                          className="px-3 py-1 text-xs rounded-lg bg-(--bg-card) text-(--text-muted) hover:text-(--text-main) transition-colors font-bold uppercase tracking-widest border-none shadow-none"
                         >
                           Reject
-                        </button>
+                        </SquishyButton>
                       </div>
                     </div>
                   );

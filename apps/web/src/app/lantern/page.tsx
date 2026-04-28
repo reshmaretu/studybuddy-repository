@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { Search, Trophy, Radio, Plus, X, Crosshair, ShieldAlert, Users, Sparkles } from "lucide-react";
 import ThreeLanternNet, { LanternNetHandle } from "@/components/LanternNetwork";
 import ChumRenderer from "@/components/ChumRenderer";
-import { FriendRequestModal, AddFriendModal, FormPactModal } from "@studybuddy/ui";
+import { FriendRequestModal, AddFriendModal, FormPactModal, SquishyButton } from "@studybuddy/ui";
 import { useStudyStore, WardrobeAccessory, LanternUser, Pact } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
@@ -213,7 +213,7 @@ export default function LanternNetPage() {
                     supabase.from('profiles').select('id, display_name, full_name, status, is_in_flowstate, active_session_type, is_premium, avatar_url, is_verified'),
                     supabase.from('rooms').select('*'),
                     supabase.from('user_stats').select('user_id, focus_score, total_seconds_tracked'),
-                    supabase.from('chum_wardrobe').select('user_id, active_accessories'),
+                    supabase.from('chum_wardrobe').select('user_id, active_accessories, active_chum_base_color, base_emoji, hat_emoji, use_chum_avatar'),
                 ]);
 
                 const [profilesRes, roomsRes, statsRes, wardrobeRes] = results;
@@ -490,10 +490,10 @@ export default function LanternNetPage() {
                                 </div>
 
                                 <div className="pt-8">
-                                    <button onClick={handleBroadcast} disabled={isSubmitting || !roomSettings.title.trim() || (roomSettings.isLocked && !roomSettings.password && hostRoomType !== 'canvas')}
+                                    <SquishyButton onClick={handleBroadcast} disabled={isSubmitting || !roomSettings.title.trim() || (roomSettings.isLocked && !roomSettings.password && hostRoomType !== 'canvas')}
                                         className="w-full py-5 bg-(--accent-teal) text-white rounded-2xl font-black text-sm shadow-[0_10px_30px_-10px_rgba(20,184,166,0.5)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
                                         {isSubmitting ? "Initializing Blueprint..." : hostRoomType === 'canvas' ? "Launch Canvas Room" : "Broadcast to Net"}
-                                    </button>
+                                    </SquishyButton>
                                     <p className="text-center text-[9px] text-(--text-muted) font-black uppercase tracking-widest mt-4">Safe connection established</p>
                                 </div>
                             </div>
@@ -552,7 +552,7 @@ export default function LanternNetPage() {
                                     Filter by Status
                                 </label>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <button
+                                    <SquishyButton
                                         onClick={() => setStatusFilter('all')}
                                         className={`py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${
                                             statusFilter === 'all'
@@ -561,8 +561,8 @@ export default function LanternNetPage() {
                                         }`}
                                     >
                                         All
-                                    </button>
-                                    <button
+                                    </SquishyButton>
+                                    <SquishyButton
                                         onClick={() => setStatusFilter('hosting')}
                                         className={`py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${
                                             statusFilter === 'hosting'
@@ -571,8 +571,8 @@ export default function LanternNetPage() {
                                         }`}
                                     >
                                         Hosting
-                                    </button>
-                                    <button
+                                    </SquishyButton>
+                                    <SquishyButton
                                         onClick={() => setStatusFilter('flowState')}
                                         className={`py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${
                                             statusFilter === 'flowState'
@@ -581,8 +581,8 @@ export default function LanternNetPage() {
                                         }`}
                                     >
                                         Flow
-                                    </button>
-                                    <button
+                                    </SquishyButton>
+                                    <SquishyButton
                                         onClick={() => setStatusFilter('joined')}
                                         className={`py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${
                                             statusFilter === 'joined'
@@ -591,27 +591,27 @@ export default function LanternNetPage() {
                                         }`}
                                     >
                                         Joined
-                                    </button>
+                                    </SquishyButton>
                                 </div>
                             </div>
 
-                            <button
+                            <SquishyButton
                                 id="lantern-host-trigger"
                                 onClick={() => setIsHostModalOpen(true)}
                                 className="w-full py-3 bg-(--accent-teal)/10 border-2 border-dashed border-(--accent-teal)/30 rounded-2xl text-(--accent-teal) text-[10px] font-black uppercase tracking-widest hover:bg-(--accent-teal)/20 hover:border-(--accent-teal) transition-all flex items-center justify-center gap-2"
                             >
                                 <Plus size={14} /> {isGamified ? "Light a Beacon" : "Host a Room"}
-                            </button>
+                            </SquishyButton>
 
                             {/* 🌐 SOCIAL FEATURES BUTTONS */}
                             <div className="grid grid-cols-2 gap-3">
-                                <button
+                                <SquishyButton
                                     onClick={() => setIsAddFriendModalOpen(true)}
-                                    className="py-2.5 px-3 bg-success/10 border border-success/30 rounded-2xl text-success text-[10px] font-black uppercase tracking-widest hover:bg-success/20 transition-all flex items-center justify-center gap-2"
+                                    className="py-2.5 px-3 bg-(--accent-yellow)/10 border border-(--accent-yellow)/30 rounded-2xl text-(--accent-yellow) text-[10px] font-black uppercase tracking-widest hover:bg-(--accent-yellow)/20 transition-all flex items-center justify-center gap-2"
                                 >
                                     <Users size={14} /> Add Friend
-                                </button>
-                                <button
+                                </SquishyButton>
+                                <SquishyButton
                                     onClick={() => {
                                         setIsFormPactModalOpen(true);
                                         setIsFriendsLoading(true);
@@ -624,15 +624,15 @@ export default function LanternNetPage() {
                                             setIsPactsLoading(false);
                                         });
                                     }}
-                                    className="py-2.5 px-3 bg-warning/10 border border-warning/30 rounded-2xl text-warning text-[10px] font-black uppercase tracking-widest hover:bg-warning/20 transition-all flex items-center justify-center gap-2"
+                                    className="py-2.5 px-3 bg-(--accent-cyan)/10 border border-(--accent-cyan)/30 rounded-2xl text-(--accent-cyan) text-[10px] font-black uppercase tracking-widest hover:bg-(--accent-cyan)/20 transition-all flex items-center justify-center gap-2"
                                 >
                                     <Sparkles size={14} /> {pacts.length > 0 ? 'View Current Pact' : 'Form Pact'}
-                                </button>
+                                </SquishyButton>
                             </div>
 
                             {/* Friend Requests Badge */}
                             {friendRequests.length > 0 && (
-                                <button
+                                <SquishyButton
                                     onClick={() => setIsFriendRequestModalOpen(true)}
                                     className="w-full py-3 px-4 bg-primary/10 border border-primary/30 rounded-2xl text-primary text-xs font-black uppercase tracking-widest hover:bg-primary/20 transition-all flex items-center justify-between gap-2"
                                 >
@@ -640,7 +640,7 @@ export default function LanternNetPage() {
                                     <span className="bg-primary text-primary-content px-2 py-0.5 rounded-full text-[10px]">
                                         {friendRequests.length}
                                     </span>
-                                </button>
+                                </SquishyButton>
                             )}
                         </div>
 

@@ -40,8 +40,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate random constellation color (hex)
-    const constellationColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+    // Generate random constellation color (hex) - properly padded to 6 chars
+    const randomHex = Math.floor(Math.random()*16777215).toString(16);
+    const constellationColor = '#' + randomHex.padStart(6, '0');
 
     // Create pact
     const { data: pact, error: pactError } = await supabase

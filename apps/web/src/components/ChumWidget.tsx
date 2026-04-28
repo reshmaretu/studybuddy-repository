@@ -70,6 +70,26 @@ export default function ChumWidget() {
     const [newTask, setNewTask] = useState<{ title: string, description: string, load: TaskLoad, deadline?: string, estimatedPomos?: number, isFrog?: boolean }>({ title: "", description: "", load: "medium", isFrog: false });
     const [isScheduled, setIsScheduled] = useState(false);
 
+    // Chum Petting State
+    const [petHearts, setPetHearts] = useState<{ id: number, x: number }[]>([]);
+    const petCounter = useRef(0);
+    const [chumScale, setChumScale] = useState(1);
+    
+    const handlePetChum = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        petCounter.current += 1;
+        setPetHearts(prev => [...prev, { id: petCounter.current, x: (Math.random() - 0.5) * 40 }]);
+        
+        // Physical Squish/Jump
+        setChumScale(0.8);
+        setTimeout(() => setChumScale(1.15), 100);
+        setTimeout(() => setChumScale(1.0), 300);
+
+        setTimeout(() => {
+            setPetHearts(prev => prev.filter(p => p.id !== petCounter.current));
+        }, 800);
+    };
+
     // 🌐 WEB PUSH (Mock Support)
     const sendPush = (title: string, body: string) => {
         if (!("Notification" in window)) return;
@@ -120,8 +140,10 @@ export default function ChumWidget() {
                     id: Date.now()
                 });
 
-                // 🔔 Trigger Web Push if applicable
-                sendPush("Chum Guidance", String(toast.message).replace(/<[^>]*>?/gm, ''));
+                // 🔔 Trigger Web Push if applicable (only send if message is a string)
+                if (typeof toast.message === 'string') {
+                    sendPush("Chum Guidance", toast.message.replace(/<[^>]*>?/gm, ''));
+                }
 
                 // Remove it from the store queue since we're displaying it internally
                 useStudyStore.setState((state) => ({
@@ -762,7 +784,7 @@ export default function ChumWidget() {
                 <div className={`absolute ${bubbleXPos} ${bubbleYPos} flex flex-col-reverse gap-3 items-end pointer-events-none`}>
                     <AnimatePresence>
                         {/* 1. System Toasts (Stacked) */}
-                        {!isOpen && (chumToasts as ChumToast[])?.map((toast, idx) => (
+                        {!isOpen && (chumToasts as ChumToast[])?.length > 0 && (chumToasts as ChumToast[])?.map((toast, idx) => (
                             <motion.div
                                 key={toast.id}
                                 initial={{ opacity: 0, scale: 0.5, y: 50, x: widgetPos.isLeft ? -30 : 30, rotate: widgetPos.isLeft ? -15 : 15 }}
@@ -803,16 +825,7 @@ export default function ChumWidget() {
                                     {toast.message}
                                 </div>
                                 {idx === 0 && (
-                                    <div className={`absolute w-6 h-6 bg-[var(--bg-card)] border-r-2 border-b-2 z-[-1] -bottom-[12px] ${widgetPos.isLeft ? 'left-10' : 'right-10'} ${toast.type === 'warning' ? 'border-red-500/40' :
-                                        toast.type === 'success' ? 'border-emerald-500/40' :
-                                            toast.type === 'info' ? 'border-sky-500/40' :
-                                                'border-[var(--border-color)]'
-                                        }`}
-                                        style={{ 
-                                            transform: widgetPos.isLeft 
-                                                ? 'rotate(15deg) skew(-15deg, -15deg)' 
-                                                : 'rotate(-45deg) skew(15deg, 15deg)' 
-                                        }} />
+                                    <div className={`absolute w-5 h-5 bg-[var(--bg-card)] z-[-1] -bottom-[10px] rounded-full shadow-md ${widgetPos.isLeft ? 'left-10' : 'right-10'}`} />
                                 )}
                             </motion.div>
                         ))}
@@ -835,16 +848,41 @@ export default function ChumWidget() {
                                     <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)] animate-pulse" />
                                     <span className="text-[9px] font-black uppercase tracking-tighter text-[var(--accent-teal)]">Neural Link</span>
                                 </div>
-                                <div className={`absolute w-5 h-5 bg-[var(--bg-card)] border-b-2 border-r-2 border-[var(--border-color)] z-[-1] -bottom-2 ${widgetPos.isLeft ? 'left-8' : 'right-8'}`}
+                                <div className={`absolute w-4 h-4 bg-[var(--bg-card)] z-[-1] -bottom-1.5 rounded-full shadow-md ${widgetPos.isLeft ? 'left-6' : 'right-6'}`}
                                     style={{ transform: widgetPos.isLeft ? 'rotate(15deg) skew(-15deg, -15deg)' : 'rotate(45deg) skew(5deg, 5deg)' }} />
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
 
-                <motion.button onClick={() => setIsOpen(!isOpen)} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="w-16 h-16 rounded-full bg-(--bg-card) border-2 border-(--border-color) shadow-xl flex items-center justify-center relative hover:border-(--accent-teal) transition-colors overflow-hidden">
+                <motion.button 
+                    onClick={(e) => {
+                        handlePetChum(e);
+                        // Open slightly delayed so they enjoy the pet!
+                        setTimeout(() => setIsOpen(!isOpen), 150);
+                    }} 
+                    whileHover={{ scale: 1.1 }} 
+                    whileTap={{ scale: 0.9 }} 
+                    animate={{ scale: chumScale }}
+                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                    className="w-16 h-16 rounded-full bg-(--bg-card) border-2 border-(--border-color) shadow-xl flex items-center justify-center relative hover:border-(--accent-teal) transition-colors overflow-visible"
+                >
                     <div className="absolute inset-0 rounded-full blur-md -z-10" style={{ backgroundColor: `color-mix(in srgb, ${themeColor} 15%, transparent)` }}></div>
                     {isTutorModeActive ? <BrainCircuit size={28} color={themeColor} /> : <ChumRenderer size="w-14 h-14 scale-125 translate-y-1" />}
+                    
+                    <AnimatePresence>
+                        {petHearts.map(heart => (
+                            <motion.div
+                                key={heart.id}
+                                initial={{ opacity: 1, y: -20, x: heart.x, scale: 0 }}
+                                animate={{ opacity: 0, y: -80, x: heart.x + (Math.random() - 0.5) * 20, scale: 1.5 }}
+                                transition={{ duration: 0.8, ease: "easeOut" }}
+                                className="absolute text-red-500 pointer-events-none z-[1000] text-xl drop-shadow-md"
+                            >
+                                ❤️
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
                 </motion.button>
             </motion.div>
 

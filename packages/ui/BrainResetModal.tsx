@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Brain, Play, Pause, Zap, Dumbbell, Edit3, ChevronRight, Send } from "lucide-react";
 import { useStudyStore, Task } from "@studybuddy/api";
 import { ChumRenderer } from "./ChumRenderer";
+import { SquishyButton } from "./SquishyButton";
 
 interface EnhancedBrainResetProps {
     isOpen: boolean;
@@ -211,7 +212,7 @@ export const BrainResetModal = ({ isOpen, onClose }: EnhancedBrainResetProps) =>
                                 <motion.div key="initial" className="flex flex-col items-center gap-6">
                                     <Brain size={48} className="text-(--accent-teal) animate-pulse" />
                                     <h2 className="text-2xl font-black text-(--text-main)">Brain Reset</h2>
-                                    <button onClick={() => { setBreathIsActive(true); setStage("breathing"); }} className="w-full py-4 bg-(--accent-teal) text-black rounded-2xl font-bold">Begin Breathing</button>
+                                    <SquishyButton onClick={() => { setBreathIsActive(true); setStage("breathing"); }} className="w-full py-4 bg-(--accent-teal) text-black rounded-2xl font-bold">Begin Breathing</SquishyButton>
                                 </motion.div>
                             )}
                             {stage === "breathing" && (
@@ -227,14 +228,14 @@ export const BrainResetModal = ({ isOpen, onClose }: EnhancedBrainResetProps) =>
                                     <ChumRenderer size="w-32 h-32" />
                                     {!chumReply && <textarea value={mindDumpText} onChange={e => setMindDumpText(e.target.value)} className="w-full h-24 bg-(--bg-dark) border rounded-lg p-3" />}
                                     {chumReply && <div className="p-4 bg-(--bg-dark) border rounded-lg italic">{chumReply}</div>}
-                                    <button onClick={chumReply ? proceedToTaskSuggestion : getChumReply} className="w-full py-3 bg-(--accent-teal) text-black rounded-lg font-bold">{chumReply ? "Continue" : "Submit"}</button>
+                                    <SquishyButton onClick={chumReply ? proceedToTaskSuggestion : getChumReply} className="w-full py-3 bg-(--accent-teal) text-black rounded-lg font-bold">{chumReply ? "Continue" : "Submit"}</SquishyButton>
                                 </motion.div>
                             )}
                             {stage === "complete" && (
                                 <motion.div key="complete" className="flex flex-col items-center gap-6">
                                     <div className="w-20 h-20 rounded-full bg-(--accent-teal)/20 border-2 border-(--accent-teal) flex items-center justify-center"><Brain size={40} className="text-(--accent-teal)" /></div>
                                     <h3 className="text-2xl font-black">Reset Complete!</h3>
-                                    <button onClick={handleClose} className="w-full py-3 bg-(--accent-teal) text-black rounded-2xl font-bold">Close</button>
+                                    <SquishyButton onClick={handleClose} className="w-full py-3 bg-(--accent-teal) text-black rounded-2xl font-bold">Close</SquishyButton>
                                 </motion.div>
                             )}
                         </AnimatePresence>

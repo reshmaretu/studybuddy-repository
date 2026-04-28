@@ -126,8 +126,14 @@
     --accent-yellow: #aaaaaa;
 }
 
-/* Ensure text remains readable on café backgrounds */
-body[data-cafe="true"] * {
+/* Ensure text remains readable on café backgrounds - targeted to avoid lag */
+body[data-cafe="true"] h1,
+body[data-cafe="true"] h2,
+body[data-cafe="true"] h3,
+body[data-cafe="true"] p,
+body[data-cafe="true"] span,
+body[data-cafe="true"] label,
+body[data-cafe="true"] button {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
@@ -234,6 +240,8 @@ body {
     font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-weight: 400;
     transition: background-color 0.5s ease;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* 🎨 LO-FI COZY VIBES: SOFTER BOLDS */
@@ -289,9 +297,10 @@ body[data-cafe="true"] {
 /* Apply glassmorphism ONLY to cards, excluding the Sidebar completely */
 body[data-cafe="true"] .bg-\[var\(--bg-card\)\]:not(nav *),
 body[data-cafe="true"] .bg-\[var\(--bg-card\)\]:not(aside *) {
-    /* 🧊 Ultra-low alpha for maximum background bleed */
+    /* 🧊 Optimized alpha for maximum background bleed and performance */
     background: rgba(255, 255, 255, 0.01) !important;
-    backdrop-filter: blur(16px) saturate(1.8) !important;
+    backdrop-filter: blur(8px) saturate(1.8) !important;
+    will-change: backdrop-filter;
 
     /* 💎 High-contrast thin border for definition */
     border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
@@ -610,7 +619,8 @@ body[data-cafe="true"] .text-text-muted {
         linear-gradient(color-mix(in srgb, var(--accent-teal) 8%, transparent) 1px, transparent 1px),
         linear-gradient(90deg, color-mix(in srgb, var(--accent-teal) 8%, transparent) 1px, transparent 1px);
     background-size: 40px 40px;
-    animation: blueprintPan 30s linear infinite;
+    animation: blueprintPan 60s linear infinite;
+    will-change: background-position;
 }
 
 @keyframes blueprintPan {

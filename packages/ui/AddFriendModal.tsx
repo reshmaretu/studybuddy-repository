@@ -5,6 +5,7 @@ import { getAuthHeaders, useStudyStore, supabase } from '@studybuddy/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, Search, X, Check } from 'lucide-react';
 import { Button } from './Button';
+import { SquishyButton } from './SquishyButton';
 
 interface AddFriendModalProps {
   isOpen: boolean;
@@ -115,12 +116,12 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
               <UserPlus size={18} className="text-(--accent-teal)" />
               <h2 className="text-lg font-bold text-(--text-main)">Add Friend</h2>
             </div>
-            <button
+            <SquishyButton
               onClick={onClose}
-              className="text-(--text-muted) hover:text-(--text-main) bg-(--bg-dark) p-2 rounded-full transition-colors"
+              className="text-(--text-muted) hover:text-(--text-main) bg-(--bg-dark) p-2 rounded-full transition-colors border-none shadow-none"
             >
               <X size={16} />
-            </button>
+            </SquishyButton>
           </div>
 
           <div className="p-6 space-y-4">
@@ -176,10 +177,10 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
                     </div>
                   </div>
 
-                  <button
+                  <SquishyButton
                     onClick={() => handleSendRequest(user.id)}
                     disabled={requestedUsers.has(user.id) || incomingRequests.has(user.id) || friendsSet.has(user.id)}
-                    className={`px-3 py-1 text-xs rounded-lg transition-colors flex-shrink-0 ml-2 font-bold uppercase tracking-widest ${
+                    className={`px-3 py-1 text-xs rounded-lg transition-colors flex-shrink-0 ml-2 font-bold uppercase tracking-widest border-none shadow-none ${
                       requestedUsers.has(user.id) || incomingRequests.has(user.id) || friendsSet.has(user.id)
                         ? 'bg-(--bg-card) text-(--text-muted) cursor-not-allowed'
                         : 'bg-(--accent-teal) text-black hover:brightness-110'
@@ -194,7 +195,7 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({ isOpen, onClose 
                     ) : (
                       'Add'
                     )}
-                  </button>
+                  </SquishyButton>
                 </div>
               ))}
             </div>

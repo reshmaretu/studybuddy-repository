@@ -1,10 +1,11 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Play, Coffee, Waves, Lock, FileSignature, Timer } from "lucide-react";
+import { X, Play, Coffee, Waves, Lock, FileSignature, Timer, Bell } from "lucide-react";
 import { useStudyStore, Task } from "@/store/useStudyStore";
 import { useState } from "react";
 import { DndContext, useDraggable, useDroppable, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
+import { SquishyButton } from "@studybuddy/ui";
 
 export default function FocusModal() {
     const {
@@ -149,7 +150,8 @@ export default function FocusModal() {
             <motion.div
                 initial={{ scale: 0.95, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                exit={{ scale: 0.85, opacity: 0, y: -20 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] rounded-3xl w-full max-w-[95vw] md:max-w-3xl h-[90vh] md:h-[600px] overflow-hidden relative z-10 shadow-2xl flex flex-col md:flex-row"
             >
 
@@ -201,7 +203,7 @@ export default function FocusModal() {
                                 <h2 className="text-xl sm:text-2xl font-bold text-[var(--text-main)]">Focus Parameters</h2>
                                 <p className="text-sm text-[var(--text-muted)]">Configure your session.</p>
                             </div>
-                            <button onClick={closeFocusModal} className="text-[var(--text-muted)] hover:text-[var(--text-main)] bg-[var(--bg-dark)] p-2 rounded-full transition-colors"><X size={20} /></button>
+                            <SquishyButton onClick={closeFocusModal} className="text-[var(--text-muted)] hover:text-[var(--text-main)] bg-[var(--bg-dark)] p-2 rounded-full transition-colors border-none"><X size={20} /></SquishyButton>
                         </div>
 
                         {/* Toggles */}
@@ -215,12 +217,12 @@ export default function FocusModal() {
                                         <p className="text-xs text-[var(--text-muted)]">{pomodoroFocus} / {pomodoroShortBreak} / {pomodoroLongBreak}</p>
                                     </div>
                                 </div>
-                                <button
+                                <SquishyButton
                                     onClick={() => setIsPomodoroSettingsOpen(true)}
                                     className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] text-[var(--text-main)] text-sm rounded-lg px-4 py-1.5 hover:border-[var(--accent-teal)] transition-colors"
                                 >
                                     Edit
-                                </button>
+                                </SquishyButton>
                             </div>
 
                             {/* Contract Mode */}
@@ -246,7 +248,7 @@ export default function FocusModal() {
                                         <p className="text-xs text-[var(--text-muted)]">Hides all UI elements for pure immersion</p>
                                     </div>
                                 </div>
-                                <button 
+                                <SquishyButton 
                                     onClick={() => {
                                         triggerChumToast(
                                             "Ghost Mode requires a higher neural link. Upgrade to StudyBuddy Pro for full immersion.",
@@ -257,14 +259,14 @@ export default function FocusModal() {
                                     className="text-xs font-bold text-[var(--accent-yellow)] border border-[var(--accent-yellow)]/30 px-3 py-1.5 rounded-lg hover:bg-[var(--accent-yellow)] hover:text-black transition-colors"
                                 >
                                     Upgrade
-                                </button>
+                                </SquishyButton>
                             </div>
                         </div>
                     </div>
 
                     {/* Launch Buttons */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-auto">
-                        <button
+                        <SquishyButton
                             disabled={false}
                             onClick={() => {
                                 useStudyStore.getState().startMode('studyCafe', selectedTask?.id || null);
@@ -272,8 +274,8 @@ export default function FocusModal() {
                             className="flex flex-col items-center justify-center gap-2 p-3 sm:p-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-dark)] hover:border-[var(--accent-cyan)] hover:bg-[var(--accent-cyan)]/5 transition-all group">
                             <Coffee size={24} className="text-[var(--text-muted)] group-hover:text-[var(--accent-cyan)] transition-colors" />
                             <span className="font-bold text-[var(--text-main)]">Study Cafe</span>
-                        </button>
-                        <button
+                        </SquishyButton>
+                        <SquishyButton
                             disabled={false}
                             onClick={() => {
                                 useStudyStore.getState().startMode('flowState', selectedTask?.id || null);
@@ -282,7 +284,7 @@ export default function FocusModal() {
                         >
                             <Waves size={24} className="text-[var(--accent-teal)]" />
                             <span className="font-bold text-[var(--text-main)]">FlowState</span>
-                        </button>
+                        </SquishyButton>
                     </div>
                 </div>
 

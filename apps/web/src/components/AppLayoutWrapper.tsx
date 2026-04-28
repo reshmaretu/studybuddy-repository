@@ -4,6 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react"; // ⚡ Add useState
 import { useStudyStore } from "@/store/useStudyStore"; // ⚡ Import store
 import { useUser } from "@/hooks/useAuth";
+import { unlockAudio } from "@/lib/sound";
 import Sidebar from "./Sidebar";
 import ChumWidget from "./ChumWidget";
 import PresenceSync from "./PresenceSync";
@@ -53,6 +54,19 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                 .then(reg => console.log('[STUDYBUDDY] Neural Link (SW) Registered'))
                 .catch(err => console.error('[STUDYBUDDY] Neural Link Failed:', err));
         }
+
+        // 🔊 Unlock Audio on first interaction
+        const unlock = () => {
+            unlockAudio();
+            window.removeEventListener('click', unlock);
+            window.removeEventListener('keydown', unlock);
+        };
+        window.addEventListener('click', unlock);
+        window.addEventListener('keydown', unlock);
+        return () => {
+            window.removeEventListener('click', unlock);
+            window.removeEventListener('keydown', unlock);
+        };
     }, [isInitialized, initializeData]);
     
     // 🚪 Protection: Redirect if not logged in and trying to access app pages

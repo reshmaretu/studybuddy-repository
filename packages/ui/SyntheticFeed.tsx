@@ -5,9 +5,10 @@ import { supabase, useStudyStore } from '@studybuddy/api';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageCircle, Radio, Sparkles, Target, Heart } from 'lucide-react';
 import * as THREE from 'three';
+import confetti from 'canvas-confetti';
 
 export const SyntheticFeed = () => {
-  const { broadcasts, fetchBroadcasts, triggerChumToast } = useStudyStore();
+  const { broadcasts, fetchBroadcasts, triggerChumToast, sparkBroadcast } = useStudyStore();
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [sparkBurst, setSparkBurst] = useState<{ id: string; name: string } | null>(null);
@@ -38,6 +39,32 @@ export const SyntheticFeed = () => {
     syncUser();
   }, []);
 
+  // 📡 REALTIME SPARKS
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const channel = supabase
+      .channel('public:broadcasts')
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'broadcasts' 
+      }, (payload) => {
+        const updated = payload.new as any;
+        const old = payload.old as any;
+        
+        if (updated.user_id === currentUserId && (updated.reactions_count || 0) > (old.reactions_count || 0)) {
+            // Someone sparked me!
+            setSparkBurst({ id: updated.id, name: 'Someone' });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserId]);
+
   const loadMore = async () => {
     try {
       await fetchBroadcasts(20, broadcasts.length);
@@ -46,13 +73,28 @@ export const SyntheticFeed = () => {
     }
   };
 
-  const handleSpark = (name: string, id: string) => {
+  const handleSpark = (name: string, id: string, e: React.MouseEvent) => {
     const now = Date.now();
     if (now < cooldownUntil) return;
     if (sparkedIds.has(id)) return;
+
+    // Neural spark confetti!
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = (rect.left + rect.width / 2) / window.innerWidth;
+    const y = (rect.top + rect.height / 2) / window.innerHeight;
+
+    confetti({
+        particleCount: 50,
+        spread: 80,
+        origin: { x, y },
+        colors: ['#2dd4bf', '#facc15', '#fb7185', '#8b5cf6'],
+        zIndex: 100000,
+        scalar: 0.8
+    });
     setSparkedIds((prev) => new Set(prev).add(id));
     setCooldownUntil(now + 2000);
     setSparkBurst({ id, name });
+    sparkBroadcast(id); // Persist to network!
     const safeName = name?.trim() || 'that user';
     triggerChumToast?.(`You sparked ${safeName}'s feed`, 'success');
   };
@@ -268,7 +310,7 @@ export const SyntheticFeed = () => {
                 <button
                   type="button"
                   disabled={sparkDisabled}
-                  onClick={() => handleSpark(displayName, broadcast.id)}
+                  onClick={(e) => handleSpark(displayName, broadcast.id, e)}
                   className={`absolute right-4 bottom-4 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border transition-colors ${
                     sparkDisabled
                       ? 'border-[var(--border-color)] text-[var(--text-muted)]/60 cursor-not-allowed'

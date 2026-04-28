@@ -200,8 +200,27 @@ function generateCrystalCluster(count: number) {
     return crystals;
 }
 
+function TinySprout() {
+    return (
+        <group position={[0, 0.1, 0]}>
+            <mesh castShadow>
+                <cylinderGeometry args={[0.03, 0.05, 0.3, 5]} />
+                <meshStandardMaterial color="#4ade80" roughness={0.8} />
+            </mesh>
+            <mesh position={[0.08, 0.1, 0]} rotation={[0, 0, -0.6]} castShadow>
+                <sphereGeometry args={[0.08, 5, 2]} />
+                <meshStandardMaterial color="#22c55e" flatShading roughness={0.7} />
+            </mesh>
+            <mesh position={[-0.07, 0.05, 0]} rotation={[0, 0, 0.6]} castShadow>
+                <sphereGeometry args={[0.06, 5, 2]} />
+                <meshStandardMaterial color="#16a34a" flatShading roughness={0.7} />
+            </mesh>
+        </group>
+    );
+}
+
 // --- MAIN COMPONENTS ---
-function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions, masteredShards, flowerCount }: any) {
+function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions, masteredShards, flowerCount, isRebirthing }: any) {
     const shardsRef = useRef<THREE.Group>(null);
     const coreLightRef = useRef<THREE.PointLight>(null);
     const bgMeshRef = useRef<THREE.InstancedMesh>(null);
@@ -310,9 +329,9 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
 
     useFrame((state) => {
         if (shardsRef.current && coreLightRef.current) {
-            const targetYScale = progress === 0 ? 0.05 : 0.2 + (progress * 1.2);
-            const targetXZScale = progress === 0 ? 0.05 : 0.6 + (progress * 0.6);
-            shardsRef.current.scale.lerp(new THREE.Vector3(targetXZScale, targetYScale, targetXZScale), 0.05);
+            const targetYScale = isRebirthing ? 0 : (progress === 0 ? 0.05 : 0.2 + (progress * 1.2));
+            const targetXZScale = isRebirthing ? 0 : (progress === 0 ? 0.05 : 0.6 + (progress * 0.6));
+            shardsRef.current.scale.lerp(new THREE.Vector3(targetXZScale, targetYScale, targetXZScale), isRebirthing ? 0.15 : 0.05);
             const targetIntensity = progress === 0 ? 0.2 : 1.5 + (progress * 5);
             coreLightRef.current.intensity = THREE.MathUtils.lerp(coreLightRef.current.intensity, targetIntensity, 0.05);
             materials.quartz.emissiveIntensity = THREE.MathUtils.lerp(materials.quartz.emissiveIntensity, progress * 0.25, 0.05);
@@ -367,16 +386,20 @@ function QuartzCluster({ progress, themeKey, setViewingShard, allFlowerPositions
 
             <Float speed={1.5} rotationIntensity={0.02} floatIntensity={0.05}>
                 <group ref={shardsRef} position={[0, 0.3, 0]}>
-                    {crystalData.map((c, i) => (
-                        <group key={i} position={c.pos as any} rotation={c.rot as any}>
-                            <mesh position={[0, c.height / 2, 0]} material={materials.quartz} castShadow>
-                                <cylinderGeometry args={[c.radius, c.radius, c.height, 6]} />
-                                <mesh position={[0, c.height / 2 + (c.radius * 0.6), 0]} material={materials.quartz}>
-                                    <coneGeometry args={[c.radius, c.radius * 1.2, 6]} />
+                    {progress > 0 && progress < 0.02 ? (
+                        <TinySprout />
+                    ) : (
+                        crystalData.map((c, i) => (
+                            <group key={i} position={c.pos as any} rotation={c.rot as any}>
+                                <mesh position={[0, c.height / 2, 0]} material={materials.quartz} castShadow>
+                                    <cylinderGeometry args={[c.radius, c.radius, c.height, 6]} />
+                                    <mesh position={[0, c.height / 2 + (c.radius * 0.6), 0]} material={materials.quartz}>
+                                        <coneGeometry args={[c.radius, c.radius * 1.2, 6]} />
+                                    </mesh>
                                 </mesh>
-                            </mesh>
-                        </group>
-                    ))}
+                            </group>
+                        ))
+                    )}
                 </group>
             </Float>
         </group>
@@ -533,7 +556,7 @@ function CameraRig({ isFocused, isFreecam, keys, snipingShard, setSnipingShard, 
 }
 
 // ─── COMPONENT ENTRY ───
-export default function GeodeScene({ completionRatio, snipingShard, setSnipingShard }: { completionRatio: number, snipingShard?: any, setSnipingShard?: any }) {
+export default function GeodeScene({ completionRatio, snipingShard, setSnipingShard, isRebirthing }: { completionRatio: number, snipingShard?: any, setSnipingShard?: any, isRebirthing?: boolean }) {
     const [isFocused, setIsFocused] = useState(false);
     const [isFreecam, setIsFreecam] = useState(false);
     const [viewingShard, setViewingShard] = useState<any>(null);
@@ -643,7 +666,7 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
             )}
 
             {/* THE 3D CANVAS */}
-            <Canvas shadows camera={{ position: [0, 3, 8], fov: 45 }}>
+            <Canvas shadows camera={{ position: [0, 3, 8], fov: 45 }} style={{ pointerEvents: 'auto', position: 'relative', zIndex: 1 }}>
                 <color attach="background" args={[activeAtmosphere.bg]} />
                 <fog attach="fog" args={[activeAtmosphere.bg, activeAtmosphere.fogStart, activeAtmosphere.fogEnd]} />
 
@@ -660,6 +683,7 @@ export default function GeodeScene({ completionRatio, snipingShard, setSnipingSh
                     allFlowerPositions={allFlowerPositions}
                     masteredShards={masteredShards}
                     flowerCount={resolvedFlowerCount}
+                    isRebirthing={isRebirthing}
                 />
 
                 <CameraRig

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef, useMemo, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 import * as THREE from "three";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html, OrbitControls, PerspectiveCamera, QuadraticBezierLine, QuadraticBezierLineRef, Float, Points, PointMaterial, Line } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldAlert, BoxSelect, Layers, Zap, Maximize2, Minimize2 } from "lucide-react";
@@ -32,6 +32,20 @@ const generateUserColor = (userId: string): string => {
     const lightness = 50 + (Math.abs(hash % 20)); // 50-70% lightness
     
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+};
+
+// Generate a stable pact color from pact ID
+const getPactColor = (pactId: string): string => {
+    let hash = 0;
+    for (let i = 0; i < pactId.length; i++) {
+        const char = pactId.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    
+    // Convert hash to a deterministic hex color
+    const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+    return "#" + "000000".substring(0, 6 - c.length) + c;
 };
 
 const STATUS_CONFIG: Record<LanternUser['status'], { color: string; emissive: number; scale: number; pulse: number }> = {
@@ -106,11 +120,145 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
         return () => clearInterval(interval);
     }, []);
 
-    // Expose warpToUser to parent
-    const getPos = useCallback((user: LanternUser): [number, number, number] => {
+    const getUserKey = useCallback((user: LanternUser) => {
+        if (user.id === 'me' && currentUserId) return currentUserId;
+        return user.id;
+    }, [currentUserId]);
+
+    const getBasePos = useCallback((user: LanternUser): [number, number, number] => {
         const zPos = is3D ? (user.gridZ - 6) * 12 + (user.jitterZ / 8) : 0;
         return [(user.gridX - 6) * 12 + (user.jitterX / 8), (user.gridY - 6) * 12 + (user.jitterY / 8), zPos];
     }, [is3D]);
+
+    const { positions, pactLines, pactNameByUser } = useMemo(() => {
+        const basePositions = new Map<string, [number, number, number]>();
+        users.forEach((user) => {
+            basePositions.set(getUserKey(user), getBasePos(user));
+        });
+
+        const nextPositions = new Map(basePositions);
+        const lines: PactLine[] = [];
+        const pactNames = new Map<string, string>();
+        const pactMemberIds = new Set<string>();
+        const pactCenters: Array<{ center: [number, number, number]; color: string }> = [];
+
+        const getAngle = (seed: string) => {
+            let hash = 0;
+            for (let i = 0; i < seed.length; i++) {
+                hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+                hash |= 0;
+            }
+            return (Math.abs(hash) % 360) * (Math.PI / 180);
+        };
+
+        pacts.forEach((pact) => {
+            let memberIds = (pact.members || []).map((m: any) => m.id).filter(Boolean);
+            
+            // Ensure current user is included in pact members for rendering
+            if (currentUserId && !memberIds.includes(currentUserId)) {
+                memberIds = [currentUserId, ...memberIds];
+            }
+            
+            memberIds.forEach((memberId: string) => {
+                const normalizedId = currentUserId && memberId === currentUserId ? 'me' : memberId;
+                if (!pactNames.has(normalizedId)) pactNames.set(normalizedId, pact.pact_name);
+                pactMemberIds.add(memberId);
+            });
+            const memberPositions = memberIds.map((id) => {
+                const normalizedId = currentUserId && id === currentUserId ? 'me' : id;
+                return { id, pos: basePositions.get(normalizedId) };
+            }).filter(m => m.pos) as { id: string; pos: [number, number, number] }[];
+
+            if (memberPositions.length < 2) return;
+
+            const center = memberPositions.reduce((acc, curr) => {
+                acc[0] += curr.pos[0];
+                acc[1] += curr.pos[1];
+                acc[2] += curr.pos[2];
+                return acc;
+            }, [0, 0, 0] as [number, number, number]);
+            center[0] /= memberPositions.length;
+            center[1] /= memberPositions.length;
+            center[2] /= memberPositions.length;
+
+            const radius = 9;
+            const ordered = memberPositions
+                .map((member) => ({
+                    ...member,
+                    angle: getAngle(`${pact.id}-${member.id}`)
+                }))
+                .sort((a, b) => a.angle - b.angle);
+
+            ordered.forEach((member) => {
+                const targetX = center[0] + Math.cos(member.angle) * radius;
+                const targetY = center[1] + Math.sin(member.angle) * radius;
+                const targetZ = is3D ? center[2] + (Math.sin(member.angle * 2) * 2) : 0;
+                const base = member.pos;
+                const blend = 0.7;
+                const x = base[0] + (targetX - base[0]) * blend;
+                const y = base[1] + (targetY - base[1]) * blend;
+                const z = is3D ? base[2] + (targetZ - base[2]) * blend : 0;
+                nextPositions.set(member.id, [x, y, z]);
+            });
+
+            const pactColor = pact.constellation_color || getPactColor(pact.id || 'default');
+
+            pactCenters.push({
+                center: [center[0], center[1], center[2]],
+                color: pactColor
+            });
+
+            for (let i = 0; i < ordered.length - 1; i += 1) {
+                const curr = ordered[i];
+                const next = ordered[i + 1];
+                const start = nextPositions.get(curr.id) as [number, number, number];
+                const end = nextPositions.get(next.id) as [number, number, number];
+                lines.push({ start, end, color: pactColor });
+            }
+            // Close the loop for more constellation-like feel
+            if (ordered.length > 2) {
+                lines.push({ start: nextPositions.get(ordered[ordered.length - 1].id) as [number, number, number], end: nextPositions.get(ordered[0].id) as [number, number, number], color: pactColor });
+            }
+        });
+
+        if (pactCenters.length > 0) {
+            const repelRadius = 40;
+            const repelStrength = 32;
+            basePositions.forEach((pos, userId) => {
+                if (pactMemberIds.has(userId)) return;
+
+                let closestCenter: [number, number, number] | null = null;
+                let closestDist = Number.POSITIVE_INFINITY;
+                for (const pact of pactCenters) {
+                    const dx = pos[0] - pact.center[0];
+                    const dy = pos[1] - pact.center[1];
+                    const dist = Math.hypot(dx, dy);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        closestCenter = pact.center;
+                    }
+                }
+
+                if (!closestCenter || closestDist >= repelRadius) return;
+
+                const dx = pos[0] - closestCenter[0];
+                const dy = pos[1] - closestCenter[1];
+                const norm = Math.max(0.001, Math.hypot(dx, dy));
+                const push = ((repelRadius - closestDist) / repelRadius) * repelStrength;
+                const x = pos[0] + (dx / norm) * push;
+                const y = pos[1] + (dy / norm) * push;
+                const z = is3D ? pos[2] : 0;
+                nextPositions.set(userId, [x, y, z]);
+            });
+        }
+
+        return { positions: nextPositions, pactLines: lines, pactNameByUser: pactNames };
+    }, [users, pacts, getUserKey, getBasePos, is3D, currentUserId]);
+
+    const getPos = useCallback((user: LanternUser): [number, number, number] => {
+        const key = getUserKey(user);
+        return positions.get(key) || getBasePos(user);
+    }, [getUserKey, positions, getBasePos]);
 
     useImperativeHandle(ref, () => ({
         warpToUser: (userId: string) => {
@@ -202,8 +350,9 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                 <directionalLight position={[0, 0, 50]} intensity={2} color="#ffffff" />
 
                 <GlobalPulse key={users.length} />
+                {is3D && <ShootingStars />}
 
-                <LanternConstellation users={users} pacts={pacts} currentUserId={currentUserId} is3D={is3D} onWarp={setWarpTarget} intensity={globalIntensity} />
+                <LanternConstellation users={users} currentUserId={currentUserId} is3D={is3D} onWarp={setWarpTarget} intensity={globalIntensity} positions={positions} pactLines={pactLines} pactNameByUser={pactNameByUser} getPos={getPos} />
 
                 <EffectComposer enabled={performanceSettings.bloomEnabled && !isPerformanceLow} enableNormalPass={false}>
                     <Bloom
@@ -238,137 +387,82 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
     );
 });
 
+
+function ShootingStars() {
+    const lines = useRef<THREE.Line[]>([]);
+    const scene = useThree((state) => state.scene);
+
+    useEffect(() => {
+        const materials = [
+            new THREE.LineBasicMaterial({ color: 0x2dd4bf, transparent: true, opacity: 0.8 }),
+            new THREE.LineBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.8 }),
+            new THREE.LineBasicMaterial({ color: 0xff007f, transparent: true, opacity: 0.8 }),
+            new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 })
+        ];
+        
+        for (let i = 0; i < 12; i++) {
+            const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -30)]);
+            const material = materials[i % materials.length];
+            const line = new THREE.Line(geometry, material);
+            
+            // Start way outside
+            line.position.set((Math.random() - 0.5) * 600, (Math.random() - 0.5) * 600, -300 - Math.random() * 300);
+            
+            // Random direction
+            const angleX = (Math.random() - 0.5) * Math.PI;
+            const angleY = (Math.random() - 0.5) * Math.PI;
+            line.rotation.set(angleX, angleY, 0);
+
+            // Store custom speed in userData
+            line.userData = { speed: 120 + Math.random() * 180, active: Math.random() > 0.5, delay: Math.random() * 5 };
+            
+            scene.add(line);
+            lines.current.push(line);
+        }
+
+        return () => {
+            lines.current.forEach(line => {
+                scene.remove(line);
+                line.geometry.dispose();
+            });
+            materials.forEach(m => m.dispose());
+        };
+    }, [scene]);
+
+    useFrame((state, delta) => {
+        lines.current.forEach((line) => {
+            if (!line.userData.active) {
+                line.userData.delay -= delta;
+                if (line.userData.delay <= 0) {
+                    line.userData.active = true;
+                    // Reset position
+                    line.position.set((Math.random() - 0.5) * 600, (Math.random() - 0.5) * 600, -300 - Math.random() * 300);
+                    const angleX = (Math.random() - 0.5) * Math.PI;
+                    const angleY = (Math.random() - 0.5) * Math.PI;
+                    line.rotation.set(angleX, angleY, 0);
+                    line.userData.speed = 180 + Math.random() * 250;
+                }
+            } else {
+                line.translateZ(-line.userData.speed * delta);
+                // If it goes too far, reset
+                if (Math.abs(line.position.x) > 500 || Math.abs(line.position.y) > 500 || line.position.z > 300) {
+                    line.userData.active = false;
+                    line.userData.delay = 1 + Math.random() * 4;
+                }
+            }
+        });
+    });
+
+    return null;
+}
+
 export default ThreeLanternNet;
 
 type PactLine = { start: [number, number, number]; end: [number, number, number]; color: string };
 
-function LanternConstellation({ users, pacts, currentUserId, is3D, onWarp, intensity }: { users: LanternUser[], pacts: Pact[], currentUserId?: string | null, is3D: boolean, onWarp: (v: THREE.Vector3) => void, intensity: number }) {
+function LanternConstellation({ users, currentUserId, is3D, onWarp, intensity, positions, pactLines, pactNameByUser, getPos }: { users: LanternUser[], currentUserId?: string | null, is3D: boolean, onWarp: (v: THREE.Vector3) => void, intensity: number, positions: Map<string, [number, number, number]>, pactLines: PactLine[], pactNameByUser: Map<string, string>, getPos: (user: LanternUser) => [number, number, number] }) {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const [selectedId, setSelectedId] = useState<string | null>(null);
-
-    const getUserKey = useCallback((user: LanternUser) => {
-        if (user.id === 'me' && currentUserId) return currentUserId;
-        return user.id;
-    }, [currentUserId]);
-
-    const getBasePos = useCallback((user: LanternUser): [number, number, number] => {
-        const zPos = is3D ? (user.gridZ - 6) * 12 + (user.jitterZ / 8) : 0;
-        return [(user.gridX - 6) * 12 + (user.jitterX / 8), (user.gridY - 6) * 12 + (user.jitterY / 8), zPos];
-    }, [is3D]);
-
-    const { positions, pactLines, pactNameByUser } = useMemo(() => {
-        const basePositions = new Map<string, [number, number, number]>();
-        users.forEach((user) => {
-            basePositions.set(getUserKey(user), getBasePos(user));
-        });
-
-        const nextPositions = new Map(basePositions);
-        const lines: PactLine[] = [];
-        const pactNames = new Map<string, string>();
-        const pactMemberIds = new Set<string>();
-        const pactCenters: Array<{ center: [number, number, number]; color: string }> = [];
-
-        const getAngle = (seed: string) => {
-            let hash = 0;
-            for (let i = 0; i < seed.length; i++) {
-                hash = ((hash << 5) - hash) + seed.charCodeAt(i);
-                hash |= 0;
-            }
-            return (Math.abs(hash) % 360) * (Math.PI / 180);
-        };
-
-        pacts.forEach((pact) => {
-            const memberIds = (pact.members || []).map((m: any) => m.id).filter(Boolean);
-            memberIds.forEach((memberId: string) => {
-                const normalizedId = currentUserId && memberId === currentUserId ? 'me' : memberId;
-                if (!pactNames.has(normalizedId)) pactNames.set(normalizedId, pact.pact_name);
-                pactMemberIds.add(memberId);
-            });
-            const memberPositions = memberIds.map((id) => ({ id, pos: basePositions.get(id) })).filter(m => m.pos) as { id: string; pos: [number, number, number] }[];
-            if (memberPositions.length < 2) return;
-
-            const center = memberPositions.reduce((acc, curr) => {
-                acc[0] += curr.pos[0];
-                acc[1] += curr.pos[1];
-                acc[2] += curr.pos[2];
-                return acc;
-            }, [0, 0, 0] as [number, number, number]);
-            center[0] /= memberPositions.length;
-            center[1] /= memberPositions.length;
-            center[2] /= memberPositions.length;
-
-            const radius = 9;
-            const ordered = memberPositions
-                .map((member) => ({
-                    ...member,
-                    angle: getAngle(`${pact.id}-${member.id}`)
-                }))
-                .sort((a, b) => a.angle - b.angle);
-
-            ordered.forEach((member) => {
-                const targetX = center[0] + Math.cos(member.angle) * radius;
-                const targetY = center[1] + Math.sin(member.angle) * radius;
-                const targetZ = is3D ? center[2] + (Math.sin(member.angle * 2) * 2) : 0;
-                const base = member.pos;
-                const blend = 0.7;
-                const x = base[0] + (targetX - base[0]) * blend;
-                const y = base[1] + (targetY - base[1]) * blend;
-                const z = is3D ? base[2] + (targetZ - base[2]) * blend : 0;
-                nextPositions.set(member.id, [x, y, z]);
-            });
-
-            pactCenters.push({
-                center: [center[0], center[1], center[2]],
-                color: pact.constellation_color || '#2dd4bf'
-            });
-
-            for (let i = 0; i < ordered.length - 1; i += 1) {
-                const curr = ordered[i];
-                const next = ordered[i + 1];
-                const start = nextPositions.get(curr.id) as [number, number, number];
-                const end = nextPositions.get(next.id) as [number, number, number];
-                lines.push({ start, end, color: pact.constellation_color || '#2dd4bf' });
-            }
-        });
-
-        if (pactCenters.length > 0) {
-            const repelRadius = 40;
-            const repelStrength = 32;
-            basePositions.forEach((pos, userId) => {
-                if (pactMemberIds.has(userId)) return;
-
-                let closestCenter: [number, number, number] | null = null;
-                let closestDist = Number.POSITIVE_INFINITY;
-                for (const pact of pactCenters) {
-                    const dx = pos[0] - pact.center[0];
-                    const dy = pos[1] - pact.center[1];
-                    const dist = Math.hypot(dx, dy);
-                    if (dist < closestDist) {
-                        closestDist = dist;
-                        closestCenter = pact.center;
-                    }
-                }
-
-                if (!closestCenter || closestDist >= repelRadius) return;
-
-                const dx = pos[0] - closestCenter[0];
-                const dy = pos[1] - closestCenter[1];
-                const norm = Math.max(0.001, Math.hypot(dx, dy));
-                const push = ((repelRadius - closestDist) / repelRadius) * repelStrength;
-                const x = pos[0] + (dx / norm) * push;
-                const y = pos[1] + (dy / norm) * push;
-                const z = is3D ? pos[2] : 0;
-                nextPositions.set(userId, [x, y, z]);
-            });
-        }
-
-        return { positions: nextPositions, pactLines: lines, pactNameByUser: pactNames };
-    }, [users, pacts, getUserKey, getBasePos, is3D, currentUserId]);
-
-    const getPos = useCallback((user: LanternUser): [number, number, number] => {
-        const key = getUserKey(user);
-        return positions.get(key) || getBasePos(user);
-    }, [getUserKey, positions, getBasePos]);
 
     const me = users.find(u => u.id === 'me');
     const myPos: [number, number, number] = me ? getPos(me) : [0, 0, 0];
@@ -419,14 +513,28 @@ function LanternConstellation({ users, pacts, currentUserId, is3D, onWarp, inten
 }
 
 function ConstellationLink({ start, end, color, is3D }: { start: [number, number, number]; end: [number, number, number]; color: string; is3D: boolean }) {
-    if (is3D) {
-        return (
-            <Line points={[start, end]} color={color} transparent opacity={0.65} lineWidth={1} />
-        );
-    }
+    const lineRef = useRef<any>(null);
+
+    useFrame((state, delta) => {
+        if (lineRef.current?.material) {
+            lineRef.current.material.dashOffset -= delta * 1.5;
+        }
+    });
+
+    const threeColor = useMemo(() => new THREE.Color(color), [color]);
 
     return (
-        <Line points={[start, end]} color={color} transparent opacity={0.55} lineWidth={1} />
+        <Line 
+            ref={lineRef}
+            points={[start, end]} 
+            color={color} 
+            transparent 
+            opacity={is3D ? 0.8 : 0.6} 
+            lineWidth={is3D ? 2.5 : 1.5}
+            dashed={true}
+            dashSize={0.4}
+            gapSize={0.4} 
+        />
     );
 }
 
@@ -437,25 +545,38 @@ function AnimatedSanctuaryLink({ start, end, is3D, isSelf, isHosting }: {
     isSelf: boolean,
     isHosting: boolean
 }) {
-    const lineRef = useRef<QuadraticBezierLineRef>(null);
+    const lineRef = useRef<any>(null);
 
-    useFrame((state) => {
+    useFrame((state, delta) => {
         if (!lineRef.current) return;
         const mat = lineRef.current.material as any;
+        
+        // Let the energy dots flow to the hosted room!
+        mat.dashOffset -= delta * (isHosting ? 3.0 : 1.5); 
+
         if (isHosting) {
             const t = state.clock.elapsedTime * 5;
-            // lineWidth is a custom property in the drei QuadraticBezierLine material
-            (mat as any).lineWidth = 2 + Math.sin(t) * 1;
-            mat.opacity = 0.6 + Math.sin(t) * 0.2;
+            mat.lineWidth = 2.5 + Math.sin(t) * 1;
+            mat.opacity = 0.7 + Math.sin(t) * 0.2;
         } else {
-            (mat as any).lineWidth = 1;
-            mat.opacity = 0.3;
+            mat.lineWidth = 1.5;
+            mat.opacity = 0.4;
         }
     });
 
     if (is3D) {
         return (
-            <Line points={[start, end]} color={isSelf ? "#ff007f" : "#2dd4bf"} transparent opacity={0.35} lineWidth={1} />
+            <Line 
+                ref={lineRef}
+                points={[start, end]} 
+                color={isSelf ? "#ff007f" : "#2dd4bf"} 
+                transparent 
+                opacity={0.4} 
+                lineWidth={1}
+                dashed={true}
+                dashSize={0.8}
+                gapSize={0.4}
+            />
         );
     }
 
@@ -469,6 +590,9 @@ function AnimatedSanctuaryLink({ start, end, is3D, isSelf, isHosting }: {
             transparent
             opacity={0.4}
             lineWidth={1}
+            dashed={true}
+            dashSize={0.8}
+            gapSize={0.4}
         />
     );
 }
@@ -593,6 +717,9 @@ function SingleLantern({ user, is3D, isHovered, isSelected, onClick, isSelf, int
                                 <div className="flex justify-between items-start mb-4">
                                     <div>
                                         <h3 className="font-black text-sm">{user.name}</h3>
+                                        <p className="text-[9px] font-bold text-[var(--accent-teal)] italic">
+                                            {user.hours > 10 ? "The Void Walker" : user.hours > 5 ? "The Deep Thinker" : "The Novice Scholar"}
+                                        </p>
                                         <p
                                             className="text-[10px] font-black uppercase tracking-widest mt-0.5"
                                             style={{ color: STATUS_CONFIG[user.status as keyof typeof STATUS_CONFIG]?.color || '#fff' }}

@@ -5,6 +5,7 @@ import { useStudyStore } from '@studybuddy/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Users, X, CheckCircle2 } from 'lucide-react';
 import { Button } from './Button';
+import { playChime, playTick } from '@/lib/sound';
 
 interface FormPactModalProps {
   isOpen: boolean;
@@ -42,6 +43,7 @@ export const FormPactModal: React.FC<FormPactModalProps> = ({
   const pactMemberIds = new Set((currentPact?.members || []).map((member) => member.id));
 
   const handleToggleFriend = (userId: string) => {
+    playTick(); // Provide feedback for selection
     setSelectedFriends((prev) =>
       prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
     );
@@ -56,6 +58,7 @@ export const FormPactModal: React.FC<FormPactModalProps> = ({
     setLoading(true);
     try {
       await createPact(pactName, selectedFriends);
+      playChime(); // Celebrate pact creation!
       setPactName('');
       setSelectedFriends([]);
       onClose();

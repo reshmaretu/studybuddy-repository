@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useStudyStore } from "@/store/useStudyStore";
 import { X, Clock, Edit2, Zap, Pin } from "lucide-react";
+import { SquishyButton } from "@studybuddy/ui";
 
 export default function TaskViewModal() {
     const { isViewModalOpen, viewingTaskId, tasks, closeViewModal, openEditModal } = useStudyStore();
@@ -30,7 +31,8 @@ export default function TaskViewModal() {
                     <motion.div
                         initial={{ scale: 0.95, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
-                        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                        exit={{ scale: 0.8, opacity: 0, y: -20 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
                         className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2.5rem] w-full max-w-md relative z-10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] overflow-hidden max-h-[90vh]"
                     >
                         <div className="p-4 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--bg-sidebar)]/50">
@@ -39,9 +41,9 @@ export default function TaskViewModal() {
                                 {task.isPinned && <Pin size={14} className="text-[var(--accent-teal)] ml-2" />}
                                 {task.isFrog && <span className="text-xl">🐸</span>}
                             </div>
-                            <button onClick={closeViewModal} className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-2 bg-[var(--bg-dark)] rounded-xl border border-[var(--border-color)] transition-all hover:scale-110 active:scale-95">
+                            <SquishyButton onClick={closeViewModal} className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-2 bg-[var(--bg-dark)] rounded-xl border border-[var(--border-color)] transition-all">
                                 <X size={18} />
-                            </button>
+                            </SquishyButton>
                         </div>
 
                         <div className="p-6 sm:p-8 space-y-6 overflow-y-auto max-h-[calc(90vh-120px)]">
@@ -66,15 +68,15 @@ export default function TaskViewModal() {
                         </div>
 
                         <div className="p-6 border-t border-[var(--border-color)] bg-[var(--bg-sidebar)]/30 flex justify-end">
-                            <button 
+                            <SquishyButton 
                                 onClick={() => { 
                                     closeViewModal(); 
                                     openEditModal(task.id); 
                                 }} 
-                                className="px-8 py-3 rounded-2xl bg-[var(--accent-teal)] text-[#0b1211] font-black uppercase tracking-widest text-xs hover:brightness-110 flex items-center gap-3 transition-all shadow-[0_4px_15px_rgba(45,212,191,0.2)]"
+                                className="px-8 py-3 rounded-2xl bg-[var(--accent-teal)] text-[#0b1211] font-black uppercase tracking-widest text-xs transition-all shadow-[0_4px_15px_rgba(45,212,191,0.2)] flex items-center gap-3"
                             >
                                 <Edit2 size={14} /> Edit Task
-                            </button>
+                            </SquishyButton>
                         </div>
                     </motion.div>
                 </div>

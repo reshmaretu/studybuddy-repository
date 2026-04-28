@@ -61,3 +61,4 @@ export * from './types';
 export * from './store';
 export * from './toolStore';
 export * from './hooks/useTerms';
+export * from './sound';

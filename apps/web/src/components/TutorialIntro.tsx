@@ -50,7 +50,7 @@ const STEPS: Step[] = [
         title: "Daily Protocol",
         message: "At dawn, select a productivity framework to calibrate your day. Let's explore the four sacred methods.",
         icon: <SunDim className="text-yellow-400" size={24} />,
-        path: "/dashboard",
+        path: "/garden",
         selector: "#morning-protocol-nexus",
         skipIfMissing: true
     },
@@ -58,7 +58,7 @@ const STEPS: Step[] = [
         title: "Eisenhower Matrix",
         message: "Sort your tasks into four quadrants: Urgent & Important, Not Urgent but Important, Urgent but Not Important, and Just Ignore. Focus on what truly moves the needle.",
         icon: <LayoutGrid className="text-teal-400" size={24} />,
-        path: "/dashboard",
+        path: "/garden",
         selector: "#morning-protocol-nexus",
         skipIfMissing: true
     },
@@ -66,7 +66,7 @@ const STEPS: Step[] = [
         title: "The 1-3-5 Rule",
         message: "Commit to finishing 1 BIG task, 3 MEDIUM tasks, and 5 SMALL tasks. It's the perfect balance for a high-output day without the burnout.",
         icon: <List className="text-amber-400" size={24} />,
-        path: "/dashboard",
+        path: "/garden",
         selector: "#morning-protocol-nexus",
         skipIfMissing: true
     },
@@ -74,7 +74,7 @@ const STEPS: Step[] = [
         title: "Ivy Lee Method",
         message: "Write down your 6 most important tasks. Rank them by priority. NEVER start task #2 until task #1 is fully finished. Discipline of focus.",
         icon: <ListOrdered className="text-indigo-400" size={24} />,
-        path: "/dashboard",
+        path: "/garden",
         selector: "#morning-protocol-nexus",
         skipIfMissing: true
     },

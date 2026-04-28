@@ -9,6 +9,7 @@ import {
     ChatMessage, TutorSession, TutorSessionState, Shard, LanternUser, WardrobeAccessory, Invoice,
     SyntheticLog, UserFriendship, Pact, CrystalMastery
 } from './types';
+import { playChime, setSoundConfig } from './sound';
 
 const getAuthHeaders = async (): Promise<Record<string, string>> => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -255,9 +256,21 @@ export interface StudyState {
     doubleClickToComplete: boolean;
     dndEnabled: boolean;
     isSidebarHidden: boolean;
+    playTickEnabled: boolean;
+    playChimeEnabled: boolean;
+    requireCompletionConfirmation: boolean;
     performanceSettings: PerformanceSettings;
     accessibilitySettings: AccessibilitySettings;
-    setSettings: (settings: Partial<{ doubleClickToComplete: boolean; dndEnabled: boolean; isSidebarHidden: boolean; performanceSettings: Partial<PerformanceSettings>; accessibilitySettings: Partial<AccessibilitySettings> }>) => void;
+    setSettings: (settings: Partial<{ 
+        doubleClickToComplete: boolean; 
+        dndEnabled: boolean; 
+        isSidebarHidden: boolean; 
+        playTickEnabled: boolean;
+        playChimeEnabled: boolean;
+        requireCompletionConfirmation: boolean;
+        performanceSettings: Partial<PerformanceSettings>; 
+        accessibilitySettings: Partial<AccessibilitySettings> 
+    }>) => void;
     useThematicUI: boolean;
     setThematicUI: (val: boolean) => void;
     handleLogout: () => Promise<void>;
@@ -269,6 +282,7 @@ export interface StudyState {
     pacts: any[];
     addBroadcast: (content: string, broadcastType?: string) => Promise<void>;
     fetchBroadcasts: (limit?: number, offset?: number) => Promise<void>;
+    sparkBroadcast: (broadcastId: string) => Promise<void>;
     sendFriendRequest: (targetUserId: string) => Promise<void>;
     fetchFriends: () => Promise<void>;
     fetchFriendRequests: () => Promise<void>;
@@ -455,6 +469,9 @@ export const useStudyStore = create<StudyState>()(
             doubleClickToComplete: true,
             dndEnabled: true,
             isSidebarHidden: false,
+            playTickEnabled: true,
+            playChimeEnabled: true,
+            requireCompletionConfirmation: true,
             performanceSettings: {
                 mode: 'auto',
                 showParticles: true,
@@ -581,16 +598,25 @@ export const useStudyStore = create<StudyState>()(
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) await supabase.from('profiles').update({ has_completed_tutorial: val }).eq('id', user.id);
             },
-            setSettings: (settings) => set((state) => ({
-                ...state,
-                ...settings,
-                performanceSettings: settings.performanceSettings
-                    ? { ...state.performanceSettings, ...settings.performanceSettings }
-                    : state.performanceSettings,
-                accessibilitySettings: settings.accessibilitySettings
-                    ? { ...state.accessibilitySettings, ...settings.accessibilitySettings }
-                    : state.accessibilitySettings
-            })),
+            setSettings: (settings) => {
+                if (settings.playTickEnabled !== undefined) {
+                    setSoundConfig({ tickEnabled: settings.playTickEnabled });
+                }
+                if (settings.playChimeEnabled !== undefined) {
+                    setSoundConfig({ chimeEnabled: settings.playChimeEnabled });
+                }
+                
+                set((state) => ({
+                    ...state,
+                    ...settings,
+                    performanceSettings: settings.performanceSettings
+                        ? { ...state.performanceSettings, ...settings.performanceSettings }
+                        : state.performanceSettings,
+                    accessibilitySettings: settings.accessibilitySettings
+                        ? { ...state.accessibilitySettings, ...settings.accessibilitySettings }
+                        : state.accessibilitySettings
+                }));
+            },
             handleLogout: async () => {
                 const { error } = await supabase.auth.signOut();
                 if (!error && typeof window !== 'undefined') {
@@ -914,6 +940,12 @@ export const useStudyStore = create<StudyState>()(
             setFlowerSettings: (settings) => set((state) => ({ ...state, ...settings })),
 
             initializeData: async () => {
+                const s = get();
+                setSoundConfig({
+                    tickEnabled: s.playTickEnabled,
+                    chimeEnabled: s.playChimeEnabled
+                });
+                
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) { set({ isInitialized: true }); return; }
 
@@ -1369,6 +1401,7 @@ export const useStudyStore = create<StudyState>()(
                 }
                 if (masteredShardRef) {
                     get().gainXp(250); get().modifyFocusScore(15);
+                    playChime();
                     get().triggerChumToast?.(`Spirit Connection Blooms! +250 XP for ${(masteredShardRef as Shard).title}!`);
                     await supabase.from('tasks').insert([{
                         user_id: user.id, title: `Mastered: ${(masteredShardRef as Shard).title}`,
@@ -1432,6 +1465,20 @@ export const useStudyStore = create<StudyState>()(
                 if (!response.ok) throw new Error('Failed to fetch broadcasts');
                 const data = await response.json();
                 set((state) => ({ broadcasts: offset === 0 ? data : [...state.broadcasts, ...data] }));
+            },
+
+            sparkBroadcast: async (broadcastId: string) => {
+                // Optimistic update
+                set((state) => ({
+                    broadcasts: state.broadcasts.map((b) =>
+                        b.id === broadcastId ? { ...b, reactions_count: (b.reactions_count || 0) + 1 } : b
+                    )
+                }));
+
+                const { data: current } = await supabase.from('broadcasts').select('reactions_count').eq('id', broadcastId).single();
+                await supabase.from('broadcasts').update({ 
+                    reactions_count: (current?.reactions_count || 0) + 1 
+                }).eq('id', broadcastId);
             },
 
             sendFriendRequest: async (targetUserId) => {

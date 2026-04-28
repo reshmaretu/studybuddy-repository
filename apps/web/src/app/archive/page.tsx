@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FileText, Hammer, BrainCircuit, Sparkles, CheckCircle2, UploadCloud, X, Trash2, File as FileIcon } from "lucide-react";
 import { useStudyStore, Shard, TutorSession } from "@/store/useStudyStore";
 import { useTerms } from "@/hooks/useTerms";
+import { SquishyButton } from "@studybuddy/ui";
 
 function ShardCard({ shard, onRead }: { shard: Shard, onRead: (shard: Shard) => void }) {
     // 1. Pull the state and the checker from the store
@@ -32,12 +33,12 @@ function ShardCard({ shard, onRead }: { shard: Shard, onRead: (shard: Shard) => 
             )}
 
             {/* Delete Button (Visible on Hover) */}
-            <button
+            <SquishyButton
                 onClick={() => { if (window.confirm("Shatter this shard forever?")) deleteShard(shard.id); }}
-                className="absolute top-4 right-4 text-(--text-muted) hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                className="absolute top-4 right-4 text-(--text-muted) hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all border-none bg-transparent shadow-none p-1"
             >
                 <Trash2 size={16} />
-            </button>
+            </SquishyButton>
 
             <div>
                 <div className="flex justify-between items-start mb-3 pr-6">
@@ -66,31 +67,31 @@ function ShardCard({ shard, onRead }: { shard: Shard, onRead: (shard: Shard) => 
                 <div className="space-y-2">
                     <div className="flex gap-1 p-1 bg-(--bg-dark) rounded-xl border border-(--border-color)">
                         {(['mixed', 'multiple choice', 'identification', 'true or false'] as const).map((type) => (
-                            <button
+                            <SquishyButton
                                 key={type}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     // Use setTutorSessionState to update the preferred type
                                     useStudyStore.getState().updateTutorSessionState({ preferredType: type });
                                 }}
-                                className={`flex-1 py-1 text-[8px] font-bold uppercase rounded-lg transition-all ${useStudyStore.getState().tutorSessionState.preferredType === type
+                                className={`flex-1 py-1 text-[8px] font-bold uppercase rounded-lg transition-all border-none shadow-none ${useStudyStore.getState().tutorSessionState.preferredType === type
                                     ? 'bg-(--accent-yellow) text-black'
                                     : 'text-(--text-muted) hover:text-(--text-main) hover:bg-(--bg-sidebar)'
                                     }`}
                             >
                                 {type === 'multiple choice' ? 'MC' : type === 'identification' ? 'ID' : type === 'true or false' ? 'TF' : 'All'}
-                            </button>
+                            </SquishyButton>
                         ))}
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                        <button
+                        <SquishyButton
                             disabled={isTutorModeActive}
                             onClick={() => onRead(shard)}
                             className="py-2 rounded-xl border border-(--border-color) text-(--text-muted) hover:text-(--text-main) hover:bg-(--bg-sidebar) text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Read
-                        </button>
-                        <button
+                        </SquishyButton>
+                        <SquishyButton
                             disabled={shard.isMastered || isTutorModeActive}
                             onClick={() => {
                                 // 👇 THE BOUNCER LOGIC
@@ -111,7 +112,7 @@ function ShardCard({ shard, onRead }: { shard: Shard, onRead: (shard: Shard) => 
                                 {/* 👇 Only show the PRO badge if they AREN'T premium yet */}
                                 {!isPremiumUser && <span className="text-[8px] bg-[var(--accent-yellow)] text-black px-1 rounded uppercase">Pro</span>}
                             </span>
-                        </button>
+                        </SquishyButton>
                     </div>
                 </div>
             </div>
@@ -236,13 +237,13 @@ export default function TheForge() {
                     </p>
                 </div>
                 {/* STRIKE ANVIL BUTTON */}
-                <button
+                <SquishyButton
                     id="archive-forge-trigger"
                     onClick={() => setIsForgeModalOpen(true)}
                     className="bg-(--accent-yellow)/10 text-(--accent-yellow) border border-(--accent-yellow)/30 px-6 py-3 rounded-2xl font-bold hover:bg-(--accent-yellow) hover:text-[#0b1211] transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(250,204,21,0.15)]"
                 >
                     <Sparkles size={18} /> {isGamified ? "Extract Shards" : "Create Modules"}
-                </button>
+                </SquishyButton>
             </header>
 
             {/* THE ARMORY (Shard Grid) */}
@@ -292,7 +293,7 @@ export default function TheForge() {
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-(--bg-sidebar) border border-(--border-color) rounded-3xl w-full max-w-2xl overflow-hidden relative z-10 shadow-2xl p-6">
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-2xl font-bold text-(--text-main) flex items-center gap-2"><Hammer size={24} className="text-(--accent-yellow)" /> Forge a Shard</h2>
-                                <button onClick={() => setIsForgeModalOpen(false)} className="text-(--text-muted) hover:text-(--text-main)"><X size={20} /></button>
+                                <SquishyButton onClick={() => setIsForgeModalOpen(false)} className="text-(--text-muted) hover:text-(--text-main) border-none bg-transparent shadow-none p-1"><X size={20} /></SquishyButton>
                             </div>
 
                             <form onSubmit={handleForge} className="flex flex-col gap-4">
@@ -322,26 +323,26 @@ export default function TheForge() {
                                                 <div key={i} className="flex items-center gap-2 bg-(--bg-card) border border-(--border-color) pl-3 pr-2 py-1.5 rounded-lg text-xs text-(--text-main) shadow-sm">
                                                     <FileIcon size={14} className="text-(--accent-teal)" />
                                                     <span className="truncate max-w-[180px] font-medium">{f.name}</span>
-                                                    <button
+                                                    <SquishyButton
                                                         type="button"
                                                         onClick={() => removeFile(i)}
-                                                        className="ml-1 text-(--text-muted) hover:text-red-400 p-1 rounded hover:bg-(--bg-dark) transition-colors"
+                                                        className="ml-1 text-(--text-muted) hover:text-red-400 p-1 rounded hover:bg-(--bg-dark) transition-colors border-none bg-transparent shadow-none"
                                                     >
                                                         <X size={14} />
-                                                    </button>
+                                                    </SquishyButton>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
                                 </div>
 
-                                <button
+                                <SquishyButton
                                     type="submit"
                                     disabled={isForging || (!title.trim() && !content.trim() && files.length === 0)}
                                     className="mt-4 bg-(--accent-yellow) text-black px-6 py-3 rounded-xl font-bold hover:bg-yellow-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isForging ? "Forging Shard..." : "Finalize Shard"}
-                                </button>
+                                </SquishyButton>
                             </form>
                         </motion.div>
                     </div>
@@ -357,7 +358,7 @@ export default function TheForge() {
                                     <h2 className="text-xl font-bold text-(--text-main)">{readShard.title}</h2>
                                     <span className="text-xs text-(--text-muted) font-mono">{new Date(readShard.createdAt).toLocaleString()}</span>
                                 </div>
-                                <button onClick={() => setReadShard(null)} className="p-2 rounded-full hover:bg-(--bg-dark) text-(--text-muted) hover:text-(--text-main)"><X size={20} /></button>
+                                <SquishyButton onClick={() => setReadShard(null)} className="p-2 rounded-full hover:bg-(--bg-dark) text-(--text-muted) hover:text-(--text-main) border-none bg-transparent shadow-none"><X size={20} /></SquishyButton>
                             </div>
                             <div className="p-6 overflow-y-auto custom-scrollbar flex-1 text-sm text-[var(--text-main)] leading-relaxed whitespace-pre-wrap">
                                 {readShard.content || "No text content available."}

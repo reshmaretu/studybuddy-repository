@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Lock, CheckCircle2, Palette, Shirt, Sparkles, Gem } from "lucide-react";
 import { useStudyStore } from "@/store/useStudyStore";
 import { motion, AnimatePresence } from "framer-motion";
+import { SquishyButton } from "@studybuddy/ui";
 
 import ChumRenderer from "@/components/ChumRenderer";
 
@@ -219,13 +220,21 @@ export default function WardrobePage() {
 
                     {/* 🔥 CHUM BASE COLOR SCROLL CONTAINER 🔥 */}
                     <div className="w-full mt-auto pt-6 border-t border-[var(--border-color)]/50 shrink-0">
-                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4 block text-center">
-                            {isGamified ? "Chum Base Color" : "Chum Base Color"}
-                        </label>
+                        <div className="flex justify-between items-center px-4 mb-4">
+                            <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">
+                                {isGamified ? "Chum Base Color" : "Chum Base Color"}
+                            </label>
+                            <SquishyButton
+                                onClick={() => setActiveBaseColor('base14')}
+                                className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest bg-black/20 px-2 py-1 rounded transition-colors"
+                            >
+                                Reset to Default
+                            </SquishyButton>
+                        </div>
 
                         <div className="flex items-center justify-start sm:justify-center gap-4 overflow-x-auto w-full py-6 px-4 custom-scrollbar no-scrollbar" style={{ scrollSnapType: 'x mandatory' }}>
                             {BASE_COLORS_CATALOG.map((base) => (
-                                <button
+                                <SquishyButton
                                     key={base.id}
                                     onClick={() => setActiveBaseColor(base.id)}
                                     className={`relative shrink-0 w-16 h-16 rounded-full overflow-hidden border-[3px] transition-all duration-300 flex items-center justify-center ${activeBaseColor === base.id
@@ -242,7 +251,7 @@ export default function WardrobePage() {
                                         alt={base.name}
                                         className="w-[140%] h-[140%] object-cover object-center translate-y-1 drop-shadow-md"
                                     />
-                                </button>
+                                </SquishyButton>
                             ))}
                         </div>
                     </div>
@@ -253,24 +262,24 @@ export default function WardrobePage() {
 
                     {/* TABS HEADER */}
                     <div className="flex p-2 border-b border-[var(--border-color)]/50 bg-[var(--bg-dark)]/30">
-                        <button
+                        <SquishyButton
                             onClick={() => setActiveTab('themes')}
                             className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'themes' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
                             <Palette size={14} className={activeTab === 'themes' ? 'text-[var(--accent-cyan)]' : ''} /> App Themes
-                        </button>
-                        <button
+                        </SquishyButton>
+                        <SquishyButton
                             onClick={() => setActiveTab('crystals')}
                             className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'crystals' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
                             <Gem size={14} className={activeTab === 'crystals' ? 'text-[var(--accent-teal)]' : ''} /> Crystal Vault
-                        </button>
-                        <button
+                        </SquishyButton>
+                        <SquishyButton
                             onClick={() => setActiveTab('accessories')}
                             className={`flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'accessories' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm border border-[var(--border-color)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)] border border-transparent'}`}
                         >
                             <Shirt size={14} className={activeTab === 'accessories' ? 'text-[var(--accent-teal)]' : ''} /> {isGamified ? "Charms" : "Accessories"}
-                        </button>
+                        </SquishyButton>
                     </div>
 
                     {/* TAB CONTENT */}
@@ -281,7 +290,10 @@ export default function WardrobePage() {
                             {activeTab === 'themes' && (
                                 <motion.div key="themes" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-8">
                                     <div>
-                                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4 block">Standard Aesthetics</label>
+                                        <div className="flex justify-between items-center mb-4">
+                                            <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Standard Aesthetics</label>
+                                            <SquishyButton onClick={() => handleAppThemeChange('deep-teal', false)} className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest px-2 py-1 bg-black/20 rounded transition-colors">Reset to Default</SquishyButton>
+                                        </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {freeThemes.map((theme) => (
                                                 <ThemeButton key={theme.id} theme={theme} isActive={activeAppTheme === theme.id} onClick={() => handleAppThemeChange(theme.id, false)} />
@@ -301,7 +313,10 @@ export default function WardrobePage() {
                                     </div>
                                     {/* GARDEN ATMOSPHERE FILTERS */}
                                     <div>
-                                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4 block">Garden Atmosphere</label>
+                                        <div className="flex justify-between items-center mb-4">
+                                            <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Garden Atmosphere</label>
+                                            <SquishyButton onClick={() => setActiveAtmosphereFilter('default')} className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest px-2 py-1 bg-black/20 rounded transition-colors">Reset to Default</SquishyButton>
+                                        </div>
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                             {[
                                                 { id: 'default', name: 'Dawn Mist' },
@@ -309,13 +324,13 @@ export default function WardrobePage() {
                                                 { id: 'refreshing', name: 'Mint Breeze' },
                                                 { id: 'cool', name: 'Glacial Chill' }
                                             ].map((filter) => (
-                                                <button
+                                                <SquishyButton
                                                     key={filter.id}
                                                     onClick={() => setActiveAtmosphereFilter(filter.id as any)}
                                                     className={`py-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeAtmosphereFilter === filter.id ? 'border-[var(--accent-teal)] bg-[var(--bg-dark)] text-[var(--accent-teal)] shadow-[0_0_10px_rgba(20,184,166,0.15)]' : 'border-[var(--border-color)] bg-[var(--bg-sidebar)]/50 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-sidebar)]'}`}
                                                 >
                                                     {filter.name}
-                                                </button>
+                                                </SquishyButton>
                                             ))}
                                         </div>
                                     </div>
@@ -328,7 +343,10 @@ export default function WardrobePage() {
                                 <motion.div key="crystals" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-8">
 
                                     <div>
-                                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4 block">Starter Seeds</label>
+                                        <div className="flex justify-between items-center mb-4">
+                                            <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Starter Seeds</label>
+                                            <SquishyButton onClick={() => handleCrystalChange('quartz', CRYSTAL_CATALOG['quartz'])} className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest px-2 py-1 bg-black/20 rounded transition-colors">Reset to Default</SquishyButton>
+                                        </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {starterCrystals.map(([id, crystal]) => (
                                                 <CrystalButton key={id} crystal={crystal} isActive={activeCrystalTheme === id} onClick={() => handleCrystalChange(id, crystal)} />
@@ -364,6 +382,9 @@ export default function WardrobePage() {
                             {activeTab === 'accessories' && (
                                 <motion.div key="accessories" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-8">
 
+                                    <div className="flex justify-end mb-2">
+                                        <SquishyButton onClick={() => setActiveAccessories([])} className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest px-3 py-1.5 bg-black/20 rounded transition-colors">Unequip All Charms</SquishyButton>
+                                    </div>
                                     {/* CLIPS SECTION */}
                                     <div>
                                         <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4 block">Hair Clips</label>
@@ -429,18 +450,18 @@ export default function WardrobePage() {
 // 🎨 Helper Component for App Themes
 function ThemeButton({ theme, isActive, isLocked, isShaking, onClick }: any) {
     return (
-        <button onClick={onClick} className={`group relative flex items-center p-4 rounded-2xl border-2 transition-all duration-200 ${isShaking ? 'animate-premium-shake border-red-500' : isActive ? 'border-[var(--accent-teal)] bg-[var(--bg-dark)] shadow-lg' : 'border-[var(--border-color)] bg-[var(--bg-sidebar)]/50 hover:bg-[var(--bg-sidebar)]'} ${isLocked && !isActive ? 'opacity-60 hover:opacity-100' : ''}`}>
+        <SquishyButton onClick={onClick} className={`group relative flex items-center p-4 rounded-2xl border-2 transition-all duration-200 ${isShaking ? 'animate-premium-shake border-red-500' : isActive ? 'border-[var(--accent-teal)] bg-[var(--bg-dark)] shadow-lg' : 'border-[var(--border-color)] bg-[var(--bg-sidebar)]/50 hover:bg-[var(--bg-sidebar)]'} ${isLocked && !isActive ? 'opacity-60 hover:opacity-100' : ''}`}>
             <div className="w-8 h-8 rounded-full mr-3 border border-[var(--border-color)] shadow-sm shrink-0" style={{ background: `linear-gradient(135deg, ${theme.color1} 50%, ${theme.color2} 50%)` }} />
             <span className="font-bold text-xs text-[var(--text-main)] flex-1 text-left">{theme.name}</span>
             {isActive ? <CheckCircle2 className="text-[var(--accent-teal)] w-4 h-4 shrink-0" /> : isLocked && <Lock size={12} className="text-[var(--text-muted)] shrink-0" />}
-        </button>
+        </SquishyButton>
     );
 }
 
 // 💎 Helper Component for Crystals
 function CrystalButton({ crystal, isActive, isLocked, isShaking, onClick }: any) {
     return (
-        <button onClick={onClick} className={`group relative flex items-center p-4 rounded-2xl border-2 transition-all duration-200 ${isShaking ? 'animate-premium-shake border-red-500' : isActive ? 'border-[var(--accent-teal)] bg-[var(--bg-dark)] shadow-[0_0_15px_rgba(20,184,166,0.15)]' : 'border-[var(--border-color)] bg-[var(--bg-sidebar)]/50 hover:bg-[var(--bg-sidebar)]'} ${isLocked && !isActive ? 'opacity-60 hover:opacity-100' : ''}`}>
+        <SquishyButton onClick={onClick} className={`group relative flex items-center p-4 rounded-2xl border-2 transition-all duration-200 ${isShaking ? 'animate-premium-shake border-red-500' : isActive ? 'border-[var(--accent-teal)] bg-[var(--bg-dark)] shadow-[0_0_15px_rgba(20,184,166,0.15)]' : 'border-[var(--border-color)] bg-[var(--bg-sidebar)]/50 hover:bg-[var(--bg-sidebar)]'} ${isLocked && !isActive ? 'opacity-60 hover:opacity-100' : ''}`}>
             {/* Glowing Gem Preview */}
             <div className="w-8 h-8 rounded-lg mr-3 shadow-inner shrink-0 relative overflow-hidden" style={{ backgroundColor: crystal.color, border: `1px solid ${crystal.emissive}50` }}>
                 <div className="absolute inset-0 opacity-50 blur-md" style={{ backgroundColor: crystal.emissive }}></div>
@@ -459,14 +480,14 @@ function CrystalButton({ crystal, isActive, isLocked, isShaking, onClick }: any)
             </div>
 
             {isActive ? <CheckCircle2 className="text-[var(--accent-teal)] w-4 h-4 shrink-0" /> : isLocked && <Lock size={12} className="text-[var(--text-muted)] shrink-0" />}
-        </button>
+        </SquishyButton>
     );
 }
 
 // 👕 Helper Component for Accessories
 function AccessoryButton({ accessory, isActive, isLocked, isShaking, onClick }: any) {
     return (
-        <button
+        <SquishyButton
             onClick={onClick}
             className={`group relative flex items-center p-4 rounded-2xl border-2 transition-all duration-200 ${isShaking ? 'animate-premium-shake border-red-500' :
                 isActive ? 'border-[var(--accent-teal)] bg-[var(--bg-dark)] shadow-[0_0_15px_rgba(20,184,166,0.15)]' :
@@ -491,6 +512,6 @@ function AccessoryButton({ accessory, isActive, isLocked, isShaking, onClick }: 
             </div>
 
             {isActive ? <CheckCircle2 className="text-[var(--accent-teal)] w-4 h-4 shrink-0" /> : isLocked && <Lock size={12} className="text-white/40 shrink-0" />}
-        </button>
+        </SquishyButton>
     );
 }

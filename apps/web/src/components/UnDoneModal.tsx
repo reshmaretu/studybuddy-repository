@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useStudyStore, Task } from '@/store/useStudyStore';
 import { Check, X, Moon, Sunrise, Trash2 } from 'lucide-react';
+import { SquishyButton } from '@studybuddy/ui';
 
 export default function UnDoneModal({ onClose }: { onClose: () => void }) {
     const { tasks, completeTask, deleteTask, updateTask } = useStudyStore();
@@ -37,14 +38,16 @@ export default function UnDoneModal({ onClose }: { onClose: () => void }) {
             <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8, y: -20 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2.5rem] p-6 sm:p-8 max-w-2xl w-full shadow-2xl flex flex-col max-h-[90vh] relative overflow-y-auto"
             >
-                <button 
+                <SquishyButton 
                     onClick={onClose}
                     className="absolute top-6 right-6 p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5 rounded-xl transition-all"
                 >
                     <X size={20} />
-                </button>
+                </SquishyButton>
 
                 <div className="text-center mb-6 pt-2">
                     <div className="flex justify-center mb-4">
@@ -72,30 +75,30 @@ export default function UnDoneModal({ onClose }: { onClose: () => void }) {
                                     {task.description && <p className="text-[10px] text-[var(--text-muted)] mt-1 line-clamp-1">{task.description}</p>}
                                 </div>
                                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                                    <button 
+                                    <SquishyButton 
                                         onClick={() => handleMoveToTomorrow(task)}
                                         className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-[var(--bg-sidebar)] hover:bg-[var(--accent-teal)]/20 border border-[var(--border-color)] hover:border-[var(--accent-teal)] rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--text-main)] hover:text-[var(--accent-teal)] transition-all"
                                     >
                                         <Sunrise size={12} /> Tomorrow
-                                    </button>
-                                    <button 
+                                    </SquishyButton>
+                                    <SquishyButton 
                                         onClick={() => handleDelete(task.id)}
                                         className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-[var(--bg-sidebar)] hover:bg-red-500/10 border border-[var(--border-color)] hover:border-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--text-main)] hover:text-red-400 transition-all text-red-400"
                                     >
                                         <Trash2 size={12} /> Delete
-                                    </button>
+                                    </SquishyButton>
                                 </div>
                             </div>
                         ))
                     )}
                 </div>
 
-                <button
+                <SquishyButton
                     onClick={onClose}
-                    className="w-full py-4 rounded-2xl bg-[var(--accent-teal)] text-[#0b1211] font-black uppercase tracking-[0.2em] text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(45,212,191,0.2)]"
+                    className="w-full py-4 rounded-2xl bg-[var(--accent-teal)] text-[#0b1211] font-black uppercase tracking-[0.2em] text-sm transition-all shadow-[0_0_20px_rgba(45,212,191,0.2)]"
                 >
                     {unresolvedQuests.length > 0 ? "Finish Anyway" : "Rest Well"}
-                </button>
+                </SquishyButton>
             </motion.div>
         </div>
     );

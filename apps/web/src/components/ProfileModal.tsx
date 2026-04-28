@@ -152,16 +152,7 @@ export default function ProfileModal() {
 
     const useChumAvatarChoice = async () => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            await supabase
-                .from('profiles')
-                .update({ avatar_url: null })
-                .eq('id', user.id);
-
             await setUseChumAvatar(true);
-            setAvatarUrl(null);
             triggerChumToast("Returned to Chum form.", "success");
             setActiveTab('chum');
         } catch (err) {
@@ -192,7 +183,8 @@ export default function ProfileModal() {
             <motion.div 
                 initial={{ scale: 0.9, opacity: 0, y: 20 }} 
                 animate={{ scale: 1, opacity: 1, y: 0 }} 
-                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                exit={{ scale: 0.8, opacity: 0, y: -20 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 className="bg-[var(--bg-card)] border-2 border-[var(--border-color)] rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl relative z-10"
             >
                 {/* Header */}
@@ -316,10 +308,10 @@ export default function ProfileModal() {
                                 </div>
                                 <button 
                                     onClick={useChumAvatarChoice}
-                                    disabled={!avatarUrl}
-                                    className="w-full py-4 rounded-2xl bg-[var(--bg-dark)] border border-[var(--border-color)] text-[10px] font-black uppercase tracking-widest hover:border-[var(--accent-teal)] transition-all disabled:opacity-30 disabled:grayscale"
+                                    disabled={useChumAvatar}
+                                    className={`w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${useChumAvatar ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] cursor-default' : 'bg-[var(--bg-dark)] border border-[var(--border-color)] hover:border-[var(--accent-teal)] text-white'}`}
                                 >
-                                    Revert to Spirit
+                                    {useChumAvatar ? "Active Form" : "Revert to Spirit"}
                                 </button>
                             </motion.div>
                         ) : (
@@ -361,6 +353,16 @@ export default function ProfileModal() {
                                     <p className="text-sm font-bold text-[var(--text-main)]">Custom Identity Shard</p>
                                     <p className="text-[10px] text-[var(--text-muted)] mt-1 uppercase tracking-widest">Visible to all chums in the Void</p>
                                 </div>
+
+                                {avatarUrl && (
+                                    <button 
+                                        onClick={useCustomAvatarChoice}
+                                        disabled={!useChumAvatar}
+                                        className={`w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${!useChumAvatar ? 'bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] cursor-default' : 'bg-[var(--bg-dark)] border border-[var(--border-color)] hover:border-[var(--accent-teal)] text-white'}`}
+                                    >
+                                        {!useChumAvatar ? "Active Form" : "Equip Custom Shard"}
+                                    </button>
+                                )}
 
                                 <button 
                                     onClick={() => fileInputRef.current?.click()}

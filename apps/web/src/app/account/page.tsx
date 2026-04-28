@@ -36,6 +36,7 @@ export default function AccountPage() {
         isVerified, setIsVerified, avatarUrl, setProfileModalOpen, setPremiumModalOpen,
         doubleClickToComplete = true, dndEnabled = true, setSettings, handleLogout,
         requestNotificationPermission,
+        playTickEnabled = true, playChimeEnabled = true, requireCompletionConfirmation = true,
         performanceSettings = { mode: 'auto', showParticles: true, bloomEnabled: true, antialiasing: true },
         accessibilitySettings = { highContrast: false, largeText: false, reducedMotion: false },
         useThematicUI, setThematicUI, isDev
@@ -711,6 +712,62 @@ export default function AccountPage() {
                             </button>
                         </div>
 
+                        {/* Audio Toggles */}
+                        <div className="flex items-center justify-between p-6 rounded-3xl bg-(--bg-dark)/40 border border-(--border-color) group hover:border-[var(--accent-teal)]/20 transition-all">
+                            <div className="flex items-center gap-4">
+                                <div className={`p-2 rounded-xl transition-colors ${playTickEnabled ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
+                                    <MousePointer2 size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main)">Tactile Feedback</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted)">Toggle Tick/Click Sounds</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSettings({ playTickEnabled: !playTickEnabled })}
+                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${playTickEnabled ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${playTickEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+
+                        <div className="flex items-center justify-between p-6 rounded-3xl bg-(--bg-dark)/40 border border-(--border-color) group hover:border-[var(--accent-teal)]/20 transition-all">
+                            <div className="flex items-center gap-4">
+                                <div className={`p-2 rounded-xl transition-colors ${playChimeEnabled ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
+                                    <Sparkles size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main)">Victory Chimes</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted)">Toggle Mastery Chime Sounds</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSettings({ playChimeEnabled: !playChimeEnabled })}
+                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${playChimeEnabled ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${playChimeEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+
+                        {/* Confirmation Toggle */}
+                        <div className="flex items-center justify-between p-6 rounded-3xl bg-(--bg-dark)/40 border border-(--border-color) group hover:border-[var(--accent-teal)]/20 transition-all">
+                            <div className="flex items-center gap-4">
+                                <div className={`p-2 rounded-xl transition-colors ${requireCompletionConfirmation ? 'bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]' : 'bg-(--bg-dark) text-(--text-muted)'}`}>
+                                    <AlertCircle size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-(--text-main)">Safety Protocols</p>
+                                    <p className="text-[9px] font-bold opacity-30 uppercase mt-0.5 text-(--text-muted)">Confirm quest completion</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSettings({ requireCompletionConfirmation: !requireCompletionConfirmation })}
+                                className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${requireCompletionConfirmation ? 'bg-[var(--accent-teal)]' : 'bg-white/10'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${requireCompletionConfirmation ? 'translate-x-6' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+
                     </div>
 
                     {/* ⚡ ENVIRONMENTAL OPTIMIZATION (Performance) */}
@@ -925,9 +982,9 @@ export default function AccountPage() {
                                     </div>
                                     
                                     <div className="p-4 rounded-2xl bg-(--bg-dark)/50 border border-white/5 space-y-2">
-                                        <p className="text-[10px] font-black uppercase text-(--text-muted) tracking-widest mb-2 flex items-center gap-2">
-                                            <div className="w-1 h-1 rounded-full bg-(--accent-yellow)" /> Naming Conventions
-                                        </p>
+                                        <div className="text-[10px] font-black uppercase text-(--text-muted) tracking-widest mb-2 flex items-center gap-2">
+                                            <span className="inline-block w-1 h-1 rounded-full bg-(--accent-yellow)" /> Naming Conventions
+                                        </div>
                                         <ul className="space-y-1">
                                             <li className="text-[9px] font-bold text-(--text-muted)/60 flex justify-between">
                                                 <span>Minimum Length</span>

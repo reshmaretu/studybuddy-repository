@@ -51,7 +51,8 @@ export default function PremiumModal() {
                     <motion.div 
                         initial={{ scale: 0.9, opacity: 0, y: 40 }} 
                         animate={{ scale: 1, opacity: 1, y: 0 }} 
-                        exit={{ scale: 0.9, opacity: 0, y: 40 }}
+                        exit={{ scale: 0.8, opacity: 0, y: -20 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
                         className="bg-(--bg-sidebar) border border-(--border-color) rounded-[40px] w-full max-w-lg shadow-2xl relative z-10 overflow-hidden"
                         onPointerDown={(e) => e.stopPropagation()}
                     >

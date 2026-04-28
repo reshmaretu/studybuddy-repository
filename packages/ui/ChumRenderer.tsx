@@ -6,18 +6,21 @@ import { motion, AnimatePresence } from "framer-motion";
 interface ChumRendererProps {
     size?: string;
     activeAccessoriesOverride?: any[];
+    baseColorIdOverride?: string | null;
 }
 
-export const ChumRenderer = ({ size = "w-64 h-64", activeAccessoriesOverride }: ChumRendererProps) => {
+export const ChumRenderer = ({ size = "w-64 h-64", activeAccessoriesOverride, baseColorIdOverride }: ChumRendererProps) => {
     const storeAccessories = useStudyStore((state) => state.activeAccessories);
+    const storeBaseColor = useStudyStore((state) => state.activeBaseColor);
     const accessories = activeAccessoriesOverride || storeAccessories;
+    const baseColorId = baseColorIdOverride || storeBaseColor;
     const sortedAccessories = [...(accessories || [])].sort((a, b) => a.zIndex - b.zIndex);
 
     return (
         <div className={`relative ${size} flex items-center justify-center`}>
             {/* 1. THE BASE BODY */}
             <img
-                src={`/assets/chum/chum.png`}
+                src={`/assets/chum/${baseColorId || 'base14'}.png`}
                 alt="Chum Body"
                 className="absolute inset-0 w-full h-full object-contain z-10"
             />

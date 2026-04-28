@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Brain, Play, Pause, Zap, Dumbbell, Edit3, ChevronRight, Send } from "lucide-react";
 import { useStudyStore, Task } from "@/store/useStudyStore";
 import ChumRenderer from "@/components/ChumRenderer";
+import { SquishyButton } from "@studybuddy/ui";
 
 interface EnhancedBrainResetProps {
     isOpen: boolean;
@@ -354,16 +355,17 @@ Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                        exit={{ opacity: 0, scale: 0.8, y: -20 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
                         className="relative bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
                     >
                         {/* Close button */}
-                        <button
+                        <SquishyButton
                             onClick={handleClose}
-                            className="absolute top-4 right-4 z-10 p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-dark)] rounded-lg transition-colors"
+                            className="absolute top-4 right-4 z-10 p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-dark)] rounded-lg transition-colors border-none"
                         >
                             <X size={20} />
-                        </button>
+                        </SquishyButton>
 
                         <div className="p-8 flex flex-col items-center justify-center min-h-[500px]">
                             <AnimatePresence mode="wait">
@@ -385,19 +387,19 @@ Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`
                                             </p>
                                         </div>
 
-                                        <button
+                                        <SquishyButton
                                             onClick={handleStartBreathe}
                                             className="w-full py-4 bg-[var(--accent-teal)] text-[#0b1211] rounded-2xl font-bold text-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
                                         >
                                             <Play size={18} /> Begin with Breathing
-                                        </button>
+                                        </SquishyButton>
 
-                                        <button
+                                        <SquishyButton
                                             onClick={handleClose}
-                                            className="w-full py-2 text-[var(--text-muted)] hover:text-[var(--text-main)] text-sm transition-colors"
+                                            className="w-full py-2 text-[var(--text-muted)] hover:text-[var(--text-main)] text-sm transition-colors border-none bg-transparent shadow-none"
                                         >
                                             Skip
-                                        </button>
+                                        </SquishyButton>
                                     </motion.div>
                                 )}
 
@@ -430,19 +432,19 @@ Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`
                                             {breathStage === "exhale" && "Breathe Out..."}
                                         </p>
 
-                                        <button
+                                        <SquishyButton
                                             onClick={() => setBreathIsActive(!breathIsActive)}
                                             className="px-6 py-2 bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg text-[var(--text-main)] font-bold hover:border-[var(--accent-teal)] transition-colors"
                                         >
                                             {breathIsActive ? <Pause size={16} /> : <Play size={16} />}
-                                        </button>
+                                        </SquishyButton>
 
-                                        <button
+                                        <SquishyButton
                                             onClick={() => setStage("path")}
-                                            className="w-full py-2 text-[var(--text-muted)] hover:text-[var(--text-main)] text-sm transition-colors"
+                                            className="w-full py-2 text-[var(--text-muted)] hover:text-[var(--text-main)] text-sm transition-colors border-none bg-transparent shadow-none"
                                         >
                                             Skip to Path Selection
-                                        </button>
+                                        </SquishyButton>
                                     </motion.div>
                                 )}
 
@@ -457,7 +459,7 @@ Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`
                                     >
                                         <p className="text-[var(--text-muted)] text-sm font-bold uppercase tracking-widest">Now choose your next step</p>
 
-                                        <button
+                                        <SquishyButton
                                             onClick={handleStartMindDump}
                                             className="w-full p-4 rounded-2xl border-2 border-[var(--border-color)] bg-[var(--bg-dark)] hover:border-[var(--accent-teal)]/50 hover:bg-[var(--accent-teal)]/5 transition-all text-left flex items-center justify-between group"
                                         >
@@ -469,9 +471,9 @@ Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`
                                                 </div>
                                             </div>
                                             <ChevronRight size={16} className="text-[var(--text-muted)] group-hover:text-[var(--accent-teal)] transition-colors" />
-                                        </button>
+                                        </SquishyButton>
 
-                                        <button
+                                        <SquishyButton
                                             onClick={handleStartDesk}
                                             className="w-full p-4 rounded-2xl border-2 border-[var(--border-color)] bg-[var(--bg-dark)] hover:border-[var(--accent-teal)]/50 hover:bg-[var(--accent-teal)]/5 transition-all text-left flex items-center justify-between group"
                                         >
@@ -483,14 +485,14 @@ Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`
                                                 </div>
                                             </div>
                                             <ChevronRight size={16} className="text-[var(--text-muted)] group-hover:text-[var(--accent-teal)] transition-colors" />
-                                        </button>
+                                        </SquishyButton>
 
-                                        <button
+                                        <SquishyButton
                                             onClick={handleClose}
-                                            className="w-full py-2 text-[var(--text-muted)] hover:text-[var(--text-main)] text-sm transition-colors"
+                                            className="w-full py-2 text-[var(--text-muted)] hover:text-[var(--text-main)] text-sm transition-colors border-none bg-transparent shadow-none"
                                         >
                                             Skip to End
-                                        </button>
+                                        </SquishyButton>
                                     </motion.div>
                                 )}
 
@@ -545,36 +547,36 @@ Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`
 
                                         {/* Submit Button */}
                                         {!chumReply && !isGettingChumReply && (
-                                            <button
+                                            <SquishyButton
                                                 onClick={handleSubmitMindDump}
                                                 disabled={!mindDumpText.trim()}
                                                 className="w-full py-3 bg-[var(--accent-teal)] text-[#0b1211] rounded-lg font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 <Send size={16} /> Submit & Get Chum's Reply
-                                            </button>
+                                            </SquishyButton>
                                         )}
 
                                         {/* Continue Button */}
                                         {chumReply && (
-                                            <button
+                                            <SquishyButton
                                                 onClick={() => proceedToTaskSuggestion()}
                                                 className="w-full py-3 bg-[var(--accent-teal)] text-[#0b1211] rounded-lg font-bold hover:opacity-90 transition-opacity mt-4"
                                             >
                                                 Continue
-                                            </button>
+                                            </SquishyButton>
                                         )}
 
                                         {/* Skip Button */}
                                         {!chumReply && !isGettingChumReply && (
-                                            <button
+                                        <SquishyButton
                                                 onClick={() => {
                                                     setChumReply(null);
                                                     proceedToTaskSuggestion();
                                                 }}
-                                                className="w-full py-2 text-[var(--text-muted)] hover:text-[var(--text-main)] text-sm transition-colors"
+                                                className="w-full py-2 text-[var(--text-muted)] hover:text-[var(--text-main)] text-sm transition-colors border-none bg-transparent shadow-none"
                                             >
                                                 Skip Mind Dump
-                                            </button>
+                                            </SquishyButton>
                                         )}
                                     </motion.div>
                                 )}
@@ -615,23 +617,23 @@ Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`
                                             </div>
                                         </div>
 
-                                        <button
+                                        <SquishyButton
                                             onClick={() => setDeskIsActive(!deskIsActive)}
                                             className="px-6 py-2 bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-lg text-[var(--text-main)] font-bold hover:border-[var(--accent-teal)] transition-colors"
                                         >
                                             {deskIsActive ? <Pause size={16} /> : <Play size={16} />}
-                                        </button>
+                                        </SquishyButton>
 
                                         <div className="text-xs text-[var(--text-muted)] text-center">
                                             Total time: {formatTime(totalDeskTime)} / ~90s
                                         </div>
 
-                                        <button
+                                        <SquishyButton
                                             onClick={handleSkip}
-                                            className="w-full py-2 text-[var(--text-muted)] hover:text-[var(--text-main)] text-sm transition-colors"
+                                            className="w-full py-2 text-[var(--text-muted)] hover:text-[var(--text-main)] text-sm transition-colors border-none bg-transparent shadow-none"
                                         >
                                             Skip Remaining Stretches
-                                        </button>
+                                        </SquishyButton>
                                     </motion.div>
                                 )}
 
@@ -661,19 +663,19 @@ Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`
                                             )}
                                         </div>
 
-                                        <button
+                                        <SquishyButton
                                             onClick={() => handleTaskDowngrade(suggestedTask)}
                                             className="w-full py-3 bg-[var(--accent-teal)] text-[#0b1211] rounded-lg font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
                                         >
                                             <Zap size={16} /> Switch to This Task
-                                        </button>
+                                        </SquishyButton>
 
-                                        <button
+                                        <SquishyButton
                                             onClick={handleSkipTaskDowngrade}
-                                            className="w-full py-2 text-[var(--text-muted)] hover:text-[var(--text-main)] text-sm transition-colors"
+                                            className="w-full py-2 text-[var(--text-muted)] hover:text-[var(--text-main)] text-sm transition-colors border-none bg-transparent shadow-none"
                                         >
                                             Skip
-                                        </button>
+                                        </SquishyButton>
 
                                         {autoDowngradePreference === null && (
                                             <label className="flex items-center gap-2 text-xs text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-main)] transition-colors mt-2">
@@ -728,12 +730,12 @@ Keep your response to 2-3 sentences max. Be warm, understanding, and practical.`
                                             </div>
                                         </div>
 
-                                        <button
+                                        <SquishyButton
                                             onClick={handleClose}
                                             className="w-full py-3 bg-[var(--accent-teal)] text-[#0b1211] rounded-2xl font-bold hover:opacity-90 transition-opacity"
                                         >
                                             Close
-                                        </button>
+                                        </SquishyButton>
                                     </motion.div>
                                 )}
 

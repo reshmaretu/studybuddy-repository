@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStudyStore, TaskLoad } from "@/store/useStudyStore";
 import { Flame, X, Check, Clock, Edit3, Trash2, Pin } from "lucide-react";
+import { SquishyButton } from "@studybuddy/ui";
 
 export default function TaskEditModal() {
     const { isEditModalOpen, editingTaskId, tasks, updateTask, closeEditModal } = useStudyStore();
@@ -62,7 +63,8 @@ export default function TaskEditModal() {
                     <motion.div
                         initial={{ scale: 0.95, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
-                        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                        exit={{ scale: 0.8, opacity: 0, y: -20 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
                         className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2.5rem] w-full max-w-lg relative z-10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] overflow-hidden max-h-[90vh]"
                     >
                         <div className="p-6 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--bg-sidebar)]/50">
@@ -70,9 +72,9 @@ export default function TaskEditModal() {
                                 <Edit3 size={16} className="text-[var(--accent-teal)]" />
                                 Edit Quest
                             </div>
-                            <button onClick={closeEditModal} className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-2 bg-[var(--bg-dark)] rounded-xl border border-[var(--border-color)] transition-all hover:scale-110 active:scale-95">
+                            <SquishyButton onClick={closeEditModal} className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-2 bg-[var(--bg-dark)] rounded-xl border border-[var(--border-color)] transition-all">
                                 <X size={18} />
-                            </button>
+                            </SquishyButton>
                         </div>
 
                         <div className="p-6 sm:p-8 space-y-6 overflow-y-auto max-h-[calc(90vh-120px)]">
@@ -160,19 +162,19 @@ export default function TaskEditModal() {
                         </div>
 
                         <div className="p-6 border-t border-[var(--border-color)] bg-[var(--bg-sidebar)]/30 flex gap-4">
-                            <button
+                            <SquishyButton
                                 onClick={closeEditModal}
                                 className="flex-1 py-4 rounded-2xl border border-[var(--border-color)] text-sm font-black uppercase tracking-widest text-[var(--text-muted)] hover:bg-white/5 transition-all"
                             >
                                 Cancel
-                            </button>
-                            <button
+                            </SquishyButton>
+                            <SquishyButton
                                 onClick={handleSave}
                                 disabled={!title.trim()}
-                                className="flex-[2] py-4 rounded-2xl bg-[var(--accent-teal)] text-[#0b1211] font-black uppercase tracking-[0.2em] text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(45,212,191,0.2)] disabled:opacity-50"
+                                className="flex-[2] py-4 rounded-2xl bg-[var(--accent-teal)] text-[#0b1211] font-black uppercase tracking-[0.2em] text-sm transition-all shadow-[0_0_20px_rgba(45,212,191,0.2)] disabled:opacity-50"
                             >
                                 Save Changes
-                            </button>
+                            </SquishyButton>
                         </div>
                     </motion.div>
                 </div>

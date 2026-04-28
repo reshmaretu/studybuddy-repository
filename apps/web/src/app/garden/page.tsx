@@ -10,8 +10,11 @@ import MorningPlanningModal from "@/components/MorningPlanningModal";
 import UnDoneModal from "@/components/UnDoneModal";
 import GeodeScene from "@/components/GeodeScene";
 import { useTerms } from "@/hooks/useTerms";
+import { playChime } from "@/lib/sound";
+import confetti from 'canvas-confetti';
 
 import { Shard } from "@/store/useStudyStore";
+import { SquishyButton } from "@studybuddy/ui";
 
 // DropZoneContainer removed (was unused)
 
@@ -32,9 +35,9 @@ function MasteryContainer({ id, masteryTab, setMasteryTab, children, isEmpty, em
 
 
             <div className="flex justify-between items-center mb-4 shrink-0 gap-4">
-                <button onClick={() => setMasteryTab('tasks')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'tasks' ? 'border-[var(--text-main)] text-[var(--text-main)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>{terms.archive}</button>
-                <button onClick={() => setMasteryTab('shards')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'shards' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>{terms.shards}</button>
-                <button onClick={() => setMasteryTab('crystals')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'crystals' ? 'border-[var(--accent-yellow)] text-[var(--accent-yellow)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>Crystals</button>
+                <SquishyButton onClick={() => setMasteryTab('tasks')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'tasks' ? 'border-[var(--text-main)] text-[var(--text-main)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>{terms.archive}</SquishyButton>
+                <SquishyButton onClick={() => setMasteryTab('shards')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'shards' ? 'border-[var(--accent-teal)] text-[var(--accent-teal)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>{terms.shards}</SquishyButton>
+                <SquishyButton onClick={() => setMasteryTab('crystals')} className={`flex-1 pb-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors ${masteryTab === 'crystals' ? 'border-[var(--accent-yellow)] text-[var(--accent-yellow)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>Crystals</SquishyButton>
             </div>
             {/* STYLING FIX: Invisible scrollbars applied */}
             <div ref={setNodeRef} className={`flex-1 rounded-xl p-4 transition-all duration-300 flex flex-col gap-3 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] border-2 border-dashed ${isOver ? "bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]" : "bg-[var(--bg-dark)] border-[var(--border-color)]/50"}`}>
@@ -126,7 +129,7 @@ interface MatrixZoneProps {
     selectedIds: string[];
 }
 
-function MatrixZone({ id, title, subtitle, tasks, color, bg, border, activeBorder, onToggleSelect, selectedIds }: MatrixZoneProps) {
+function MatrixZone({ id, title, subtitle, tasks, color, bg, border, activeBorder, onToggleSelect, selectedIds, animatingTaskId }: MatrixZoneProps & { animatingTaskId: string | null }) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
         <div ref={setNodeRef} className={`flex flex-col rounded-2xl border-2 transition-all duration-300 ${isOver ? activeBorder + ' bg-black/40 ring-1 ring-current brightness-125 shadow-[inset_0_0_30px_rgba(255,255,255,0.05)] z-10' : border + ' ' + bg}`}>
@@ -143,6 +146,8 @@ function MatrixZone({ id, title, subtitle, tasks, color, bg, border, activeBorde
                         task={task}
                         onToggleSelect={onToggleSelect}
                         selected={selectedIds.includes(task.id)}
+                        completionEffect="glide"
+                        isAnimating={animatingTaskId === task.id}
                     />
                 ))}
             </div>
@@ -150,13 +155,14 @@ function MatrixZone({ id, title, subtitle, tasks, color, bg, border, activeBorde
     );
 }
 
-function IvySlot({ rank, task, isLocked, isActive, onToggleSelect, selectedIds }: {
+function IvySlot({ rank, task, isLocked, isActive, onToggleSelect, selectedIds, animatingTaskId }: {
     rank: number;
     task: Task | null;
     isLocked: boolean;
     isActive: boolean;
     onToggleSelect: (id: string) => void;
     selectedIds: string[];
+    animatingTaskId: string | null;
 }) {
     const id = `ivy-${rank}`;
     const { isOver, setNodeRef } = useDroppable({ id, disabled: isLocked && !!task });
@@ -175,13 +181,15 @@ function IvySlot({ rank, task, isLocked, isActive, onToggleSelect, selectedIds }
             <div className="flex-1 min-w-0 flex flex-col justify-center">
                 {/* THE MINIMIZED FIX: Passing the new prop to the TaskCard! */}
                 {task ? (
-                    <TaskCard
-                        task={task}
-                        locked={isLocked}
-                        isMinimized={true}
-                        onToggleSelect={onToggleSelect}
-                        selected={selectedIds.includes(task.id)}
-                    />
+                        <TaskCard
+                            task={task}
+                            locked={isLocked}
+                            isMinimized={true}
+                            onToggleSelect={onToggleSelect}
+                            selected={selectedIds.includes(task.id)}
+                            completionEffect="glide"
+                            isAnimating={animatingTaskId === task.id}
+                        />
                 ) : (
                     <div className="px-4 py-2 text-xs font-bold text-[var(--text-muted)] italic">Awaiting Assignment...</div>
                 )}
@@ -205,9 +213,10 @@ interface DropdownCapacityZoneProps {
     updateTask: (id: string, updates: Partial<Task>) => void;
     onToggleSelect: (id: string) => void;
     selectedIds: string[];
+    animatingTaskId: string | null;
 }
 
-function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, border, updateTask, onToggleSelect, selectedIds }: DropdownCapacityZoneProps) {
+function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, border, updateTask, onToggleSelect, selectedIds, animatingTaskId }: DropdownCapacityZoneProps) {
     const [isOpen, setIsOpen] = useState(false);
 
     // 1. Filter all tasks by cognitive load (Heavy/Medium/Light)
@@ -307,6 +316,8 @@ function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, borde
                                 task={task}
                                 onToggleSelect={onToggleSelect}
                                 selected={selectedIds.includes(task.id)}
+                                completionEffect="glide"
+                                isAnimating={animatingTaskId === task.id}
                             />
                         </div>
                         {/* X Button to un-equip */}
@@ -332,13 +343,14 @@ function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, borde
     );
 }
 
-function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll, onToggleSelect, selectedIds }: {
+function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll, onToggleSelect, selectedIds, animatingTaskId }: {
     id: string;
     tasks: Task[];
     title?: string;
     onViewAll?: () => void;
     onToggleSelect: (id: string) => void;
     selectedIds: string[];
+    animatingTaskId: string | null;
 }) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
@@ -370,6 +382,8 @@ function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll, onToggl
                             task={task}
                             onToggleSelect={onToggleSelect}
                             selected={selectedIds.includes(task.id)}
+                            completionEffect="glide"
+                            isAnimating={animatingTaskId === task.id}
                         />
                     ))
                 )}
@@ -378,11 +392,12 @@ function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll, onToggl
     );
 }
 
-function StandardZone({ id, tasks, onToggleSelect, selectedIds }: {
+function StandardZone({ id, tasks, onToggleSelect, selectedIds, animatingTaskId }: {
     id: string;
     tasks: Task[];
     onToggleSelect: (id: string) => void;
     selectedIds: string[];
+    animatingTaskId: string | null;
 }) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
@@ -396,6 +411,8 @@ function StandardZone({ id, tasks, onToggleSelect, selectedIds }: {
                         task={task}
                         onToggleSelect={onToggleSelect}
                         selected={selectedIds.includes(task.id)}
+                        completionEffect="glide"
+                        isAnimating={animatingTaskId === task.id}
                     />
                 ))
             )}
@@ -433,7 +450,9 @@ export default function CrystalGarden() {
     // Removed draggedToGeodeTask and setDraggedToGeodeTask as they are unused
     const [snipingShard, setSnipingShard] = useState<Shard | null>(null);
     const [isCrystalMasteryOpen, setIsCrystalMasteryOpen] = useState(false);
+    const [isRebirthing, setIsRebirthing] = useState(false);
     const [crystalNameInput, setCrystalNameInput] = useState('');
+    const [animatingTaskId, setAnimatingTaskId] = useState<string | null>(null);
     const lastGrowthRef = useRef(crystalGrowth);
 
     const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -562,8 +581,9 @@ export default function CrystalGarden() {
 
     // 9:00 PM Nudge Logic
     useEffect(() => {
-        // 1. Fixed the TypeScript error for timeoutId
+        // 1. Only schedule ONCE per session - don't recurse
         let timeoutId: ReturnType<typeof setTimeout>;
+        let hasNotified = false;
 
         const scheduleNextNudge = () => {
             const now = new Date();
@@ -580,11 +600,11 @@ export default function CrystalGarden() {
             const msUntil9PM = targetTime.getTime() - now.getTime();
 
             timeoutId = setTimeout(() => {
-                // 2. Replaced the undefined `toast` with your native store action!
-                triggerChumToast("🌙 Hey! It's 9 PM. Time to Wrap Up the day?");
-
-                // Recursively call to schedule tomorrow's nudge
-                scheduleNextNudge();
+                // Only fire the notification once per session
+                if (!hasNotified) {
+                    hasNotified = true;
+                    triggerChumToast("🌙 Hey! It's 9 PM. Time to Wrap Up the day?", "info");
+                }
             }, msUntil9PM);
         };
 
@@ -593,7 +613,7 @@ export default function CrystalGarden() {
 
         // Cleanup on unmount
         return () => clearTimeout(timeoutId);
-    }, [triggerChumToast]);
+    }, []);
 
     const [newTask, setNewTask] = useState<{ title: string, description: string, load: TaskLoad, deadline: string, estimatedPomos?: number }>({ title: "", description: "", load: "medium", deadline: "" });
     const [isScheduled, setIsScheduled] = useState(false);
@@ -663,7 +683,10 @@ export default function CrystalGarden() {
 
         if (over.id === "hall-of-mastery") {
             const task = tasks.find((t: Task) => t.id === active.id);
-            if (task) setDraggedToMasteryTask(task);
+            if (task) {
+                // Now we ONLY set the task. Confetti and Glide will trigger in the modal's Confirm handler.
+                setDraggedToMasteryTask(task);
+            }
         } else if (over.id.toString().startsWith('quadrant-')) {
             const quadrant = parseInt(over.id.toString().split('-')[1]);
             updateTask(active.id as string, { eisenhowerQuadrant: quadrant });
@@ -779,8 +802,8 @@ export default function CrystalGarden() {
                                     </div>
                                 </div>
                                 <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-color)]">
-                                    <button type="button" onClick={() => setIsAdding(false)} className="px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">Cancel</button>
-                                    <button type="submit" className="bg-[var(--accent-teal)] text-[#0b1211] px-6 py-2 rounded-xl text-sm font-bold hover:bg-teal-400 transition-colors disabled:opacity-50" disabled={!newTask.title.trim()}>{isGamified ? "Plant Seed" : "Create Task"}</button>
+                                    <SquishyButton type="button" onClick={() => setIsAdding(false)} className="px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors border-none shadow-none">Cancel</SquishyButton>
+                                    <SquishyButton type="submit" className="bg-[var(--accent-teal)] text-[#0b1211] px-6 py-2 rounded-xl text-sm font-bold hover:bg-teal-400 transition-colors disabled:opacity-50" disabled={!newTask.title.trim()}>{isGamified ? "Plant Seed" : "Create Task"}</SquishyButton>
                                 </div>
                             </motion.form>
                         </div>
@@ -821,32 +844,54 @@ export default function CrystalGarden() {
                                 )}
 
                                 <div className="flex gap-3">
-                                    <button onClick={() => setDraggedToMasteryTask(null)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/50 hover:bg-white/5 text-sm font-bold transition-all">Cancel</button>
-                                    <button
-                                        onClick={() => {
-                                            const wasFrog = draggedToMasteryTask?.isFrog;
-                                            const completedIvyRank = draggedToMasteryTask?.ivyRank; // 👈 1. Capture its rank before we complete it!
+                                    <SquishyButton onClick={() => setDraggedToMasteryTask(null)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/50 hover:bg-white/5 text-sm font-bold transition-all shadow-none">Cancel</SquishyButton>
+                                    <SquishyButton
+                                        onClick={async () => {
+                                            const task = draggedToMasteryTask!;
+                                            const wasFrog = task.isFrog;
+                                            const completedIvyRank = task.ivyRank;
 
-                                            // 🔥 PASS THE PREMIUM STATS HERE
-                                            completeTask(draggedToMasteryTask!.id, isPremiumUser ? { actualPomos, stressLevel } : undefined);
-
-                                            // 🔥 2. IVY LEE AUTO-SHIFT LOGIC 🔥
-                                            if (activeFramework === 'ivy' && completedIvyRank) {
-                                                activeQuests.forEach(t => {
-                                                    // If a remaining task has a rank higher than the one we just finished, shift it up by 1
-                                                    if (t.ivyRank && t.ivyRank > completedIvyRank && t.id !== draggedToMasteryTask!.id) {
-                                                        updateTask(t.id, { ivyRank: t.ivyRank - 1 });
-                                                    }
-                                                });
-                                            }
-
+                                            // Start the slow glide→bloom animation (5 seconds total)
+                                            setAnimatingTaskId(task.id);
                                             setDraggedToMasteryTask(null);
-                                            if (wasFrog) triggerChumToast("🐸 BOOM! Frog crushed! You just gained a massive amount of momentum for the day. Keep it up!");
+
+                                            // At 2s mark: Fire confetti, chime, and success toast (during glide motion)
+                                            setTimeout(async () => {
+                                                playChime();
+                                                
+                                                confetti({
+                                                    particleCount: 120,
+                                                    spread: 120,
+                                                    origin: { x: 0.5, y: 0.5 },
+                                                    colors: ['#2dd4bf', '#facc15', '#ff007f', '#8b5cf6'],
+                                                    gravity: 1.2,
+                                                    decay: 0.95,
+                                                    zIndex: 100000,
+                                                    startVelocity: 30
+                                                });
+                                                
+                                                triggerChumToast(wasFrog ? "🐸 FROG CRUSHED! Momentum surge detected!" : "Quest mastered!", "success");
+                                            }, 2000);
+
+                                            // At 5s mark: Complete task and finish animation
+                                            setTimeout(async () => {
+                                                completeTask(task.id, isPremiumUser ? { actualPomos, stressLevel } : undefined);
+                                                
+                                                if (activeFramework === 'ivy' && completedIvyRank) {
+                                                    activeQuests.forEach(t => {
+                                                        if (t.ivyRank && t.ivyRank > completedIvyRank && t.id !== task.id) {
+                                                            updateTask(t.id, { ivyRank: t.ivyRank - 1 });
+                                                        }
+                                                    });
+                                                }
+
+                                                setAnimatingTaskId(null);
+                                            }, 5000);
                                         }}
                                         className="flex-1 py-3 rounded-xl bg-white text-black hover:brightness-90 text-sm font-black transition-all shadow-lg"
                                     >
                                         Archive Quest
-                                    </button>
+                                    </SquishyButton>
                                 </div>
                             </motion.div>
                         </div>
@@ -867,12 +912,12 @@ export default function CrystalGarden() {
                                     </span>? This will change how your current quests are organized.
                                 </p>
                                 <div className="flex gap-3">
-                                    <button onClick={() => setPendingFramework(null)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/50 hover:bg-white/5 text-sm font-bold transition-all">Cancel</button>
-                                    <button onClick={() => {
+                                    <SquishyButton onClick={() => setPendingFramework(null)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/50 hover:bg-white/5 text-sm font-bold transition-all shadow-none">Cancel</SquishyButton>
+                                    <SquishyButton onClick={() => {
                                         const nextFramework = pendingFramework === 'standard' ? null : pendingFramework;
                                         setActiveFramework(nextFramework as typeof activeFramework);
                                         setPendingFramework(null);
-                                    }} className="flex-1 py-3 rounded-xl bg-[var(--accent-teal)] text-black hover:brightness-110 text-sm font-black transition-all shadow-lg">Confirm</button>
+                                    }} className="flex-1 py-3 rounded-xl bg-[var(--accent-teal)] text-black hover:brightness-110 text-sm font-black transition-all shadow-lg">Confirm</SquishyButton>
                                 </div>
                             </motion.div>
                         </div>
@@ -899,9 +944,9 @@ export default function CrystalGarden() {
                         </div>
                         {/* 🔥 THE NEW FRAMEWORK DROPDOWN 🔥 */}
                         <div ref={frameworkMenuRef} className="relative z-50">
-                            <button
+                            <SquishyButton
                                 onClick={() => setShowFrameworkMenu(!showFrameworkMenu)}
-                                className={`h-full px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border transition-all capitalize ${activeFramework
+                                className={`h-full px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border transition-all capitalize shadow-none ${activeFramework
                                     ? 'bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/50 text-[var(--accent-teal)]'
                                     : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--accent-teal)]'
                                     }`}
@@ -921,7 +966,7 @@ export default function CrystalGarden() {
                                     className={`transition-transform duration-300 ${showFrameworkMenu ? 'rotate-180' : ''
                                         }`}
                                 />
-                            </button>
+                            </SquishyButton>
                             <AnimatePresence>
                                 {showFrameworkMenu && (
                                     <motion.div
@@ -941,13 +986,13 @@ export default function CrystalGarden() {
                                             const isActive = activeFramework === fw.id;
                                             const selection = fw.id ?? 'standard';
                                             return (
-                                            <button
+                                            <SquishyButton
                                                 key={fw.label}
                                                 onClick={() => {
                                                     setShowFrameworkMenu(false);
                                                     if (activeFramework !== fw.id) setPendingFramework(selection);
                                                 }}
-                                                className={`w-full text-left px-4 py-3 text-sm font-bold transition-colors border-b border-white/5 last:border-0 ${
+                                                className={`w-full text-left px-4 py-3 text-sm font-bold transition-colors border-none shadow-none rounded-none ${
                                                     isActive
                                                         ? 'bg-[var(--bg-sidebar)] text-[var(--text-main)]'
                                                         : 'text-[var(--text-muted)] hover:bg-[var(--bg-sidebar)] hover:text-[var(--text-main)]'
@@ -958,19 +1003,19 @@ export default function CrystalGarden() {
                                                     <span>{fw.label}</span>
                                                     {isActive && <Check size={14} className="text-[var(--accent-teal)]" />}
                                                 </span>
-                                            </button>
+                                            </SquishyButton>
                                             );
                                         })}
                                     </motion.div>
                                 )}
                             </AnimatePresence>
                         </div>
-                        <button onClick={() => setShowUnDoneModal(true)} className="bg-[var(--bg-sidebar)] border border-(--border-color) px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-main)] hover:text-[var(--accent-teal)] hover:border-[var(--accent-teal)] transition-colors flex items-center justify-center whitespace-nowrap gap-2 shrink-0">
+                        <SquishyButton onClick={() => setShowUnDoneModal(true)} className="bg-[var(--bg-sidebar)] border border-(--border-color) px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-main)] hover:text-[var(--accent-teal)] hover:border-[var(--accent-teal)] transition-colors flex items-center justify-center whitespace-nowrap gap-2 shrink-0">
                             <Moon size={16} /> Wrap Up
-                        </button>
-                        <button id="garden-add-task-btn" onClick={() => setIsAdding(true)} className="bg-[var(--accent-teal)] text-[#0b1211] px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 hover:brightness-110 shadow-[0_0_10px_rgba(20,184,166,0.2)] shrink-0">
+                        </SquishyButton>
+                        <SquishyButton id="garden-add-task-btn" onClick={() => setIsAdding(true)} className="bg-[var(--accent-teal)] text-[#0b1211] px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 hover:brightness-110 shadow-[0_0_10px_rgba(20,184,166,0.2)] shrink-0">
                             <Plus size={16} /> Plant Quest
-                        </button>
+                        </SquishyButton>
                     </div>
                 </header>
                 {/* 3. The Strict 3-Column Layout! (Responsive stack on mobile) */}
@@ -1033,14 +1078,14 @@ export default function CrystalGarden() {
                                             className="absolute inset-0 flex flex-col gap-4"
                                         >
                                             <div className="grid grid-cols-2 grid-rows-2 gap-3 flex-1 min-h-0">
-                                                <MatrixZone id="quadrant-1" title="Do First" subtitle={`${terms.urgency} & ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 1)} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" activeBorder="border-red-400" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
-                                                <MatrixZone id="quadrant-2" title="Schedule" subtitle={`Not ${terms.urgency}, ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 2)} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" activeBorder="border-[var(--accent-teal)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
-                                                <MatrixZone id="quadrant-3" title="Delegate" subtitle={`${terms.urgency}, Not ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 3)} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" activeBorder="border-[var(--accent-yellow)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
-                                                <MatrixZone id="quadrant-4" title="Don't Do" subtitle={`Not ${terms.urgency}, Not ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 4)} color="text-[var(--text-muted)]" bg="bg-[var(--bg-dark)]" border="border-[var(--border-color)]" activeBorder="border-[var(--text-muted)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                <MatrixZone id="quadrant-1" title="Do First" subtitle={`${terms.urgency} & ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 1)} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" activeBorder="border-red-400" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
+                                                <MatrixZone id="quadrant-2" title="Schedule" subtitle={`Not ${terms.urgency}, ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 2)} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" activeBorder="border-[var(--accent-teal)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
+                                                <MatrixZone id="quadrant-3" title="Delegate" subtitle={`${terms.urgency}, Not ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 3)} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" activeBorder="border-[var(--accent-yellow)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
+                                                <MatrixZone id="quadrant-4" title="Don't Do" subtitle={`Not ${terms.urgency}, Not ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 4)} color="text-[var(--text-muted)]" bg="bg-[var(--bg-dark)]" border="border-[var(--border-color)]" activeBorder="border-[var(--text-muted)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
                                             </div>
                                             {activeQuests.filter((t: Task) => !t.eisenhowerQuadrant).length > 0 && (
                                                 <div className="h-[30%] min-h-[160px] shrink-0">
-                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter((t: Task) => !t.eisenhowerQuadrant)} title="Unsorted Quests (Drag to Quadrant)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter((t: Task) => !t.eisenhowerQuadrant)} title="Unsorted Quests (Drag to Quadrant)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
                                                 </div>
                                             )}
                                         </motion.div>
@@ -1056,9 +1101,9 @@ export default function CrystalGarden() {
                                             className="absolute inset-0 flex flex-col gap-4 overflow-y-auto [&::-webkit-scrollbar]:hidden pr-1 pb-1"
                                         >
                                             {/* ✅ Using the new interactive dropdown slots! */}
-                                            <DropdownCapacityZone loadType="heavy" title="1 Heavy Quest" max={1} allTasks={activeQuests} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
-                                            <DropdownCapacityZone loadType="medium" title="3 Medium Quests" max={3} allTasks={activeQuests} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
-                                            <DropdownCapacityZone loadType="light" title="5 Light Quests" max={5} allTasks={activeQuests} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                            <DropdownCapacityZone loadType="heavy" title="1 Heavy Quest" max={1} allTasks={activeQuests} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
+                                            <DropdownCapacityZone loadType="medium" title="3 Medium Quests" max={3} allTasks={activeQuests} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
+                                            <DropdownCapacityZone loadType="light" title="5 Light Quests" max={5} allTasks={activeQuests} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
                                         </motion.div>
 
                                     ) : activeFramework === 'ivy' ? (
@@ -1080,12 +1125,12 @@ export default function CrystalGarden() {
                                                     }) || 1;
                                                     const isLocked = !!(task && rank > activeRank);
 
-                                                    return <IvySlot key={rank} rank={rank} task={task || null} isLocked={isLocked} isActive={rank === activeRank} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />;
+                                                    return <IvySlot key={rank} rank={rank} task={task || null} isLocked={isLocked} isActive={rank === activeRank} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />;
                                                 })}
                                             </div>
                                             {activeQuests.filter((t: Task) => !t.ivyRank).length > 0 && (
                                                 <div className="h-1/3 min-h-[150px] shrink-0">
-                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter((t: Task) => !t.ivyRank)} title="Unranked Quests (Drag to Rank)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter((t: Task) => !t.ivyRank)} title="Unranked Quests (Drag to Rank)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
                                                 </div>
                                             )}
                                         </motion.div>
@@ -1096,9 +1141,9 @@ export default function CrystalGarden() {
                                             animate={{ opacity: 1, filter: "blur(0px)" }}
                                             exit={{ opacity: 0, filter: "blur(5px)" }}
                                             transition={{ duration: 0.3 }}
-                                            className="absolute inset-0 flex flex-col"
+                                            className="absolute inset-0 flex flex-col p-1"
                                         >
-                                            <StandardZone id="current-focus" tasks={sortedQuests} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} />
+                                            <StandardZone id="current-focus" tasks={sortedQuests} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
@@ -1130,6 +1175,7 @@ export default function CrystalGarden() {
                                     completionRatio={completionRatio}
                                     snipingShard={snipingShard}
                                     setSnipingShard={setSnipingShard}
+                                    isRebirthing={isRebirthing}
                                 />
                             </div>
                         </div>
@@ -1153,7 +1199,14 @@ export default function CrystalGarden() {
                             }
                         >
                             {masteryTab === 'tasks' ? (
-                                archivedQuests.map((task: Task) => <TaskCard key={task.id} task={task} />)
+                                archivedQuests.map((task: Task) => (
+                                    <TaskCard 
+                                        key={task.id} 
+                                        task={task} 
+                                        onToggleSelect={handleToggleSelect} 
+                                        selected={selectedTaskIds.includes(task.id)} 
+                                    />
+                                ))
                             ) : masteryTab === 'shards' ? (
                                 masteredShards.map((shard: Shard) => (
                                     <MasteredShardCard
@@ -1201,7 +1254,7 @@ export default function CrystalGarden() {
 
                                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
                                     {activeQuests.filter((t: Task) => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).map(task => (
-                                        <TaskCard key={task.id} task={task} />
+                                        <TaskCard key={task.id} task={task} completionEffect="glide" />
                                     ))}
                                     {activeQuests.filter((t: Task) => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).length === 0 && (
                                         <div className="col-span-full h-full flex flex-col items-center justify-center text-[var(--text-muted)] gap-4 py-20 opacity-50">
@@ -1232,24 +1285,24 @@ export default function CrystalGarden() {
                             </div>
 
                             <div className="flex items-center gap-3">
-                                <button
+                                <SquishyButton
                                     onClick={handleBulkComplete}
-                                    className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[var(--accent-teal)] transition-all active:scale-95 shadow-lg"
+                                    className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[var(--accent-teal)] transition-all shadow-lg border-none"
                                 >
                                     <CheckCircle2 size={14} /> Complete
-                                </button>
-                                <button
+                                </SquishyButton>
+                                <SquishyButton
                                     onClick={handleBulkDelete}
-                                    className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/30 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all active:scale-95"
+                                    className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/30 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-none"
                                 >
                                     <X size={14} /> Delete
-                                </button>
-                                <button
+                                </SquishyButton>
+                                <SquishyButton
                                     onClick={() => setSelectedTaskIds([])}
-                                    className="text-xs font-bold text-[var(--text-muted)] hover:text-white transition-colors ml-2"
+                                    className="text-xs font-bold text-[var(--text-muted)] hover:text-white transition-colors ml-2 border-none bg-transparent shadow-none p-1"
                                 >
                                     Cancel
-                                </button>
+                                </SquishyButton>
                             </div>
                         </motion.div>
                     )}
@@ -1289,25 +1342,44 @@ export default function CrystalGarden() {
                                 />
 
                                 <div className="mt-6 flex items-center gap-3">
-                                    <button
+                                    <SquishyButton
                                         onClick={() => setIsCrystalMasteryOpen(false)}
-                                        className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 text-sm font-bold hover:bg-white/5 transition-all"
+                                        className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 text-sm font-bold hover:bg-white/5 transition-all shadow-none"
                                     >
                                         Later
-                                    </button>
-                                    <button
+                                    </SquishyButton>
+                                    <SquishyButton
                                         onClick={async () => {
                                             const trimmed = crystalNameInput.trim();
                                             if (!trimmed) return;
+                                            
+                                            setIsRebirthing(true);
+                                            // Give it 800ms to shrink in 3D
+                                            await new Promise(r => setTimeout(r, 800));
+                                            
                                             await rebirthCrystal(trimmed);
-                                            setCrystalNameInput('');
+                                            setIsRebirthing(false);
                                             setIsCrystalMasteryOpen(false);
+                                            setCrystalNameInput('');
+                                            
+                                            playChime(); // Celebrate rebirth!
+                                            
+                                            // Massive full-screen burst
+                                            confetti({
+                                                particleCount: 150,
+                                                spread: 160,
+                                                origin: { x: 0.5, y: 0.5 },
+                                                colors: ['#8b5cf6', '#06b6d4', '#f43f5e', '#eab308'],
+                                                gravity: 0.8,
+                                                scalar: 1.2,
+                                                zIndex: 100000
+                                            });
                                         }}
                                         disabled={!crystalNameInput.trim()}
                                         className="flex-1 py-3 rounded-xl bg-[var(--accent-yellow)] text-black text-sm font-black uppercase tracking-widest disabled:opacity-50"
                                     >
-                                        Okay
-                                    </button>
+                                        Ascend Crystal
+                                    </SquishyButton>
                                 </div>
                             </motion.div>
                         </div>
