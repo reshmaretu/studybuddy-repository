@@ -12,15 +12,15 @@ interface ChumRendererProps {
 export const ChumRenderer = ({ size = "w-64 h-64", activeAccessoriesOverride, baseColorIdOverride }: ChumRendererProps) => {
     const storeAccessories = useStudyStore((state) => state.activeAccessories);
     const storeBaseColor = useStudyStore((state) => state.activeBaseColor);
-    const accessories = activeAccessoriesOverride || storeAccessories;
-    const baseColorId = baseColorIdOverride || storeBaseColor;
+    const accessories = activeAccessoriesOverride !== undefined ? (activeAccessoriesOverride || []) : storeAccessories;
+    const baseColorId = baseColorIdOverride !== undefined ? (baseColorIdOverride || 'base7') : storeBaseColor;
     const sortedAccessories = [...(accessories || [])].sort((a, b) => a.zIndex - b.zIndex);
 
     return (
         <div className={`relative ${size} flex items-center justify-center`}>
             {/* 1. THE BASE BODY */}
             <img
-                src={`/assets/chum/${baseColorId || 'base14'}.png`}
+                src={`/assets/chum/${baseColorId || 'base7'}.png`}
                 alt="Chum Body"
                 className="absolute inset-0 w-full h-full object-contain z-10"
             />

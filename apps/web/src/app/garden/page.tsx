@@ -127,9 +127,11 @@ interface MatrixZoneProps {
     activeBorder: string;
     onToggleSelect: (id: string) => void;
     selectedIds: string[];
+    animatingTaskId: string | null;
+    recentlyCompletedTaskId: string | null;
 }
 
-function MatrixZone({ id, title, subtitle, tasks, color, bg, border, activeBorder, onToggleSelect, selectedIds, animatingTaskId }: MatrixZoneProps & { animatingTaskId: string | null }) {
+function MatrixZone({ id, title, subtitle, tasks, color, bg, border, activeBorder, onToggleSelect, selectedIds, animatingTaskId, recentlyCompletedTaskId }: MatrixZoneProps) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
         <div ref={setNodeRef} className={`flex flex-col rounded-2xl border-2 transition-all duration-300 ${isOver ? activeBorder + ' bg-black/40 ring-1 ring-current brightness-125 shadow-[inset_0_0_30px_rgba(255,255,255,0.05)] z-10' : border + ' ' + bg}`}>
@@ -155,7 +157,7 @@ function MatrixZone({ id, title, subtitle, tasks, color, bg, border, activeBorde
     );
 }
 
-function IvySlot({ rank, task, isLocked, isActive, onToggleSelect, selectedIds, animatingTaskId }: {
+function IvySlot({ rank, task, isLocked, isActive, onToggleSelect, selectedIds, animatingTaskId, recentlyCompletedTaskId }: {
     rank: number;
     task: Task | null;
     isLocked: boolean;
@@ -163,6 +165,7 @@ function IvySlot({ rank, task, isLocked, isActive, onToggleSelect, selectedIds, 
     onToggleSelect: (id: string) => void;
     selectedIds: string[];
     animatingTaskId: string | null;
+    recentlyCompletedTaskId: string | null;
 }) {
     const id = `ivy-${rank}`;
     const { isOver, setNodeRef } = useDroppable({ id, disabled: isLocked && !!task });
@@ -189,6 +192,8 @@ function IvySlot({ rank, task, isLocked, isActive, onToggleSelect, selectedIds, 
                             selected={selectedIds.includes(task.id)}
                             completionEffect="glide"
                             isAnimating={animatingTaskId === task.id}
+                            layoutId={task.id}
+                            isRecentlyCompleted={recentlyCompletedTaskId === task.id}
                         />
                 ) : (
                     <div className="px-4 py-2 text-xs font-bold text-[var(--text-muted)] italic">Awaiting Assignment...</div>
@@ -214,9 +219,10 @@ interface DropdownCapacityZoneProps {
     onToggleSelect: (id: string) => void;
     selectedIds: string[];
     animatingTaskId: string | null;
+    recentlyCompletedTaskId: string | null;
 }
 
-function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, border, updateTask, onToggleSelect, selectedIds, animatingTaskId }: DropdownCapacityZoneProps) {
+function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, border, updateTask, onToggleSelect, selectedIds, animatingTaskId, recentlyCompletedTaskId }: DropdownCapacityZoneProps) {
     const [isOpen, setIsOpen] = useState(false);
 
     // 1. Filter all tasks by cognitive load (Heavy/Medium/Light)
@@ -318,6 +324,8 @@ function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, borde
                                 selected={selectedIds.includes(task.id)}
                                 completionEffect="glide"
                                 isAnimating={animatingTaskId === task.id}
+                                layoutId={task.id}
+                                isRecentlyCompleted={recentlyCompletedTaskId === task.id}
                             />
                         </div>
                         {/* X Button to un-equip */}
@@ -343,7 +351,7 @@ function DropdownCapacityZone({ loadType, title, max, allTasks, color, bg, borde
     );
 }
 
-function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll, onToggleSelect, selectedIds, animatingTaskId }: {
+function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll, onToggleSelect, selectedIds, animatingTaskId, recentlyCompletedTaskId }: {
     id: string;
     tasks: Task[];
     title?: string;
@@ -351,6 +359,7 @@ function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll, onToggl
     onToggleSelect: (id: string) => void;
     selectedIds: string[];
     animatingTaskId: string | null;
+    recentlyCompletedTaskId: string | null;
 }) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
@@ -384,6 +393,8 @@ function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll, onToggl
                             selected={selectedIds.includes(task.id)}
                             completionEffect="glide"
                             isAnimating={animatingTaskId === task.id}
+                            layoutId={task.id}
+                            isRecentlyCompleted={recentlyCompletedTaskId === task.id}
                         />
                     ))
                 )}
@@ -392,12 +403,13 @@ function UnsortedZone({ id, tasks, title = "Unsorted Quests", onViewAll, onToggl
     );
 }
 
-function StandardZone({ id, tasks, onToggleSelect, selectedIds, animatingTaskId }: {
+function StandardZone({ id, tasks, onToggleSelect, selectedIds, animatingTaskId, recentlyCompletedTaskId }: {
     id: string;
     tasks: Task[];
     onToggleSelect: (id: string) => void;
     selectedIds: string[];
     animatingTaskId: string | null;
+    recentlyCompletedTaskId: string | null;
 }) {
     const { isOver, setNodeRef } = useDroppable({ id });
     return (
@@ -413,6 +425,8 @@ function StandardZone({ id, tasks, onToggleSelect, selectedIds, animatingTaskId 
                         selected={selectedIds.includes(task.id)}
                         completionEffect="glide"
                         isAnimating={animatingTaskId === task.id}
+                        layoutId={task.id}
+                        isRecentlyCompleted={recentlyCompletedTaskId === task.id}
                     />
                 ))
             )}
@@ -453,6 +467,7 @@ export default function CrystalGarden() {
     const [isRebirthing, setIsRebirthing] = useState(false);
     const [crystalNameInput, setCrystalNameInput] = useState('');
     const [animatingTaskId, setAnimatingTaskId] = useState<string | null>(null);
+    const [recentlyCompletedTaskId, setRecentlyCompletedTaskId] = useState<string | null>(null);
     const lastGrowthRef = useRef(crystalGrowth);
 
     const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -513,7 +528,9 @@ export default function CrystalGarden() {
         if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
         return 0;
     });
-    const archivedQuests: Task[] = filteredTasks.filter((t: Task) => t.isCompleted);
+    const archivedQuests: Task[] = filteredTasks
+        .filter((t: Task) => t.isCompleted)
+        .sort((a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime());
     const masteredShards: Shard[] = shards.filter((s: Shard) => s.isMastered);
 
     useEffect(() => {
@@ -848,33 +865,18 @@ export default function CrystalGarden() {
                                     <SquishyButton
                                         onClick={async () => {
                                             const task = draggedToMasteryTask!;
-                                            const wasFrog = task.isFrog;
                                             const completedIvyRank = task.ivyRank;
 
-                                            // Start the slow glide→bloom animation (5 seconds total)
+                                            // 1. Lift stage
                                             setAnimatingTaskId(task.id);
                                             setDraggedToMasteryTask(null);
 
-                                            // At 2s mark: Fire confetti, chime, and success toast (during glide motion)
+                                            // 2. Wait for lift, then Glide (trigger by completion)
                                             setTimeout(async () => {
-                                                playChime();
+                                                // Switch to tasks tab so destination is visible
+                                                setMasteryTab('tasks');
                                                 
-                                                confetti({
-                                                    particleCount: 120,
-                                                    spread: 120,
-                                                    origin: { x: 0.5, y: 0.5 },
-                                                    colors: ['#2dd4bf', '#facc15', '#ff007f', '#8b5cf6'],
-                                                    gravity: 1.2,
-                                                    decay: 0.95,
-                                                    zIndex: 100000,
-                                                    startVelocity: 30
-                                                });
-                                                
-                                                triggerChumToast(wasFrog ? "🐸 FROG CRUSHED! Momentum surge detected!" : "Quest mastered!", "success");
-                                            }, 2000);
-
-                                            // At 5s mark: Complete task and finish animation
-                                            setTimeout(async () => {
+                                                // Actual move
                                                 completeTask(task.id, isPremiumUser ? { actualPomos, stressLevel } : undefined);
                                                 
                                                 if (activeFramework === 'ivy' && completedIvyRank) {
@@ -885,8 +887,28 @@ export default function CrystalGarden() {
                                                     });
                                                 }
 
+                                                // End lift animation state
                                                 setAnimatingTaskId(null);
-                                            }, 5000);
+
+                                                // 3. Landing & Bloom stage (happens after glide)
+                                                setTimeout(() => {
+                                                    setRecentlyCompletedTaskId(task.id);
+                                                    playChime();
+                                                    
+                                                    confetti({
+                                                        particleCount: 100,
+                                                        spread: 70,
+                                                        origin: { x: 0.85, y: 0.5 }, // Originating near the mastery column
+                                                        colors: ['#2dd4bf', '#facc15', '#ff007f', '#8b5cf6'],
+                                                        zIndex: 100000
+                                                    });
+
+                                                    triggerChumToast(task.isFrog ? "🐸 FROG CRUSHED! Momentum surge detected!" : "Quest mastered!", "success");
+
+                                                    // Clear bloom effect
+                                                    setTimeout(() => setRecentlyCompletedTaskId(null), 1500);
+                                                }, 800); // Wait for glide to finish
+                                            }, 600); // Lift duration
                                         }}
                                         className="flex-1 py-3 rounded-xl bg-white text-black hover:brightness-90 text-sm font-black transition-all shadow-lg"
                                     >
@@ -1078,14 +1100,14 @@ export default function CrystalGarden() {
                                             className="absolute inset-0 flex flex-col gap-4"
                                         >
                                             <div className="grid grid-cols-2 grid-rows-2 gap-3 flex-1 min-h-0">
-                                                <MatrixZone id="quadrant-1" title="Do First" subtitle={`${terms.urgency} & ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 1)} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" activeBorder="border-red-400" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
-                                                <MatrixZone id="quadrant-2" title="Schedule" subtitle={`Not ${terms.urgency}, ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 2)} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" activeBorder="border-[var(--accent-teal)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
-                                                <MatrixZone id="quadrant-3" title="Delegate" subtitle={`${terms.urgency}, Not ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 3)} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" activeBorder="border-[var(--accent-yellow)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
-                                                <MatrixZone id="quadrant-4" title="Don't Do" subtitle={`Not ${terms.urgency}, Not ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 4)} color="text-[var(--text-muted)]" bg="bg-[var(--bg-dark)]" border="border-[var(--border-color)]" activeBorder="border-[var(--text-muted)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
+                                                <MatrixZone id="quadrant-1" title="Do First" subtitle={`${terms.urgency} & ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 1)} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" activeBorder="border-red-400" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
+                                                <MatrixZone id="quadrant-2" title="Schedule" subtitle={`Not ${terms.urgency}, ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 2)} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" activeBorder="border-[var(--accent-teal)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
+                                                <MatrixZone id="quadrant-3" title="Delegate" subtitle={`${terms.urgency}, Not ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 3)} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" activeBorder="border-[var(--accent-yellow)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
+                                                <MatrixZone id="quadrant-4" title="Don't Do" subtitle={`Not ${terms.urgency}, Not ${terms.importance}`} tasks={activeQuests.filter((t: Task) => t.eisenhowerQuadrant === 4)} color="text-[var(--text-muted)]" bg="bg-[var(--bg-dark)]" border="border-[var(--border-color)]" activeBorder="border-[var(--text-muted)]" onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
                                             </div>
                                             {activeQuests.filter((t: Task) => !t.eisenhowerQuadrant).length > 0 && (
                                                 <div className="h-[30%] min-h-[160px] shrink-0">
-                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter((t: Task) => !t.eisenhowerQuadrant)} title="Unsorted Quests (Drag to Quadrant)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
+                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter((t: Task) => !t.eisenhowerQuadrant)} title="Unsorted Quests (Drag to Quadrant)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
                                                 </div>
                                             )}
                                         </motion.div>
@@ -1101,9 +1123,9 @@ export default function CrystalGarden() {
                                             className="absolute inset-0 flex flex-col gap-4 overflow-y-auto [&::-webkit-scrollbar]:hidden pr-1 pb-1"
                                         >
                                             {/* ✅ Using the new interactive dropdown slots! */}
-                                            <DropdownCapacityZone loadType="heavy" title="1 Heavy Quest" max={1} allTasks={activeQuests} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
-                                            <DropdownCapacityZone loadType="medium" title="3 Medium Quests" max={3} allTasks={activeQuests} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
-                                            <DropdownCapacityZone loadType="light" title="5 Light Quests" max={5} allTasks={activeQuests} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
+                                            <DropdownCapacityZone loadType="heavy" title="1 Heavy Quest" max={1} allTasks={activeQuests} color="text-red-400" bg="bg-red-400/5" border="border-red-400/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
+                                            <DropdownCapacityZone loadType="medium" title="3 Medium Quests" max={3} allTasks={activeQuests} color="text-[var(--accent-yellow)]" bg="bg-[var(--accent-yellow)]/5" border="border-[var(--accent-yellow)]/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
+                                            <DropdownCapacityZone loadType="light" title="5 Light Quests" max={5} allTasks={activeQuests} color="text-[var(--accent-teal)]" bg="bg-[var(--accent-teal)]/5" border="border-[var(--accent-teal)]/30" updateTask={updateTask} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
                                         </motion.div>
 
                                     ) : activeFramework === 'ivy' ? (
@@ -1125,12 +1147,12 @@ export default function CrystalGarden() {
                                                     }) || 1;
                                                     const isLocked = !!(task && rank > activeRank);
 
-                                                    return <IvySlot key={rank} rank={rank} task={task || null} isLocked={isLocked} isActive={rank === activeRank} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />;
+                                                    return <IvySlot key={rank} rank={rank} task={task || null} isLocked={isLocked} isActive={rank === activeRank} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />;
                                                 })}
                                             </div>
                                             {activeQuests.filter((t: Task) => !t.ivyRank).length > 0 && (
                                                 <div className="h-1/3 min-h-[150px] shrink-0">
-                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter((t: Task) => !t.ivyRank)} title="Unranked Quests (Drag to Rank)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
+                                                    <UnsortedZone id="seed-bank" tasks={activeQuests.filter((t: Task) => !t.ivyRank)} title="Unranked Quests (Drag to Rank)" onViewAll={() => setShowUnrankedModal(true)} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
                                                 </div>
                                             )}
                                         </motion.div>
@@ -1143,7 +1165,7 @@ export default function CrystalGarden() {
                                             transition={{ duration: 0.3 }}
                                             className="absolute inset-0 flex flex-col p-1"
                                         >
-                                            <StandardZone id="current-focus" tasks={sortedQuests} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} />
+                                            <StandardZone id="current-focus" tasks={sortedQuests} onToggleSelect={handleToggleSelect} selectedIds={selectedTaskIds} animatingTaskId={animatingTaskId} recentlyCompletedTaskId={recentlyCompletedTaskId} />
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
@@ -1205,6 +1227,8 @@ export default function CrystalGarden() {
                                         task={task} 
                                         onToggleSelect={handleToggleSelect} 
                                         selected={selectedTaskIds.includes(task.id)} 
+                                        layoutId={task.id}
+                                        isRecentlyCompleted={recentlyCompletedTaskId === task.id}
                                     />
                                 ))
                             ) : masteryTab === 'shards' ? (
@@ -1254,7 +1278,7 @@ export default function CrystalGarden() {
 
                                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
                                     {activeQuests.filter((t: Task) => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).map(task => (
-                                        <TaskCard key={task.id} task={task} completionEffect="glide" />
+                                        <TaskCard key={task.id} task={task} completionEffect="glide" layoutId={task.id} isRecentlyCompleted={recentlyCompletedTaskId === task.id} />
                                     ))}
                                     {activeQuests.filter((t: Task) => activeFramework === 'eisenhower' ? !t.eisenhowerQuadrant : !t.ivyRank).length === 0 && (
                                         <div className="col-span-full h-full flex flex-col items-center justify-center text-[var(--text-muted)] gap-4 py-20 opacity-50">

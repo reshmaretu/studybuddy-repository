@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
@@ -17,9 +17,11 @@ interface TaskCardProps {
     selected?: boolean;
     completionEffect?: 'bloom' | 'glide';
     isAnimating?: boolean;
+    layoutId?: string;
+    isRecentlyCompleted?: boolean;
 }
 
-export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized = false, onToggleSelect, selected = false, completionEffect = 'bloom', isAnimating: externalIsAnimating }: TaskCardProps) => {
+export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized = false, onToggleSelect, selected = false, completionEffect = 'bloom', isAnimating: externalIsAnimating, layoutId, isRecentlyCompleted }: TaskCardProps) => {
     const { 
         openFocusModal, deleteTask, updateTask, tasks, triggerChumToast, 
         openEditModal, openViewModal, completeTask, 
@@ -127,11 +129,13 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
     return (
         <motion.div 
             data-task-id={task.id}
+            layoutId={layoutId}
+            layout
             ref={setNodeRef} 
             style={{ 
                 ...style, 
-                willChange: (isAnimating || externalIsAnimating || isDragging) ? "transform, opacity, filter" : "auto",
-                zIndex: (isAnimating || externalIsAnimating) ? 999 : (isOverlay ? 100001 : (showMenu ? 50 : 10)),
+                willChange: (isAnimating || externalIsAnimating || isDragging || isRecentlyCompleted) ? "transform, opacity, filter" : "auto",
+                zIndex: (isAnimating || externalIsAnimating) ? 9999 : (isOverlay ? 100001 : (showMenu ? 50 : 10)),
                 pointerEvents: (isAnimating || externalIsAnimating) ? "none" : "auto"
             }} 
             {...listeners} 
@@ -142,20 +146,31 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                 }
             }}
             animate={(isAnimating || externalIsAnimating) ? {
-                opacity: completionEffect === 'glide' ? [1, 1, 0] : [1, 1, 0],
-                x: completionEffect === 'glide' ? [0, 0, 600] : 0,
-                y: completionEffect === 'glide' ? [0, 0, -200] : [0, -40, -60],
-                scale: completionEffect === 'glide' ? [1, 1, 0.4] : [1, 1.4, 0.9],
-                filter: completionEffect === 'glide' ? ["blur(0px)", "blur(0px)", "blur(4px)"] : ["blur(0px)", "blur(0px)", "blur(20px)"],
-                rotate: completionEffect === 'glide' ? [0, 0, 25] : [0, 8, -8, 0]
+                scale: [1, 1.1, 1.05],
+                rotate: [0, -2, 2],
+                y: [0, -10, -5],
+                boxShadow: [
+                    "0 0 0 rgba(0,0,0,0)",
+                    "0 20px 40px rgba(0,0,0,0.4), 0 0 20px var(--accent-teal)",
+                    "0 15px 30px rgba(0,0,0,0.3), 0 0 15px var(--accent-teal)"
+                ]
+            } : isRecentlyCompleted ? {
+                scale: [1, 1.2, 1],
+                filter: ["brightness(1)", "brightness(2) blur(4px)", "brightness(1) blur(0px)"],
+                boxShadow: [
+                    "0 0 0 rgba(0,0,0,0)",
+                    "0 0 30px var(--accent-teal)",
+                    "0 0 0 rgba(0,0,0,0)"
+                ]
             } : { 
-                scale: task.isCompleted ? [1, 1.05, 1] : 1,
-                opacity: isDragging ? 0.4 : 1
+                scale: task.isCompleted ? 1 : 1,
+                opacity: isDragging ? 0.4 : 1,
+                rotate: 0,
+                y: 0
             }}
             transition={{
-                duration: isAnimating || externalIsAnimating ? (completionEffect === 'glide' ? 2 : 0.8) : 0.5,
-                ease: isAnimating || externalIsAnimating ? (completionEffect === 'glide' ? "easeInOut" : "circOut") : "easeOut",
-                times: completionEffect === 'glide' ? [0, 0.8, 1] : undefined
+                duration: (isAnimating || externalIsAnimating) ? 0.6 : (isRecentlyCompleted ? 0.8 : 0.3),
+                ease: "easeOut"
             }}
             className={`group relative bg-(--bg-card) border-2 rounded-2xl p-4 transition-shadow ${selected ? 'border-(--accent-teal) shadow-[0_0_18px_rgba(45,212,191,0.25)]' : ''} ${dlStatus.phase === 3 && !task.isCompleted ? 'ring-1 ring-red-500/20' : ''} ${isOverlay ? 'shadow-2xl border-(--accent-teal)' : dlStatus.border || 'border-(--border-color)'}`}
         >
