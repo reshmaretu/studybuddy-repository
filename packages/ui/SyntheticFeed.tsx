@@ -37,23 +37,39 @@ export const SyntheticFeed = () => {
     syncUser();
   }, []);
 
-  // 📡 REALTIME SPARKS
+  // 📡 REALTIME BROADCASTS & SPARKS
   useEffect(() => {
-    if (!currentUserId) return;
-
     const channel = supabase
-      .channel('public:broadcasts')
+      .channel('broadcasts-feed')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'synthetic_logs' 
+      }, (payload) => {
+        const newBroadcast = payload.new as any;
+        if (['milestone', 'study-room', 'canvas-room'].includes(newBroadcast.broadcast_type)) {
+          fetchBroadcasts(10, 0);
+        }
+      })
       .on('postgres_changes', { 
         event: 'UPDATE', 
         schema: 'public', 
-        table: 'broadcasts' 
+        table: 'synthetic_logs' 
       }, (payload) => {
         const updated = payload.new as any;
-        const old = payload.old as any;
         
-        if (updated.user_id === currentUserId && (updated.reactions_count || 0) > (old.reactions_count || 0)) {
-            // Someone sparked me!
-            setSparkBurst({ id: updated.id, name: 'Someone' });
+        // 1. Update the reaction count in the local state immediately
+        useStudyStore.setState((state) => ({
+          broadcasts: state.broadcasts.map(b => 
+            b.id === updated.id ? { ...b, reactions_count: updated.reactions_count } : b
+          )
+        }));
+
+        // 2. If someone sparked ME, show the burst!
+        if (currentUserId && updated.user_id === currentUserId) {
+          if (updated.reactions_count > 0) {
+             setSparkBurst({ id: updated.id, name: 'Someone' });
+          }
         }
       })
       .subscribe();
@@ -61,7 +77,7 @@ export const SyntheticFeed = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUserId]);
+  }, [currentUserId, fetchBroadcasts]);
 
   const loadMore = async () => {
     try {
@@ -253,7 +269,7 @@ export const SyntheticFeed = () => {
                     )}
                     {broadcast.reactions_count > 0 && (
                       <div className="mt-3 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest flex items-center gap-1">
-                        <Heart size={12} className="text-[var(--accent-teal)]" />
+                        <Sparkles size={12} className="text-[var(--accent-teal)]" />
                         {broadcast.reactions_count} reactions
                       </div>
                     )}

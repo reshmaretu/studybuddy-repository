@@ -28,7 +28,6 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) throw error;
-
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
     console.error('Broadcast error:', error);
@@ -36,6 +35,35 @@ export async function POST(req: NextRequest) {
       { error: 'Failed to create broadcast' },
       { status: 500 }
     );
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const { supabase, user } = await getRouteSupabase(req);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { broadcastId } = await req.json();
+    if (!broadcastId) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+
+    const { data: current } = await supabase
+      .from('synthetic_logs')
+      .select('reactions_count')
+      .eq('id', broadcastId)
+      .single();
+
+    const { data, error } = await supabase
+      .from('synthetic_logs')
+      .update({ reactions_count: (current?.reactions_count || 0) + 1 })
+      .eq('id', broadcastId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return NextResponse.json(data, { status: 200 });
+  } catch (error) {
+    console.error('Spark error:', error);
+    return NextResponse.json({ error: 'Failed to spark' }, { status: 500 });
   }
 }
 

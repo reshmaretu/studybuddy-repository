@@ -1545,10 +1545,12 @@ export const useStudyStore = create<StudyState>()(
                     )
                 }));
 
-                const { data: current } = await supabase.from('broadcasts').select('reactions_count').eq('id', broadcastId).single();
-                await supabase.from('broadcasts').update({ 
-                    reactions_count: (current?.reactions_count || 0) + 1 
-                }).eq('id', broadcastId);
+                const authHeaders = await getAuthHeaders();
+                await fetch('/api/broadcasts', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', ...authHeaders },
+                    body: JSON.stringify({ broadcastId }),
+                });
             },
 
             sendFriendRequest: async (targetUserId) => {
