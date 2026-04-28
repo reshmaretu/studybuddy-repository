@@ -926,8 +926,7 @@ export const useStudyStore = create<StudyState>()(
                     active_crystal_theme: state.activeCrystalTheme,
                     active_atmosphere_filter: state.activeAtmosphereFilter,
                     active_chum_base_color: state.activeBaseColor,
-                    active_app_theme: state.activeAppTheme,
-                    use_chum_avatar: state.useChumAvatar
+                    active_app_theme: state.activeAppTheme
                 };
                 await supabase.from('chum_wardrobe').upsert({ user_id: user.id, ...wardrobeData }, { onConflict: 'user_id' });
             },
@@ -1000,7 +999,7 @@ export const useStudyStore = create<StudyState>()(
                         supabase.from('shards').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
                         supabase.from('user_stats').select('*').eq('user_id', user.id).maybeSingle(),
-                        supabase.from('chum_wardrobe').select('*').eq('user_id', user.id).maybeSingle(),
+                        supabase.from('chum_wardrobe').select('user_id, active_accessories, active_chum_base_color, active_crystal_theme, active_atmosphere_filter, active_app_theme').eq('user_id', user.id).maybeSingle(),
                         supabase.from('ai_sessions').select('*, shards(title)').eq('user_id', user.id).order('created_at', { ascending: false }),
                         supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
                         supabase.from('crystal_growth').select('*').eq('user_id', user.id).maybeSingle(),
@@ -1225,14 +1224,26 @@ export const useStudyStore = create<StudyState>()(
                     const wardrobe = wardrobeResponse.data;
                     if (wardrobe) {
                         const appTheme = wardrobe.active_app_theme || 'deep-teal';
+                        
+                        // Robustly handle accessories (ensure it's always an array)
+                        let rawAccessories = wardrobe.active_accessories;
+                        if (typeof rawAccessories === 'string') {
+                            try {
+                                rawAccessories = JSON.parse(rawAccessories);
+                            } catch (e) {
+                                rawAccessories = [];
+                            }
+                        }
+                        const finalAccessories = Array.isArray(rawAccessories) ? rawAccessories : [];
+
                         set({
-                            activeAccessories: wardrobe.active_accessories || [],
+                            activeAccessories: finalAccessories,
                             activeCrystalTheme: wardrobe.active_crystal_theme || 'quartz',
                             activeAtmosphereFilter: wardrobe.active_atmosphere_filter || 'default',
-                            activeAppTheme: appTheme,
-                            useChumAvatar: wardrobe.use_chum_avatar ?? true,
                             activeBaseColor: wardrobe.active_chum_base_color || 'base7',
+                            activeAppTheme: appTheme,
                         });
+
                         if (typeof document !== 'undefined') document.documentElement.setAttribute("data-theme", appTheme);
                         if (typeof localStorage !== 'undefined') localStorage.setItem("appTheme", appTheme);
 
@@ -1242,6 +1253,11 @@ export const useStudyStore = create<StudyState>()(
                             tickEnabled: state.playTickEnabled,
                             chimeEnabled: state.playChimeEnabled
                         });
+                    } else {
+                        // Default values if no wardrobe found
+                        const defaultTheme = 'deep-teal';
+                        set({ activeAppTheme: defaultTheme });
+                        if (typeof document !== 'undefined') document.documentElement.setAttribute("data-theme", defaultTheme);
                     }
 
                     if (tasksResponse.data?.length === 0 && shardsResponse.data?.length === 0) {

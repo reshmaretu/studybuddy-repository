@@ -54,7 +54,7 @@ interface RawProfile {
     is_verified?: boolean;
     joined_room_code?: string | null;
     user_stats?: { total_seconds_tracked?: number; focus_score?: number } | null;
-    chum_wardrobe?: { base_emoji?: string | null; hat_emoji?: string | null; active_accessories?: WardrobeAccessory[]; active_chum_base_color?: string | null } | null;
+    chum_wardrobe?: { active_accessories?: WardrobeAccessory[]; active_chum_base_color?: string | null } | null;
 }
 
 interface RawRoom {
@@ -121,7 +121,7 @@ const formatUser = (p: RawProfile, rooms: RawRoom[], currentUserId: string | nul
         roomDescription: (relevantRoom?.description && relevantRoom.description !== "undefined") ? relevantRoom.description : undefined,
         roomMode: relevantRoom?.mode,
         isPremium: p.is_premium || false,
-        chumLabel: wardrobe ? `${wardrobe.base_emoji || "👻"}${wardrobe.hat_emoji || ""}` : "Chum",
+        chumLabel: "Chum",
         gridX,
         gridY,
         gridZ,
@@ -131,7 +131,7 @@ const formatUser = (p: RawProfile, rooms: RawRoom[], currentUserId: string | nul
         avatarUrl: p.avatar_url || undefined,
         activeBaseColor: isMe ? undefined : (wardrobe?.active_chum_base_color || 'base7'),
         activeAccessories: isMe ? undefined : finalAccessories,
-        useChumAvatar: wardrobe?.use_chum_avatar !== false
+        useChumAvatar: true
     };
 };
 
@@ -224,7 +224,7 @@ export default function LanternNetPage() {
                     supabase.from('profiles').select('id, display_name, full_name, status, is_in_flowstate, active_session_type, is_premium, avatar_url, is_verified'),
                     supabase.from('rooms').select('*'),
                     supabase.from('user_stats').select('user_id, focus_score, total_seconds_tracked'),
-                    supabase.from('chum_wardrobe').select('user_id, active_accessories, active_chum_base_color, base_emoji, hat_emoji, use_chum_avatar'),
+                    supabase.from('chum_wardrobe').select('user_id, active_accessories, active_chum_base_color'),
                 ]);
 
                 const [profilesRes, roomsRes, statsRes, wardrobeRes] = results;
