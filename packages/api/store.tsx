@@ -1063,7 +1063,8 @@ export const useStudyStore = create<StudyState>()(
                                 id: t.id, title: t.title, description: t.description,
                                 load: t.load, deadline: t.deadline, isCompleted: t.is_completed, isPinned: t.is_pinned,
                                 urgency: t.urgency, importance: t.importance, isFrog: t.is_frog,
-                                eisenhowerQuadrant: t.eisenhower_quadrant, ivyRank: t.ivy_rank
+                                eisenhowerQuadrant: t.eisenhower_quadrant, ivyRank: t.ivy_rank,
+                                completedAt: t.completed_at
                             }))
                         });
                     }
@@ -1214,7 +1215,8 @@ export const useStudyStore = create<StudyState>()(
                                             id: t.id, title: t.title, description: t.description,
                                             load: t.load, deadline: t.deadline, isCompleted: t.is_completed, isPinned: t.is_pinned,
                                             urgency: t.urgency, importance: t.importance, isFrog: t.is_frog,
-                                            eisenhowerQuadrant: t.eisenhower_quadrant, ivyRank: t.ivy_rank
+                                            eisenhowerQuadrant: t.eisenhower_quadrant, ivyRank: t.ivy_rank,
+                                            completedAt: t.completed_at
                                         }))
                                     });
                                 }
