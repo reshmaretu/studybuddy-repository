@@ -58,18 +58,16 @@ export const SyntheticFeed = () => {
       }, (payload) => {
         const updated = payload.new as any;
         
-        // 1. Update the reaction count in the local state immediately
+        // 1. Update the store to keep everything in sync
         useStudyStore.setState((state) => ({
           broadcasts: state.broadcasts.map(b => 
             b.id === updated.id ? { ...b, reactions_count: updated.reactions_count } : b
           )
         }));
 
-        // 2. If someone sparked ME, show the burst!
+        // 2. Trigger burst if it's our broadcast and count increased
         if (currentUserId && updated.user_id === currentUserId) {
-          if (updated.reactions_count > 0) {
-             setSparkBurst({ id: updated.id, name: 'Someone' });
-          }
+          setSparkBurst({ id: updated.id, name: 'Someone' });
         }
       })
       .subscribe();

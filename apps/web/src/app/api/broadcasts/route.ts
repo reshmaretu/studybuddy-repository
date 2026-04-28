@@ -46,21 +46,11 @@ export async function PATCH(req: NextRequest) {
     const { broadcastId } = await req.json();
     if (!broadcastId) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-    const { data: current } = await supabase
-      .from('synthetic_logs')
-      .select('reactions_count')
-      .eq('id', broadcastId)
-      .single();
-
-    const { data, error } = await supabase
-      .from('synthetic_logs')
-      .update({ reactions_count: (current?.reactions_count || 0) + 1 })
-      .eq('id', broadcastId)
-      .select()
-      .single();
+    // Use the RPC function for atomic, secure increment
+    const { error } = await supabase.rpc('spark_broadcast', { log_id: broadcastId });
 
     if (error) throw error;
-    return NextResponse.json(data, { status: 200 });
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error('Spark error:', error);
     return NextResponse.json({ error: 'Failed to spark' }, { status: 500 });
