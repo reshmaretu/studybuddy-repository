@@ -57,7 +57,7 @@ export const usePersistentUserData = (userId: string | undefined) => {
       activeAtmosphereFilter: activeAtmosphereFilter || "default",
       activeAccessories: activeAccessories || [],
       activeAppTheme: activeAppTheme || "deep-teal",
-      activeBaseColor: activeBaseColor || "base14",
+      activeBaseColor: activeBaseColor || "base7",
     });
 
     // Save tasks

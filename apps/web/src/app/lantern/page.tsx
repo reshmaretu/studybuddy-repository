@@ -119,7 +119,7 @@ const formatUser = (p: RawProfile, rooms: RawRoom[], currentUserId: string | nul
         jitterZ: isMe ? 0 : (getStableRandom(p.id, "jitterZ") - 0.5) * 45,
         avatarUrl: p.avatar_url || undefined,
         activeBaseColor: isMe ? undefined : (wardrobe?.active_chum_base_color || 'base7'),
-        activeAccessories: wardrobe?.active_accessories || [],
+        activeAccessories: isMe ? undefined : (wardrobe?.active_accessories || []),
         useChumAvatar: wardrobe?.use_chum_avatar !== false
     };
 };

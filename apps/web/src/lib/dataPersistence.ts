@@ -114,7 +114,7 @@ export const saveChumWardrobe = (userId: string, wardrobe: Partial<StoredChumWar
       activeCrystalTheme: wardrobe.activeCrystalTheme || existing.activeCrystalTheme || "default",
       activeAtmosphereFilter: wardrobe.activeAtmosphereFilter || existing.activeAtmosphereFilter || "default",
       activeAppTheme: wardrobe.activeAppTheme || existing.activeAppTheme || "deep-teal",
-      activeBaseColor: wardrobe.activeBaseColor || existing.activeBaseColor || "base14",
+      activeBaseColor: wardrobe.activeBaseColor || existing.activeBaseColor || "base7",
       timestamp: Date.now(),
     };
     localStorage.setItem(`${STORAGE_KEYS.CHUM_WARDROBE}_${userId}`, JSON.stringify(updated));

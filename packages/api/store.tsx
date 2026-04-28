@@ -299,7 +299,7 @@ export interface StudyState {
 export const useStudyStore = create<StudyState>()(
     persist(
         (set, get) => ({
-            activeBaseColor: 'base14', // Default is Mint!
+            activeBaseColor: 'base7', // Default is Aqua Glass!
             setActiveBaseColor: async (activeBaseColor) => {
                 set({ activeBaseColor });
                 await get().syncWardrobe();

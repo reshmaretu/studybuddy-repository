@@ -87,7 +87,7 @@ export const CanvasPresenceSidebar: React.FC<CanvasPresenceSidebarProps> = ({
       if (status !== "SUBSCRIBED") return;
       await channel.track({
         name: userName,
-        chumBaseColor: activeBaseColor || "base14",
+        chumBaseColor: activeBaseColor || "base7",
         chumAccessories: activeAccessories || [],
         useChumAvatar: useChumAvatar !== false,
       });
