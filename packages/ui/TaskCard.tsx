@@ -128,9 +128,11 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                     <button onClick={() => { openViewModal(task.id); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold hover:bg-(--bg-dark) flex items-center gap-2 border-b border-(--border-color)">
                         <Eye size={12} className="text-(--accent-teal)" /> Details
                     </button>
-                    <button onClick={() => { openEditModal(task.id); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold hover:bg-(--bg-dark) flex items-center gap-2 border-b border-(--border-color)">
-                        <Edit2 size={12} className="text-(--accent-teal)" /> Edit Record
-                    </button>
+                    {!task.isCompleted && (
+                        <button onClick={() => { openEditModal(task.id); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold hover:bg-(--bg-dark) flex items-center gap-2 border-b border-(--border-color)">
+                            <Edit2 size={12} className="text-(--accent-teal)" /> Edit Record
+                        </button>
+                    )}
                     <button 
                         onClick={() => { 
                             playTick();
@@ -142,18 +144,20 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                         <Pin size={12} className={task.isPinned ? 'text-teal-400' : 'text-(--text-muted)'} /> 
                         {task.isPinned ? 'Unpin' : 'Pin to Top'}
                     </button>
-                    <button 
-                        onClick={() => { 
-                            playTick();
-                            updateTask(task.id, { isFrog: !task.isFrog }); 
-                            setShowMenu(false); 
-                            triggerChumToast(task.isFrog ? "Frog released back into the wild." : "FROG CAPTURED. Tackle this first!", "info");
-                        }} 
-                        className={`w-full px-3 py-2 text-xs font-bold flex items-center gap-2 border-b border-(--border-color) ${task.isFrog ? 'text-orange-400 bg-orange-400/5' : 'hover:bg-(--bg-dark)'}`}
-                    >
-                        <Flame size={12} className={task.isFrog ? 'text-orange-400' : 'text-(--text-muted)'} /> 
-                        {task.isFrog ? 'Unmark Frog' : 'Mark as Frog'}
-                    </button>
+                    {!task.isCompleted && (
+                        <button 
+                            onClick={() => { 
+                                playTick();
+                                updateTask(task.id, { isFrog: !task.isFrog }); 
+                                setShowMenu(false); 
+                                triggerChumToast(task.isFrog ? "Frog released back into the wild." : "FROG CAPTURED. Tackle this first!", "info");
+                            }} 
+                            className={`w-full px-3 py-2 text-xs font-bold flex items-center gap-2 border-b border-(--border-color) ${task.isFrog ? 'text-orange-400 bg-orange-400/5' : 'hover:bg-(--bg-dark)'}`}
+                        >
+                            <Flame size={12} className={task.isFrog ? 'text-orange-400' : 'text-(--text-muted)'} /> 
+                            {task.isFrog ? 'Unmark Frog' : 'Mark as Frog'}
+                        </button>
+                    )}
                     <button onClick={() => { setShowDeleteModal(true); setShowMenu(false); }} className="w-full px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-400/10 flex items-center gap-2">
                         <Trash2 size={12} /> Release
                     </button>
@@ -279,7 +283,9 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                         {task.isCompleted && task.completedAt && (
                             <div className="flex items-center gap-1.5 text-teal-500/60">
                                 <Check size={10} />
-                                <span className="text-[9px] font-black tracking-widest uppercase">Archived</span>
+                                <span className="text-[9px] font-black tracking-widest uppercase">
+                                    Completed {new Date(task.completedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                </span>
                             </div>
                         )}
                     </div>

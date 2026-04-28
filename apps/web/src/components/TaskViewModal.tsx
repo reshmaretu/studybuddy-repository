@@ -54,6 +54,11 @@ export default function TaskViewModal() {
                                         <Clock size={14} /> Due: {task.deadline ? new Date(task.deadline).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'No deadline'}
                                     </div>
                                 )}
+                                {task.isCompleted && task.completedAt && (
+                                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-teal-500 mt-3">
+                                        <Check size={14} /> Completed: {new Date(task.completedAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="bg-[var(--bg-dark)] border border-[var(--border-color)] rounded-3xl p-6 min-h-[120px] shadow-inner">
@@ -68,15 +73,17 @@ export default function TaskViewModal() {
                         </div>
 
                         <div className="p-6 border-t border-[var(--border-color)] bg-[var(--bg-sidebar)]/30 flex justify-end">
-                            <SquishyButton 
-                                onClick={() => { 
-                                    closeViewModal(); 
-                                    openEditModal(task.id); 
-                                }} 
-                                className="px-8 py-3 rounded-2xl bg-[var(--accent-teal)] text-[#0b1211] font-black uppercase tracking-widest text-xs transition-all shadow-[0_4px_15px_rgba(45,212,191,0.2)] flex items-center gap-3"
-                            >
-                                <Edit2 size={14} /> Edit Task
-                            </SquishyButton>
+                            {!task.isCompleted && (
+                                <SquishyButton 
+                                    onClick={() => { 
+                                        closeViewModal(); 
+                                        openEditModal(task.id); 
+                                    }} 
+                                    className="px-8 py-3 rounded-2xl bg-[var(--accent-teal)] text-[#0b1211] font-black uppercase tracking-widest text-xs transition-all shadow-[0_4px_15px_rgba(45,212,191,0.2)] flex items-center gap-3"
+                                >
+                                    <Edit2 size={14} /> Edit Task
+                                </SquishyButton>
+                            )}
                         </div>
                     </motion.div>
                 </div>

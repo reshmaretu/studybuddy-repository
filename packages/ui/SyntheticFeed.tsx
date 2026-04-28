@@ -5,6 +5,8 @@ import { supabase, useStudyStore } from '@studybuddy/api';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageCircle, Radio, Sparkles, Target, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { playTick, useStudySettings } from '@studybuddy/api';
+import { SquishyButton } from './SquishyButton';
 
 export const SyntheticFeed = () => {
   const { broadcasts, fetchBroadcasts, triggerChumToast, sparkBroadcast, setSparkBurst } = useStudyStore();
@@ -13,6 +15,7 @@ export const SyntheticFeed = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [sparkedIds, setSparkedIds] = useState<Set<string>>(new Set());
   const [cooldownUntil, setCooldownUntil] = useState(0);
+  const { preferences } = useStudySettings();
 
   useEffect(() => {
     const loadBroadcasts = async () => {
@@ -86,6 +89,10 @@ export const SyntheticFeed = () => {
 
     setSparkedIds((prev) => new Set(prev).add(id));
     setCooldownUntil(now + 2000);
+    
+    if (preferences.tickSounds) {
+      playTick();
+    }
     
     sparkBroadcast(id); // Persist to network!
     const safeName = name?.trim() || 'that user';
@@ -205,8 +212,8 @@ export const SyntheticFeed = () => {
                     )}
                   </div>
                 </div>
-                <button
-                  type="button"
+                {!isSelf && (
+                <SquishyButton
                   disabled={sparkDisabled}
                   onClick={(e) => handleSpark(displayName, broadcast.id, e)}
                   className={`absolute right-4 bottom-4 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border transition-colors ${
@@ -214,10 +221,11 @@ export const SyntheticFeed = () => {
                       ? 'border-[var(--border-color)] text-[var(--text-muted)]/60 cursor-not-allowed'
                       : 'border-[var(--accent-teal)]/30 text-[var(--accent-teal)] hover:bg-[var(--accent-teal)] hover:text-[#0b1211]'
                   }`}
-                  title={isSelf ? "You can't spark your own feed." : isSparked ? 'Already sparked.' : isCoolingDown ? 'Cooling down...' : 'Spark this broadcast'}
+                  title={isSparked ? 'Already sparked.' : isCoolingDown ? 'Cooling down...' : 'Spark this broadcast'}
                 >
                   <Sparkles size={12} /> Spark
-                </button>
+                </SquishyButton>
+                )}
               </div>
             );
             })}
