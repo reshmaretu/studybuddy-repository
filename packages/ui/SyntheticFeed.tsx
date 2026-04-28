@@ -4,15 +4,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { supabase, useStudyStore } from '@studybuddy/api';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageCircle, Radio, Sparkles, Target, Heart } from 'lucide-react';
-import * as THREE from 'three';
-import confetti from 'canvas-confetti';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const SyntheticFeed = () => {
   const { broadcasts, fetchBroadcasts, triggerChumToast, sparkBroadcast } = useStudyStore();
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [sparkBurst, setSparkBurst] = useState<{ id: string; name: string } | null>(null);
-  const sparkCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [sparkedIds, setSparkedIds] = useState<Set<string>>(new Set());
   const [cooldownUntil, setCooldownUntil] = useState(0);
@@ -78,137 +76,19 @@ export const SyntheticFeed = () => {
     if (now < cooldownUntil) return;
     if (sparkedIds.has(id)) return;
 
-    // Neural spark confetti!
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = (rect.left + rect.width / 2) / window.innerWidth;
-    const y = (rect.top + rect.height / 2) / window.innerHeight;
-
-    confetti({
-        particleCount: 50,
-        spread: 80,
-        origin: { x, y },
-        colors: ['#2dd4bf', '#facc15', '#fb7185', '#8b5cf6'],
-        zIndex: 100000,
-        scalar: 0.8
-    });
     setSparkedIds((prev) => new Set(prev).add(id));
     setCooldownUntil(now + 2000);
-    setSparkBurst({ id, name });
+    
     sparkBroadcast(id); // Persist to network!
     const safeName = name?.trim() || 'that user';
     triggerChumToast?.(`You sparked ${safeName}'s feed`, 'success');
   };
 
+  // Legacy Three.js effect removed for Framer Motion replacement
   useEffect(() => {
     if (!sparkBurst) return;
-    const timer = setTimeout(() => setSparkBurst(null), 1200);
+    const timer = setTimeout(() => setSparkBurst(null), 2500);
     return () => clearTimeout(timer);
-  }, [sparkBurst]);
-
-  useEffect(() => {
-    if (!sparkBurst) return;
-    const canvas = sparkCanvasRef.current;
-    if (!canvas) return;
-
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(window.innerWidth, window.innerHeight, false);
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 140;
-
-    const starCanvas = document.createElement('canvas');
-    starCanvas.width = 64;
-    starCanvas.height = 64;
-    const ctx = starCanvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, 64, 64);
-    ctx.translate(32, 32);
-    ctx.strokeStyle = 'rgba(255,255,255,1)';
-    ctx.lineWidth = 3;
-    ctx.shadowColor = 'rgba(255,255,255,0.9)';
-    ctx.shadowBlur = 14;
-    ctx.beginPath();
-    const spikes = 4;
-    const outer = 18;
-    const inner = 6;
-    for (let i = 0; i < spikes * 2; i += 1) {
-      const radius = i % 2 === 0 ? outer : inner;
-      const angle = (Math.PI / spikes) * i;
-      ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
-    }
-    ctx.closePath();
-    ctx.stroke();
-
-    const starTexture = new THREE.CanvasTexture(starCanvas);
-    const particles = 200;
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(particles * 3);
-    const velocities = new Float32Array(particles * 3);
-
-    for (let i = 0; i < particles; i += 1) {
-      const idx = i * 3;
-      positions[idx] = (Math.random() - 0.5) * 220;
-      positions[idx + 1] = (Math.random() - 0.5) * 180;
-      positions[idx + 2] = (Math.random() - 0.5) * 40;
-      velocities[idx] = (Math.random() - 0.5) * 0.6;
-      velocities[idx + 1] = Math.random() * 0.9 + 0.2;
-      velocities[idx + 2] = (Math.random() - 0.5) * 0.4;
-    }
-
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-    const material = new THREE.PointsMaterial({
-      size: 8,
-      map: starTexture,
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      color: 0xffffff,
-      opacity: 1
-    });
-
-    const points = new THREE.Points(geometry, material);
-    scene.add(points);
-
-    const start = performance.now();
-    let frame = 0;
-
-    const animate = () => {
-      const now = performance.now();
-      const elapsed = now - start;
-      const t = Math.min(1, elapsed / 1100);
-
-      for (let i = 0; i < particles; i += 1) {
-        const idx = i * 3;
-        positions[idx] += velocities[idx];
-        positions[idx + 1] += velocities[idx + 1];
-        positions[idx + 2] += velocities[idx + 2];
-      }
-
-      geometry.attributes.position.needsUpdate = true;
-      material.opacity = 1 - t;
-      material.size = 8 + t * 6;
-
-      renderer.render(scene, camera);
-      frame = requestAnimationFrame(animate);
-
-      if (t >= 1) {
-        cancelAnimationFrame(frame);
-      }
-    };
-
-    frame = requestAnimationFrame(animate);
-
-    return () => {
-      cancelAnimationFrame(frame);
-      geometry.dispose();
-      material.dispose();
-      starTexture.dispose();
-      renderer.dispose();
-    };
   }, [sparkBurst]);
 
   if (loading) {
@@ -222,25 +102,61 @@ export const SyntheticFeed = () => {
 
   return (
     <div className="w-full space-y-4">
-      <style>{`
-        @keyframes spark-burst {
-          0% { opacity: 0; transform: scale(0.6); }
-          30% { opacity: 1; transform: scale(1); }
-          100% { opacity: 0; transform: scale(1.35); }
-        }
-      `}</style>
-      {sparkBurst && (
-        <div className="fixed inset-0 z-[9999] pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(45,212,191,0.28),transparent_55%)]" style={{ animation: 'spark-burst 1.2s ease-out' }} />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(250,204,21,0.45),transparent_50%)]" style={{ animation: 'spark-burst 1.2s ease-out' }} />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_60%,rgba(14,165,233,0.45),transparent_55%)]" style={{ animation: 'spark-burst 1.2s ease-out' }} />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_60%_30%,rgba(251,113,133,0.35),transparent_55%)]" style={{ animation: 'spark-burst 1.2s ease-out' }} />
-          <div className="absolute inset-0" style={{ mixBlendMode: 'screen' }}>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.25),transparent_60%)]" style={{ animation: 'spark-burst 1.2s ease-out' }} />
+      <AnimatePresence>
+        {sparkBurst && (
+        <div className="fixed inset-0 z-[200000] pointer-events-none flex items-center justify-center overflow-hidden">
+          {/* Subtle Golden Glow */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.4, 0] }}
+            transition={{ duration: 2.5 }}
+            className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.15),transparent_70%)]" 
+          />
+          
+          <div className="relative">
+            {/* Spark Text / Announcement */}
+            <motion.div
+              initial={{ y: 20, opacity: 0, scale: 0.8 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: -20, opacity: 0, scale: 1.1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="bg-[var(--bg-card)]/80 backdrop-blur-2xl border-2 border-[var(--accent-yellow)] px-8 py-4 rounded-full shadow-[0_0_50px_rgba(250,204,21,0.2)] flex items-center gap-3 z-10"
+            >
+              <div className="w-8 h-8 bg-[var(--accent-yellow)] rounded-full flex items-center justify-center text-black">
+                <Sparkles size={18} fill="currentColor" />
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-[var(--accent-yellow)]">Spark Received!</p>
+                <p className="text-[10px] font-bold text-[var(--text-main)]">Someone ignited your feed</p>
+              </div>
+            </motion.div>
+
+            {/* Yellow Premium Particles */}
+            {Array.from({ length: 8 }).map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ x: 0, y: 0, opacity: 0, scale: 0 }}
+                animate={{ 
+                  x: (Math.random() - 0.5) * 400, 
+                  y: (Math.random() - 0.5) * 400,
+                  opacity: [0, 1, 0],
+                  scale: [0, 1.2, 0.5],
+                  rotate: Math.random() * 360
+                }}
+                transition={{ 
+                  duration: 2, 
+                  delay: i * 0.1,
+                  ease: "easeOut"
+                }}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+              >
+                <Sparkles size={24} className="text-[var(--accent-yellow)]" fill="currentColor" />
+              </motion.div>
+            ))}
           </div>
-          <canvas ref={sparkCanvasRef} className="absolute inset-0 w-full h-full" />
         </div>
       )}
+      </AnimatePresence>
       <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
         <Radio size={14} className="text-[var(--accent-yellow)]" /> Network Updates
       </h3>
