@@ -139,6 +139,8 @@ export interface StudyState {
     level: number;
     lastLevelUp: number | null;
     lastXpGain: number | null;
+    sparkBurst: { id: string; name: string } | null;
+    setSparkBurst: (burst: { id: string; name: string } | null) => void;
     modifyFocusScore: (amount: number) => Promise<void>;
     gainXp: (amount: number) => Promise<void>;
     completeStudySession: () => Promise<void>;
@@ -717,6 +719,9 @@ export const useStudyStore = create<StudyState>()(
 
             xp: 0,
             level: 1,
+
+            sparkBurst: null,
+            setSparkBurst: (burst) => set({ sparkBurst: burst }),
 
             modifyFocusScore: async (amount) => {
                 const { data: { user } } = await supabase.auth.getUser();

@@ -2,16 +2,17 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useStudyStore } from "@/store/useStudyStore";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 export default function PresenceSync() {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { activeMode, isTutorModeActive } = useStudyStore();
     const userIdRef = useRef<string | null>(null);
     const channelRef = useRef<import('@supabase/supabase-js').RealtimeChannel | null>(null);
 
-    const isInRoom = pathname.startsWith('/room/');
-    // 🛑 EMBARGO: If any of these are active, this component stays SILENT
+    const isInRoom = pathname.startsWith('/room/') || (pathname.startsWith('/canvas') && !!searchParams.get('room'));
+    // 🛑 EMBARGO: If any of these are active, we hide the burst
     const isSpecialMode = isInRoom || activeMode === 'flowState' || activeMode === 'studyCafe';
 
     // ⚡ Match exactly with LanternNetwork STATUS_CONFIG
@@ -65,8 +66,8 @@ export default function PresenceSync() {
     }, [isSpecialMode, isReady]);
 
     useEffect(() => {
-        // 🛑 EMBARGO: If in room/mode or not ready, stay silent
-        if (!isReady || !userIdRef.current || isSpecialMode) return;
+        // 🛑 EMBARGO: If not ready, stay silent
+        if (!isReady || !userIdRef.current) return;
 
         // 1. Initialize Global Realtime Channel
         const channel = supabase.channel('global-presence');
@@ -102,9 +103,29 @@ export default function PresenceSync() {
             }
         }, 30000);
 
+        // 4. Global Spark Listener
+        const sparkChannel = supabase
+            .channel('global-sparks')
+            .on('postgres_changes', { 
+                event: 'UPDATE', 
+                schema: 'public', 
+                table: 'synthetic_logs' 
+            }, (payload) => {
+                const updated = payload.new as any;
+                if (userIdRef.current && updated.user_id === userIdRef.current && updated.reactions_count > 0) {
+                    // Only show burst if NOT in special mode
+                    // The feed itself will update the counts in the background
+                    if (!isSpecialMode) {
+                        useStudyStore.getState().setSparkBurst({ id: updated.id, name: 'Someone' });
+                    }
+                }
+            })
+            .subscribe();
+
         return () => {
             clearInterval(heartbeat);
             supabase.removeChannel(channel);
+            supabase.removeChannel(sparkChannel);
             channelRef.current = null;
         };
     }, [currentStatus, isSpecialMode, isReady]); // ⚡ ADDED isReady to ensure ID availability

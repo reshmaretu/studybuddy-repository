@@ -21,6 +21,7 @@ import BrainResetModal from "./BrainResetModal";
 import TutorialIntro from "./TutorialIntro";
 import PremiumModal from "./PremiumModal";
 import UnDoneModal from "./UnDoneModal";
+import { SparkBurstOverlay } from "./SparkBurstOverlay";
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -132,6 +133,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                 {isInitialized && <TutorialIntro />}
                 <DevOverlay />
                 <PremiumModal />
+                <SparkBurstOverlay />
             </div>
         </div>
     );
