@@ -225,7 +225,7 @@ export default function WardrobePage() {
                                 {isGamified ? "Chum Base Color" : "Chum Base Color"}
                             </label>
                             <SquishyButton
-                                onClick={() => setActiveBaseColor('base14')}
+                                onClick={() => setActiveBaseColor('base7')}
                                 className="text-[9px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest bg-black/20 px-2 py-1 rounded transition-colors"
                             >
                                 Reset to Default

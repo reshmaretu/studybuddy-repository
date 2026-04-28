@@ -350,7 +350,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
                 <directionalLight position={[0, 0, 50]} intensity={2} color="#ffffff" />
 
                 <GlobalPulse key={users.length} />
-                {is3D && <ShootingStars />}
+                <ShootingStars is3D={is3D} />
 
                 <LanternConstellation users={users} currentUserId={currentUserId} is3D={is3D} onWarp={setWarpTarget} intensity={globalIntensity} positions={positions} pactLines={pactLines} pactNameByUser={pactNameByUser} getPos={getPos} />
 
@@ -388,7 +388,7 @@ const ThreeLanternNet = forwardRef<LanternNetHandle, {
 });
 
 
-function ShootingStars() {
+function ShootingStars({ is3D }: { is3D: boolean }) {
     const lines = useRef<THREE.Line[]>([]);
     const scene = useThree((state) => state.scene);
 
@@ -400,21 +400,29 @@ function ShootingStars() {
             new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 })
         ];
         
-        for (let i = 0; i < 12; i++) {
-            const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -30)]);
+        for (let i = 0; i < 20; i++) {
+            const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -40)]);
             const material = materials[i % materials.length];
             const line = new THREE.Line(geometry, material);
             
-            // Start way outside
-            line.position.set((Math.random() - 0.5) * 600, (Math.random() - 0.5) * 600, -300 - Math.random() * 300);
+            // Random start
+            line.position.set((Math.random() - 0.5) * 800, (Math.random() - 0.5) * 800, is3D ? -300 - Math.random() * 200 : 0);
             
-            // Random direction
-            const angleX = (Math.random() - 0.5) * Math.PI;
-            const angleY = (Math.random() - 0.5) * Math.PI;
-            line.rotation.set(angleX, angleY, 0);
+            if (is3D) {
+                const angleX = (Math.random() - 0.5) * Math.PI;
+                const angleY = (Math.random() - 0.5) * Math.PI;
+                line.rotation.set(angleX, angleY, 0);
+            } else {
+                // In 2D, rotate on Z to move on XY plane
+                line.rotation.set(Math.PI / 2, 0, (Math.random() - 0.5) * Math.PI * 2);
+            }
 
-            // Store custom speed in userData
-            line.userData = { speed: 120 + Math.random() * 180, active: Math.random() > 0.5, delay: Math.random() * 5 };
+            line.userData = { 
+                speed: 150 + Math.random() * 250, 
+                active: Math.random() > 0.5, 
+                delay: Math.random() * 5,
+                initialZ: line.position.z 
+            };
             
             scene.add(line);
             lines.current.push(line);
@@ -427,7 +435,7 @@ function ShootingStars() {
             });
             materials.forEach(m => m.dispose());
         };
-    }, [scene]);
+    }, [scene, is3D]);
 
     useFrame((state, delta) => {
         lines.current.forEach((line) => {
@@ -435,19 +443,31 @@ function ShootingStars() {
                 line.userData.delay -= delta;
                 if (line.userData.delay <= 0) {
                     line.userData.active = true;
-                    // Reset position
-                    line.position.set((Math.random() - 0.5) * 600, (Math.random() - 0.5) * 600, -300 - Math.random() * 300);
-                    const angleX = (Math.random() - 0.5) * Math.PI;
-                    const angleY = (Math.random() - 0.5) * Math.PI;
-                    line.rotation.set(angleX, angleY, 0);
-                    line.userData.speed = 180 + Math.random() * 250;
+                    // Reset position to be far away or off-screen
+                    if (is3D) {
+                        line.position.set((Math.random() - 0.5) * 800, (Math.random() - 0.5) * 800, -400 - Math.random() * 200);
+                        line.rotation.set((Math.random() - 0.5) * Math.PI, (Math.random() - 0.5) * Math.PI, 0);
+                    } else {
+                        const side = Math.floor(Math.random() * 4);
+                        let x = 0, y = 0;
+                        if (side === 0) { x = -400; y = (Math.random() - 0.5) * 800; }
+                        else if (side === 1) { x = 400; y = (Math.random() - 0.5) * 800; }
+                        else if (side === 2) { x = (Math.random() - 0.5) * 800; y = -400; }
+                        else { x = (Math.random() - 0.5) * 800; y = 400; }
+                        
+                        line.position.set(x, y, 0);
+                        line.rotation.set(Math.PI / 2, 0, Math.atan2((Math.random() - 0.5) * 800 - y, (Math.random() - 0.5) * 800 - x));
+                    }
+                    line.userData.speed = 200 + Math.random() * 300;
                 }
             } else {
                 line.translateZ(-line.userData.speed * delta);
-                // If it goes too far, reset
-                if (Math.abs(line.position.x) > 500 || Math.abs(line.position.y) > 500 || line.position.z > 300) {
+                
+                // Enhanced reset logic: check distance from origin or screen bounds
+                const dist = line.position.length();
+                if (dist > 1000) {
                     line.userData.active = false;
-                    line.userData.delay = 1 + Math.random() * 4;
+                    line.userData.delay = 0.5 + Math.random() * 3;
                 }
             }
         });

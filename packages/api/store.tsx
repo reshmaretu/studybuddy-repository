@@ -1231,10 +1231,17 @@ export const useStudyStore = create<StudyState>()(
                             activeAtmosphereFilter: wardrobe.active_atmosphere_filter || 'default',
                             activeAppTheme: appTheme,
                             useChumAvatar: wardrobe.use_chum_avatar ?? true,
-                            activeBaseColor: wardrobe.active_chum_base_color || 'base14',
+                            activeBaseColor: wardrobe.active_chum_base_color || 'base7',
                         });
                         if (typeof document !== 'undefined') document.documentElement.setAttribute("data-theme", appTheme);
                         if (typeof localStorage !== 'undefined') localStorage.setItem("appTheme", appTheme);
+
+                        // 🔊 SYNC SOUND CONFIG ON LOAD
+                        const state = get();
+                        setSoundConfig({
+                            tickEnabled: state.playTickEnabled,
+                            chimeEnabled: state.playChimeEnabled
+                        });
                     }
 
                     if (tasksResponse.data?.length === 0 && shardsResponse.data?.length === 0) {

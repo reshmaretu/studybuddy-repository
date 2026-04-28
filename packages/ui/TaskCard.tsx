@@ -25,7 +25,8 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
     const { 
         openFocusModal, deleteTask, updateTask, tasks, triggerChumToast, 
         openEditModal, openViewModal, completeTask, 
-        doubleClickToComplete = true, dndEnabled = true 
+        doubleClickToComplete = true, dndEnabled = true,
+        requireCompletionConfirmation = true
     } = useStudyStore();
     const { terms } = useTerms();
 
@@ -62,8 +63,39 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
 
     const handleDoubleClick = (e: React.MouseEvent) => {
         if (doubleClickToComplete && !task.isCompleted && !locked && !isAnimating) {
-            setShowCompletionConfirm(true);
+            if (requireCompletionConfirmation) {
+                setShowCompletionConfirm(true);
+            } else {
+                handleCompleteDirectly();
+            }
         }
+    };
+
+    const handleCompleteDirectly = () => {
+        setIsAnimating(true);
+        playChime();
+        
+        const rect = document.querySelector(`[data-task-id="${task.id}"]`) as HTMLElement;
+        if (rect) {
+            const bounds = rect.getBoundingClientRect();
+            const x = (bounds.left + bounds.width / 2) / window.innerWidth;
+            const y = (bounds.top + bounds.height / 2) / window.innerHeight;
+            confetti({
+                particleCount: 80,
+                spread: 100,
+                origin: { x, y },
+                colors: ['#2dd4bf', '#facc15', '#ff007f', '#8b5cf6'],
+                gravity: 1.2,
+                decay: 0.95,
+                zIndex: 100000
+            });
+        }
+        
+        triggerChumToast(task.isFrog ? "FROG DEVOURED. Momentum surge detected!" : "Quest completed!", "success");
+        
+        setTimeout(() => {
+            completeTask(task.id);
+        }, 800);
     };
 
     const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
@@ -83,7 +115,11 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                     {!task.isCompleted && (
                         <button onClick={(e) => { 
                             e.stopPropagation();
-                            setShowCompletionConfirm(true);
+                            if (requireCompletionConfirmation) {
+                                setShowCompletionConfirm(true);
+                            } else {
+                                handleCompleteDirectly();
+                            }
                             setShowMenu(false);
                         }} className="w-full px-3 py-2 text-xs font-bold text-(--text-main) hover:bg-(--accent-teal)/10 flex items-center gap-2 border-b border-(--border-color) active:scale-95 transition-transform">
                             <Check size={12} className="text-(--accent-teal)" /> {terms.completed}
@@ -142,7 +178,11 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
             {...attributes}
             onDoubleClick={() => {
                 if (doubleClickToComplete && !task.isCompleted && !locked && !isAnimating) {
-                    setShowCompletionConfirm(true);
+                    if (requireCompletionConfirmation) {
+                        setShowCompletionConfirm(true);
+                    } else {
+                        handleCompleteDirectly();
+                    }
                 }
             }}
             animate={(isAnimating || externalIsAnimating) ? {
@@ -266,30 +306,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
                 cancelText="Cancel"
                 onConfirm={() => {
                     setShowCompletionConfirm(false);
-                    setIsAnimating(true);
-                    playChime();
-                    
-                    const rect = document.querySelector(`[data-task-id="${task.id}"]`) as HTMLElement;
-                    if (rect) {
-                        const bounds = rect.getBoundingClientRect();
-                        const x = (bounds.left + bounds.width / 2) / window.innerWidth;
-                        const y = (bounds.top + bounds.height / 2) / window.innerHeight;
-                        confetti({
-                            particleCount: 80,
-                            spread: 100,
-                            origin: { x, y },
-                            colors: ['#2dd4bf', '#facc15', '#ff007f', '#8b5cf6'],
-                            gravity: 1.2,
-                            decay: 0.95,
-                            zIndex: 100000
-                        });
-                    }
-                    
-                    triggerChumToast(task.isFrog ? "FROG DEVOURED. Momentum surge detected!" : "Quest completed!", "success");
-                    
-                    setTimeout(() => {
-                        completeTask(task.id);
-                    }, 800);
+                    handleCompleteDirectly();
                 }}
                 onCancel={() => setShowCompletionConfirm(false)}
             />
