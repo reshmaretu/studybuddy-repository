@@ -5,8 +5,8 @@ import { supabase, useStudyStore } from '@studybuddy/api';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageCircle, Radio, Sparkles, Target, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { playTick } from '@studybuddy/api';
 import { SquishyButton } from './SquishyButton';
+import { playTick } from '@studybuddy/api';
 
 export const SyntheticFeed = () => {
   const { broadcasts, fetchBroadcasts, triggerChumToast, sparkBroadcast, setSparkBurst } = useStudyStore();

@@ -175,7 +175,7 @@ export const TaskCard = ({ task, isOverlay = false, locked = false, isMinimized 
             style={{ 
                 ...style, 
                 willChange: (isAnimating || externalIsAnimating || isDragging || isRecentlyCompleted) ? "transform, opacity, filter" : "auto",
-                zIndex: (isAnimating || externalIsAnimating) ? 900 : (isOverlay ? 100001 : (showMenu ? 50 : 10)),
+                zIndex: (isAnimating || externalIsAnimating) ? 9999 : (isOverlay ? 100001 : (showMenu || showCompletionConfirm ? 1001 : 10)),
                 pointerEvents: (isAnimating || externalIsAnimating) ? "none" : "auto"
             }} 
             {...listeners} 

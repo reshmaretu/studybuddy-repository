@@ -379,7 +379,7 @@ export default function Dashboard() {
 
     return (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className={`max-w-[1400px] mx-auto pb-24 md:pb-12 space-y-6 px-4 md:px-0 transition-all duration-500 ${confirmationModal.isOpen ? 'opacity-30 blur-sm pointer-events-none' : 'opacity-100 blur-0'}`}>
+            <div className={`max-w-[1400px] mx-auto pb-24 md:pb-12 space-y-6 px-4 md:px-0 transition-all duration-500 ${confirmationModal.isOpen ? 'opacity-30 blur-md pointer-events-none' : 'opacity-100 blur-0'}`}>
 
                 {/* HEADER */}
                 <header className="flex justify-between items-center gap-6 mb-4 pt-4 md:pt-0">
@@ -746,7 +746,7 @@ export default function Dashboard() {
                                 <span className="text-xs text-[var(--text-muted)] font-medium">Flow Hours</span>
                             </div>
                         </div>
-                        <div className={`flex flex-col items-center justify-center text-center py-6 transition-opacity duration-300 ${confirmationModal.isOpen ? 'opacity-0 invisible' : 'opacity-100'}`}>
+                        <div className={`flex flex-col items-center justify-center text-center py-6 transition-all duration-500 ${confirmationModal.isOpen ? 'opacity-20 blur-xl pointer-events-none' : 'opacity-100 blur-0'}`}>
                             {!isInitialized ? (
                                 <div className="flex flex-col items-center gap-2 animate-pulse w-full">
                                     <div className="w-6 h-6 rounded-full bg-[var(--border-color)]" />
@@ -781,6 +781,7 @@ export default function Dashboard() {
                         <SyntheticFeed />
                     </div>
                 </section>
+            </div>
 
                 {/* The Animated Drop Zone Toggle */}
                 <AnimatePresence>
@@ -819,7 +820,6 @@ export default function Dashboard() {
                     </div>
                     <p className="text-[9px] text-(--text-muted) opacity-50 uppercase tracking-[0.3em] font-black">Neural Link Established © 2026 StudyBuddy</p>
                 </footer>
-            </div>
         </DndContext>
     );
 }

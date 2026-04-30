@@ -49,13 +49,13 @@ export default function TaskViewModal() {
                         <div className="p-6 sm:p-8 space-y-6 overflow-y-auto max-h-[calc(90vh-120px)]">
                             <div>
                                 <h2 className="text-2xl font-black text-[var(--text-main)] leading-tight">{task.title}</h2>
-                                {task.deadline && (
+                                {task.deadline && !task.isCompleted && (
                                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[var(--accent-teal)] mt-3">
                                         <Clock size={14} /> Due: {task.deadline ? new Date(task.deadline).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'No deadline'}
                                     </div>
                                 )}
                                 {task.isCompleted && task.completedAt && (
-                                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-teal-500 mt-3">
+                                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[var(--accent-teal)] mt-3">
                                         <Check size={14} /> Completed: {new Date(task.completedAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                                     </div>
                                 )}
